@@ -74,7 +74,16 @@ def chat():
             "reply": "Bitte sagen Sie etwas."
         }), 400
 
-    answer = f"Nele hat erhalten: {user_message}"
+ message_lower = user_message.lower()
+
+if "wie geht" in message_lower:
+    answer = "Mir geht es gut, danke. Und wie geht es Ihnen?"
+elif "hallo" in message_lower or "guten tag" in message_lower:
+    answer = "Hallo! Schön, dass Sie da sind. Wie heißen Sie?"
+elif "wie heißt du" in message_lower:
+    answer = "Ich heiße Nele. Ich bin Ihre Deutschtrainerin."
+else:
+    answer = f"Sie haben gesagt: {user_message}"
 
     return jsonify({
         "reply": answer
