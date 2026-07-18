@@ -61,11 +61,18 @@ def emotion():
 def nod():
     avatar_state["nod"] = True
     return jsonify({"ok": True})
-@app.route("/chat", methods=["POST"])
+@app.route("/chat", methods=["POST", "OPTIONS"])
 def chat():
-    data = request.get_json()
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True})
 
-    user_message = data.get("message", "")
+    data = request.get_json(silent=True) or {}
+    user_message = data.get("message", "").strip()
+
+    if not user_message:
+        return jsonify({
+            "reply": "Bitte sagen Sie etwas."
+        }), 400
 
     answer = f"Nele hat erhalten: {user_message}"
 
