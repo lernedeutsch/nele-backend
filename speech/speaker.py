@@ -47,7 +47,39 @@ class Speaker:
             pass
         finally:
             self.send_mouth(0)
+ def create_wav(self, text, output_file):
+        """
+        Tworzy plik WAV z wypowiedzią Nele.
+        Nie odtwarza dźwięku i nie usuwa pliku.
+        Metoda jest przeznaczona dla endpointu /tts.
+        """
 
+        text = str(text).strip()
+
+        if not text:
+            raise ValueError("Text for speech cannot be empty.")
+
+        subprocess.run(
+            [
+                self.piper,
+                "--model",
+                self.model,
+                "--length_scale",
+                "1.05",
+                "--noise_scale",
+                "0.60",
+                "--noise_w",
+                "0.80",
+                "--output_file",
+                output_file,
+            ],
+            input=text,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+
+        return output_file
     def speak(self, text):
         print("Nele:", text)
 
