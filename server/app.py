@@ -1,9 +1,15 @@
 import os
+import tempfile
 
-from flask import Flask, jsonify, request
+from io import BytesIO
+from pathlib import Path
+from flask import Flask, jsonify, request, send_file
+
+from speech.speaker import Speaker
 
 
 app = Flask(__name__)
+speaker = Speaker()
 
 
 USE_OLLAMA = os.environ.get(
@@ -167,7 +173,61 @@ def chat():
         "reply": answer
     })
 
+@app.route("/tts", methods=["POST", "OPTIONS"])
+def tts():
+    if request.method == "OPTIONS":
+        return jsonify({
+            "ok": True
+        })
 
+    data = request.get_json(silent=True) or {}
+    text = str(data.get("text", "")).strip()
+
+    if not text:
+        return jsonify({
+            "error": "Bitte geben Sie einen Text ein."
+        }), 400
+
+    if len(text) > 1000:
+        return jsonify({
+            "error": "Der Text ist zu lang."
+        }), 400
+
+    temporary_file = tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".wav"
+    )
+
+    wav_path = temporary_file.name
+    temporary_file.close()
+
+    try:
+        speaker.create_wav(text, wav_path)
+
+        audio_data = Path(wav_path).read_bytes()
+
+        return send_file(
+            BytesIO(audio_data),
+            mimetype="audio/wav",
+            as_attachment=False,
+            download_name="nele.wav"
+        )
+
+    except FileNotFoundError:
+        return jsonify({
+            "error": "Piper oder das deutsche Sprachmodell wurde nicht gefunden."
+        }), 503
+
+    except Exception as error:
+        print(f"TTS error: {error}")
+
+        return jsonify({
+            "error": "Die Sprachausgabe konnte nicht erstellt werden."
+        }), 500
+
+    finally:
+        if os.path.exists(wav_path):
+            os.remove(wav_path)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
 
