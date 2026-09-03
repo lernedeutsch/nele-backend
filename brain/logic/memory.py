@@ -15,7 +15,8 @@ def create_empty_state():
     "name": None,
     "origin": None,
     "residence": None,
-    "current_topic": None
+    "current_topic": None,
+    "current_comparison": None
     }
 
 
