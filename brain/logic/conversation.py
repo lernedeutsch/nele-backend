@@ -14,6 +14,7 @@ from brain.logic.matcher import (
     capitalize_value,
     pattern_matches
 )
+from brain.logic.user_info import extract_user_information
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
