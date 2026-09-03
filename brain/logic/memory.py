@@ -18,6 +18,8 @@ def create_empty_state():
         "current_topic": None,
         "current_comparison": None,
         "current_expression": None
+        "last_example_expression": None,
+        "example_index": -1
     }
 
 
