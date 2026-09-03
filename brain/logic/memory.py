@@ -11,10 +11,11 @@ def create_empty_state():
     """
 
     return {
-        "last_question": None,
-        "name": None,
-        "origin": None,
-        "residence": None
+    "last_question": None,
+    "name": None,
+    "origin": None,
+    "residence": None,
+    "current_topic": None
     }
 
 
