@@ -15,7 +15,7 @@ from brain.logic.matcher import (
     pattern_matches
 )
 from brain.logic.user_info import extract_user_information
-
+from brain.logic.memory_answers import answer_from_memory
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
