@@ -15,39 +15,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # ==========================================
-# PAMIĘĆ WSZYSTKICH SESJI
-# ==========================================
-
-conversation_sessions = {}
-
-
-def create_empty_state():
-    return {
-        "last_question": None,
-        "name": None,
-        "origin": None,
-        "residence": None
-    }
-
-
-def get_conversation_state(
-    session_id="default"
-):
-
-    if not session_id:
-        session_id = "default"
-
-    if session_id not in conversation_sessions:
-        conversation_sessions[
-            session_id
-        ] = create_empty_state()
-
-    return conversation_sessions[
-        session_id
-    ]
-
-
-# ==========================================
 # ŁADOWANIE LEKCJI
 # ==========================================
 
