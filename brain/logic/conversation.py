@@ -400,52 +400,6 @@ def find_response(
     return answer
 
 
-# ==========================================
-# ODPOWIEDŹ KONTEKSTOWA
-# ==========================================
-
-def handle_context_answer(
-    user_message,
-    session_id="default"
-):
-
-    state = get_conversation_state(
-        session_id
-    )
-
-    last_question = state.get(
-        "last_question"
-    )
-
-    if not last_question:
-        return None
-
-
-    answer = clean_short_answer(
-        user_message
-    )
-
-    if not answer:
-        return None
-
-
-    normalized_answer = normalize(
-        answer
-    )
-
-
-    if (
-        normalized_answer.startswith("wie ")
-        or normalized_answer.startswith("was ")
-        or normalized_answer.startswith("wo ")
-        or normalized_answer.startswith("wer ")
-        or normalized_answer.startswith("wann ")
-        or normalized_answer.startswith("warum ")
-    ):
-
-        return None
-
-
     # ======================================
     # IMIĘ
     # ======================================
