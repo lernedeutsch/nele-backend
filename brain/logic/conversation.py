@@ -9,6 +9,13 @@ from brain.logic.memory import get_conversation_state
 from brain.logic.message_parser import (
     split_multiple_questions
 )
+from brain.logic.conversation_context import (
+    remember_current_topic,
+    remember_current_comparison,
+    handle_topic_follow_up,
+    handle_comparison_follow_up,
+    handle_other_expression
+)
 
 from brain.logic.matcher import (
     normalize,
