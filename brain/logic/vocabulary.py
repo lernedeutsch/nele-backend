@@ -50,6 +50,32 @@ def display_vocabulary_word(
 
 
 # ==========================================
+# WORT IM KONTEXT MERKEN
+# ==========================================
+
+def remember_vocabulary_word(
+    state,
+    word
+):
+
+    if state is None:
+        return
+
+    old_word = state.get(
+        "current_vocabulary_word"
+    )
+
+    if old_word != word:
+        state[
+            "vocabulary_example_index"
+        ] = -1
+
+    state[
+        "current_vocabulary_word"
+    ] = word
+
+
+# ==========================================
 # BEDEUTUNG – WORT ERKENNEN
 # ==========================================
 
@@ -122,16 +148,16 @@ def answer_vocabulary_question(
     if not meaning:
         return None
 
-    if state is not None:
-        state[
-            "current_vocabulary_word"
-        ] = word
+    remember_vocabulary_word(
+        state,
+        word
+    )
 
     return meaning
 
 
 # ==========================================
-# BEISPIEL
+# BEISPIEL – ANTWORT
 # ==========================================
 
 def answer_vocabulary_example(
@@ -153,7 +179,7 @@ def answer_vocabulary_example(
         user_message
     )
 
-    example_questions = [
+    first_example_questions = [
         "und ein beispiel",
         "und ein beispiel dafür",
         "ein beispiel",
@@ -166,7 +192,27 @@ def answer_vocabulary_example(
         "zeig mir ein beispiel dafür"
     ]
 
-    if message not in example_questions:
+    next_example_questions = [
+        "noch ein beispiel",
+        "und noch ein beispiel",
+        "gib mir noch ein beispiel",
+        "nenn mir noch ein beispiel",
+        "zeig mir noch ein beispiel",
+        "noch eins",
+        "und noch eins",
+        "noch eines",
+        "und noch eines"
+    ]
+
+    is_first_example = (
+        message in first_example_questions
+    )
+
+    is_next_example = (
+        message in next_example_questions
+    )
+
+    if not is_first_example and not is_next_example:
         return None
 
     vocabulary_entry = VOCABULARY.get(
@@ -176,14 +222,74 @@ def answer_vocabulary_example(
     if not vocabulary_entry:
         return None
 
-    example = vocabulary_entry.get(
-        "example"
+    examples = vocabulary_entry.get(
+        "examples"
     )
 
-    if not example:
+    # Alte Wörter unterstützen,
+    # die nur ein einzelnes Beispiel haben.
+    if not examples:
+
+        old_example = vocabulary_entry.get(
+            "example"
+        )
+
+        if not old_example:
+            return None
+
+        examples = [
+            old_example
+        ]
+
+    if not isinstance(
+        examples,
+        list
+    ):
+        examples = [
+            examples
+        ]
+
+    if not examples:
         return None
 
-    return example
+    if is_first_example:
+
+        example_index = 0
+
+    else:
+
+        old_index = state.get(
+            "vocabulary_example_index",
+            -1
+        )
+
+        example_index = (
+            old_index + 1
+        ) % len(
+            examples
+        )
+
+    state[
+        "vocabulary_example_index"
+    ] = example_index
+
+    example = examples[
+        example_index
+    ]
+
+    # Alte Einträge können bereits
+    # "Beispiel: ..." enthalten.
+    if isinstance(
+        example,
+        str
+    ) and example.lower().startswith(
+        "beispiel:"
+    ):
+        return example
+
+    return (
+        f"Beispiel: „{example}“"
+    )
 
 
 # ==========================================
@@ -314,10 +420,10 @@ def answer_vocabulary_usage(
     if not usage:
         return None
 
-    if state is not None:
-        state[
-            "current_vocabulary_word"
-        ] = word
+    remember_vocabulary_word(
+        state,
+        word
+    )
 
     return usage
 
@@ -373,7 +479,9 @@ def answer_similar_vocabulary_word(
     if not similar_words:
         return None
 
-    similar_word = similar_words[0]
+    similar_word = similar_words[
+        0
+    ]
 
     if similar_word not in VOCABULARY:
         return None
@@ -530,9 +638,10 @@ def answer_explicit_vocabulary_difference(
 
     if state is not None:
 
-        state[
-            "current_vocabulary_word"
-        ] = first
+        remember_vocabulary_word(
+            state,
+            first
+        )
 
         state[
             "current_vocabulary_related_word"
@@ -656,10 +765,10 @@ def answer_vocabulary_article(
     if not article:
         return None
 
-    if state is not None:
-        state[
-            "current_vocabulary_word"
-        ] = word
+    remember_vocabulary_word(
+        state,
+        word
+    )
 
     display_word = display_vocabulary_word(
         word
@@ -782,10 +891,10 @@ def answer_vocabulary_plural(
     if not plural:
         return None
 
-    if state is not None:
-        state[
-            "current_vocabulary_word"
-        ] = word
+    remember_vocabulary_word(
+        state,
+        word
+    )
 
     display_word = display_vocabulary_word(
         word
