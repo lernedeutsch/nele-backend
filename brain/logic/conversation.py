@@ -2,8 +2,6 @@
 # NELE – LOGIKA ROZMOWY Z PAMIĘCIĄ SESJI
 # ==========================================
 
-from brain.responses.corrections import find_correction
-
 from brain.logic.memory import get_conversation_state
 
 from brain.logic.message_parser import (
@@ -16,10 +14,8 @@ from brain.logic.conversation_context import (
     handle_topic_follow_up
 )
 
-from brain.logic.matcher import (
-    normalize,
-    clean_short_answer,
-    capitalize_value
+from brain.logic.correction_router import (
+    handle_correction
 )
 
 from brain.logic.user_info import (
@@ -136,79 +132,13 @@ def generate_conversation_reply(
     # 1. KOREKTA BŁĘDÓW
     # ======================================
 
-    correction = find_correction(
-        user_message
+    correction_answer = handle_correction(
+        user_message,
+        session_id
     )
 
-    if correction:
-
-        corrected = correction[
-            "correct"
-        ]
-
-        explanation = correction[
-            "explanation"
-        ]
-
-        corrected_clean = clean_short_answer(
-            corrected
-        )
-
-        corrected_normalized = normalize(
-            corrected_clean
-        )
-
-        if corrected_normalized.startswith(
-            "ich heiße "
-        ):
-
-            value = corrected_clean[
-                len("Ich heiße "):
-            ].strip()
-
-            value = capitalize_value(
-                value
-            )
-
-            corrected = (
-                f"Ich heiße {value}."
-            )
-
-        elif corrected_normalized.startswith(
-            "mein name ist "
-        ):
-
-            value = corrected_clean[
-                len("Mein Name ist "):
-            ].strip()
-
-            value = capitalize_value(
-                value
-            )
-
-            corrected = (
-                f"Mein Name ist {value}."
-            )
-
-        continuation = extract_user_information(
-            corrected,
-            session_id
-        )
-
-        if continuation:
-
-            return (
-                f"{explanation} "
-                f"Richtig ist: "
-                f"{corrected} "
-                f"{continuation}"
-            )
-
-        return (
-            f"{explanation} "
-            f"Richtig ist: "
-            f"{corrected}"
-        )
+    if correction_answer:
+        return correction_answer
 
 
     # ======================================
@@ -352,4 +282,4 @@ def generate_conversation_reply(
         "Ich habe dich verstanden, "
         "aber diese Antwort habe ich "
         "noch nicht gelernt."
-  )
+    )
