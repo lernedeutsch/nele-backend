@@ -22,16 +22,12 @@ from brain.logic.user_memory_router import (
     handle_user_memory
 )
 
+from brain.logic.alphabet_router import (
+    handle_alphabet
+)
+
 from brain.logic.context import (
     handle_context_answer
-)
-
-from brain.logic.alphabet import (
-    handle_alphabet_question
-)
-
-from brain.logic.lesson_loader import (
-    load_lesson_module
 )
 
 from brain.logic.response_engine import (
@@ -141,9 +137,8 @@ def generate_conversation_reply(
     # 2. ALFABET
     # ======================================
 
-    alphabet_answer = handle_alphabet_question(
+    alphabet_answer = handle_alphabet(
         user_message,
-        load_lesson_module,
         level,
         lesson
     )
