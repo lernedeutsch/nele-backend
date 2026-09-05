@@ -9,6 +9,9 @@ HOTEL_VOCABULARY = {
     # ======================================
 
     "zimmer": {
+        "article": "das",
+        "plural": "Zimmer",
+
         "meaning": (
             "Ein Zimmer ist ein Raum in einer Wohnung, "
             "einem Haus oder einem Hotel."
@@ -33,6 +36,9 @@ HOTEL_VOCABULARY = {
     # ======================================
 
     "reservierung": {
+        "article": "die",
+        "plural": "Reservierungen",
+
         "meaning": (
             "Eine Reservierung bedeutet, dass etwas "
             "vorher für dich gebucht oder freigehalten wurde. "
@@ -63,6 +69,9 @@ HOTEL_VOCABULARY = {
     # ======================================
 
     "buchung": {
+        "article": "die",
+        "plural": "Buchungen",
+
         "meaning": (
             "Eine Buchung bedeutet, dass man etwas "
             "reserviert oder bestellt, zum Beispiel "
@@ -91,6 +100,9 @@ HOTEL_VOCABULARY = {
     # ======================================
 
     "rezeption": {
+        "article": "die",
+        "plural": "Rezeptionen",
+
         "meaning": (
             "Die Rezeption ist der Bereich im Hotel, "
             "an dem Gäste empfangen und betreut werden."
