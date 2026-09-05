@@ -87,21 +87,37 @@ def extract_meaning_word(
         user_message
     )
 
-    patterns = [
+    # --------------------------------------
+    # Direkte Fragen
+    # --------------------------------------
+
+    direct_patterns = [
         "was bedeutet das wort ",
         "was heißt das wort ",
         "was heisst das wort ",
+        "was bedeutet eigentlich das wort ",
+        "was heißt eigentlich das wort ",
+        "was heisst eigentlich das wort ",
+        "was genau bedeutet das wort ",
+        "was genau heißt das wort ",
+        "was genau heisst das wort ",
+        "was bedeutet eigentlich ",
+        "was heißt eigentlich ",
+        "was heisst eigentlich ",
+        "was genau bedeutet ",
+        "was genau heißt ",
+        "was genau heisst ",
         "was bedeutet ",
         "was heißt ",
         "was heisst "
     ]
 
-    patterns.sort(
+    direct_patterns.sort(
         key=len,
         reverse=True
     )
 
-    for pattern in patterns:
+    for pattern in direct_patterns:
 
         if message.startswith(
             pattern
@@ -111,9 +127,111 @@ def extract_meaning_word(
                 len(pattern):
             ]
 
-            return clean_vocabulary_word(
+            word = clean_vocabulary_word(
                 word
             )
+
+            if word:
+                return word
+
+    # --------------------------------------
+    # "Kannst du mir ... erklären?"
+    # --------------------------------------
+
+    explanation_patterns = [
+        "kannst du mir das wort ",
+        "kannst du das wort ",
+        "kannst du mir ",
+        "kannst du "
+    ]
+
+    explanation_patterns.sort(
+        key=len,
+        reverse=True
+    )
+
+    for pattern in explanation_patterns:
+
+        if message.startswith(
+            pattern
+        ):
+
+            content = message[
+                len(pattern):
+            ].strip()
+
+            endings = [
+                " bitte erklären",
+                " bitte erklaeren",
+                " bitte erläutern",
+                " bitte erlaeutern",
+                " erklären",
+                " erklaeren",
+                " erläutern",
+                " erlaeutern"
+            ]
+
+            for ending in endings:
+
+                if content.endswith(
+                    ending
+                ):
+
+                    content = content[
+                        :-len(ending)
+                    ].strip()
+
+                    word = clean_vocabulary_word(
+                        content
+                    )
+
+                    if word:
+                        return word
+
+    # --------------------------------------
+    # "Erklär mir ..."
+    # --------------------------------------
+
+    command_patterns = [
+        "erkläre mir bitte das wort ",
+        "erklaere mir bitte das wort ",
+        "erklär mir bitte das wort ",
+        "erkläre mir das wort ",
+        "erklaere mir das wort ",
+        "erklär mir das wort ",
+        "erläutere mir das wort ",
+        "erlaeutere mir das wort ",
+        "erkläre mir bitte ",
+        "erklaere mir bitte ",
+        "erklär mir bitte ",
+        "erkläre mir ",
+        "erklaere mir ",
+        "erklär mir ",
+        "erläutere mir ",
+        "erlaeutere mir "
+    ]
+
+    command_patterns.sort(
+        key=len,
+        reverse=True
+    )
+
+    for pattern in command_patterns:
+
+        if message.startswith(
+            pattern
+        ):
+
+            word = message[
+                len(pattern):
+            ]
+
+            word = clean_vocabulary_word(
+                word
+            )
+
+            if word:
+                return word
 
     return None
 
@@ -226,8 +344,6 @@ def answer_vocabulary_example(
         "examples"
     )
 
-    # Alte Wörter unterstützen,
-    # die nur ein einzelnes Beispiel haben.
     if not examples:
 
         old_example = vocabulary_entry.get(
@@ -277,8 +393,6 @@ def answer_vocabulary_example(
         example_index
     ]
 
-    # Alte Einträge können bereits
-    # "Beispiel: ..." enthalten.
     if isinstance(
         example,
         str
@@ -903,4 +1017,4 @@ def answer_vocabulary_plural(
     return (
         f"Der Plural von „{display_word}“ "
         f"ist „{plural}“."
-    )
+            )
