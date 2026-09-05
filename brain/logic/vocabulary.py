@@ -1,5 +1,5 @@
 # ==========================================
-# NELE – LOGIKA SŁOWNICTWA
+# NELE – WORTSCHATZLOGIK
 # ==========================================
 
 from brain.logic.matcher import normalize
@@ -7,7 +7,7 @@ from brain.knowledge.A1.vocabulary import VOCABULARY
 
 
 # ==========================================
-# CZYSZCZENIE NAZWY SŁOWA
+# WORT BEREINIGEN
 # ==========================================
 
 def clean_vocabulary_word(
@@ -22,16 +22,8 @@ def clean_vocabulary_word(
         " .?!„“\"'"
     )
 
-    # ======================================
-    # SAMO "DAS WORT" = BRAK KONKRETNEGO SŁOWA
-    # ======================================
-
     if word == "das wort":
         return ""
-
-    # ======================================
-    # "DAS WORT + KONKRETNE SŁOWO"
-    # ======================================
 
     if word.startswith(
         "das wort "
@@ -44,7 +36,7 @@ def clean_vocabulary_word(
 
 
 # ==========================================
-# ŁADNA NAZWA SŁOWA
+# WORT SCHÖN ANZEIGEN
 # ==========================================
 
 def display_vocabulary_word(
@@ -58,7 +50,7 @@ def display_vocabulary_word(
 
 
 # ==========================================
-# ROZPOZNAWANIE PYTANIA O ZNACZENIE
+# BEDEUTUNG – WORT ERKENNEN
 # ==========================================
 
 def extract_meaning_word(
@@ -101,7 +93,7 @@ def extract_meaning_word(
 
 
 # ==========================================
-# ODPOWIEDŹ NA PYTANIE O ZNACZENIE
+# BEDEUTUNG – ANTWORT
 # ==========================================
 
 def answer_vocabulary_question(
@@ -131,7 +123,6 @@ def answer_vocabulary_question(
         return None
 
     if state is not None:
-
         state[
             "current_vocabulary_word"
         ] = word
@@ -140,7 +131,7 @@ def answer_vocabulary_question(
 
 
 # ==========================================
-# PRZYKŁAD DLA AKTUALNEGO SŁOWA
+# BEISPIEL
 # ==========================================
 
 def answer_vocabulary_example(
@@ -196,7 +187,7 @@ def answer_vocabulary_example(
 
 
 # ==========================================
-# ROZPOZNAWANIE PYTANIA O UŻYCIE SŁOWA
+# VERWENDUNG – WORT ERKENNEN
 # ==========================================
 
 def extract_usage_word(
@@ -246,7 +237,7 @@ def extract_usage_word(
 
 
 # ==========================================
-# PYTANIE KONTEKSTOWE O UŻYCIE
+# VERWENDUNG – KONTEXTFRAGE
 # ==========================================
 
 def is_vocabulary_usage_follow_up(
@@ -280,7 +271,7 @@ def is_vocabulary_usage_follow_up(
 
 
 # ==========================================
-# ODPOWIEDŹ NA PYTANIE O UŻYCIE SŁOWA
+# VERWENDUNG – ANTWORT
 # ==========================================
 
 def answer_vocabulary_usage(
@@ -324,7 +315,6 @@ def answer_vocabulary_usage(
         return None
 
     if state is not None:
-
         state[
             "current_vocabulary_word"
         ] = word
@@ -333,7 +323,7 @@ def answer_vocabulary_usage(
 
 
 # ==========================================
-# PYTANIE O PODOBNE SŁOWO
+# ÄHNLICHES WORT
 # ==========================================
 
 def answer_similar_vocabulary_word(
@@ -407,7 +397,7 @@ def answer_similar_vocabulary_word(
 
 
 # ==========================================
-# RÓŻNICA – PYTANIE KONTEKSTOWE
+# UNTERSCHIED – KONTEXTFRAGE
 # ==========================================
 
 def answer_vocabulary_difference_follow_up(
@@ -473,7 +463,7 @@ def answer_vocabulary_difference_follow_up(
 
 
 # ==========================================
-# RÓŻNICA – PEŁNE PYTANIE
+# UNTERSCHIED – DIREKTE FRAGE
 # ==========================================
 
 def answer_explicit_vocabulary_difference(
@@ -549,3 +539,259 @@ def answer_explicit_vocabulary_difference(
         ] = second
 
     return answer
+
+
+# ==========================================
+# ARTIKEL – WORT ERKENNEN
+# ==========================================
+
+def extract_article_word(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    )
+
+    patterns = [
+        "welchen artikel hat das wort ",
+        "welchen artikel hat ",
+        "welcher artikel gehört zu ",
+        "wie lautet der artikel von ",
+        "was ist der artikel von "
+    ]
+
+    patterns.sort(
+        key=len,
+        reverse=True
+    )
+
+    for pattern in patterns:
+
+        if message.startswith(
+            pattern
+        ):
+
+            word = message[
+                len(pattern):
+            ]
+
+            word = clean_vocabulary_word(
+                word
+            )
+
+            if word:
+                return word
+
+    return None
+
+
+# ==========================================
+# ARTIKEL – KONTEXTFRAGE
+# ==========================================
+
+def is_article_follow_up(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    )
+
+    article_questions = [
+        "welchen artikel hat das wort",
+        "und welchen artikel hat das wort",
+        "welchen artikel hat es",
+        "und welchen artikel hat es",
+        "welcher artikel",
+        "und welcher artikel",
+        "was ist der artikel",
+        "und was ist der artikel"
+    ]
+
+    return message in article_questions
+
+
+# ==========================================
+# ARTIKEL – ANTWORT
+# ==========================================
+
+def answer_vocabulary_article(
+    user_message,
+    state=None
+):
+
+    word = extract_article_word(
+        user_message
+    )
+
+    if not word:
+
+        if not is_article_follow_up(
+            user_message
+        ):
+            return None
+
+        if state is None:
+            return None
+
+        word = state.get(
+            "current_vocabulary_word"
+        )
+
+    if not word:
+        return None
+
+    vocabulary_entry = VOCABULARY.get(
+        word
+    )
+
+    if not vocabulary_entry:
+        return None
+
+    article = vocabulary_entry.get(
+        "article"
+    )
+
+    if not article:
+        return None
+
+    if state is not None:
+        state[
+            "current_vocabulary_word"
+        ] = word
+
+    display_word = display_vocabulary_word(
+        word
+    )
+
+    return (
+        f"Es heißt „{article} {display_word}“."
+    )
+
+
+# ==========================================
+# PLURAL – WORT ERKENNEN
+# ==========================================
+
+def extract_plural_word(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    )
+
+    patterns = [
+        "was ist der plural von dem wort ",
+        "was ist der plural von ",
+        "wie lautet der plural von ",
+        "wie ist der plural von "
+    ]
+
+    patterns.sort(
+        key=len,
+        reverse=True
+    )
+
+    for pattern in patterns:
+
+        if message.startswith(
+            pattern
+        ):
+
+            word = message[
+                len(pattern):
+            ]
+
+            word = clean_vocabulary_word(
+                word
+            )
+
+            if word:
+                return word
+
+    return None
+
+
+# ==========================================
+# PLURAL – KONTEXTFRAGE
+# ==========================================
+
+def is_plural_follow_up(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    )
+
+    plural_questions = [
+        "was ist der plural",
+        "und was ist der plural",
+        "wie lautet der plural",
+        "und wie lautet der plural",
+        "wie ist der plural",
+        "und wie ist der plural"
+    ]
+
+    return message in plural_questions
+
+
+# ==========================================
+# PLURAL – ANTWORT
+# ==========================================
+
+def answer_vocabulary_plural(
+    user_message,
+    state=None
+):
+
+    word = extract_plural_word(
+        user_message
+    )
+
+    if not word:
+
+        if not is_plural_follow_up(
+            user_message
+        ):
+            return None
+
+        if state is None:
+            return None
+
+        word = state.get(
+            "current_vocabulary_word"
+        )
+
+    if not word:
+        return None
+
+    vocabulary_entry = VOCABULARY.get(
+        word
+    )
+
+    if not vocabulary_entry:
+        return None
+
+    plural = vocabulary_entry.get(
+        "plural"
+    )
+
+    if not plural:
+        return None
+
+    if state is not None:
+        state[
+            "current_vocabulary_word"
+        ] = word
+
+    display_word = display_vocabulary_word(
+        word
+    )
+
+    return (
+        f"Der Plural von „{display_word}“ "
+        f"ist „{plural}“."
+    )
