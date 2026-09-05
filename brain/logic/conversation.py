@@ -18,12 +18,8 @@ from brain.logic.correction_router import (
     handle_correction
 )
 
-from brain.logic.user_info import (
-    extract_user_information
-)
-
-from brain.logic.memory_answers import (
-    answer_from_memory
+from brain.logic.user_memory_router import (
+    handle_user_memory
 )
 
 from brain.logic.context import (
@@ -157,20 +153,20 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 3. PYTANIA O PAMIĘĆ UŻYTKOWNIKA
+    # 3. PAMIĘĆ I INFORMACJE O UŻYTKOWNIKU
     # ======================================
 
-    memory_answer = answer_from_memory(
+    user_memory_answer = handle_user_memory(
         user_message,
         session_id
     )
 
-    if memory_answer:
-        return memory_answer
+    if user_memory_answer:
+        return user_memory_answer
 
 
     # ======================================
-    # 4. PYTANIE KONTYNUUJĄCE TEMAT
+    # 4. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -234,20 +230,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. INFORMACJE O UŻYTKOWNIKU
-    # ======================================
-
-    extracted_answer = extract_user_information(
-        user_message,
-        session_id
-    )
-
-    if extracted_answer:
-        return extracted_answer
-
-
-    # ======================================
-    # 9. ZNANE PYTANIA I ZWROTY
+    # 8. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -262,7 +245,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. ODPOWIEDŹ KONTEKSTOWA
+    # 9. ODPOWIEDŹ KONTEKSTOWA
     # ======================================
 
     context_answer = handle_context_answer(
@@ -275,7 +258,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. BRAK WIEDZY
+    # 10. BRAK WIEDZY
     # ======================================
 
     return (
