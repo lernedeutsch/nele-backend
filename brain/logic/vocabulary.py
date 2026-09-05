@@ -87,20 +87,16 @@ def extract_meaning_word(
         user_message
     )
 
-    # --------------------------------------
-    # Direkte Fragen
-    # --------------------------------------
-
     direct_patterns = [
-        "was bedeutet das wort ",
-        "was heißt das wort ",
-        "was heisst das wort ",
         "was bedeutet eigentlich das wort ",
         "was heißt eigentlich das wort ",
         "was heisst eigentlich das wort ",
         "was genau bedeutet das wort ",
         "was genau heißt das wort ",
         "was genau heisst das wort ",
+        "was bedeutet das wort ",
+        "was heißt das wort ",
+        "was heisst das wort ",
         "was bedeutet eigentlich ",
         "was heißt eigentlich ",
         "was heisst eigentlich ",
@@ -133,10 +129,6 @@ def extract_meaning_word(
 
             if word:
                 return word
-
-    # --------------------------------------
-    # "Kannst du mir ... erklären?"
-    # --------------------------------------
 
     explanation_patterns = [
         "kannst du mir das wort ",
@@ -187,10 +179,6 @@ def extract_meaning_word(
 
                     if word:
                         return word
-
-    # --------------------------------------
-    # "Erklär mir ..."
-    # --------------------------------------
 
     command_patterns = [
         "erkläre mir bitte das wort ",
@@ -302,24 +290,69 @@ def answer_vocabulary_example(
         "und ein beispiel dafür",
         "ein beispiel",
         "ein beispiel dafür",
+
         "gib mir ein beispiel",
         "gib mir ein beispiel dafür",
+        "gib mir bitte ein beispiel",
+
         "nenn mir ein beispiel",
         "nenn mir ein beispiel dafür",
+        "nenn mir bitte ein beispiel",
+
         "zeig mir ein beispiel",
-        "zeig mir ein beispiel dafür"
+        "zeig mir ein beispiel dafür",
+        "zeig mir bitte ein beispiel",
+
+        "hast du ein beispiel",
+        "hast du dafür ein beispiel",
+        "hast du ein beispiel dafür",
+
+        "kannst du mir ein beispiel geben",
+        "kannst du mir bitte ein beispiel geben",
+        "kannst du ein beispiel geben",
+
+        "kannst du mir ein beispiel nennen",
+        "kannst du mir bitte ein beispiel nennen",
+
+        "kannst du mir ein beispiel zeigen",
+        "kannst du mir bitte ein beispiel zeigen",
+
+        "kannst du ein beispiel machen",
+        "kannst du mir ein beispiel machen"
     ]
 
     next_example_questions = [
         "noch ein beispiel",
         "und noch ein beispiel",
+
         "gib mir noch ein beispiel",
+        "gib mir bitte noch ein beispiel",
+
         "nenn mir noch ein beispiel",
+        "nenn mir bitte noch ein beispiel",
+
         "zeig mir noch ein beispiel",
+        "zeig mir bitte noch ein beispiel",
+
+        "hast du noch ein beispiel",
+        "hast du noch eins",
+        "hast du noch eines",
+
+        "kannst du mir noch ein beispiel geben",
+        "kannst du mir bitte noch ein beispiel geben",
+
+        "kannst du noch ein beispiel geben",
+        "kannst du mir noch ein beispiel nennen",
+        "kannst du mir noch ein beispiel zeigen",
+
         "noch eins",
         "und noch eins",
         "noch eines",
-        "und noch eines"
+        "und noch eines",
+
+        "ein weiteres beispiel",
+        "und ein weiteres beispiel",
+        "noch ein weiteres beispiel"
     ]
 
     is_first_example = (
@@ -778,9 +811,27 @@ def extract_article_word(
 
     patterns = [
         "welchen artikel hat das wort ",
+        "welchen artikel hat eigentlich das wort ",
+        "welchen artikel hat eigentlich ",
         "welchen artikel hat ",
+
+        "was für einen artikel hat das wort ",
+        "was für einen artikel hat ",
+        "was fuer einen artikel hat das wort ",
+        "was fuer einen artikel hat ",
+
+        "welcher artikel gehört zu dem wort ",
         "welcher artikel gehört zu ",
+        "welcher artikel gehoert zu dem wort ",
+        "welcher artikel gehoert zu ",
+
+        "wie lautet der artikel von dem wort ",
         "wie lautet der artikel von ",
+
+        "wie ist der artikel von dem wort ",
+        "wie ist der artikel von ",
+
+        "was ist der artikel von dem wort ",
         "was ist der artikel von "
     ]
 
@@ -826,10 +877,24 @@ def is_article_follow_up(
         "und welchen artikel hat das wort",
         "welchen artikel hat es",
         "und welchen artikel hat es",
+
         "welcher artikel",
         "und welcher artikel",
+
         "was ist der artikel",
-        "und was ist der artikel"
+        "und was ist der artikel",
+
+        "wie ist der artikel",
+        "und wie ist der artikel",
+
+        "wie lautet der artikel",
+        "und wie lautet der artikel",
+
+        "was für einen artikel hat es",
+        "und was für einen artikel hat es",
+
+        "was fuer einen artikel hat es",
+        "und was fuer einen artikel hat es"
     ]
 
     return message in article_questions
@@ -908,8 +973,24 @@ def extract_plural_word(
     patterns = [
         "was ist der plural von dem wort ",
         "was ist der plural von ",
+
+        "wie lautet der plural von dem wort ",
         "wie lautet der plural von ",
-        "wie ist der plural von "
+
+        "wie ist der plural von dem wort ",
+        "wie ist der plural von ",
+
+        "was ist die mehrzahl von dem wort ",
+        "was ist die mehrzahl von ",
+
+        "wie lautet die mehrzahl von dem wort ",
+        "wie lautet die mehrzahl von ",
+
+        "wie ist die mehrzahl von dem wort ",
+        "wie ist die mehrzahl von ",
+
+        "welche mehrzahl hat das wort ",
+        "welche mehrzahl hat "
     ]
 
     patterns.sort(
@@ -952,10 +1033,24 @@ def is_plural_follow_up(
     plural_questions = [
         "was ist der plural",
         "und was ist der plural",
+
         "wie lautet der plural",
         "und wie lautet der plural",
+
         "wie ist der plural",
-        "und wie ist der plural"
+        "und wie ist der plural",
+
+        "was ist die mehrzahl",
+        "und was ist die mehrzahl",
+
+        "wie lautet die mehrzahl",
+        "und wie lautet die mehrzahl",
+
+        "wie ist die mehrzahl",
+        "und wie ist die mehrzahl",
+
+        "welche mehrzahl",
+        "und welche mehrzahl"
     ]
 
     return message in plural_questions
@@ -1017,4 +1112,4 @@ def answer_vocabulary_plural(
     return (
         f"Der Plural von „{display_word}“ "
         f"ist „{plural}“."
-            )
+                    )
