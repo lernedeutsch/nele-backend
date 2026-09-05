@@ -26,8 +26,8 @@ from brain.logic.alphabet_router import (
     handle_alphabet
 )
 
-from brain.logic.context import (
-    handle_context_answer
+from brain.logic.context_router import (
+    handle_context
 )
 
 from brain.logic.response_engine import (
@@ -243,7 +243,7 @@ def generate_conversation_reply(
     # 9. ODPOWIEDŹ KONTEKSTOWA
     # ======================================
 
-    context_answer = handle_context_answer(
+    context_answer = handle_context(
         user_message,
         session_id
     )
