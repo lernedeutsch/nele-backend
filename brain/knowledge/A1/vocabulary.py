@@ -1,115 +1,17 @@
 # ==========================================
-# NELE – A1 – SŁOWNICTWO
+# NELE – A1 – WORTSCHATZ
 # ==========================================
 
-VOCABULARY = {
-
-    # ======================================
-    # RESERVIERUNG
-    # ======================================
-
-    "reservierung": {
-        "meaning": (
-            "Eine Reservierung bedeutet, dass etwas "
-            "vorher für dich gebucht oder freigehalten wurde. "
-            "Zum Beispiel ein Hotelzimmer oder ein Tisch "
-            "im Restaurant."
-        ),
-
-        "example": (
-            "Beispiel: „Ich habe ein Zimmer im Hotel reserviert.“"
-        ),
-
-        "usage": (
-            "Das Wort „Reservierung“ benutzt man, wenn man "
-            "etwas im Voraus bucht oder für sich freihalten lässt. "
-            "Zum Beispiel ein Hotelzimmer, einen Tisch im Restaurant "
-            "oder einen Termin."
-        ),
-
-        "similar": [
-            "buchung"
-        ],
-
-        "difference": {
-            "buchung": (
-                "„Reservierung“ und „Buchung“ haben eine ähnliche "
-                "Bedeutung. Bei einem Hotel kann man oft beide Wörter "
-                "benutzen. Bei einem Tisch im Restaurant sagt man "
-                "normalerweise „Reservierung“. „Buchung“ benutzt man "
-                "besonders häufig bei Hotels, Reisen, Flügen oder Tickets."
-            )
-        }
-    },
+from brain.knowledge.A1.vocabulary_topics.hotel import (
+    HOTEL_VOCABULARY
+)
 
 
-    # ======================================
-    # BUCHUNG
-    # ======================================
+# ==========================================
+# ALLGEMEINER A1-WORTSCHATZ
+# ==========================================
 
-    "buchung": {
-        "meaning": (
-            "Eine Buchung bedeutet, dass man etwas verbindlich "
-            "bestellt oder reserviert. Zum Beispiel ein Hotelzimmer, "
-            "einen Flug oder ein Ticket."
-        ),
-
-        "example": (
-            "Beispiel: „Ich habe eine Buchung für zwei Nächte.“"
-        ),
-
-        "usage": (
-            "Das Wort „Buchung“ benutzt man besonders häufig "
-            "bei Hotels, Reisen, Flügen, Tickets oder Veranstaltungen."
-        ),
-
-        "similar": [
-            "reservierung"
-        ],
-
-        "difference": {
-            "reservierung": (
-                "„Buchung“ und „Reservierung“ sind ähnlich. "
-                "„Buchung“ wird besonders häufig bei Hotels, Reisen, "
-                "Flügen oder Tickets verwendet. „Reservierung“ sagt man "
-                "auch sehr häufig bei Restaurants, wenn ein Tisch "
-                "freigehalten wird."
-            )
-        }
-    },
-
-
-    # ======================================
-    # ZIMMER
-    # ======================================
-
-    "zimmer": {
-        "meaning": (
-            "Ein Zimmer ist ein Raum in einer Wohnung, "
-            "einem Haus oder einem Hotel."
-        ),
-
-        "example": (
-            "Beispiel: „Mein Zimmer ist im zweiten Stock.“"
-        ),
-
-        "usage": (
-            "Das Wort „Zimmer“ benutzt man für Räume, "
-            "zum Beispiel Schlafzimmer, Hotelzimmer oder Wohnzimmer."
-        ),
-
-        "similar": [
-            "hotelzimmer"
-        ],
-
-        "difference": {
-            "hotelzimmer": (
-                "Ein „Zimmer“ kann jeder Raum sein. "
-                "Ein „Hotelzimmer“ ist speziell ein Zimmer in einem Hotel."
-            )
-        }
-    },
-
+GENERAL_VOCABULARY = {
 
     # ======================================
     # HOTELZIMMER
@@ -427,8 +329,7 @@ VOCABULARY = {
 
         "usage": (
             "Das Wort „Anmeldung“ benutzt man zum Beispiel "
-            "bei einem Kurs, einer Veranstaltung, einer Behörde "
-            "oder beim Einchecken."
+            "bei einem Kurs, einer Veranstaltung oder einer Behörde."
         ),
 
         "similar": [
@@ -438,9 +339,8 @@ VOCABULARY = {
         "difference": {
             "registrierung": (
                 "„Anmeldung“ und „Registrierung“ sind ähnlich. "
-                "„Registrierung“ bedeutet oft, dass Daten "
-                "in einem System gespeichert werden. "
-                "„Anmeldung“ kann allgemeiner sein."
+                "Bei einer Registrierung werden häufig Daten "
+                "in einem System gespeichert."
             )
         }
     },
@@ -462,7 +362,7 @@ VOCABULARY = {
 
         "usage": (
             "Das Wort „Registrierung“ benutzt man häufig "
-            "bei Webseiten, Apps, Veranstaltungen oder anderen Systemen."
+            "bei Webseiten, Apps oder Veranstaltungen."
         ),
 
         "similar": [
@@ -471,7 +371,6 @@ VOCABULARY = {
 
         "difference": {
             "anmeldung": (
-                "„Registrierung“ und „Anmeldung“ sind ähnlich. "
                 "Bei einer Registrierung werden häufig Daten "
                 "in einem System gespeichert. "
                 "„Anmeldung“ kann allgemeiner verwendet werden."
@@ -506,9 +405,8 @@ VOCABULARY = {
 
         "difference": {
             "anschrift": (
-                "„Adresse“ und „Anschrift“ können bei einer "
-                "Wohn- oder Firmenadresse ähnlich verwendet werden. "
-                "„Adresse“ ist im Alltag häufiger."
+                "„Adresse“ und „Anschrift“ können ähnlich "
+                "verwendet werden. „Adresse“ ist im Alltag häufiger."
             )
         }
     },
@@ -540,8 +438,7 @@ VOCABULARY = {
         "difference": {
             "adresse": (
                 "„Anschrift“ bezeichnet normalerweise eine Post- "
-                "oder Wohnadresse. „Adresse“ ist allgemeiner "
-                "und wird im Alltag häufiger benutzt."
+                "oder Wohnadresse. „Adresse“ ist allgemeiner."
             )
         }
     },
@@ -662,8 +559,8 @@ VOCABULARY = {
         ),
 
         "usage": (
-            "Das Wort „Ticket“ kann man für Fahrten, Veranstaltungen "
-            "oder Eintrittskarten benutzen."
+            "Das Wort „Ticket“ kann man für Fahrten, "
+            "Veranstaltungen oder Eintrittskarten benutzen."
         ),
 
         "similar": [
@@ -708,8 +605,7 @@ VOCABULARY = {
             "auftrag": (
                 "Eine „Bestellung“ benutzt man oft beim Kaufen "
                 "von Waren oder Essen. "
-                "Ein „Auftrag“ kann auch eine Arbeit oder Aufgabe sein, "
-                "die jemand ausführen soll."
+                "Ein „Auftrag“ kann auch eine Arbeit oder Aufgabe sein."
             )
         }
     },
@@ -730,8 +626,8 @@ VOCABULARY = {
         ),
 
         "usage": (
-            "Das Wort „Auftrag“ benutzt man häufig bei der Arbeit "
-            "oder im Geschäftsleben."
+            "Das Wort „Auftrag“ benutzt man häufig "
+            "bei der Arbeit oder im Geschäftsleben."
         ),
 
         "similar": [
@@ -742,9 +638,112 @@ VOCABULARY = {
             "bestellung": (
                 "Eine „Bestellung“ benutzt man häufig beim Kaufen "
                 "von Waren oder Essen. Ein „Auftrag“ kann auch "
-                "eine Arbeit oder Aufgabe sein, die ausgeführt werden soll."
+                "eine Arbeit oder Aufgabe sein."
             )
         }
     }
+}
 
+
+# ==========================================
+# HOTELWORTSCHATZ VORBEREITEN
+# ==========================================
+
+def prepare_vocabulary(
+    source
+):
+
+    prepared = {}
+
+    for word, data in source.items():
+
+        entry = dict(
+            data
+        )
+
+        examples = entry.get(
+            "examples"
+        )
+
+        if (
+            examples
+            and isinstance(
+                examples,
+                list
+            )
+        ):
+
+            entry["example"] = (
+                f"Beispiel: „{examples[0]}“"
+            )
+
+        prepared[
+            word
+        ] = entry
+
+    return prepared
+
+
+# ==========================================
+# HOTELWORTSCHATZ
+# ==========================================
+
+PREPARED_HOTEL_VOCABULARY = prepare_vocabulary(
+    HOTEL_VOCABULARY
+)
+
+
+# ==========================================
+# ERGÄNZENDE BEZIEHUNGEN
+# ==========================================
+
+PREPARED_HOTEL_VOCABULARY[
+    "zimmer"
+]["similar"] = [
+    "hotelzimmer"
+]
+
+PREPARED_HOTEL_VOCABULARY[
+    "zimmer"
+]["difference"] = {
+    "hotelzimmer": (
+        "Ein „Zimmer“ kann ein Raum in einer Wohnung, "
+        "einem Haus oder einem Hotel sein. "
+        "Ein „Hotelzimmer“ ist speziell ein Zimmer in einem Hotel."
+    )
+}
+
+
+PREPARED_HOTEL_VOCABULARY[
+    "reservierung"
+]["difference"] = {
+    "buchung": (
+        "„Reservierung“ und „Buchung“ haben eine ähnliche Bedeutung. "
+        "Bei einem Hotel kann man oft beide Wörter benutzen. "
+        "Bei einem Tisch im Restaurant sagt man normalerweise "
+        "„Reservierung“. „Buchung“ benutzt man besonders häufig "
+        "bei Hotels, Reisen, Flügen oder Tickets."
+    )
+}
+
+
+PREPARED_HOTEL_VOCABULARY[
+    "buchung"
+]["difference"] = {
+    "reservierung": (
+        "„Buchung“ und „Reservierung“ sind ähnlich. "
+        "„Buchung“ wird besonders häufig bei Hotels, Reisen, "
+        "Flügen oder Tickets verwendet. „Reservierung“ sagt man "
+        "auch sehr häufig bei Restaurants."
+    )
+}
+
+
+# ==========================================
+# GESAMTER A1-WORTSCHATZ
+# ==========================================
+
+VOCABULARY = {
+    **GENERAL_VOCABULARY,
+    **PREPARED_HOTEL_VOCABULARY
 }
