@@ -27,7 +27,18 @@ HOTEL_VOCABULARY = {
             "Das Wort „Zimmer“ benutzt man für Räume, "
             "zum Beispiel Schlafzimmer, Hotelzimmer "
             "oder Wohnzimmer."
-        )
+        ),
+
+        "similar": [
+            "hotelzimmer"
+        ],
+
+        "difference": {
+            "hotelzimmer": (
+                "„Zimmer“ ist ein allgemeines Wort für einen Raum. "
+                "Ein „Hotelzimmer“ ist speziell ein Zimmer in einem Hotel."
+            )
+        }
     },
 
 
@@ -57,7 +68,15 @@ HOTEL_VOCABULARY = {
 
         "similar": [
             "zimmer"
-        ]
+        ],
+
+        "difference": {
+            "zimmer": (
+                "Ein „Hotelzimmer“ ist speziell ein Zimmer in einem Hotel. "
+                "„Zimmer“ ist ein allgemeineres Wort und kann auch einen "
+                "Raum in einer Wohnung oder in einem Haus bezeichnen."
+            )
+        }
     },
 
 
@@ -90,7 +109,15 @@ HOTEL_VOCABULARY = {
 
         "similar": [
             "buchung"
-        ]
+        ],
+
+        "difference": {
+            "buchung": (
+                "„Reservierung“ bedeutet oft, dass etwas für eine Person "
+                "freigehalten wird. „Buchung“ benutzt man besonders häufig "
+                "bei Hotels, Reisen, Flügen oder Tickets."
+            )
+        }
     },
 
 
@@ -121,7 +148,15 @@ HOTEL_VOCABULARY = {
 
         "similar": [
             "reservierung"
-        ]
+        ],
+
+        "difference": {
+            "reservierung": (
+                "„Buchung“ benutzt man besonders häufig bei Hotels, "
+                "Reisen, Flügen oder Tickets. „Reservierung“ kann auch "
+                "bedeuten, dass zum Beispiel ein Tisch freigehalten wird."
+            )
+        }
     },
 
 
@@ -175,7 +210,19 @@ HOTEL_VOCABULARY = {
             "Das Wort „Schlüssel“ benutzt man für einen "
             "Gegenstand, mit dem man ein Schloss öffnen "
             "oder schließen kann."
-        )
+        ),
+
+        "similar": [
+            "zimmerkarte"
+        ],
+
+        "difference": {
+            "zimmerkarte": (
+                "Ein „Schlüssel“ kann ein klassischer Schlüssel sein. "
+                "Eine „Zimmerkarte“ ist eine elektronische Karte, "
+                "mit der man im Hotel die Zimmertür öffnet."
+            )
+        }
     },
 
 
@@ -206,7 +253,15 @@ HOTEL_VOCABULARY = {
 
         "similar": [
             "schlüssel"
-        ]
+        ],
+
+        "difference": {
+            "schlüssel": (
+                "Eine „Zimmerkarte“ ist eine elektronische Karte "
+                "für die Zimmertür im Hotel. Ein „Schlüssel“ kann "
+                "dagegen auch ein klassischer Schlüssel aus Metall sein."
+            )
+        }
     },
 
 
