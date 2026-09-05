@@ -136,22 +136,25 @@ def answer_vocabulary_usage(
     state=None
 ):
 
-    word = extract_usage_word(
+    # --------------------------------------
+    # Zuerst Kontextfrage prüfen
+    # --------------------------------------
+
+    if is_vocabulary_usage_follow_up(
         user_message
-    )
-
-    if not word:
-
-        if not is_vocabulary_usage_follow_up(
-            user_message
-        ):
-            return None
+    ):
 
         if state is None:
             return None
 
         word = state.get(
             "current_vocabulary_word"
+        )
+
+    else:
+
+        word = extract_usage_word(
+            user_message
         )
 
     if not word:
@@ -170,6 +173,10 @@ def answer_vocabulary_usage(
 
     if not usage:
         return None
+
+    # --------------------------------------
+    # Wort im Gesprächskontext speichern
+    # --------------------------------------
 
     if state is not None:
 
