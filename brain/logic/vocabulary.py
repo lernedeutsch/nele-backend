@@ -20,6 +20,12 @@ from brain.logic.vocabulary_modules.usage import (
     answer_vocabulary_usage
 )
 
+from brain.logic.vocabulary_modules.article import (
+    extract_article_word,
+    is_article_follow_up,
+    answer_vocabulary_article
+)
+
 
 # ==========================================
 # WORT BEREINIGEN
@@ -310,167 +316,6 @@ def answer_explicit_vocabulary_difference(
         ] = second
 
     return answer
-
-
-# ==========================================
-# ARTIKEL – WORT ERKENNEN
-# ==========================================
-
-def extract_article_word(
-    user_message
-):
-
-    message = normalize(
-        user_message
-    )
-
-    patterns = [
-        "welchen artikel hat das wort ",
-        "welchen artikel hat eigentlich das wort ",
-        "welchen artikel hat eigentlich ",
-        "welchen artikel hat ",
-
-        "was für einen artikel hat das wort ",
-        "was für einen artikel hat ",
-        "was fuer einen artikel hat das wort ",
-        "was fuer einen artikel hat ",
-
-        "welcher artikel gehört zu dem wort ",
-        "welcher artikel gehört zu ",
-        "welcher artikel gehoert zu dem wort ",
-        "welcher artikel gehoert zu ",
-
-        "wie lautet der artikel von dem wort ",
-        "wie lautet der artikel von ",
-
-        "wie ist der artikel von dem wort ",
-        "wie ist der artikel von ",
-
-        "was ist der artikel von dem wort ",
-        "was ist der artikel von "
-    ]
-
-    patterns.sort(
-        key=len,
-        reverse=True
-    )
-
-    for pattern in patterns:
-
-        if message.startswith(
-            pattern
-        ):
-
-            word = message[
-                len(pattern):
-            ]
-
-            word = clean_vocabulary_word(
-                word
-            )
-
-            if word:
-                return word
-
-    return None
-
-
-# ==========================================
-# ARTIKEL – KONTEXTFRAGE
-# ==========================================
-
-def is_article_follow_up(
-    user_message
-):
-
-    message = normalize(
-        user_message
-    )
-
-    article_questions = [
-        "welchen artikel hat das wort",
-        "und welchen artikel hat das wort",
-        "welchen artikel hat es",
-        "und welchen artikel hat es",
-
-        "welcher artikel",
-        "und welcher artikel",
-
-        "was ist der artikel",
-        "und was ist der artikel",
-
-        "wie ist der artikel",
-        "und wie ist der artikel",
-
-        "wie lautet der artikel",
-        "und wie lautet der artikel",
-
-        "was für einen artikel hat es",
-        "und was für einen artikel hat es",
-
-        "was fuer einen artikel hat es",
-        "und was fuer einen artikel hat es"
-    ]
-
-    return message in article_questions
-
-
-# ==========================================
-# ARTIKEL – ANTWORT
-# ==========================================
-
-def answer_vocabulary_article(
-    user_message,
-    state=None
-):
-
-    word = extract_article_word(
-        user_message
-    )
-
-    if not word:
-
-        if not is_article_follow_up(
-            user_message
-        ):
-            return None
-
-        if state is None:
-            return None
-
-        word = state.get(
-            "current_vocabulary_word"
-        )
-
-    if not word:
-        return None
-
-    vocabulary_entry = VOCABULARY.get(
-        word
-    )
-
-    if not vocabulary_entry:
-        return None
-
-    article = vocabulary_entry.get(
-        "article"
-    )
-
-    if not article:
-        return None
-
-    remember_vocabulary_word(
-        state,
-        word
-    )
-
-    display_word = display_vocabulary_word(
-        word
-    )
-
-    return (
-        f"Es heißt „{article} {display_word}“."
-    )
 
 
 # ==========================================
