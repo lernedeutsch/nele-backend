@@ -14,6 +14,12 @@ from brain.logic.vocabulary_modules.examples import (
     answer_vocabulary_example
 )
 
+from brain.logic.vocabulary_modules.usage import (
+    extract_usage_word,
+    is_vocabulary_usage_follow_up,
+    answer_vocabulary_usage
+)
+
 
 # ==========================================
 # WORT BEREINIGEN
@@ -82,142 +88,6 @@ def remember_vocabulary_word(
     state[
         "current_vocabulary_word"
     ] = word
-
-
-# ==========================================
-# VERWENDUNG – WORT ERKENNEN
-# ==========================================
-
-def extract_usage_word(
-    user_message
-):
-
-    message = normalize(
-        user_message
-    )
-
-    patterns = [
-        "wann benutzt man das wort ",
-        "wann verwendet man das wort ",
-        "wann sagt man das wort ",
-        "wann benutze ich das wort ",
-        "wann verwende ich das wort ",
-        "wann benutzt man ",
-        "wann verwendet man ",
-        "wann sagt man ",
-        "wann benutze ich ",
-        "wann verwende ich "
-    ]
-
-    patterns.sort(
-        key=len,
-        reverse=True
-    )
-
-    for pattern in patterns:
-
-        if message.startswith(
-            pattern
-        ):
-
-            word = message[
-                len(pattern):
-            ]
-
-            word = clean_vocabulary_word(
-                word
-            )
-
-            if word:
-                return word
-
-    return None
-
-
-# ==========================================
-# VERWENDUNG – KONTEXTFRAGE
-# ==========================================
-
-def is_vocabulary_usage_follow_up(
-    user_message
-):
-
-    message = normalize(
-        user_message
-    )
-
-    usage_follow_ups = [
-        "wann benutzt man das",
-        "und wann benutzt man das",
-        "wann verwendet man das",
-        "und wann verwendet man das",
-        "wann sagt man das",
-        "und wann sagt man das",
-        "wann benutzt man das wort",
-        "und wann benutzt man das wort",
-        "wann verwendet man das wort",
-        "und wann verwendet man das wort",
-        "wann sagt man das wort",
-        "und wann sagt man das wort",
-        "wann benutze ich das",
-        "und wann benutze ich das",
-        "wann verwende ich das",
-        "und wann verwende ich das"
-    ]
-
-    return message in usage_follow_ups
-
-
-# ==========================================
-# VERWENDUNG – ANTWORT
-# ==========================================
-
-def answer_vocabulary_usage(
-    user_message,
-    state=None
-):
-
-    word = extract_usage_word(
-        user_message
-    )
-
-    if not word:
-
-        if not is_vocabulary_usage_follow_up(
-            user_message
-        ):
-            return None
-
-        if state is None:
-            return None
-
-        word = state.get(
-            "current_vocabulary_word"
-        )
-
-    if not word:
-        return None
-
-    vocabulary_entry = VOCABULARY.get(
-        word
-    )
-
-    if not vocabulary_entry:
-        return None
-
-    usage = vocabulary_entry.get(
-        "usage"
-    )
-
-    if not usage:
-        return None
-
-    remember_vocabulary_word(
-        state,
-        word
-    )
-
-    return usage
 
 
 # ==========================================
@@ -757,4 +627,4 @@ def answer_vocabulary_plural(
     return (
         f"Der Plural von „{display_word}“ "
         f"ist „{plural}“."
-            )
+    )
