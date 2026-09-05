@@ -32,6 +32,36 @@ HOTEL_VOCABULARY = {
 
 
     # ======================================
+    # HOTELZIMMER
+    # ======================================
+
+    "hotelzimmer": {
+        "article": "das",
+        "plural": "Hotelzimmer",
+
+        "meaning": (
+            "Ein Hotelzimmer ist ein Zimmer in einem Hotel, "
+            "in dem Gäste während ihres Aufenthalts wohnen."
+        ),
+
+        "examples": [
+            "Unser Hotelzimmer ist sehr sauber.",
+            "Ich habe ein Hotelzimmer für zwei Nächte gebucht.",
+            "Das Hotelzimmer hat ein großes Fenster."
+        ],
+
+        "usage": (
+            "Das Wort „Hotelzimmer“ benutzt man speziell "
+            "für ein Zimmer in einem Hotel."
+        ),
+
+        "similar": [
+            "zimmer"
+        ]
+    },
+
+
+    # ======================================
     # RESERVIERUNG
     # ======================================
 
@@ -118,6 +148,118 @@ HOTEL_VOCABULARY = {
             "Das Wort „Rezeption“ benutzt man im Hotel "
             "für den Bereich, an dem Gäste einchecken, "
             "auschecken oder Informationen bekommen."
+        )
+    },
+
+
+    # ======================================
+    # SCHLÜSSEL
+    # ======================================
+
+    "schlüssel": {
+        "article": "der",
+        "plural": "Schlüssel",
+
+        "meaning": (
+            "Ein Schlüssel ist ein Gegenstand, mit dem man "
+            "zum Beispiel eine Tür öffnen oder schließen kann."
+        ),
+
+        "examples": [
+            "Hier ist Ihr Zimmerschlüssel.",
+            "Ich habe meinen Schlüssel verloren.",
+            "Bitte geben Sie den Schlüssel an der Rezeption ab."
+        ],
+
+        "usage": (
+            "Das Wort „Schlüssel“ benutzt man für einen "
+            "Gegenstand, mit dem man ein Schloss öffnen "
+            "oder schließen kann."
+        )
+    },
+
+
+    # ======================================
+    # ZIMMERKARTE
+    # ======================================
+
+    "zimmerkarte": {
+        "article": "die",
+        "plural": "Zimmerkarten",
+
+        "meaning": (
+            "Eine Zimmerkarte ist eine Karte, mit der ein Gast "
+            "die Tür seines Hotelzimmers öffnen kann."
+        ),
+
+        "examples": [
+            "Hier ist Ihre Zimmerkarte.",
+            "Meine Zimmerkarte funktioniert nicht.",
+            "Bitte geben Sie die Zimmerkarte beim Check-out ab."
+        ],
+
+        "usage": (
+            "Das Wort „Zimmerkarte“ benutzt man im Hotel "
+            "für eine elektronische Karte, mit der man "
+            "ein Hotelzimmer öffnen kann."
+        ),
+
+        "similar": [
+            "schlüssel"
+        ]
+    },
+
+
+    # ======================================
+    # FRÜHSTÜCK
+    # ======================================
+
+    "frühstück": {
+        "article": "das",
+        "plural": "Frühstücke",
+
+        "meaning": (
+            "Das Frühstück ist die erste Mahlzeit des Tages, "
+            "die man normalerweise am Morgen isst."
+        ),
+
+        "examples": [
+            "Das Frühstück beginnt um sieben Uhr.",
+            "Das Frühstück ist im Preis inklusive.",
+            "Wo wird das Frühstück serviert?"
+        ],
+
+        "usage": (
+            "Das Wort „Frühstück“ benutzt man für die "
+            "Mahlzeit am Morgen."
+        )
+    },
+
+
+    # ======================================
+    # RECHNUNG
+    # ======================================
+
+    "rechnung": {
+        "article": "die",
+        "plural": "Rechnungen",
+
+        "meaning": (
+            "Eine Rechnung ist ein Dokument, auf dem steht, "
+            "wie viel man für eine Ware oder eine Dienstleistung "
+            "bezahlen muss."
+        ),
+
+        "examples": [
+            "Ich möchte die Rechnung bezahlen.",
+            "Kann ich bitte die Rechnung bekommen?",
+            "Die Rechnung ist schon bezahlt."
+        ],
+
+        "usage": (
+            "Das Wort „Rechnung“ benutzt man, wenn man "
+            "bezahlen muss oder wissen möchte, "
+            "wie viel etwas kostet."
         )
     }
 }
