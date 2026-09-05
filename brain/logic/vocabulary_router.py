@@ -1,5 +1,5 @@
 # ==========================================
-# NELE – ROUTER SŁOWNICTWA
+# NELE – WORTSCHATZ-ROUTER
 # ==========================================
 
 from brain.logic.vocabulary import (
@@ -8,12 +8,14 @@ from brain.logic.vocabulary import (
     answer_vocabulary_usage,
     answer_similar_vocabulary_word,
     answer_vocabulary_difference_follow_up,
-    answer_explicit_vocabulary_difference
+    answer_explicit_vocabulary_difference,
+    answer_vocabulary_article,
+    answer_vocabulary_plural
 )
 
 
 # ==========================================
-# GŁÓWNA OBSŁUGA SŁOWNICTWA
+# HAUPTVERARBEITUNG DES WORTSCHATZES
 # ==========================================
 
 def handle_vocabulary(
@@ -22,7 +24,7 @@ def handle_vocabulary(
 ):
 
     # ======================================
-    # ZNACZENIE SŁOWA
+    # BEDEUTUNG
     # ======================================
 
     answer = answer_vocabulary_question(
@@ -35,7 +37,33 @@ def handle_vocabulary(
 
 
     # ======================================
-    # PRZYKŁAD
+    # ARTIKEL
+    # ======================================
+
+    answer = answer_vocabulary_article(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # PLURAL
+    # ======================================
+
+    answer = answer_vocabulary_plural(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # BEISPIEL
     # ======================================
 
     answer = answer_vocabulary_example(
@@ -48,7 +76,7 @@ def handle_vocabulary(
 
 
     # ======================================
-    # UŻYCIE SŁOWA
+    # VERWENDUNG
     # ======================================
 
     answer = answer_vocabulary_usage(
@@ -61,7 +89,7 @@ def handle_vocabulary(
 
 
     # ======================================
-    # PODOBNE SŁOWO
+    # ÄHNLICHES WORT
     # ======================================
 
     answer = answer_similar_vocabulary_word(
@@ -74,7 +102,7 @@ def handle_vocabulary(
 
 
     # ======================================
-    # RÓŻNICA – KONTYNUACJA ROZMOWY
+    # UNTERSCHIED – KONTEXT
     # ======================================
 
     answer = answer_vocabulary_difference_follow_up(
@@ -87,7 +115,7 @@ def handle_vocabulary(
 
 
     # ======================================
-    # RÓŻNICA – PEŁNE PYTANIE
+    # UNTERSCHIED – DIREKTE FRAGE
     # ======================================
 
     answer = answer_explicit_vocabulary_difference(
@@ -100,7 +128,7 @@ def handle_vocabulary(
 
 
     # ======================================
-    # BRAK ODPOWIEDZI SŁOWNIKOWEJ
+    # KEINE WORTSCHATZ-ANTWORT
     # ======================================
 
     return None
