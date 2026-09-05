@@ -16,9 +16,37 @@ def clean_part(
     if not text:
         return ""
 
-    return text.strip(
+    text = text.strip(
         " \t\r\n,;.?!"
     )
+
+    # ======================================
+    # NIEMIECKIE ŁĄCZNIKI MIĘDZY PYTANIAMI
+    # ======================================
+
+    connectors = [
+        "und dann ",
+        "dann ",
+        "danach ",
+        "anschließend ",
+        "anschliessend "
+    ]
+
+    lowered = text.lower()
+
+    for connector in connectors:
+
+        if lowered.startswith(
+            connector
+        ):
+
+            text = text[
+                len(connector):
+            ].strip()
+
+            break
+
+    return text
 
 
 # ==========================================
@@ -338,6 +366,59 @@ def split_compound_question(
 
 
 # ==========================================
+# DWA PYTANIA Z NIEMIECKIM ŁĄCZNIKIEM
+# ==========================================
+
+def split_with_german_connector(
+    user_message
+):
+
+    if not user_message:
+        return []
+
+    pattern = (
+        r"\?\s*"
+        r"(?:"
+        r"und\s+dann"
+        r"|dann"
+        r"|danach"
+        r"|anschließend"
+        r"|anschliessend"
+        r")"
+        r"\s*[:,\-]?\s*"
+    )
+
+    match = re.search(
+        pattern,
+        user_message,
+        flags=re.IGNORECASE
+    )
+
+    if not match:
+        return []
+
+    first = clean_part(
+        user_message[
+            :match.start()
+        ]
+    )
+
+    second = clean_part(
+        user_message[
+            match.end():
+        ]
+    )
+
+    if not first or not second:
+        return []
+
+    return [
+        first + "?",
+        second + "?"
+    ]
+
+
+# ==========================================
 # GŁÓWNE DZIELENIE WIADOMOŚCI
 # ==========================================
 
@@ -350,7 +431,19 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 1. KILKA PYTAŃ Z ?
+    # 1. NIEMIECKIE ŁĄCZNIKI
+    # ======================================
+
+    questions = split_with_german_connector(
+        user_message
+    )
+
+    if questions:
+        return questions
+
+
+    # ======================================
+    # 2. KILKA PYTAŃ Z ?
     # ======================================
 
     questions = split_by_question_mark(
@@ -362,7 +455,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 2. ZNACZENIE + PRZYKŁAD + UŻYCIE
+    # 3. ZNACZENIE + PRZYKŁAD + UŻYCIE
     # ======================================
 
     questions = split_meaning_example_usage(
@@ -374,7 +467,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 3. ZNACZENIE + PODOBNE SŁOWO
+    # 4. ZNACZENIE + PODOBNE SŁOWO
     # ======================================
 
     questions = split_meaning_similar(
@@ -386,7 +479,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 4. ZNACZENIE + PRZYKŁAD
+    # 5. ZNACZENIE + PRZYKŁAD
     # ======================================
 
     questions = split_meaning_example(
@@ -398,7 +491,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 5. ZNACZENIE + UŻYCIE
+    # 6. ZNACZENIE + UŻYCIE
     # ======================================
 
     questions = split_meaning_usage(
@@ -410,7 +503,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 6. INNE DWA PYTANIA Z "UND"
+    # 7. INNE DWA PYTANIA Z "UND"
     # ======================================
 
     questions = split_compound_question(
