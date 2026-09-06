@@ -75,9 +75,47 @@ def split_by_question_mark(
         if not part:
             continue
 
-        questions.append(
-            part + "?"
+        # ==================================
+        # DODATKOWY PODZIAŁ PO KROPCE
+        # ==================================
+        #
+        # Przykład:
+        #
+        # Gib mir ein Beispiel.
+        # Wann benutzt man das?
+        #
+        # wcześniej było traktowane jako
+        # jedno pytanie.
+        # ==================================
+
+        subparts = re.split(
+            (
+                r"\.\s+"
+                r"(?="
+                r"(?:und\s+)?"
+                r"(?:"
+                r"was|wann|wie|warum|"
+                r"welcher|welche|welches|welchen|"
+                r"gibt|gib|nenn|zeig|hast|kannst"
+                r")\b"
+                r")"
+            ),
+            part,
+            flags=re.IGNORECASE
         )
+
+        for subpart in subparts:
+
+            subpart = clean_part(
+                subpart
+            )
+
+            if not subpart:
+                continue
+
+            questions.append(
+                subpart + "?"
+            )
 
     if len(questions) < 2:
         return []
