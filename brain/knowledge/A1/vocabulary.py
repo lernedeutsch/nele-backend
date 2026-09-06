@@ -10,6 +10,10 @@ from brain.knowledge.A1.vocabulary_topics.adjectives import (
     ADJECTIVES_VOCABULARY
 )
 
+from brain.knowledge.A1.vocabulary_topics.daily_life import (
+    DAILY_LIFE_VOCABULARY
+)
+
 
 # ==========================================
 # ALLGEMEINER A1-WORTSCHATZ
@@ -707,6 +711,15 @@ PREPARED_ADJECTIVES_VOCABULARY = prepare_vocabulary(
 
 
 # ==========================================
+# ALLTAG
+# ==========================================
+
+PREPARED_DAILY_LIFE_VOCABULARY = prepare_vocabulary(
+    DAILY_LIFE_VOCABULARY
+)
+
+
+# ==========================================
 # ERGÄNZENDE BEZIEHUNGEN
 # ==========================================
 
@@ -759,5 +772,6 @@ PREPARED_HOTEL_VOCABULARY[
 VOCABULARY = {
     **GENERAL_VOCABULARY,
     **PREPARED_HOTEL_VOCABULARY,
-    **PREPARED_ADJECTIVES_VOCABULARY
+    **PREPARED_ADJECTIVES_VOCABULARY,
+    **PREPARED_DAILY_LIFE_VOCABULARY
 }
