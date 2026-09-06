@@ -60,14 +60,22 @@ def remember_vocabulary_word(
     if state is None:
         return
 
+    if not word:
+        return
+
     old_word = state.get(
         "current_vocabulary_word"
     )
 
     if old_word != word:
+
         state[
             "vocabulary_example_index"
         ] = -1
+
+        state[
+            "current_vocabulary_related_word"
+        ] = None
 
     state[
         "current_vocabulary_word"
