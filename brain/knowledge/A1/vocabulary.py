@@ -6,6 +6,10 @@ from brain.knowledge.A1.vocabulary_topics.hotel import (
     HOTEL_VOCABULARY
 )
 
+from brain.knowledge.A1.vocabulary_topics.adjectives import (
+    ADJECTIVES_VOCABULARY
+)
+
 
 # ==========================================
 # ALLGEMEINER A1-WORTSCHATZ
@@ -641,194 +645,12 @@ GENERAL_VOCABULARY = {
                 "eine Arbeit oder Aufgabe sein."
             )
         }
-    },
-
-
-    # ======================================
-    # SCHNELL
-    # ======================================
-
-    "schnell": {
-        "meaning": (
-            "Schnell bedeutet, dass etwas in kurzer Zeit "
-            "oder mit hoher Geschwindigkeit passiert."
-        ),
-
-        "example": (
-            "Beispiel: „Der Zug ist sehr schnell.“"
-        ),
-
-        "usage": (
-            "Das Wort „schnell“ benutzt man, wenn etwas "
-            "mit hoher Geschwindigkeit oder in kurzer Zeit passiert."
-        ),
-
-        "opposite": "langsam"
-    },
-
-
-    # ======================================
-    # LANGSAM
-    # ======================================
-
-    "langsam": {
-        "meaning": (
-            "Langsam bedeutet, dass etwas nicht schnell "
-            "oder mit geringer Geschwindigkeit passiert."
-        ),
-
-        "example": (
-            "Beispiel: „Bitte sprechen Sie langsam.“"
-        ),
-
-        "usage": (
-            "Das Wort „langsam“ benutzt man, wenn etwas "
-            "mit geringer Geschwindigkeit passiert."
-        ),
-
-        "opposite": "schnell"
-    },
-
-
-    # ======================================
-    # GROSS
-    # ======================================
-
-    "groß": {
-        "meaning": (
-            "Groß bedeutet, dass etwas viel Platz einnimmt "
-            "oder eine große Größe hat."
-        ),
-
-        "example": (
-            "Beispiel: „Das Hotelzimmer ist groß.“"
-        ),
-
-        "usage": (
-            "Das Wort „groß“ benutzt man, wenn man "
-            "die Größe von etwas beschreibt."
-        ),
-
-        "opposite": "klein"
-    },
-
-
-    # ======================================
-    # KLEIN
-    # ======================================
-
-    "klein": {
-        "meaning": (
-            "Klein bedeutet, dass etwas wenig Platz einnimmt "
-            "oder eine geringe Größe hat."
-        ),
-
-        "example": (
-            "Beispiel: „Das Zimmer ist klein.“"
-        ),
-
-        "usage": (
-            "Das Wort „klein“ benutzt man, wenn man "
-            "eine geringe Größe beschreibt."
-        ),
-
-        "opposite": "groß"
-    },
-
-
-    # ======================================
-    # ALT
-    # ======================================
-
-    "alt": {
-        "meaning": (
-            "Alt bedeutet, dass eine Person oder Sache "
-            "schon viele Jahre existiert."
-        ),
-
-        "example": (
-            "Beispiel: „Das Haus ist sehr alt.“"
-        ),
-
-        "usage": (
-            "Das Wort „alt“ benutzt man, wenn man "
-            "über das Alter einer Person oder Sache spricht."
-        ),
-
-        "opposite": "neu"
-    },
-
-
-    # ======================================
-    # NEU
-    # ======================================
-
-    "neu": {
-        "meaning": (
-            "Neu bedeutet, dass etwas erst seit kurzer Zeit "
-            "existiert oder noch nicht lange benutzt wurde."
-        ),
-
-        "example": (
-            "Beispiel: „Das Hotel ist neu.“"
-        ),
-
-        "usage": (
-            "Das Wort „neu“ benutzt man für Dinge, "
-            "die noch nicht alt oder lange benutzt sind."
-        ),
-
-        "opposite": "alt"
-    },
-
-
-    # ======================================
-    # OFFEN
-    # ======================================
-
-    "offen": {
-        "meaning": (
-            "Offen bedeutet, dass etwas nicht geschlossen ist."
-        ),
-
-        "example": (
-            "Beispiel: „Die Tür ist offen.“"
-        ),
-
-        "usage": (
-            "Das Wort „offen“ benutzt man zum Beispiel "
-            "für Türen, Fenster, Geschäfte oder Einrichtungen."
-        ),
-
-        "opposite": "geschlossen"
-    },
-
-
-    # ======================================
-    # GESCHLOSSEN
-    # ======================================
-
-    "geschlossen": {
-        "meaning": (
-            "Geschlossen bedeutet, dass etwas nicht offen ist."
-        ),
-
-        "example": (
-            "Beispiel: „Die Tür ist geschlossen.“"
-        ),
-
-        "usage": (
-            "Das Wort „geschlossen“ benutzt man zum Beispiel "
-            "für Türen, Fenster, Geschäfte oder Einrichtungen."
-        ),
-
-        "opposite": "offen"
     }
 }
 
 
 # ==========================================
-# HOTELWORTSCHATZ VORBEREITEN
+# WORTSCHATZ VORBEREITEN
 # ==========================================
 
 def prepare_vocabulary(
@@ -872,6 +694,15 @@ def prepare_vocabulary(
 
 PREPARED_HOTEL_VOCABULARY = prepare_vocabulary(
     HOTEL_VOCABULARY
+)
+
+
+# ==========================================
+# ADJEKTIVE
+# ==========================================
+
+PREPARED_ADJECTIVES_VOCABULARY = prepare_vocabulary(
+    ADJECTIVES_VOCABULARY
 )
 
 
@@ -927,5 +758,6 @@ PREPARED_HOTEL_VOCABULARY[
 
 VOCABULARY = {
     **GENERAL_VOCABULARY,
-    **PREPARED_HOTEL_VOCABULARY
+    **PREPARED_HOTEL_VOCABULARY,
+    **PREPARED_ADJECTIVES_VOCABULARY
 }
