@@ -10,7 +10,8 @@ from brain.logic.vocabulary import (
     answer_vocabulary_difference_follow_up,
     answer_explicit_vocabulary_difference,
     answer_vocabulary_article,
-    answer_vocabulary_plural
+    answer_vocabulary_plural,
+    answer_vocabulary_opposite
 )
 
 
@@ -93,6 +94,19 @@ def handle_vocabulary(
     # ======================================
 
     answer = answer_similar_vocabulary_word(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # GEGENTEIL
+    # ======================================
+
+    answer = answer_vocabulary_opposite(
         user_message,
         state
     )
