@@ -31,26 +31,30 @@ def answer_vocabulary_example(
 
 
     # ======================================
-    # FRAGEN NACH EINEM BEISPIEL
+    # NORMALE FRAGEN NACH EINEM BEISPIEL
     # ======================================
 
     example_questions = [
         "und ein beispiel",
         "und ein beispiel dafür",
+
         "ein beispiel",
         "ein beispiel dafür",
 
         "gib mir ein beispiel",
         "gib mir ein beispiel dafür",
         "gib mir bitte ein beispiel",
+        "gib mir bitte ein beispiel dafür",
 
         "nenn mir ein beispiel",
         "nenn mir ein beispiel dafür",
         "nenn mir bitte ein beispiel",
+        "nenn mir bitte ein beispiel dafür",
 
         "zeig mir ein beispiel",
         "zeig mir ein beispiel dafür",
         "zeig mir bitte ein beispiel",
+        "zeig mir bitte ein beispiel dafür",
 
         "hast du ein beispiel",
         "hast du dafür ein beispiel",
@@ -62,13 +66,23 @@ def answer_vocabulary_example(
 
         "kannst du mir ein beispiel nennen",
         "kannst du mir bitte ein beispiel nennen",
+        "kannst du ein beispiel nennen",
 
         "kannst du mir ein beispiel zeigen",
         "kannst du mir bitte ein beispiel zeigen",
+        "kannst du ein beispiel zeigen",
 
         "kannst du ein beispiel machen",
         "kannst du mir ein beispiel machen",
+        "kannst du mir bitte ein beispiel machen"
+    ]
 
+
+    # ======================================
+    # FRAGEN NACH EINEM WEITEREN BEISPIEL
+    # ======================================
+
+    next_example_questions = [
         "noch ein beispiel",
         "und noch ein beispiel",
 
@@ -87,10 +101,15 @@ def answer_vocabulary_example(
 
         "kannst du mir noch ein beispiel geben",
         "kannst du mir bitte noch ein beispiel geben",
-
         "kannst du noch ein beispiel geben",
+
         "kannst du mir noch ein beispiel nennen",
+        "kannst du mir bitte noch ein beispiel nennen",
+        "kannst du noch ein beispiel nennen",
+
         "kannst du mir noch ein beispiel zeigen",
+        "kannst du mir bitte noch ein beispiel zeigen",
+        "kannst du noch ein beispiel zeigen",
 
         "noch eins",
         "und noch eins",
@@ -98,22 +117,53 @@ def answer_vocabulary_example(
         "noch eines",
         "und noch eines",
 
+        "gib mir noch eins",
+        "gib mir bitte noch eins",
+
+        "nenn mir noch eins",
+        "nenn mir bitte noch eins",
+
+        "zeig mir noch eins",
+        "zeig mir bitte noch eins",
+
+        "gib mir noch eines",
+        "gib mir bitte noch eines",
+
+        "nenn mir noch eines",
+        "nenn mir bitte noch eines",
+
+        "zeig mir noch eines",
+        "zeig mir bitte noch eines",
+
         "ein weiteres beispiel",
         "und ein weiteres beispiel",
-        "noch ein weiteres beispiel"
+
+        "noch ein weiteres beispiel",
+        "und noch ein weiteres beispiel"
     ]
 
 
     # ======================================
-    # IST ES EINE BEISPIELFRAGE?
+    # PRÜFEN, OB ES EINE BEISPIELFRAGE IST
     # ======================================
 
-    if message not in example_questions:
+    is_example_question = (
+        message in example_questions
+    )
+
+    is_next_example_question = (
+        message in next_example_questions
+    )
+
+    if (
+        not is_example_question
+        and not is_next_example_question
+    ):
         return None
 
 
     # ======================================
-    # WORTSCHATZEINTRAG HOLEN
+    # WORTSCHATZEINTRAG LADEN
     # ======================================
 
     vocabulary_entry = VOCABULARY.get(
@@ -125,7 +175,7 @@ def answer_vocabulary_example(
 
 
     # ======================================
-    # BEISPIELE HOLEN
+    # BEISPIELE LADEN
     # ======================================
 
     examples = vocabulary_entry.get(
@@ -154,7 +204,6 @@ def answer_vocabulary_example(
         examples,
         list
     ):
-
         examples = [
             examples
         ]
@@ -164,7 +213,7 @@ def answer_vocabulary_example(
 
 
     # ======================================
-    # NÄCHSTES BEISPIEL BESTIMMEN
+    # LETZTEN BEISPIELINDEX LADEN
     # ======================================
 
     old_index = state.get(
@@ -172,15 +221,26 @@ def answer_vocabulary_example(
         -1
     )
 
-    example_index = (
-        old_index + 1
-    ) % len(
-        examples
-    )
+
+    # ======================================
+    # NÄCHSTES BEISPIEL BESTIMMEN
+    # ======================================
+
+    if old_index < 0:
+
+        example_index = 0
+
+    else:
+
+        example_index = (
+            old_index + 1
+        ) % len(
+            examples
+        )
 
 
     # ======================================
-    # INDEX SPEICHERN
+    # INDEX IM KONTEXT SPEICHERN
     # ======================================
 
     state[
@@ -196,18 +256,23 @@ def answer_vocabulary_example(
         example_index
     ]
 
+    if not example:
+        return None
+
 
     # ======================================
-    # FERTIGE ANTWORT
+    # FERTIGE ANTWORT ZURÜCKGEBEN
     # ======================================
 
-    if isinstance(
-        example,
-        str
-    ) and example.lower().startswith(
-        "beispiel:"
+    if (
+        isinstance(
+            example,
+            str
+        )
+        and example.lower().startswith(
+            "beispiel:"
+        )
     ):
-
         return example
 
     return (
