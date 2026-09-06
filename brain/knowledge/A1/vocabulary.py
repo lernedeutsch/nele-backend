@@ -14,6 +14,10 @@ from brain.knowledge.A1.vocabulary_topics.daily_life import (
     DAILY_LIFE_VOCABULARY
 )
 
+from brain.knowledge.A1.vocabulary_topics.food import (
+    FOOD_VOCABULARY
+)
+
 
 # ==========================================
 # ALLGEMEINER A1-WORTSCHATZ
@@ -720,6 +724,15 @@ PREPARED_DAILY_LIFE_VOCABULARY = prepare_vocabulary(
 
 
 # ==========================================
+# ESSEN UND TRINKEN
+# ==========================================
+
+PREPARED_FOOD_VOCABULARY = prepare_vocabulary(
+    FOOD_VOCABULARY
+)
+
+
+# ==========================================
 # ERGÄNZENDE BEZIEHUNGEN
 # ==========================================
 
@@ -773,5 +786,6 @@ VOCABULARY = {
     **GENERAL_VOCABULARY,
     **PREPARED_HOTEL_VOCABULARY,
     **PREPARED_ADJECTIVES_VOCABULARY,
-    **PREPARED_DAILY_LIFE_VOCABULARY
+    **PREPARED_DAILY_LIFE_VOCABULARY,
+    **PREPARED_FOOD_VOCABULARY
 }
