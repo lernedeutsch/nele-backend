@@ -26,6 +26,53 @@ ADJECTIVES_VOCABULARY = {
             "mit hoher Geschwindigkeit oder in kurzer Zeit passiert."
         ),
 
+        "similar": [
+            "rasch"
+        ],
+
+        "difference": {
+            "rasch": (
+                "„Schnell“ und „rasch“ haben eine ähnliche Bedeutung. "
+                "„Schnell“ benutzt man im Alltag häufiger."
+            )
+        },
+
+        "opposite": "langsam"
+    },
+
+
+    # ======================================
+    # RASCH
+    # ======================================
+
+    "rasch": {
+        "meaning": (
+            "Rasch bedeutet, dass etwas schnell "
+            "oder in kurzer Zeit passiert."
+        ),
+
+        "examples": [
+            "Er antwortet sehr rasch.",
+            "Wir brauchen eine rasche Lösung.",
+            "Sie kommt rasch zurück."
+        ],
+
+        "usage": (
+            "Das Wort „rasch“ hat eine ähnliche Bedeutung wie „schnell“. "
+            "Im Alltag benutzt man „schnell“ häufiger."
+        ),
+
+        "similar": [
+            "schnell"
+        ],
+
+        "difference": {
+            "schnell": (
+                "„Rasch“ und „schnell“ haben eine ähnliche Bedeutung. "
+                "„Schnell“ benutzt man im Alltag häufiger."
+            )
+        },
+
         "opposite": "langsam"
     },
 
@@ -77,7 +124,56 @@ ADJECTIVES_VOCABULARY = {
             "oder Gegenständen spricht."
         ),
 
+        "similar": [
+            "riesig"
+        ],
+
+        "difference": {
+            "riesig": (
+                "„Groß“ bedeutet, dass etwas eine große Größe hat. "
+                "„Riesig“ ist stärker und bedeutet, dass etwas "
+                "besonders oder außergewöhnlich groß ist."
+            )
+        },
+
         "opposite": "klein"
+    },
+
+
+    # ======================================
+    # RIESIG
+    # ======================================
+
+    "riesig": {
+        "meaning": (
+            "Riesig bedeutet, dass etwas sehr groß "
+            "oder außergewöhnlich groß ist."
+        ),
+
+        "examples": [
+            "Das Gebäude ist riesig.",
+            "Der Hund ist riesig.",
+            "Das Hotel ist riesig."
+        ],
+
+        "usage": (
+            "Das Wort „riesig“ benutzt man, wenn etwas "
+            "besonders oder außergewöhnlich groß ist."
+        ),
+
+        "similar": [
+            "groß"
+        ],
+
+        "difference": {
+            "groß": (
+                "„Riesig“ ist stärker als „groß“. "
+                "„Groß“ beschreibt eine große Größe. "
+                "„Riesig“ bedeutet sehr oder außergewöhnlich groß."
+            )
+        },
+
+        "opposite": "winzig"
     },
 
 
@@ -102,7 +198,56 @@ ADJECTIVES_VOCABULARY = {
             "über eine geringe Größe spricht."
         ),
 
+        "similar": [
+            "winzig"
+        ],
+
+        "difference": {
+            "winzig": (
+                "„Klein“ bedeutet, dass etwas eine geringe Größe hat. "
+                "„Winzig“ ist stärker und bedeutet, dass etwas "
+                "besonders oder außergewöhnlich klein ist."
+            )
+        },
+
         "opposite": "groß"
+    },
+
+
+    # ======================================
+    # WINZIG
+    # ======================================
+
+    "winzig": {
+        "meaning": (
+            "Winzig bedeutet, dass etwas sehr klein "
+            "oder außergewöhnlich klein ist."
+        ),
+
+        "examples": [
+            "Das Zimmer ist winzig.",
+            "Die Wohnung ist winzig.",
+            "Die Fliege ist winzig."
+        ],
+
+        "usage": (
+            "Das Wort „winzig“ benutzt man, wenn etwas "
+            "besonders oder außergewöhnlich klein ist."
+        ),
+
+        "similar": [
+            "klein"
+        ],
+
+        "difference": {
+            "klein": (
+                "„Winzig“ ist stärker als „klein“. "
+                "„Klein“ beschreibt eine geringe Größe. "
+                "„Winzig“ bedeutet sehr oder außergewöhnlich klein."
+            )
+        },
+
+        "opposite": "riesig"
     },
 
 
