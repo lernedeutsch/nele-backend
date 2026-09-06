@@ -5,19 +5,9 @@
 from brain.logic.matcher import normalize
 from brain.knowledge.A1.vocabulary import VOCABULARY
 
-
-# ==========================================
-# WORT SCHÖN ANZEIGEN
-# ==========================================
-
-def display_vocabulary_word(
-    word
-):
-
-    if not word:
-        return ""
-
-    return word[:1].upper() + word[1:]
+from brain.logic.vocabulary_modules.helpers import (
+    display_vocabulary_word
+)
 
 
 # ==========================================
