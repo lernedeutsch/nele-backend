@@ -29,32 +29,23 @@ def answer_vocabulary_example(
         user_message
     )
 
-
-    # ======================================
-    # NORMALE FRAGEN NACH EINEM BEISPIEL
-    # ======================================
-
-    example_questions = [
+    first_example_questions = [
         "und ein beispiel",
         "und ein beispiel dafür",
-
         "ein beispiel",
         "ein beispiel dafür",
 
         "gib mir ein beispiel",
         "gib mir ein beispiel dafür",
         "gib mir bitte ein beispiel",
-        "gib mir bitte ein beispiel dafür",
 
         "nenn mir ein beispiel",
         "nenn mir ein beispiel dafür",
         "nenn mir bitte ein beispiel",
-        "nenn mir bitte ein beispiel dafür",
 
         "zeig mir ein beispiel",
         "zeig mir ein beispiel dafür",
         "zeig mir bitte ein beispiel",
-        "zeig mir bitte ein beispiel dafür",
 
         "hast du ein beispiel",
         "hast du dafür ein beispiel",
@@ -66,21 +57,13 @@ def answer_vocabulary_example(
 
         "kannst du mir ein beispiel nennen",
         "kannst du mir bitte ein beispiel nennen",
-        "kannst du ein beispiel nennen",
 
         "kannst du mir ein beispiel zeigen",
         "kannst du mir bitte ein beispiel zeigen",
-        "kannst du ein beispiel zeigen",
 
         "kannst du ein beispiel machen",
-        "kannst du mir ein beispiel machen",
-        "kannst du mir bitte ein beispiel machen"
+        "kannst du mir ein beispiel machen"
     ]
-
-
-    # ======================================
-    # FRAGEN NACH EINEM WEITEREN BEISPIEL
-    # ======================================
 
     next_example_questions = [
         "noch ein beispiel",
@@ -101,70 +84,31 @@ def answer_vocabulary_example(
 
         "kannst du mir noch ein beispiel geben",
         "kannst du mir bitte noch ein beispiel geben",
+
         "kannst du noch ein beispiel geben",
-
         "kannst du mir noch ein beispiel nennen",
-        "kannst du mir bitte noch ein beispiel nennen",
-        "kannst du noch ein beispiel nennen",
-
         "kannst du mir noch ein beispiel zeigen",
-        "kannst du mir bitte noch ein beispiel zeigen",
-        "kannst du noch ein beispiel zeigen",
 
         "noch eins",
         "und noch eins",
-
         "noch eines",
         "und noch eines",
 
-        "gib mir noch eins",
-        "gib mir bitte noch eins",
-
-        "nenn mir noch eins",
-        "nenn mir bitte noch eins",
-
-        "zeig mir noch eins",
-        "zeig mir bitte noch eins",
-
-        "gib mir noch eines",
-        "gib mir bitte noch eines",
-
-        "nenn mir noch eines",
-        "nenn mir bitte noch eines",
-
-        "zeig mir noch eines",
-        "zeig mir bitte noch eines",
-
         "ein weiteres beispiel",
         "und ein weiteres beispiel",
-
-        "noch ein weiteres beispiel",
-        "und noch ein weiteres beispiel"
+        "noch ein weiteres beispiel"
     ]
 
-
-    # ======================================
-    # PRÜFEN, OB ES EINE BEISPIELFRAGE IST
-    # ======================================
-
-    is_example_question = (
-        message in example_questions
+    is_first_example = (
+        message in first_example_questions
     )
 
-    is_next_example_question = (
+    is_next_example = (
         message in next_example_questions
     )
 
-    if (
-        not is_example_question
-        and not is_next_example_question
-    ):
+    if not is_first_example and not is_next_example:
         return None
-
-
-    # ======================================
-    # WORTSCHATZEINTRAG LADEN
-    # ======================================
 
     vocabulary_entry = VOCABULARY.get(
         current_word
@@ -172,11 +116,6 @@ def answer_vocabulary_example(
 
     if not vocabulary_entry:
         return None
-
-
-    # ======================================
-    # BEISPIELE LADEN
-    # ======================================
 
     examples = vocabulary_entry.get(
         "examples"
@@ -195,11 +134,6 @@ def answer_vocabulary_example(
             old_example
         ]
 
-
-    # ======================================
-    # EINZELNES BEISPIEL IN LISTE UMWANDELN
-    # ======================================
-
     if not isinstance(
         examples,
         list
@@ -211,26 +145,29 @@ def answer_vocabulary_example(
     if not examples:
         return None
 
-
     # ======================================
-    # LETZTEN BEISPIELINDEX LADEN
-    # ======================================
-
-    old_index = state.get(
-        "vocabulary_example_index",
-        -1
-    )
-
-
-    # ======================================
-    # NÄCHSTES BEISPIEL BESTIMMEN
+    # ERSTES BEISPIEL
     # ======================================
 
-    if old_index < 0:
+    if is_first_example:
 
         example_index = 0
 
+    # ======================================
+    # NÄCHSTES BEISPIEL
+    # ======================================
+
     else:
+
+        old_index = state.get(
+            "vocabulary_example_index"
+        )
+
+        if old_index is None:
+            old_index = -1
+
+        if old_index < 0:
+            old_index = 0
 
         example_index = (
             old_index + 1
@@ -238,40 +175,27 @@ def answer_vocabulary_example(
             examples
         )
 
-
     # ======================================
-    # INDEX IM KONTEXT SPEICHERN
+    # INDEX SPEICHERN
     # ======================================
 
     state[
         "vocabulary_example_index"
     ] = example_index
 
-
-    # ======================================
-    # BEISPIEL HOLEN
-    # ======================================
-
     example = examples[
         example_index
     ]
 
-    if not example:
-        return None
-
-
     # ======================================
-    # FERTIGE ANTWORT ZURÜCKGEBEN
+    # ANTWORT
     # ======================================
 
-    if (
-        isinstance(
-            example,
-            str
-        )
-        and example.lower().startswith(
-            "beispiel:"
-        )
+    if isinstance(
+        example,
+        str
+    ) and example.lower().startswith(
+        "beispiel:"
     ):
         return example
 
