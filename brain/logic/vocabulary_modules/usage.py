@@ -48,6 +48,7 @@ def extract_usage_word(
     )
 
     patterns = [
+        # Wann ...
         "wann benutzt man das wort ",
         "wann verwendet man das wort ",
         "wann sagt man das wort ",
@@ -58,7 +59,18 @@ def extract_usage_word(
         "wann verwendet man ",
         "wann sagt man ",
         "wann benutze ich ",
-        "wann verwende ich "
+        "wann verwende ich ",
+
+        # Wie ...
+        "wie benutzt man das wort ",
+        "wie verwendet man das wort ",
+        "wie benutze ich das wort ",
+        "wie verwende ich das wort ",
+
+        "wie benutzt man ",
+        "wie verwendet man ",
+        "wie benutze ich ",
+        "wie verwende ich "
     ]
 
     patterns.sort(
@@ -99,29 +111,83 @@ def is_vocabulary_usage_follow_up(
     )
 
     usage_follow_ups = [
+        # Wann benutzt ...
         "wann benutzt man das",
         "und wann benutzt man das",
 
-        "wann verwendet man das",
-        "und wann verwendet man das",
-
-        "wann sagt man das",
-        "und wann sagt man das",
+        "wann benutzt man dieses wort",
+        "und wann benutzt man dieses wort",
 
         "wann benutzt man das wort",
         "und wann benutzt man das wort",
 
+        # Wann verwendet ...
+        "wann verwendet man das",
+        "und wann verwendet man das",
+
+        "wann verwendet man dieses wort",
+        "und wann verwendet man dieses wort",
+
         "wann verwendet man das wort",
         "und wann verwendet man das wort",
+
+        # Wann sagt ...
+        "wann sagt man das",
+        "und wann sagt man das",
+
+        "wann sagt man dieses wort",
+        "und wann sagt man dieses wort",
 
         "wann sagt man das wort",
         "und wann sagt man das wort",
 
+        # Wann benutze ich ...
         "wann benutze ich das",
         "und wann benutze ich das",
 
+        "wann benutze ich dieses wort",
+        "und wann benutze ich dieses wort",
+
+        # Wann verwende ich ...
         "wann verwende ich das",
-        "und wann verwende ich das"
+        "und wann verwende ich das",
+
+        "wann verwende ich dieses wort",
+        "und wann verwende ich dieses wort",
+
+        # Wie benutzt ...
+        "wie benutzt man das",
+        "und wie benutzt man das",
+
+        "wie benutzt man dieses wort",
+        "und wie benutzt man dieses wort",
+
+        "wie benutzt man das wort",
+        "und wie benutzt man das wort",
+
+        # Wie verwendet ...
+        "wie verwendet man das",
+        "und wie verwendet man das",
+
+        "wie verwendet man dieses wort",
+        "und wie verwendet man dieses wort",
+
+        "wie verwendet man das wort",
+        "und wie verwendet man das wort",
+
+        # Wie benutze ich ...
+        "wie benutze ich das",
+        "und wie benutze ich das",
+
+        "wie benutze ich dieses wort",
+        "und wie benutze ich dieses wort",
+
+        # Wie verwende ich ...
+        "wie verwende ich das",
+        "und wie verwende ich das",
+
+        "wie verwende ich dieses wort",
+        "und wie verwende ich dieses wort"
     ]
 
     return message in usage_follow_ups
