@@ -50,6 +50,198 @@ def clean_part(
 
 
 # ==========================================
+# ROZPOZNANIE POCZĄTKU NOWEGO PYTANIA
+# LUB POLECENIA
+# ==========================================
+
+def is_new_question_start(
+    text
+):
+
+    if not text:
+        return False
+
+    text = text.strip()
+
+    pattern = (
+        r"^(?:und\s+)?"
+        r"(?:"
+        r"was|"
+        r"wann|"
+        r"wie|"
+        r"warum|"
+        r"welcher|"
+        r"welche|"
+        r"welches|"
+        r"welchen|"
+        r"gibt|"
+        r"gib|"
+        r"nenn|"
+        r"zeig|"
+        r"hast|"
+        r"kannst|"
+        r"kennst|"
+        r"noch|"
+        r"ein\s+weiteres|"
+        r"erklär|"
+        r"erkläre|"
+        r"erklaere|"
+        r"erläutere|"
+        r"erlaeutere"
+        r")\b"
+    )
+
+    return bool(
+        re.match(
+            pattern,
+            text,
+            flags=re.IGNORECASE
+        )
+    )
+
+
+# ==========================================
+# FRAGEN UND BEFEHLE NACH . ? !
+# TRENNEN
+# ==========================================
+
+def split_by_sentence_marks(
+    user_message
+):
+
+    if not user_message:
+        return []
+
+    raw_parts = re.split(
+        r"([.?!]+)",
+        user_message
+    )
+
+    parts = []
+
+    current = ""
+
+    index = 0
+
+    while index < len(
+        raw_parts
+    ):
+
+        text = raw_parts[
+            index
+        ].strip()
+
+        punctuation = ""
+
+        if (
+            index + 1
+            < len(raw_parts)
+        ):
+
+            possible_punctuation = raw_parts[
+                index + 1
+            ]
+
+            if re.fullmatch(
+                r"[.?!]+",
+                possible_punctuation
+            ):
+
+                punctuation = possible_punctuation
+                index += 1
+
+        if text:
+
+            if current:
+
+                if is_new_question_start(
+                    text
+                ):
+
+                    cleaned = clean_part(
+                        current
+                    )
+
+                    if cleaned:
+
+                        parts.append(
+                            cleaned + "?"
+                        )
+
+                    current = text
+
+                else:
+
+                    current += " " + text
+
+            else:
+
+                current = text
+
+        if punctuation:
+
+            next_text = ""
+
+            next_index = (
+                index + 1
+            )
+
+            if next_index < len(
+                raw_parts
+            ):
+
+                next_text = raw_parts[
+                    next_index
+                ].strip()
+
+            if (
+                current
+                and (
+                    punctuation.find(
+                        "?"
+                    ) != -1
+                    or punctuation.find(
+                        "!"
+                    ) != -1
+                    or is_new_question_start(
+                        next_text
+                    )
+                )
+            ):
+
+                cleaned = clean_part(
+                    current
+                )
+
+                if cleaned:
+
+                    parts.append(
+                        cleaned + "?"
+                    )
+
+                current = ""
+
+        index += 1
+
+    if current:
+
+        cleaned = clean_part(
+            current
+        )
+
+        if cleaned:
+
+            parts.append(
+                cleaned + "?"
+            )
+
+    if len(parts) < 2:
+        return []
+
+    return parts
+
+
+# ==========================================
 # KILKA PYTAŃ ODDZIELONYCH ZNAKIEM ?
 # ==========================================
 
@@ -79,13 +271,12 @@ def split_by_question_mark(
         # DODATKOWY PODZIAŁ PO KROPCE
         # ==================================
         #
-        # Przykład:
+        # Beispiele:
         #
         # Gib mir ein Beispiel.
+        # Noch ein Beispiel.
         # Wann benutzt man das?
         #
-        # wcześniej było traktowane jako
-        # jedno pytanie.
         # ==================================
 
         subparts = re.split(
@@ -94,9 +285,28 @@ def split_by_question_mark(
                 r"(?="
                 r"(?:und\s+)?"
                 r"(?:"
-                r"was|wann|wie|warum|"
-                r"welcher|welche|welches|welchen|"
-                r"gibt|gib|nenn|zeig|hast|kannst"
+                r"was|"
+                r"wann|"
+                r"wie|"
+                r"warum|"
+                r"welcher|"
+                r"welche|"
+                r"welches|"
+                r"welchen|"
+                r"gibt|"
+                r"gib|"
+                r"nenn|"
+                r"zeig|"
+                r"hast|"
+                r"kannst|"
+                r"kennst|"
+                r"noch|"
+                r"ein\s+weiteres|"
+                r"erklär|"
+                r"erkläre|"
+                r"erklaere|"
+                r"erläutere|"
+                r"erlaeutere"
                 r")\b"
                 r")"
             ),
@@ -366,7 +576,8 @@ def split_compound_question(
         r"\s+und\s+(?=warum\s+)",
         r"\s+und\s+(?=welches\s+)",
         r"\s+und\s+(?=welcher\s+)",
-        r"\s+und\s+(?=welche\s+)"
+        r"\s+und\s+(?=welche\s+)",
+        r"\s+und\s+(?=welchen\s+)"
     ]
 
     for pattern in patterns:
@@ -481,7 +692,19 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 2. KILKA PYTAŃ Z ?
+    # 2. MIESZANE . ? !
+    # ======================================
+
+    questions = split_by_sentence_marks(
+        user_message
+    )
+
+    if questions:
+        return questions
+
+
+    # ======================================
+    # 3. KILKA PYTAŃ Z ?
     # ======================================
 
     questions = split_by_question_mark(
@@ -493,7 +716,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 3. ZNACZENIE + PRZYKŁAD + UŻYCIE
+    # 4. ZNACZENIE + PRZYKŁAD + UŻYCIE
     # ======================================
 
     questions = split_meaning_example_usage(
@@ -505,7 +728,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 4. ZNACZENIE + PODOBNE SŁOWO
+    # 5. ZNACZENIE + PODOBNE SŁOWO
     # ======================================
 
     questions = split_meaning_similar(
@@ -517,7 +740,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 5. ZNACZENIE + PRZYKŁAD
+    # 6. ZNACZENIE + PRZYKŁAD
     # ======================================
 
     questions = split_meaning_example(
@@ -529,7 +752,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 6. ZNACZENIE + UŻYCIE
+    # 7. ZNACZENIE + UŻYCIE
     # ======================================
 
     questions = split_meaning_usage(
@@ -541,7 +764,7 @@ def split_multiple_questions(
 
 
     # ======================================
-    # 7. INNE DWA PYTANIA Z "UND"
+    # 8. INNE DWA PYTANIA Z "UND"
     # ======================================
 
     questions = split_compound_question(
