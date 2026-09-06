@@ -43,3 +43,9 @@ from brain.logic.vocabulary_modules.difference import (
     answer_vocabulary_difference_follow_up,
     answer_explicit_vocabulary_difference
 )
+
+from brain.logic.vocabulary_modules.opposite import (
+    extract_opposite_word,
+    is_opposite_follow_up,
+    answer_vocabulary_opposite
+)
