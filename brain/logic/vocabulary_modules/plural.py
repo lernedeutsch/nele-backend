@@ -148,6 +148,22 @@ def is_plural_follow_up(
     )
 
     plural_questions = [
+        # ----------------------------------
+        # Kurze natürliche Formen
+        # ----------------------------------
+
+        "plural",
+        "der plural",
+        "und der plural",
+
+        "mehrzahl",
+        "die mehrzahl",
+        "und die mehrzahl",
+
+        # ----------------------------------
+        # Standardfragen mit Plural
+        # ----------------------------------
+
         "was ist der plural",
         "und was ist der plural",
 
@@ -156,6 +172,10 @@ def is_plural_follow_up(
 
         "wie ist der plural",
         "und wie ist der plural",
+
+        # ----------------------------------
+        # Standardfragen mit Mehrzahl
+        # ----------------------------------
 
         "was ist die mehrzahl",
         "und was ist die mehrzahl",
@@ -182,9 +202,19 @@ def answer_vocabulary_plural(
     state=None
 ):
 
+    # --------------------------------------
+    # Zuerst prüfen:
+    # wurde ein Wort direkt genannt?
+    # --------------------------------------
+
     word = extract_plural_word(
         user_message
     )
+
+    # --------------------------------------
+    # Wenn kein Wort genannt wurde:
+    # Kontextfrage prüfen
+    # --------------------------------------
 
     if not word:
 
@@ -203,12 +233,20 @@ def answer_vocabulary_plural(
     if not word:
         return None
 
+    # --------------------------------------
+    # Wort im Wörterbuch suchen
+    # --------------------------------------
+
     vocabulary_entry = VOCABULARY.get(
         word
     )
 
     if not vocabulary_entry:
         return None
+
+    # --------------------------------------
+    # Plural lesen
+    # --------------------------------------
 
     plural = vocabulary_entry.get(
         "plural"
@@ -217,14 +255,26 @@ def answer_vocabulary_plural(
     if not plural:
         return None
 
+    # --------------------------------------
+    # Wort im Gespräch merken
+    # --------------------------------------
+
     remember_vocabulary_word(
         state,
         word
     )
 
+    # --------------------------------------
+    # Wort schön anzeigen
+    # --------------------------------------
+
     display_word = display_vocabulary_word(
         word
     )
+
+    # --------------------------------------
+    # Antwort
+    # --------------------------------------
 
     return (
         f"Der Plural von „{display_word}“ "
