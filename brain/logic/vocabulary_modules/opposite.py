@@ -5,74 +5,11 @@
 from brain.logic.matcher import normalize
 from brain.knowledge.A1.vocabulary import VOCABULARY
 
-
-# ==========================================
-# HILFSFUNKTION – WORT BEREINIGEN
-# ==========================================
-
-def clean_vocabulary_word(
-    word
-):
-
-    word = normalize(
-        word
-    )
-
-    word = word.strip(
-        " .?!„“\"'"
-    )
-
-    if word == "das wort":
-        return ""
-
-    if word.startswith(
-        "das wort "
-    ):
-        word = word[
-            len("das wort "):
-        ].strip()
-
-    return word
-
-
-# ==========================================
-# HILFSFUNKTION – WORT SCHÖN ANZEIGEN
-# ==========================================
-
-def display_vocabulary_word(
-    word
-):
-
-    if not word:
-        return ""
-
-    return word[:1].upper() + word[1:]
-
-
-# ==========================================
-# HILFSFUNKTION – WORT MERKEN
-# ==========================================
-
-def remember_vocabulary_word(
-    state,
-    word
-):
-
-    if state is None:
-        return
-
-    old_word = state.get(
-        "current_vocabulary_word"
-    )
-
-    if old_word != word:
-        state[
-            "vocabulary_example_index"
-        ] = -1
-
-    state[
-        "current_vocabulary_word"
-    ] = word
+from brain.logic.vocabulary_modules.helpers import (
+    clean_vocabulary_word,
+    display_vocabulary_word,
+    remember_vocabulary_word
+)
 
 
 # ==========================================
@@ -189,6 +126,11 @@ def answer_vocabulary_opposite(
     if not word:
         return None
 
+
+    # ======================================
+    # AKTUELLES WORT SUCHEN
+    # ======================================
+
     vocabulary_entry = VOCABULARY.get(
         word
     )
@@ -196,12 +138,18 @@ def answer_vocabulary_opposite(
     if not vocabulary_entry:
         return None
 
+
+    # ======================================
+    # GEGENTEIL SUCHEN
+    # ======================================
+
     opposite = vocabulary_entry.get(
         "opposite"
     )
 
     if not opposite:
         return None
+
 
     if isinstance(
         opposite,
@@ -219,14 +167,18 @@ def answer_vocabulary_opposite(
 
         opposite_word = opposite
 
-    remember_vocabulary_word(
-        state,
-        word
+
+    opposite_word = clean_vocabulary_word(
+        opposite_word
     )
 
-    state[
-        "current_vocabulary_related_word"
-    ] = opposite_word
+    if not opposite_word:
+        return None
+
+
+    # ======================================
+    # ANZEIGENAMEN VORBEREITEN
+    # ======================================
 
     display_word = display_vocabulary_word(
         word
@@ -235,6 +187,34 @@ def answer_vocabulary_opposite(
     opposite_display = display_vocabulary_word(
         opposite_word
     )
+
+
+    # ======================================
+    # KONTEXT AKTUALISIEREN
+    # ======================================
+
+    if state is not None:
+
+        # ursprüngliches Wort merken
+        state[
+            "previous_vocabulary_word"
+        ] = word
+
+        # Beziehung merken
+        state[
+            "current_vocabulary_related_word"
+        ] = opposite_word
+
+        # DAS GEGENTEIL WIRD DAS NEUE AKTUELLE WORT
+        remember_vocabulary_word(
+            state,
+            opposite_word
+        )
+
+
+    # ======================================
+    # ANTWORT
+    # ======================================
 
     return (
         f"Das Gegenteil von „{display_word}“ "
