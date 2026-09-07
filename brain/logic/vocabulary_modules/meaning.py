@@ -12,6 +12,44 @@ from brain.logic.vocabulary_modules.helpers import (
 
 
 # ==========================================
+# BEDEUTUNG – KONTEXTFRAGE
+# ==========================================
+
+def is_meaning_follow_up(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    )
+
+    meaning_questions = [
+        "was bedeutet das",
+        "und was bedeutet das",
+
+        "was heißt das",
+        "und was heißt das",
+
+        "was heisst das",
+        "und was heisst das",
+
+        "was bedeutet es",
+        "und was bedeutet es",
+
+        "was bedeutet dieses wort",
+        "und was bedeutet dieses wort",
+
+        "was heißt dieses wort",
+        "und was heißt dieses wort",
+
+        "was heisst dieses wort",
+        "und was heisst dieses wort"
+    ]
+
+    return message in meaning_questions
+
+
+# ==========================================
 # BEDEUTUNG – WORT ERKENNEN
 # ==========================================
 
@@ -22,6 +60,16 @@ def extract_meaning_word(
     message = normalize(
         user_message
     )
+
+
+    # ======================================
+    # KONTEXTFRAGEN NICHT ALS WORT LESEN
+    # ======================================
+
+    if is_meaning_follow_up(
+        user_message
+    ):
+        return None
 
 
     # ======================================
@@ -196,44 +244,6 @@ def extract_meaning_word(
 
 
 # ==========================================
-# BEDEUTUNG – KONTEXTFRAGE
-# ==========================================
-
-def is_meaning_follow_up(
-    user_message
-):
-
-    message = normalize(
-        user_message
-    )
-
-    meaning_questions = [
-        "was bedeutet das",
-        "und was bedeutet das",
-
-        "was heißt das",
-        "und was heißt das",
-
-        "was heisst das",
-        "und was heisst das",
-
-        "was bedeutet dieses wort",
-        "und was bedeutet dieses wort",
-
-        "was heißt dieses wort",
-        "und was heißt dieses wort",
-
-        "was heisst dieses wort",
-        "und was heisst dieses wort",
-
-        "was bedeutet es",
-        "und was bedeutet es"
-    ]
-
-    return message in meaning_questions
-
-
-# ==========================================
 # BEDEUTUNG – ANTWORT
 # ==========================================
 
@@ -248,7 +258,7 @@ def answer_vocabulary_question(
 
 
     # ======================================
-    # KONTEXTFRAGE:
+    # KONTEXT:
     # "WAS BEDEUTET DAS?"
     # ======================================
 
@@ -264,15 +274,13 @@ def answer_vocabulary_question(
 
 
         # ==================================
-        # ZUERST DAS LETZTE VERWANDTE WORT
+        # OSTATNIE POWIĄZANE SŁOWO
         #
-        # Beispiel:
+        # Groß → Gegenteil → Klein
+        # Was bedeutet das? → Klein
         #
-        # Groß
-        # -> Gegenteil: Klein
-        # -> Was bedeutet das?
-        # -> Bedeutung von Klein
-        #
+        # Groß → ähnlich → Riesig
+        # Was bedeutet das? → Riesig
         # ==================================
 
         related_word = state.get(
@@ -285,11 +293,6 @@ def answer_vocabulary_question(
         ):
 
             word = related_word
-
-
-        # ==================================
-        # SONST DAS AKTUELLE WORT
-        # ==================================
 
         else:
 
@@ -327,7 +330,7 @@ def answer_vocabulary_question(
 
 
     # ======================================
-    # WORT IM KONTEXT MERKEN
+    # AKTUELLES WORT MERKEN
     # ======================================
 
     if state is not None:
@@ -336,10 +339,6 @@ def answer_vocabulary_question(
             state,
             word
         )
-
-        # Wenn das verwandte Wort jetzt
-        # zum aktuellen Wort wird,
-        # wird der alte Bezug gelöscht.
 
         if state.get(
             "current_vocabulary_related_word"
