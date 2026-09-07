@@ -5,34 +5,10 @@
 from brain.logic.matcher import normalize
 from brain.knowledge.A1.vocabulary import VOCABULARY
 
-
-# ==========================================
-# WORT BEREINIGEN
-# ==========================================
-
-def clean_vocabulary_word(
-    word
-):
-
-    word = normalize(
-        word
-    )
-
-    word = word.strip(
-        " .?!„“\"'"
-    )
-
-    if word == "das wort":
-        return ""
-
-    if word.startswith(
-        "das wort "
-    ):
-        word = word[
-            len("das wort "):
-        ].strip()
-
-    return word
+from brain.logic.vocabulary_modules.helpers import (
+    clean_vocabulary_word,
+    remember_vocabulary_word
+)
 
 
 # ==========================================
@@ -47,9 +23,10 @@ def extract_meaning_word(
         user_message
     )
 
-    # --------------------------------------
-    # Direkte Fragen
-    # --------------------------------------
+
+    # ======================================
+    # DIREKTE FRAGEN
+    # ======================================
 
     direct_patterns = [
         "was bedeutet eigentlich das wort ",
@@ -99,9 +76,10 @@ def extract_meaning_word(
             if word:
                 return word
 
-    # --------------------------------------
-    # Fragen mit "Kannst du ..."
-    # --------------------------------------
+
+    # ======================================
+    # FRAGEN MIT "KANNST DU ..."
+    # ======================================
 
     explanation_patterns = [
         "kannst du mir das wort ",
@@ -157,9 +135,10 @@ def extract_meaning_word(
             if word:
                 return word
 
-    # --------------------------------------
-    # Befehle mit "Erklär ..."
-    # --------------------------------------
+
+    # ======================================
+    # BEFEHLE MIT "ERKLÄR ..."
+    # ======================================
 
     command_patterns = [
         "erkläre mir bitte das wort ",
@@ -217,6 +196,44 @@ def extract_meaning_word(
 
 
 # ==========================================
+# BEDEUTUNG – KONTEXTFRAGE
+# ==========================================
+
+def is_meaning_follow_up(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    )
+
+    meaning_questions = [
+        "was bedeutet das",
+        "und was bedeutet das",
+
+        "was heißt das",
+        "und was heißt das",
+
+        "was heisst das",
+        "und was heisst das",
+
+        "was bedeutet dieses wort",
+        "und was bedeutet dieses wort",
+
+        "was heißt dieses wort",
+        "und was heißt dieses wort",
+
+        "was heisst dieses wort",
+        "und was heisst dieses wort",
+
+        "was bedeutet es",
+        "und was bedeutet es"
+    ]
+
+    return message in meaning_questions
+
+
+# ==========================================
 # BEDEUTUNG – ANTWORT
 # ==========================================
 
@@ -229,8 +246,65 @@ def answer_vocabulary_question(
         user_message
     )
 
+
+    # ======================================
+    # KONTEXTFRAGE:
+    # "WAS BEDEUTET DAS?"
+    # ======================================
+
+    if not word:
+
+        if not is_meaning_follow_up(
+            user_message
+        ):
+            return None
+
+        if state is None:
+            return None
+
+
+        # ==================================
+        # ZUERST DAS LETZTE VERWANDTE WORT
+        #
+        # Beispiel:
+        #
+        # Groß
+        # -> Gegenteil: Klein
+        # -> Was bedeutet das?
+        # -> Bedeutung von Klein
+        #
+        # ==================================
+
+        related_word = state.get(
+            "current_vocabulary_related_word"
+        )
+
+        if (
+            related_word
+            and related_word in VOCABULARY
+        ):
+
+            word = related_word
+
+
+        # ==================================
+        # SONST DAS AKTUELLE WORT
+        # ==================================
+
+        else:
+
+            word = state.get(
+                "current_vocabulary_word"
+            )
+
+
     if not word:
         return None
+
+
+    # ======================================
+    # WORTSCHATZEINTRAG
+    # ======================================
 
     vocabulary_entry = VOCABULARY.get(
         word
@@ -239,6 +313,11 @@ def answer_vocabulary_question(
     if not vocabulary_entry:
         return None
 
+
+    # ======================================
+    # BEDEUTUNG
+    # ======================================
+
     meaning = vocabulary_entry.get(
         "meaning"
     )
@@ -246,24 +325,29 @@ def answer_vocabulary_question(
     if not meaning:
         return None
 
-    # --------------------------------------
-    # Wort im Gesprächskontext speichern
-    # --------------------------------------
+
+    # ======================================
+    # WORT IM KONTEXT MERKEN
+    # ======================================
 
     if state is not None:
 
-        old_word = state.get(
-            "current_vocabulary_word"
+        remember_vocabulary_word(
+            state,
+            word
         )
 
-        if old_word != word:
+        # Wenn das verwandte Wort jetzt
+        # zum aktuellen Wort wird,
+        # wird der alte Bezug gelöscht.
+
+        if state.get(
+            "current_vocabulary_related_word"
+        ) == word:
 
             state[
-                "vocabulary_example_index"
-            ] = -1
+                "current_vocabulary_related_word"
+            ] = None
 
-        state[
-            "current_vocabulary_word"
-        ] = word
 
     return meaning
