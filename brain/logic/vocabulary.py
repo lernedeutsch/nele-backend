@@ -57,5 +57,6 @@ from brain.logic.vocabulary_modules.explanation import (
 
 from brain.logic.vocabulary_modules.practice import (
     extract_practice_word,
-    start_vocabulary_practice
+    start_vocabulary_practice,
+    answer_vocabulary_practice
 )
