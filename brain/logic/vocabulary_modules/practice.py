@@ -3,12 +3,18 @@
 # ==========================================
 
 from brain.logic.matcher import normalize
-
 from brain.knowledge.A1.vocabulary import VOCABULARY
 
 from brain.logic.vocabulary_modules.helpers import (
     clean_vocabulary_word,
+    display_vocabulary_word,
     remember_vocabulary_word
+)
+
+from brain.memory.vocabulary_memory import (
+    remember_practiced_word,
+    remember_correct_answer,
+    remember_mistake
 )
 
 
@@ -105,6 +111,11 @@ def start_vocabulary_practice(
         word
     )
 
+    remember_practiced_word(
+        word,
+        state
+    )
+
     state[
         "vocabulary_practice_active"
     ] = True
@@ -117,11 +128,266 @@ def start_vocabulary_practice(
         "vocabulary_practice_type"
     ] = "meaning"
 
-    display_word = (
-        word[:1].upper()
-        + word[1:]
+    display_word = display_vocabulary_word(
+        word
     )
 
     return (
         f"Was bedeutet „{display_word}“?"
+    )
+
+
+# ==========================================
+# ÜBUNG – AKTIV?
+# ==========================================
+
+def is_vocabulary_practice_active(
+    state
+):
+
+    if state is None:
+        return False
+
+    return bool(
+        state.get(
+            "vocabulary_practice_active"
+        )
+    )
+
+
+# ==========================================
+# TEXT FÜR VERGLEICH BEREINIGEN
+# ==========================================
+
+def clean_practice_answer(
+    text
+):
+
+    text = normalize(
+        text
+    )
+
+    text = text.strip(
+        " .?!„“\"'"
+    )
+
+    return text
+
+
+# ==========================================
+# EINFACHE BEDEUTUNG HOLEN
+# ==========================================
+
+def get_simple_practice_meaning(
+    word
+):
+
+    vocabulary_entry = VOCABULARY.get(
+        word
+    )
+
+    if not vocabulary_entry:
+        return None
+
+    simple_meaning = vocabulary_entry.get(
+        "simple_meaning"
+    )
+
+    if simple_meaning:
+        return simple_meaning
+
+    return vocabulary_entry.get(
+        "meaning"
+    )
+
+
+# ==========================================
+# RICHTIGE ANTWORT PRÜFEN
+# ==========================================
+
+def is_correct_practice_answer(
+    user_message,
+    word
+):
+
+    vocabulary_entry = VOCABULARY.get(
+        word
+    )
+
+    if not vocabulary_entry:
+        return False
+
+    answer = clean_practice_answer(
+        user_message
+    )
+
+    if not answer:
+        return False
+
+    possible_answers = []
+
+    practice_answers = vocabulary_entry.get(
+        "practice_answers"
+    )
+
+    if practice_answers:
+
+        if isinstance(
+            practice_answers,
+            list
+        ):
+            possible_answers.extend(
+                practice_answers
+            )
+
+        else:
+            possible_answers.append(
+                practice_answers
+            )
+
+    simple_meaning = vocabulary_entry.get(
+        "simple_meaning"
+    )
+
+    if simple_meaning:
+        possible_answers.append(
+            simple_meaning
+        )
+
+    meaning = vocabulary_entry.get(
+        "meaning"
+    )
+
+    if meaning:
+        possible_answers.append(
+            meaning
+        )
+
+    for possible_answer in possible_answers:
+
+        cleaned_possible_answer = clean_practice_answer(
+            possible_answer
+        )
+
+        if not cleaned_possible_answer:
+            continue
+
+        if answer == cleaned_possible_answer:
+            return True
+
+        if (
+            len(answer) >= 4
+            and answer in cleaned_possible_answer
+        ):
+            return True
+
+        if (
+            len(cleaned_possible_answer) >= 4
+            and cleaned_possible_answer in answer
+        ):
+            return True
+
+    return False
+
+
+# ==========================================
+# ÜBUNG BEENDEN
+# ==========================================
+
+def finish_vocabulary_practice(
+    state
+):
+
+    if state is None:
+        return
+
+    state[
+        "vocabulary_practice_active"
+    ] = False
+
+    state[
+        "vocabulary_practice_word"
+    ] = None
+
+    state[
+        "vocabulary_practice_type"
+    ] = None
+
+
+# ==========================================
+# ANTWORT DES SCHÜLERS PRÜFEN
+# ==========================================
+
+def answer_vocabulary_practice(
+    user_message,
+    state=None
+):
+
+    if state is None:
+        return None
+
+    if not is_vocabulary_practice_active(
+        state
+    ):
+        return None
+
+    word = state.get(
+        "vocabulary_practice_word"
+    )
+
+    if not word:
+        return None
+
+    if word not in VOCABULARY:
+        return None
+
+    display_word = display_vocabulary_word(
+        word
+    )
+
+    simple_meaning = get_simple_practice_meaning(
+        word
+    )
+
+    if is_correct_practice_answer(
+        user_message,
+        word
+    ):
+
+        remember_correct_answer(
+            word,
+            state
+        )
+
+        finish_vocabulary_practice(
+            state
+        )
+
+        if simple_meaning:
+
+            return (
+                f"Richtig! {simple_meaning}"
+            )
+
+        return "Richtig!"
+
+    remember_mistake(
+        word,
+        state
+    )
+
+    finish_vocabulary_practice(
+        state
+    )
+
+    if simple_meaning:
+
+        return (
+            f"Noch nicht ganz. "
+            f"{simple_meaning}"
+        )
+
+    return (
+        f"Noch nicht ganz. "
+        f"Schau dir „{display_word}“ noch einmal an."
     )
