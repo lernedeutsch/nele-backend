@@ -15,6 +15,10 @@ ADJECTIVES_VOCABULARY = {
             "oder mit hoher Geschwindigkeit passiert."
         ),
 
+        "simple_meaning": (
+            "„Schnell“ bedeutet: in kurzer Zeit."
+        ),
+
         "examples": [
             "Das Auto fährt sehr schnell.",
             "Bitte komm schnell!",
@@ -49,6 +53,10 @@ ADJECTIVES_VOCABULARY = {
         "meaning": (
             "Rasch bedeutet, dass etwas schnell "
             "oder in kurzer Zeit passiert."
+        ),
+
+        "simple_meaning": (
+            "„Rasch“ bedeutet: schnell."
         ),
 
         "examples": [
@@ -87,6 +95,10 @@ ADJECTIVES_VOCABULARY = {
             "oder nicht sehr schnell passiert."
         ),
 
+        "simple_meaning": (
+            "„Langsam“ bedeutet: nicht schnell."
+        ),
+
         "examples": [
             "Bitte sprechen Sie langsam.",
             "Der Bus fährt sehr langsam.",
@@ -110,6 +122,10 @@ ADJECTIVES_VOCABULARY = {
         "meaning": (
             "Groß bedeutet, dass eine Person, ein Tier "
             "oder ein Gegenstand eine große Größe hat."
+        ),
+
+        "simple_meaning": (
+            "„Groß“ bedeutet: nicht klein."
         ),
 
         "examples": [
@@ -150,6 +166,10 @@ ADJECTIVES_VOCABULARY = {
             "oder außergewöhnlich groß ist."
         ),
 
+        "simple_meaning": (
+            "„Riesig“ bedeutet: sehr groß."
+        ),
+
         "examples": [
             "Das Gebäude ist riesig.",
             "Der Hund ist riesig.",
@@ -185,6 +205,10 @@ ADJECTIVES_VOCABULARY = {
         "meaning": (
             "Klein bedeutet, dass eine Person, ein Tier "
             "oder ein Gegenstand keine große Größe hat."
+        ),
+
+        "simple_meaning": (
+            "„Klein“ bedeutet: nicht groß."
         ),
 
         "examples": [
@@ -224,6 +248,10 @@ ADJECTIVES_VOCABULARY = {
             "oder außergewöhnlich klein ist."
         ),
 
+        "simple_meaning": (
+            "„Winzig“ bedeutet: sehr klein."
+        ),
+
         "examples": [
             "Das Zimmer ist winzig.",
             "Die Wohnung ist winzig.",
@@ -261,6 +289,10 @@ ADJECTIVES_VOCABULARY = {
             "oder eine Sache schon viele Jahre existiert."
         ),
 
+        "simple_meaning": (
+            "„Alt“ bedeutet: nicht neu."
+        ),
+
         "examples": [
             "Das Haus ist sehr alt.",
             "Mein Auto ist alt.",
@@ -287,6 +319,10 @@ ADJECTIVES_VOCABULARY = {
             "oder erst seit kurzer Zeit benutzt wird."
         ),
 
+        "simple_meaning": (
+            "„Neu“ bedeutet: noch nicht alt."
+        ),
+
         "examples": [
             "Ich habe ein neues Auto.",
             "Das Hotel ist neu.",
@@ -309,6 +345,10 @@ ADJECTIVES_VOCABULARY = {
     "offen": {
         "meaning": (
             "Offen bedeutet, dass etwas nicht geschlossen ist."
+        ),
+
+        "simple_meaning": (
+            "„Offen“ bedeutet: nicht geschlossen."
         ),
 
         "examples": [
@@ -334,6 +374,10 @@ ADJECTIVES_VOCABULARY = {
     "geschlossen": {
         "meaning": (
             "Geschlossen bedeutet, dass etwas nicht offen ist."
+        ),
+
+        "simple_meaning": (
+            "„Geschlossen“ bedeutet: nicht offen."
         ),
 
         "examples": [
