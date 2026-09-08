@@ -2,7 +2,40 @@
 # NELE – PAMIĘĆ ROZMOWY
 # ==========================================
 
+from brain.memory.persistent_memory import (
+    initialize_persistent_memory,
+    load_persistent_memory,
+    save_persistent_memory
+)
+
+
 conversation_sessions = {}
+
+persistent_memory_initialized = False
+
+
+# ==========================================
+# INICJALIZACJA TRWAŁEJ PAMIĘCI
+# ==========================================
+
+def ensure_persistent_memory():
+
+    global persistent_memory_initialized
+
+    if persistent_memory_initialized:
+        return
+
+    try:
+
+        initialize_persistent_memory()
+
+        persistent_memory_initialized = True
+
+    except Exception as error:
+
+        print(
+            f"Persistent memory initialization error: {error}"
+        )
 
 
 # ==========================================
@@ -33,8 +66,35 @@ def create_empty_state():
 
         # słownictwo
         "current_vocabulary_word": None,
-        "current_vocabulary_related_word": None
+        "current_vocabulary_related_word": None,
+
+        # pamięć postępów słownictwa
+        "vocabulary_memory": {}
     }
+
+
+# ==========================================
+# UZUPEŁNIENIE BRAKUJĄCYCH PÓL
+# ==========================================
+
+def complete_state(
+    state
+):
+
+    if not isinstance(
+        state,
+        dict
+    ):
+        state = {}
+
+    default_state = create_empty_state()
+
+    for key, default_value in default_state.items():
+
+        if key not in state:
+            state[key] = default_value
+
+    return state
 
 
 # ==========================================
@@ -47,33 +107,124 @@ def get_conversation_state(
     """
     Pobiera pamięć konkretnego użytkownika.
 
+    Najpierw sprawdza pamięć bieżącego procesu.
+
+    Jeżeli jej tam nie ma,
+    próbuje pobrać ją z PostgreSQL.
+
     Jeżeli użytkownik jeszcze nie istnieje,
-    tworzy dla niego nową pamięć.
+    tworzy nową pamięć.
     """
 
     if not session_id:
         session_id = "default"
 
-    if session_id not in conversation_sessions:
+    ensure_persistent_memory()
+
+
+    # ======================================
+    # PAMIĘĆ JUŻ JEST W RAM
+    # ======================================
+
+    if session_id in conversation_sessions:
+
+        state = conversation_sessions[
+            session_id
+        ]
+
+        state = complete_state(
+            state
+        )
+
         conversation_sessions[
             session_id
-        ] = create_empty_state()
+        ] = state
+
+        return state
+
+
+    # ======================================
+    # PRÓBA POBRANIA Z POSTGRESQL
+    # ======================================
+
+    try:
+
+        persistent_state = (
+            load_persistent_memory(
+                session_id
+            )
+        )
+
+    except Exception as error:
+
+        print(
+            f"Persistent memory load error: {error}"
+        )
+
+        persistent_state = {}
+
+
+    # ======================================
+    # NOWY LUB ISTNIEJĄCY UCZEŃ
+    # ======================================
+
+    if persistent_state:
+
+        state = complete_state(
+            persistent_state
+        )
+
+    else:
+
+        state = create_empty_state()
+
+
+    conversation_sessions[
+        session_id
+    ] = state
+
+    return state
+
+
+# ==========================================
+# ZAPISANIE PAMIĘCI SESJI
+# ==========================================
+
+def save_conversation_state(
+    session_id="default"
+):
+    """
+    Zapisuje aktualną pamięć ucznia
+    do PostgreSQL.
+    """
+
+    if not session_id:
+        session_id = "default"
+
+    ensure_persistent_memory()
+
+    if session_id not in conversation_sessions:
+        return False
 
     state = conversation_sessions[
         session_id
     ]
 
+    state = complete_state(
+        state
+    )
 
-    # ======================================
-    # ZABEZPIECZENIE STARSZYCH SESJI
-    # ======================================
+    try:
 
-    default_state = create_empty_state()
+        return save_persistent_memory(
+            session_id,
+            state
+        )
 
-    for key, default_value in default_state.items():
+    except Exception as error:
 
-        if key not in state:
-            state[key] = default_value
+        print(
+            f"Conversation memory save error: {error}"
+        )
 
-
-    return state
+        return False
