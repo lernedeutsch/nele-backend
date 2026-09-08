@@ -175,6 +175,59 @@ def clean_practice_answer(
 
 
 # ==========================================
+# TEXT IN WÖRTER AUFTEILEN
+# ==========================================
+
+def get_answer_words(
+    text
+):
+
+    text = clean_practice_answer(
+        text
+    )
+
+    if not text:
+        return []
+
+    return [
+        word.strip(
+            " .,!?:;„“\"'"
+        )
+        for word in text.split()
+        if word.strip(
+            " .,!?:;„“\"'"
+        )
+    ]
+
+
+# ==========================================
+# NEGATION ERKENNEN
+# ==========================================
+
+def has_negation(
+    text
+):
+
+    words = get_answer_words(
+        text
+    )
+
+    negations = {
+        "nicht",
+        "kein",
+        "keine",
+        "keinen",
+        "keinem",
+        "keiner"
+    }
+
+    return any(
+        word in negations
+        for word in words
+    )
+
+
+# ==========================================
 # EINFACHE BEDEUTUNG HOLEN
 # ==========================================
 
@@ -202,11 +255,10 @@ def get_simple_practice_meaning(
 
 
 # ==========================================
-# RICHTIGE ANTWORT PRÜFEN
+# MÖGLICHE ANTWORTEN HOLEN
 # ==========================================
 
-def is_correct_practice_answer(
-    user_message,
+def get_possible_practice_answers(
     word
 ):
 
@@ -215,14 +267,7 @@ def is_correct_practice_answer(
     )
 
     if not vocabulary_entry:
-        return False
-
-    answer = clean_practice_answer(
-        user_message
-    )
-
-    if not answer:
-        return False
+        return []
 
     possible_answers = []
 
@@ -236,11 +281,13 @@ def is_correct_practice_answer(
             practice_answers,
             list
         ):
+
             possible_answers.extend(
                 practice_answers
             )
 
         else:
+
             possible_answers.append(
                 practice_answers
             )
@@ -250,40 +297,170 @@ def is_correct_practice_answer(
     )
 
     if simple_meaning:
+
         possible_answers.append(
             simple_meaning
         )
 
-    meaning = vocabulary_entry.get(
-        "meaning"
+    return possible_answers
+
+
+# ==========================================
+# EINZELNE ANTWORT VERGLEICHEN
+# ==========================================
+
+def answers_match(
+    answer,
+    possible_answer
+):
+
+    answer = clean_practice_answer(
+        answer
     )
 
-    if meaning:
-        possible_answers.append(
-            meaning
+    possible_answer = clean_practice_answer(
+        possible_answer
+    )
+
+    if not answer or not possible_answer:
+        return False
+
+
+    # ======================================
+    # GENAU GLEICH
+    # ======================================
+
+    if answer == possible_answer:
+        return True
+
+
+    # ======================================
+    # NEGATION MUSS ÜBEREINSTIMMEN
+    #
+    # "nicht schnell" ≠ "sehr schnell"
+    # ======================================
+
+    answer_has_negation = has_negation(
+        answer
+    )
+
+    possible_has_negation = has_negation(
+        possible_answer
+    )
+
+    if (
+        answer_has_negation
+        != possible_has_negation
+    ):
+        return False
+
+
+    # ======================================
+    # WÖRTER VERGLEICHEN
+    # ======================================
+
+    answer_words = set(
+        get_answer_words(
+            answer
         )
+    )
+
+    possible_words = set(
+        get_answer_words(
+            possible_answer
+        )
+    )
+
+    if not answer_words:
+        return False
+
+    if not possible_words:
+        return False
+
+
+    # ======================================
+    # KURZE RICHTIGE ANTWORT
+    #
+    # Beispiel:
+    # mögliche Antwort: "sehr groß"
+    # Schüler: "sehr groß"
+    #
+    # oder:
+    # mögliche Antwort: "sehr groß"
+    # Schüler: "groß"
+    # ======================================
+
+    meaningful_answer_words = {
+        word
+        for word in answer_words
+        if len(word) >= 3
+    }
+
+    meaningful_possible_words = {
+        word
+        for word in possible_words
+        if len(word) >= 3
+    }
+
+    if not meaningful_answer_words:
+        return False
+
+    if not meaningful_possible_words:
+        return False
+
+
+    # ======================================
+    # ALLE WICHTIGEN WÖRTER DER
+    # SCHÜLERANTWORT MÜSSEN PASSEN
+    # ======================================
+
+    if meaningful_answer_words.issubset(
+        meaningful_possible_words
+    ):
+        return True
+
+
+    # ======================================
+    # ODER ALLE WICHTIGEN WÖRTER DER
+    # MUSTERANTWORT SIND VORHANDEN
+    # ======================================
+
+    if meaningful_possible_words.issubset(
+        meaningful_answer_words
+    ):
+        return True
+
+    return False
+
+
+# ==========================================
+# RICHTIGE ANTWORT PRÜFEN
+# ==========================================
+
+def is_correct_practice_answer(
+    user_message,
+    word
+):
+
+    answer = clean_practice_answer(
+        user_message
+    )
+
+    if not answer:
+        return False
+
+    possible_answers = get_possible_practice_answers(
+        word
+    )
+
+    if not possible_answers:
+        return False
 
     for possible_answer in possible_answers:
 
-        cleaned_possible_answer = clean_practice_answer(
+        if answers_match(
+            answer,
             possible_answer
-        )
-
-        if not cleaned_possible_answer:
-            continue
-
-        if answer == cleaned_possible_answer:
-            return True
-
-        if (
-            len(answer) >= 4
-            and answer in cleaned_possible_answer
-        ):
-            return True
-
-        if (
-            len(cleaned_possible_answer) >= 4
-            and cleaned_possible_answer in answer
         ):
             return True
 
