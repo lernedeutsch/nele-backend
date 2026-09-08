@@ -325,20 +325,8 @@ def answers_match(
     if not answer or not possible_answer:
         return False
 
-
-    # ======================================
-    # GENAU GLEICH
-    # ======================================
-
     if answer == possible_answer:
         return True
-
-
-    # ======================================
-    # NEGATION MUSS ÜBEREINSTIMMEN
-    #
-    # "nicht schnell" ≠ "sehr schnell"
-    # ======================================
 
     answer_has_negation = has_negation(
         answer
@@ -353,11 +341,6 @@ def answers_match(
         != possible_has_negation
     ):
         return False
-
-
-    # ======================================
-    # WÖRTER VERGLEICHEN
-    # ======================================
 
     answer_words = set(
         get_answer_words(
@@ -377,19 +360,6 @@ def answers_match(
     if not possible_words:
         return False
 
-
-    # ======================================
-    # KURZE RICHTIGE ANTWORT
-    #
-    # Beispiel:
-    # mögliche Antwort: "sehr groß"
-    # Schüler: "sehr groß"
-    #
-    # oder:
-    # mögliche Antwort: "sehr groß"
-    # Schüler: "groß"
-    # ======================================
-
     meaningful_answer_words = {
         word
         for word in answer_words
@@ -408,22 +378,10 @@ def answers_match(
     if not meaningful_possible_words:
         return False
 
-
-    # ======================================
-    # ALLE WICHTIGEN WÖRTER DER
-    # SCHÜLERANTWORT MÜSSEN PASSEN
-    # ======================================
-
     if meaningful_answer_words.issubset(
         meaningful_possible_words
     ):
         return True
-
-
-    # ======================================
-    # ODER ALLE WICHTIGEN WÖRTER DER
-    # MUSTERANTWORT SIND VORHANDEN
-    # ======================================
 
     if meaningful_possible_words.issubset(
         meaningful_answer_words
@@ -434,7 +392,7 @@ def answers_match(
 
 
 # ==========================================
-# RICHTIGE ANTWORT PRÜFEN
+# RICHTIGE BEDEUTUNG PRÜFEN
 # ==========================================
 
 def is_correct_practice_answer(
@@ -468,6 +426,81 @@ def is_correct_practice_answer(
 
 
 # ==========================================
+# GEGENTEIL HOLEN
+# ==========================================
+
+def get_practice_opposite(
+    word
+):
+
+    vocabulary_entry = VOCABULARY.get(
+        word
+    )
+
+    if not vocabulary_entry:
+        return None
+
+    opposite = vocabulary_entry.get(
+        "opposite"
+    )
+
+    if not opposite:
+        return None
+
+    if isinstance(
+        opposite,
+        list
+    ):
+
+        if not opposite:
+            return None
+
+        return opposite[0]
+
+    return opposite
+
+
+# ==========================================
+# GEGENTEIL PRÜFEN
+# ==========================================
+
+def is_correct_opposite_answer(
+    user_message,
+    word
+):
+
+    opposite = get_practice_opposite(
+        word
+    )
+
+    if not opposite:
+        return False
+
+    answer = clean_practice_answer(
+        user_message
+    )
+
+    opposite = clean_practice_answer(
+        opposite
+    )
+
+    if not answer:
+        return False
+
+    if answer == opposite:
+        return True
+
+    words = get_answer_words(
+        answer
+    )
+
+    if opposite in words:
+        return True
+
+    return False
+
+
+# ==========================================
 # ÜBUNG BEENDEN
 # ==========================================
 
@@ -489,6 +522,40 @@ def finish_vocabulary_practice(
     state[
         "vocabulary_practice_type"
     ] = None
+
+
+# ==========================================
+# NÄCHSTE FRAGE – GEGENTEIL
+# ==========================================
+
+def ask_opposite_question(
+    word,
+    state
+):
+
+    opposite = get_practice_opposite(
+        word
+    )
+
+    if not opposite:
+
+        finish_vocabulary_practice(
+            state
+        )
+
+        return None
+
+    state[
+        "vocabulary_practice_type"
+    ] = "opposite"
+
+    display_word = display_vocabulary_word(
+        word
+    )
+
+    return (
+        f"Was ist das Gegenteil von „{display_word}“?"
+    )
 
 
 # ==========================================
@@ -518,53 +585,145 @@ def answer_vocabulary_practice(
     if word not in VOCABULARY:
         return None
 
-    display_word = display_vocabulary_word(
-        word
+    practice_type = state.get(
+        "vocabulary_practice_type"
     )
 
-    simple_meaning = get_simple_practice_meaning(
-        word
-    )
 
-    if is_correct_practice_answer(
-        user_message,
-        word
-    ):
+    # ======================================
+    # 1. BEDEUTUNG
+    # ======================================
 
-        remember_correct_answer(
-            word,
-            state
+    if practice_type == "meaning":
+
+        simple_meaning = get_simple_practice_meaning(
+            word
         )
 
-        finish_vocabulary_practice(
+        if is_correct_practice_answer(
+            user_message,
+            word
+        ):
+
+            remember_correct_answer(
+                word,
+                state
+            )
+
+            next_question = ask_opposite_question(
+                word,
+                state
+            )
+
+            if next_question:
+
+                if simple_meaning:
+
+                    return (
+                        f"Richtig! {simple_meaning}\n\n"
+                        f"{next_question}"
+                    )
+
+                return (
+                    f"Richtig!\n\n"
+                    f"{next_question}"
+                )
+
+            finish_vocabulary_practice(
+                state
+            )
+
+            if simple_meaning:
+
+                return (
+                    f"Richtig! {simple_meaning}"
+                )
+
+            return "Richtig!"
+
+        remember_mistake(
+            word,
             state
         )
 
         if simple_meaning:
 
             return (
-                f"Richtig! {simple_meaning}"
+                f"Noch nicht ganz. "
+                f"{simple_meaning}\n\n"
+                f"Versuch es noch einmal."
             )
 
-        return "Richtig!"
+        return (
+            "Noch nicht ganz. "
+            "Versuch es noch einmal."
+        )
 
-    remember_mistake(
-        word,
-        state
-    )
+
+    # ======================================
+    # 2. GEGENTEIL
+    # ======================================
+
+    if practice_type == "opposite":
+
+        opposite = get_practice_opposite(
+            word
+        )
+
+        if not opposite:
+
+            finish_vocabulary_practice(
+                state
+            )
+
+            return None
+
+        opposite_display = display_vocabulary_word(
+            opposite
+        )
+
+        if is_correct_opposite_answer(
+            user_message,
+            word
+        ):
+
+            remember_correct_answer(
+                word,
+                state
+            )
+
+            finish_vocabulary_practice(
+                state
+            )
+
+            return (
+                f"Richtig! Das Gegenteil ist "
+                f"„{opposite_display}“. "
+                f"Sehr gut! Du hast "
+                f"„{display_vocabulary_word(word)}“ "
+                f"erfolgreich geübt."
+            )
+
+        remember_mistake(
+            word,
+            state
+        )
+
+        return (
+            f"Noch nicht ganz. "
+            f"Das Gegenteil von "
+            f"„{display_vocabulary_word(word)}“ "
+            f"ist „{opposite_display}“.\n\n"
+            f"Versuch es noch einmal."
+        )
+
+
+    # ======================================
+    # UNBEKANNTER ÜBUNGSTYP
+    # ======================================
 
     finish_vocabulary_practice(
         state
     )
 
-    if simple_meaning:
-
-        return (
-            f"Noch nicht ganz. "
-            f"{simple_meaning}"
-        )
-
-    return (
-        f"Noch nicht ganz. "
-        f"Schau dir „{display_word}“ noch einmal an."
-    )
+    return None
