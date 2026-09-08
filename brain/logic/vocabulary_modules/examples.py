@@ -18,16 +18,19 @@ def answer_vocabulary_example(
     if state is None:
         return None
 
-    current_word = state.get(
-        "current_vocabulary_word"
-    )
 
-    if not current_word:
-        return None
+    # ======================================
+    # NACHRICHT NORMALISIEREN
+    # ======================================
 
     message = normalize(
         user_message
     )
+
+
+    # ======================================
+    # FRAGEN NACH DEM ERSTEN BEISPIEL
+    # ======================================
 
     first_example_questions = [
         "und ein beispiel",
@@ -65,6 +68,11 @@ def answer_vocabulary_example(
         "kannst du mir ein beispiel machen"
     ]
 
+
+    # ======================================
+    # FRAGEN NACH DEM NÄCHSTEN BEISPIEL
+    # ======================================
+
     next_example_questions = [
         "noch ein beispiel",
         "und noch ein beispiel",
@@ -99,6 +107,11 @@ def answer_vocabulary_example(
         "noch ein weiteres beispiel"
     ]
 
+
+    # ======================================
+    # FRAGETYP ERKENNEN
+    # ======================================
+
     is_first_example = (
         message in first_example_questions
     )
@@ -107,19 +120,75 @@ def answer_vocabulary_example(
         message in next_example_questions
     )
 
-    if not is_first_example and not is_next_example:
+    if (
+        not is_first_example
+        and not is_next_example
+    ):
         return None
 
+
+    # ======================================
+    # AKTUELLES WORT
+    # ==========================================
+
+    current_word = state.get(
+        "current_vocabulary_word"
+    )
+
+    related_word = state.get(
+        "current_vocabulary_related_word"
+    )
+
+
+    # ======================================
+    # REFERENZWORT BESTIMMEN
+    #
+    # Beispiel:
+    #
+    # groß
+    # -> Gegenteil: klein
+    # -> Gib mir ein Beispiel.
+    #
+    # Dann soll "klein" benutzt werden.
+    # ======================================
+
+    if related_word:
+
+        target_word = related_word
+
+    else:
+
+        target_word = current_word
+
+
+    if not target_word:
+        return None
+
+
+    # ======================================
+    # WORTSCHATZEINTRAG LADEN
+    # ======================================
+
     vocabulary_entry = VOCABULARY.get(
-        current_word
+        target_word
     )
 
     if not vocabulary_entry:
         return None
 
+
+    # ======================================
+    # BEISPIELE LADEN
+    # ======================================
+
     examples = vocabulary_entry.get(
         "examples"
     )
+
+
+    # ======================================
+    # ALTES FORMAT UNTERSTÜTZEN
+    # ======================================
 
     if not examples:
 
@@ -134,16 +203,39 @@ def answer_vocabulary_example(
             old_example
         ]
 
+
     if not isinstance(
         examples,
         list
     ):
+
         examples = [
             examples
         ]
 
+
     if not examples:
         return None
+
+
+    # ======================================
+    # NEUES WORT = INDEX ZURÜCKSETZEN
+    # ======================================
+
+    last_example_word = state.get(
+        "last_vocabulary_example_word"
+    )
+
+    if last_example_word != target_word:
+
+        state[
+            "vocabulary_example_index"
+        ] = -1
+
+        state[
+            "last_vocabulary_example_word"
+        ] = target_word
+
 
     # ======================================
     # ERSTES BEISPIEL
@@ -152,6 +244,7 @@ def answer_vocabulary_example(
     if is_first_example:
 
         example_index = 0
+
 
     # ======================================
     # NÄCHSTES BEISPIEL
@@ -166,14 +259,12 @@ def answer_vocabulary_example(
         if old_index is None:
             old_index = -1
 
-        if old_index < 0:
-            old_index = 0
-
         example_index = (
             old_index + 1
         ) % len(
             examples
         )
+
 
     # ======================================
     # INDEX SPEICHERN
@@ -183,21 +274,32 @@ def answer_vocabulary_example(
         "vocabulary_example_index"
     ] = example_index
 
+
+    # ======================================
+    # BEISPIEL HOLEN
+    # ======================================
+
     example = examples[
         example_index
     ]
+
 
     # ======================================
     # ANTWORT
     # ======================================
 
-    if isinstance(
-        example,
-        str
-    ) and example.lower().startswith(
-        "beispiel:"
+    if (
+        isinstance(
+            example,
+            str
+        )
+        and example.lower().startswith(
+            "beispiel:"
+        )
     ):
+
         return example
+
 
     return (
         f"Beispiel: „{example}“"
