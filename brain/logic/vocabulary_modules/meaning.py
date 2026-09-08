@@ -256,6 +256,10 @@ def answer_vocabulary_question(
         user_message
     )
 
+    is_follow_up = is_meaning_follow_up(
+        user_message
+    )
+
 
     # ======================================
     # KONTEXT:
@@ -264,9 +268,7 @@ def answer_vocabulary_question(
 
     if not word:
 
-        if not is_meaning_follow_up(
-            user_message
-        ):
+        if not is_follow_up:
             return None
 
         if state is None:
@@ -340,7 +342,35 @@ def answer_vocabulary_question(
             word
         )
 
-        if state.get(
+
+        # ==================================
+        # DIREKTE FRAGE:
+        # NEUER WORTSCHATZ-KONTEXT
+        #
+        # Groß → Riesig
+        # Was bedeutet Kaffee?
+        #
+        # Alte Beziehung "Riesig"
+        # darf nicht aktiv bleiben.
+        # ==================================
+
+        if not is_follow_up:
+
+            state[
+                "current_vocabulary_related_word"
+            ] = None
+
+
+        # ==================================
+        # KONTEXTFRAGE:
+        # VERWANDTES WORT WIRD AKTUELL
+        #
+        # Groß → Klein
+        # Was bedeutet das?
+        # → Klein wird aktuelles Wort
+        # ==================================
+
+        elif state.get(
             "current_vocabulary_related_word"
         ) == word:
 
