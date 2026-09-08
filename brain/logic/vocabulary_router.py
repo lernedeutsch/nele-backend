@@ -15,6 +15,34 @@ from brain.logic.vocabulary import (
     answer_simple_explanation
 )
 
+from brain.memory.vocabulary_memory import (
+    remember_practiced_word
+)
+
+
+# ==========================================
+# GEÜBTES WORT SPEICHERN
+# ==========================================
+
+def remember_current_practiced_word(
+    state
+):
+
+    if state is None:
+        return
+
+    word = state.get(
+        "current_vocabulary_word"
+    )
+
+    if not word:
+        return
+
+    remember_practiced_word(
+        word,
+        state
+    )
+
 
 # ==========================================
 # HAUPTVERARBEITUNG DES WORTSCHATZES
@@ -35,6 +63,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -48,6 +81,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -61,6 +99,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -74,6 +117,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -87,6 +135,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -100,6 +153,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -113,6 +171,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -126,6 +189,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -139,6 +207,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
@@ -152,6 +225,11 @@ def handle_vocabulary(
     )
 
     if answer:
+
+        remember_current_practiced_word(
+            state
+        )
+
         return answer
 
 
