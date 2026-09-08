@@ -46,6 +46,10 @@ from brain.logic.vocabulary_router import (
     handle_vocabulary
 )
 
+from brain.memory.review import (
+    handle_memory
+)
+
 
 # ==========================================
 # GŁÓWNA LOGIKA ROZMOWY
@@ -119,6 +123,9 @@ def generate_conversation_reply(
     if "current_vocabulary_related_word" not in state:
         state["current_vocabulary_related_word"] = None
 
+    if "vocabulary_memory" not in state:
+        state["vocabulary_memory"] = {}
+
 
     # ======================================
     # 1. KOREKTA BŁĘDÓW
@@ -161,7 +168,20 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4. KONTYNUACJA AKTUALNEGO TEMATU
+    # 4. PAMIĘĆ NAUKI SŁOWNICTWA
+    # ======================================
+
+    memory_answer = handle_memory(
+        user_message,
+        state
+    )
+
+    if memory_answer:
+        return memory_answer
+
+
+    # ======================================
+    # 5. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -174,7 +194,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. PORÓWNANIA
+    # 6. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -188,7 +208,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. SŁOWNICTWO
+    # 7. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -201,7 +221,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 7. ROZPOZNAWANIE INTENCJI
+    # 8. ROZPOZNAWANIE INTENCJI
     # ======================================
 
     intent_answer = handle_intent(
@@ -225,7 +245,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. ZNANE PYTANIA I ZWROTY
+    # 9. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -240,7 +260,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 9. ODPOWIEDŹ KONTEKSTOWA
+    # 10. ODPOWIEDŹ KONTEKSTOWA
     # ======================================
 
     context_answer = handle_context(
@@ -253,7 +273,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. BRAK WIEDZY
+    # 11. BRAK WIEDZY
     # ======================================
 
     return (
