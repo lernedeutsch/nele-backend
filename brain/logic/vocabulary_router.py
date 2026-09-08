@@ -13,7 +13,8 @@ from brain.logic.vocabulary import (
     answer_vocabulary_plural,
     answer_vocabulary_opposite,
     answer_simple_explanation,
-    start_vocabulary_practice
+    start_vocabulary_practice,
+    answer_vocabulary_practice
 )
 
 from brain.memory.vocabulary_memory import (
@@ -53,6 +54,19 @@ def handle_vocabulary(
     user_message,
     state
 ):
+
+    # ======================================
+    # AKTIVE WORTSCHATZÜBUNG
+    # ======================================
+
+    answer = answer_vocabulary_practice(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
 
     # ======================================
     # WORTSCHATZÜBUNG STARTEN
