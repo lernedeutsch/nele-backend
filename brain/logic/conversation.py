@@ -2,7 +2,10 @@
 # NELE – LOGIKA ROZMOWY Z PAMIĘCIĄ SESJI
 # ==========================================
 
-from brain.logic.memory import get_conversation_state
+from brain.logic.memory import (
+    get_conversation_state,
+    save_conversation_state
+)
 
 from brain.logic.message_parser import (
     split_multiple_questions
@@ -52,6 +55,30 @@ from brain.memory.review import (
 
 
 # ==========================================
+# ZAPISANIE STANU I ZWROT ODPOWIEDZI
+# ==========================================
+
+def return_with_memory(
+    answer,
+    session_id
+):
+
+    try:
+
+        save_conversation_state(
+            session_id
+        )
+
+    except Exception as error:
+
+        print(
+            f"Conversation save error: {error}"
+        )
+
+    return answer
+
+
+# ==========================================
 # GŁÓWNA LOGIKA ROZMOWY
 # ==========================================
 
@@ -84,13 +111,18 @@ def generate_conversation_reply(
             )
 
             if answer:
+
                 answers.append(
                     answer
                 )
 
         if answers:
-            return "\n\n".join(
-                answers
+
+            return return_with_memory(
+                "\n\n".join(
+                    answers
+                ),
+                session_id
             )
 
 
@@ -137,7 +169,11 @@ def generate_conversation_reply(
     )
 
     if correction_answer:
-        return correction_answer
+
+        return return_with_memory(
+            correction_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -151,7 +187,11 @@ def generate_conversation_reply(
     )
 
     if alphabet_answer:
-        return alphabet_answer
+
+        return return_with_memory(
+            alphabet_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -164,7 +204,11 @@ def generate_conversation_reply(
     )
 
     if user_memory_answer:
-        return user_memory_answer
+
+        return return_with_memory(
+            user_memory_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -177,7 +221,11 @@ def generate_conversation_reply(
     )
 
     if memory_answer:
-        return memory_answer
+
+        return return_with_memory(
+            memory_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -190,7 +238,11 @@ def generate_conversation_reply(
     )
 
     if topic_answer:
-        return topic_answer
+
+        return return_with_memory(
+            topic_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -204,7 +256,11 @@ def generate_conversation_reply(
     )
 
     if comparison_answer:
-        return comparison_answer
+
+        return return_with_memory(
+            comparison_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -217,7 +273,11 @@ def generate_conversation_reply(
     )
 
     if vocabulary_answer:
-        return vocabulary_answer
+
+        return return_with_memory(
+            vocabulary_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -241,7 +301,10 @@ def generate_conversation_reply(
             session_id
         )
 
-        return intent_answer
+        return return_with_memory(
+            intent_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -256,7 +319,11 @@ def generate_conversation_reply(
     )
 
     if known_answer:
-        return known_answer
+
+        return return_with_memory(
+            known_answer,
+            session_id
+        )
 
 
     # ======================================
@@ -269,15 +336,22 @@ def generate_conversation_reply(
     )
 
     if context_answer:
-        return context_answer
+
+        return return_with_memory(
+            context_answer,
+            session_id
+        )
 
 
     # ======================================
     # 11. BRAK WIEDZY
     # ======================================
 
-    return (
-        "Ich habe dich verstanden, "
-        "aber diese Antwort habe ich "
-        "noch nicht gelernt."
-    )
+    return return_with_memory(
+        (
+            "Ich habe dich verstanden, "
+            "aber diese Antwort habe ich "
+            "noch nicht gelernt."
+        ),
+        session_id
+        )
