@@ -29,6 +29,45 @@ def extract_user_information(
 
 
     # ======================================
+    # ULUBIONE SŁOWO
+    # ======================================
+
+    favorite_word_prefixes = [
+        "mein lieblingswort ist "
+    ]
+
+    for prefix in favorite_word_prefixes:
+
+        normalized_prefix = normalize(
+            prefix
+        )
+
+        if message.startswith(
+            normalized_prefix + " "
+        ):
+
+            value = original[
+                len(prefix):
+            ].strip()
+
+            if value:
+
+                value = capitalize_value(
+                    value
+                )
+
+                state[
+                    "favorite_word"
+                ] = value
+
+                return (
+                    f"Schön! Ich merke mir: "
+                    f"Dein Lieblingswort ist "
+                    f"„{value}“."
+                )
+
+
+    # ======================================
     # IMIĘ
     # ======================================
 
