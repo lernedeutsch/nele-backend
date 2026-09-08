@@ -39,6 +39,59 @@ def is_practiced_words_request(
 
 
 # ==========================================
+# FRAGE NACH ANZAHL DER ÜBUNGEN ERKENNEN
+# ==========================================
+
+def extract_practice_count_word(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!„“\"'"
+    )
+
+    patterns = [
+        "wie oft habe ich ",
+        "wie oft haben wir "
+    ]
+
+    for pattern in patterns:
+
+        if not message.startswith(
+            pattern
+        ):
+            continue
+
+        content = message[
+            len(pattern):
+        ].strip()
+
+        endings = [
+            " geübt",
+            " schon geübt"
+        ]
+
+        for ending in endings:
+
+            if content.endswith(
+                ending
+            ):
+
+                word = content[
+                    :-len(ending)
+                ].strip(
+                    " .?!„“\"'"
+                )
+
+                if word:
+                    return word
+
+    return None
+
+
+# ==========================================
 # GEÜBTE WÖRTER FORMATIEREN
 # ==========================================
 
@@ -103,6 +156,50 @@ def answer_practiced_words(
         "Du hast diese Wörter geübt: "
         + word_list
         + "."
+    )
+
+
+# ==========================================
+# ANTWORT – WIE OFT WURDE EIN WORT GEÜBT
+# ==========================================
+
+def answer_practice_count(
+    user_message,
+    state
+):
+
+    word = extract_practice_count_word(
+        user_message
+    )
+
+    if not word:
+        return None
+
+    vocabulary_memory = get_vocabulary_memory(
+        state
+    )
+
+    word_memory = vocabulary_memory.get(
+        word
+    )
+
+    if not word_memory:
+        return (
+            f"Du hast „{word}“ noch nicht geübt."
+        )
+
+    count = word_memory.get(
+        "seen",
+        0
+    )
+
+    if count == 1:
+        return (
+            f"Du hast „{word}“ 1-mal geübt."
+        )
+
+    return (
+        f"Du hast „{word}“ {count}-mal geübt."
     )
 
 
@@ -176,6 +273,14 @@ def handle_memory(
 ):
 
     answer = answer_practiced_words(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+    answer = answer_practice_count(
         user_message,
         state
     )
