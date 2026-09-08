@@ -4,6 +4,10 @@
 
 from brain.logic.matcher import normalize
 
+from brain.memory.vocabulary_memory import (
+    remember_practiced_word
+)
+
 
 # ==========================================
 # WORT BEREINIGEN
@@ -80,3 +84,13 @@ def remember_vocabulary_word(
     state[
         "current_vocabulary_word"
     ] = word
+
+
+    # ======================================
+    # WORT ALS GEÜBT SPEICHERN
+    # ======================================
+
+    remember_practiced_word(
+        word,
+        state
+    )
