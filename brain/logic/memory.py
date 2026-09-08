@@ -55,6 +55,9 @@ def create_empty_state():
         "origin": None,
         "residence": None,
 
+        # elastyczna pamięć informacji o użytkowniku
+        "user_facts": {},
+
         # kontekst rozmowy
         "current_topic": None,
         "current_comparison": None,
