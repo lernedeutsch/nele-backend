@@ -264,6 +264,199 @@ def answer_review_words(
 
 
 # ==========================================
+# FRAGE NACH GUT GEKONNTEN WÖRTERN
+# ==========================================
+
+def is_mastered_words_request(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!"
+    )
+
+    questions = [
+        "welche wörter kann ich schon gut",
+        "welche wörter kann ich gut",
+        "welche wörter beherrsche ich schon",
+        "welche wörter habe ich schon gut gelernt",
+        "was kann ich schon gut"
+    ]
+
+    return message in questions
+
+
+# ==========================================
+# GUT GEKONNTE WÖRTER HOLEN
+# ==========================================
+
+def get_mastered_words(
+    state
+):
+
+    vocabulary_memory = get_vocabulary_memory(
+        state
+    )
+
+    words = []
+
+    for word, word_memory in vocabulary_memory.items():
+
+        correct_streak = word_memory.get(
+            "correct_streak",
+            0
+        )
+
+        needs_review = word_memory.get(
+            "needs_review",
+            False
+        )
+
+        if (
+            correct_streak >= 3
+            and not needs_review
+        ):
+            words.append(
+                word
+            )
+
+    return words
+
+
+# ==========================================
+# ANTWORT – GUT GEKONNTE WÖRTER
+# ==========================================
+
+def answer_mastered_words(
+    user_message,
+    state
+):
+
+    if not is_mastered_words_request(
+        user_message
+    ):
+        return None
+
+    words = get_mastered_words(
+        state
+    )
+
+    if not words:
+        return (
+            "Du hast noch keine Wörter sicher gelernt."
+        )
+
+    word_list = format_word_list(
+        words
+    )
+
+    return (
+        "Diese Wörter kannst du schon gut: "
+        + word_list
+        + "."
+    )
+
+
+# ==========================================
+# FRAGE NACH SCHWIERIGEN WÖRTERN
+# ==========================================
+
+def is_difficult_words_request(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!"
+    )
+
+    questions = [
+        "welche wörter sind schwierig für mich",
+        "welche wörter sind für mich schwierig",
+        "mit welchen wörtern habe ich probleme",
+        "welche wörter machen mir probleme",
+        "wo mache ich noch fehler",
+        "bei welchen wörtern mache ich fehler"
+    ]
+
+    return message in questions
+
+
+# ==========================================
+# SCHWIERIGE WÖRTER HOLEN
+# ==========================================
+
+def get_difficult_words(
+    state
+):
+
+    vocabulary_memory = get_vocabulary_memory(
+        state
+    )
+
+    words = []
+
+    for word, word_memory in vocabulary_memory.items():
+
+        mistakes = word_memory.get(
+            "mistakes",
+            0
+        )
+
+        needs_review = word_memory.get(
+            "needs_review",
+            False
+        )
+
+        if (
+            mistakes > 0
+            or needs_review
+        ):
+            words.append(
+                word
+            )
+
+    return words
+
+
+# ==========================================
+# ANTWORT – SCHWIERIGE WÖRTER
+# ==========================================
+
+def answer_difficult_words(
+    user_message,
+    state
+):
+
+    if not is_difficult_words_request(
+        user_message
+    ):
+        return None
+
+    words = get_difficult_words(
+        state
+    )
+
+    if not words:
+        return (
+            "Im Moment sehe ich keine schwierigen Wörter."
+        )
+
+    word_list = format_word_list(
+        words
+    )
+
+    return (
+        "Diese Wörter waren für dich schwierig: "
+        + word_list
+        + "."
+    )
+
+
+# ==========================================
 # MEMORY-ROUTER
 # ==========================================
 
@@ -289,6 +482,22 @@ def handle_memory(
         return answer
 
     answer = answer_review_words(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+    answer = answer_mastered_words(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+    answer = answer_difficult_words(
         user_message,
         state
     )
