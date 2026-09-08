@@ -49,3 +49,8 @@ from brain.logic.vocabulary_modules.opposite import (
     is_opposite_follow_up,
     answer_vocabulary_opposite
 )
+
+from brain.logic.vocabulary_modules.explanation import (
+    is_simple_explanation_request,
+    answer_simple_explanation
+)
