@@ -5,34 +5,10 @@
 from brain.logic.matcher import normalize
 from brain.knowledge.A1.vocabulary import VOCABULARY
 
-
-# ==========================================
-# HILFSFUNKTION – WORT BEREINIGEN
-# ==========================================
-
-def clean_vocabulary_word(
-    word
-):
-
-    word = normalize(
-        word
-    )
-
-    word = word.strip(
-        " .?!„“\"'"
-    )
-
-    if word == "das wort":
-        return ""
-
-    if word.startswith(
-        "das wort "
-    ):
-        word = word[
-            len("das wort "):
-        ].strip()
-
-    return word
+from brain.logic.vocabulary_modules.helpers import (
+    clean_vocabulary_word,
+    remember_vocabulary_word
+)
 
 
 # ==========================================
@@ -48,7 +24,11 @@ def extract_usage_word(
     )
 
     patterns = [
-        # Wann ...
+
+        # ==================================
+        # WANN ...
+        # ==================================
+
         "wann benutzt man das wort ",
         "wann verwendet man das wort ",
         "wann sagt man das wort ",
@@ -61,7 +41,10 @@ def extract_usage_word(
         "wann benutze ich ",
         "wann verwende ich ",
 
-        # Wie ...
+        # ==================================
+        # WIE ...
+        # ==================================
+
         "wie benutzt man das wort ",
         "wie verwendet man das wort ",
         "wie benutze ich das wort ",
@@ -111,7 +94,11 @@ def is_vocabulary_usage_follow_up(
     )
 
     usage_follow_ups = [
-        # Wann benutzt ...
+
+        # ==================================
+        # WANN BENUTZT ...
+        # ==================================
+
         "wann benutzt man das",
         "und wann benutzt man das",
 
@@ -121,7 +108,10 @@ def is_vocabulary_usage_follow_up(
         "wann benutzt man das wort",
         "und wann benutzt man das wort",
 
-        # Wann verwendet ...
+        # ==================================
+        # WANN VERWENDET ...
+        # ==================================
+
         "wann verwendet man das",
         "und wann verwendet man das",
 
@@ -131,7 +121,10 @@ def is_vocabulary_usage_follow_up(
         "wann verwendet man das wort",
         "und wann verwendet man das wort",
 
-        # Wann sagt ...
+        # ==================================
+        # WANN SAGT ...
+        # ==================================
+
         "wann sagt man das",
         "und wann sagt man das",
 
@@ -141,21 +134,30 @@ def is_vocabulary_usage_follow_up(
         "wann sagt man das wort",
         "und wann sagt man das wort",
 
-        # Wann benutze ich ...
+        # ==================================
+        # WANN BENUTZE ICH ...
+        # ==================================
+
         "wann benutze ich das",
         "und wann benutze ich das",
 
         "wann benutze ich dieses wort",
         "und wann benutze ich dieses wort",
 
-        # Wann verwende ich ...
+        # ==================================
+        # WANN VERWENDE ICH ...
+        # ==================================
+
         "wann verwende ich das",
         "und wann verwende ich das",
 
         "wann verwende ich dieses wort",
         "und wann verwende ich dieses wort",
 
-        # Wie benutzt ...
+        # ==================================
+        # WIE BENUTZT ...
+        # ==================================
+
         "wie benutzt man das",
         "und wie benutzt man das",
 
@@ -165,7 +167,10 @@ def is_vocabulary_usage_follow_up(
         "wie benutzt man das wort",
         "und wie benutzt man das wort",
 
-        # Wie verwendet ...
+        # ==================================
+        # WIE VERWENDET ...
+        # ==================================
+
         "wie verwendet man das",
         "und wie verwendet man das",
 
@@ -175,14 +180,20 @@ def is_vocabulary_usage_follow_up(
         "wie verwendet man das wort",
         "und wie verwendet man das wort",
 
-        # Wie benutze ich ...
+        # ==================================
+        # WIE BENUTZE ICH ...
+        # ==================================
+
         "wie benutze ich das",
         "und wie benutze ich das",
 
         "wie benutze ich dieses wort",
         "und wie benutze ich dieses wort",
 
-        # Wie verwende ich ...
+        # ==================================
+        # WIE VERWENDE ICH ...
+        # ==================================
+
         "wie verwende ich das",
         "und wie verwende ich das",
 
@@ -202,9 +213,18 @@ def answer_vocabulary_usage(
     state=None
 ):
 
-    # --------------------------------------
-    # Zuerst Kontextfrage prüfen
-    # --------------------------------------
+    # ======================================
+    # KONTEXTFRAGE
+    #
+    # Beispiel:
+    #
+    # Groß
+    # → ähnliches Wort: Riesig
+    # → Was ist der Unterschied?
+    # → Wann benutzt man das?
+    #
+    # "das" soll sich auf Riesig beziehen.
+    # ======================================
 
     if is_vocabulary_usage_follow_up(
         user_message
@@ -213,9 +233,28 @@ def answer_vocabulary_usage(
         if state is None:
             return None
 
-        word = state.get(
+        related_word = state.get(
+            "current_vocabulary_related_word"
+        )
+
+        current_word = state.get(
             "current_vocabulary_word"
         )
+
+        # Zuerst das zuletzt erwähnte
+        # verwandte Wort verwenden.
+        if (
+            related_word
+            and related_word in VOCABULARY
+        ):
+            word = related_word
+
+        else:
+            word = current_word
+
+    # ======================================
+    # DIREKTE FRAGE MIT KONKRETEM WORT
+    # ======================================
 
     else:
 
@@ -223,8 +262,14 @@ def answer_vocabulary_usage(
             user_message
         )
 
+
     if not word:
         return None
+
+
+    # ======================================
+    # WORTSCHATZEINTRAG
+    # ======================================
 
     vocabulary_entry = VOCABULARY.get(
         word
@@ -233,6 +278,11 @@ def answer_vocabulary_usage(
     if not vocabulary_entry:
         return None
 
+
+    # ======================================
+    # VERWENDUNG
+    # ======================================
+
     usage = vocabulary_entry.get(
         "usage"
     )
@@ -240,24 +290,28 @@ def answer_vocabulary_usage(
     if not usage:
         return None
 
-    # --------------------------------------
-    # Wort im Gesprächskontext speichern
-    # --------------------------------------
+
+    # ======================================
+    # WORT IM KONTEXT SPEICHERN
+    # ======================================
 
     if state is not None:
 
-        old_word = state.get(
-            "current_vocabulary_word"
+        remember_vocabulary_word(
+            state,
+            word
         )
 
-        if old_word != word:
+        # Wenn das verwandte Wort jetzt
+        # zum aktuellen Wort geworden ist,
+        # wird die alte Beziehung gelöscht.
+        if state.get(
+            "current_vocabulary_related_word"
+        ) == word:
 
             state[
-                "vocabulary_example_index"
-            ] = -1
+                "current_vocabulary_related_word"
+            ] = None
 
-        state[
-            "current_vocabulary_word"
-        ] = word
 
     return usage
