@@ -21,6 +21,33 @@ def answer_from_memory(
 
 
     # ======================================
+    # ULUBIONE SŁOWO
+    # ======================================
+
+    if message in [
+        "was ist mein lieblingswort",
+        "wie lautet mein lieblingswort",
+        "welches ist mein lieblingswort"
+    ]:
+
+        favorite_word = state.get(
+            "favorite_word"
+        )
+
+        if favorite_word:
+
+            return (
+                f"Dein Lieblingswort ist "
+                f"„{favorite_word}“."
+            )
+
+        return (
+            "Das weiß ich noch nicht. "
+            "Was ist dein Lieblingswort?"
+        )
+
+
+    # ======================================
     # IMIĘ
     # ======================================
 
