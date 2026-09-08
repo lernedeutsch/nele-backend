@@ -11,7 +11,8 @@ from brain.logic.vocabulary import (
     answer_explicit_vocabulary_difference,
     answer_vocabulary_article,
     answer_vocabulary_plural,
-    answer_vocabulary_opposite
+    answer_vocabulary_opposite,
+    answer_simple_explanation
 )
 
 
@@ -29,6 +30,19 @@ def handle_vocabulary(
     # ======================================
 
     answer = answer_vocabulary_question(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # EINFACHE ERKLÄRUNG
+    # ======================================
+
+    answer = answer_simple_explanation(
         user_message,
         state
     )
