@@ -54,6 +54,60 @@ def get_learning_profile(
 
 
 # ==========================================
+# ZAPIS AKTYWNEGO ĆWICZENIA
+# ==========================================
+
+def remember_personalized_exercise(
+    state,
+    exercise_type,
+    topic,
+    value
+):
+
+    state[
+        "personalization_exercise"
+    ] = {
+        "type": exercise_type,
+        "topic": topic,
+        "value": value
+    }
+
+
+# ==========================================
+# WYCZYSZCZENIE AKTYWNEGO ĆWICZENIA
+# ==========================================
+
+def clear_personalized_exercise(
+    state
+):
+
+    state[
+        "personalization_exercise"
+    ] = None
+
+
+# ==========================================
+# POBRANIE AKTYWNEGO ĆWICZENIA
+# ==========================================
+
+def get_personalized_exercise(
+    state
+):
+
+    exercise = state.get(
+        "personalization_exercise"
+    )
+
+    if not isinstance(
+        exercise,
+        dict
+    ):
+        return None
+
+    return exercise
+
+
+# ==========================================
 # PERSONALIZOWANE ĆWICZENIE
 # ==========================================
 
@@ -88,11 +142,18 @@ def create_personalized_exercise(
 
     if hobby:
 
+        remember_personalized_exercise(
+            state,
+            "sentence",
+            "hobby",
+            hobby
+        )
+
         return (
             f"Du hast mir erzählt, dass "
             f"dein Hobby {hobby} ist. "
-            f"Bilde einen Satz mit "
-            f"„{hobby}“."
+            f"Bilde einen Satz über "
+            f"dein Hobby."
         )
 
 
@@ -102,11 +163,18 @@ def create_personalized_exercise(
 
     if favorite_color:
 
+        remember_personalized_exercise(
+            state,
+            "sentence",
+            "favorite_color",
+            favorite_color
+        )
+
         return (
             f"Deine Lieblingsfarbe ist "
             f"{favorite_color}. "
-            f"Bilde einen Satz mit "
-            f"„{favorite_color}“."
+            f"Bilde einen Satz über "
+            f"deine Lieblingsfarbe."
         )
 
 
@@ -115,6 +183,13 @@ def create_personalized_exercise(
     # ======================================
 
     if favorite_word:
+
+        remember_personalized_exercise(
+            state,
+            "sentence",
+            "favorite_word",
+            favorite_word
+        )
 
         return (
             f"Dein Lieblingswort ist "
@@ -130,6 +205,13 @@ def create_personalized_exercise(
 
     if learning_goal:
 
+        remember_personalized_exercise(
+            state,
+            "learning",
+            "learning_goal",
+            learning_goal
+        )
+
         return (
             f"Dein Lernziel ist "
             f"{learning_goal}. "
@@ -140,6 +222,10 @@ def create_personalized_exercise(
     # ======================================
     # BRAK DANYCH DO PERSONALIZACJI
     # ======================================
+
+    clear_personalized_exercise(
+        state
+    )
 
     return (
         "Erzähl mir etwas über dich, "
