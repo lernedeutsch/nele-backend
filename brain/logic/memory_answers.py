@@ -1,6 +1,10 @@
 from brain.logic.memory import get_conversation_state
 from brain.logic.matcher import normalize
 
+from brain.memory.user_facts import (
+    get_user_fact
+)
+
 
 # ==========================================
 # PYTANIA O ZAPAMIĘTANE INFORMACJE
@@ -19,11 +23,6 @@ def answer_from_memory(
         user_message
     )
 
-    user_facts = state.get(
-        "user_facts",
-        {}
-    )
-
 
     # ======================================
     # ULUBIONE SŁOWO
@@ -35,7 +34,8 @@ def answer_from_memory(
         "welches ist mein lieblingswort"
     ]:
 
-        favorite_word = user_facts.get(
+        favorite_word = get_user_fact(
+            state,
             "favorite_word"
         )
 
@@ -67,7 +67,8 @@ def answer_from_memory(
         "wie lautet meine lieblingsfarbe"
     ]:
 
-        favorite_color = user_facts.get(
+        favorite_color = get_user_fact(
+            state,
             "favorite_color"
         )
 
@@ -95,7 +96,8 @@ def answer_from_memory(
         "wie heisst mein hobby"
     ]:
 
-        hobby = user_facts.get(
+        hobby = get_user_fact(
+            state,
             "hobby"
         )
 
@@ -122,7 +124,8 @@ def answer_from_memory(
         "welches lernziel habe ich"
     ]:
 
-        learning_goal = user_facts.get(
+        learning_goal = get_user_fact(
+            state,
             "learning_goal"
         )
 
@@ -149,12 +152,13 @@ def answer_from_memory(
         "was ist mein name"
     ]:
 
-        name = state.get(
+        name = get_user_fact(
+            state,
             "name"
         )
 
         if not name:
-            name = user_facts.get(
+            name = state.get(
                 "name"
             )
 
@@ -183,12 +187,13 @@ def answer_from_memory(
         "aus welchem land komme ich"
     ]:
 
-        origin = state.get(
+        origin = get_user_fact(
+            state,
             "origin"
         )
 
         if not origin:
-            origin = user_facts.get(
+            origin = state.get(
                 "origin"
             )
 
@@ -218,12 +223,13 @@ def answer_from_memory(
         "in welcher stadt wohne ich"
     ]:
 
-        residence = state.get(
+        residence = get_user_fact(
+            state,
             "residence"
         )
 
         if not residence:
-            residence = user_facts.get(
+            residence = state.get(
                 "residence"
             )
 
