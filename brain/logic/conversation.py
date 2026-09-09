@@ -92,7 +92,7 @@ def return_with_memory(
 
 
 # ==========================================
-# ODPOWIEDŹ PO DRUGIM ETAPIE
+# ODPOWIEDŹ KOŃCOWA PERSONALIZOWANEJ LEKCJI
 # ==========================================
 
 def create_personalized_final_answer(
@@ -147,6 +147,22 @@ def create_personalized_final_answer(
                 "Sehr gut! "
                 "Du kannst sagen: "
                 "„Ich fahre abends Rad.“"
+            )
+
+        if "samstag" in normalized_answer:
+
+            return (
+                "Sehr gut! "
+                "Du kannst sagen: "
+                "„Ich fahre am Samstag Rad.“"
+            )
+
+        if "sonntag" in normalized_answer:
+
+            return (
+                "Sehr gut! "
+                "Du kannst sagen: "
+                "„Ich fahre am Sonntag Rad.“"
             )
 
         return (
@@ -244,7 +260,6 @@ def handle_personalized_exercise_answer(
         )
 
         if follow_up:
-
             return follow_up
 
         return (
@@ -258,6 +273,30 @@ def handle_personalized_exercise_answer(
     # ======================================
 
     if status == "step_2_accepted":
+
+        set_personalized_exercise_step(
+            state,
+            3
+        )
+
+        follow_up = get_personalized_follow_up(
+            state
+        )
+
+        if follow_up:
+            return follow_up
+
+        return (
+            "Super! "
+            "Machen wir weiter."
+        )
+
+
+    # ======================================
+    # ETAP 3 ZAAKCEPTOWANY
+    # ======================================
+
+    if status == "step_3_accepted":
 
         clear_personalized_exercise(
             state
