@@ -32,7 +32,8 @@ from brain.logic.user_memory_router import (
 from brain.logic.personalization import (
     create_personalized_exercise,
     get_personalized_exercise,
-    clear_personalized_exercise
+    clear_personalized_exercise,
+    validate_personalized_answer
 )
 
 from brain.logic.alphabet_router import (
@@ -104,92 +105,132 @@ def handle_personalized_exercise_answer(
     if not exercise:
         return None
 
-    exercise_type = exercise.get(
-        "type"
+
+    # ======================================
+    # WALIDACJA ODPOWIEDZI
+    # ======================================
+
+    validation = validate_personalized_answer(
+        user_message,
+        state
     )
 
-    topic = exercise.get(
+    if not validation:
+        return None
+
+    status = validation.get(
+        "status"
+    )
+
+
+    # ======================================
+    # ODPOWIEDŹ DO PONOWIENIA
+    # ======================================
+
+    if status == "retry":
+
+        return validation.get(
+            "answer"
+        )
+
+
+    # ======================================
+    # ODPOWIEDŹ ZAAKCEPTOWANA
+    # ======================================
+
+    if status != "accepted":
+        return None
+
+    answer = validation.get(
+        "answer",
+        user_message.strip()
+    )
+
+    topic = validation.get(
         "topic"
     )
 
-    value = exercise.get(
+    value = validation.get(
         "value"
     )
 
 
     # ======================================
-    # ĆWICZENIE – TWORZENIE ZDANIA
+    # ĆWICZENIE ZAKOŃCZONE
     # ======================================
 
-    if exercise_type == "sentence":
-
-        answer = user_message.strip()
-
-        if not answer:
-            return None
-
-        clear_personalized_exercise(
-            state
-        )
+    clear_personalized_exercise(
+        state
+    )
 
 
-        # ==================================
-        # HOBBY
-        # ==================================
+    # ======================================
+    # HOBBY
+    # ======================================
 
-        if topic == "hobby":
-
-            return (
-                f"Sehr gut! "
-                f"Das ist ein passender Satz "
-                f"zu deinem Hobby {value}. "
-                f"Dein Satz lautet: "
-                f"„{answer}“"
-            )
-
-
-        # ==================================
-        # ULUBIONY KOLOR
-        # ==================================
-
-        if topic == "favorite_color":
-
-            return (
-                f"Sehr gut! "
-                f"Du hast einen Satz über "
-                f"deine Lieblingsfarbe "
-                f"{value} gebildet: "
-                f"„{answer}“"
-            )
-
-
-        # ==================================
-        # ULUBIONE SŁOWO
-        # ==================================
-
-        if topic == "favorite_word":
-
-            return (
-                f"Sehr gut! "
-                f"Du hast einen Satz mit "
-                f"deinem Lieblingswort "
-                f"„{value}“ gebildet: "
-                f"„{answer}“"
-            )
-
-
-        # ==================================
-        # INNY TEMAT
-        # ==================================
+    if topic == "hobby":
 
         return (
             f"Sehr gut! "
+            f"Das ist ein passender Satz "
+            f"zu deinem Hobby {value}. "
             f"Dein Satz lautet: "
             f"„{answer}“"
         )
 
 
-    return None
+    # ======================================
+    # ULUBIONY KOLOR
+    # ======================================
+
+    if topic == "favorite_color":
+
+        return (
+            f"Sehr gut! "
+            f"Du hast einen Satz über "
+            f"deine Lieblingsfarbe "
+            f"{value} gebildet: "
+            f"„{answer}“"
+        )
+
+
+    # ======================================
+    # ULUBIONE SŁOWO
+    # ======================================
+
+    if topic == "favorite_word":
+
+        return (
+            f"Sehr gut! "
+            f"Du hast einen Satz mit "
+            f"deinem Lieblingswort "
+            f"„{value}“ gebildet: "
+            f"„{answer}“"
+        )
+
+
+    # ======================================
+    # CEL NAUKI
+    # ======================================
+
+    if topic == "learning_goal":
+
+        return (
+            f"Sehr gut! "
+            f"Wir arbeiten weiter an "
+            f"deinem Lernziel {value}."
+        )
+
+
+    # ======================================
+    # INNY TEMAT
+    # ======================================
+
+    return (
+        f"Sehr gut! "
+        f"Dein Satz lautet: "
+        f"„{answer}“"
+    )
 
 
 # ==========================================
@@ -530,4 +571,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-            )
+        )
