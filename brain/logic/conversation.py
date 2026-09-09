@@ -469,24 +469,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 3. PAMIĘĆ I INFORMACJE O UŻYTKOWNIKU
-    # ======================================
-
-    user_memory_answer = handle_user_memory(
-        user_message,
-        session_id
-    )
-
-    if user_memory_answer:
-
-        return return_with_memory(
-            user_memory_answer,
-            session_id
-        )
-
-
-    # ======================================
-    # 4. NOWE PERSONALIZOWANE ĆWICZENIE
+    # 3. NOWE PERSONALIZOWANE ĆWICZENIE
     # ======================================
 
     personalized_exercise_commands = [
@@ -513,21 +496,42 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. ODPOWIEDŹ NA PERSONALIZOWANE
-    #    ĆWICZENIE
+    # 4. ODPOWIEDŹ NA AKTYWNE
+    #    PERSONALIZOWANE ĆWICZENIE
     # ======================================
 
-    personalized_exercise_answer = (
-        handle_personalized_exercise_answer(
-            user_message,
-            state
+    if get_personalized_exercise(
+        state
+    ):
+
+        personalized_exercise_answer = (
+            handle_personalized_exercise_answer(
+                user_message,
+                state
+            )
         )
+
+        if personalized_exercise_answer:
+
+            return return_with_memory(
+                personalized_exercise_answer,
+                session_id
+            )
+
+
+    # ======================================
+    # 5. PAMIĘĆ I INFORMACJE O UŻYTKOWNIKU
+    # ======================================
+
+    user_memory_answer = handle_user_memory(
+        user_message,
+        session_id
     )
 
-    if personalized_exercise_answer:
+    if user_memory_answer:
 
         return return_with_memory(
-            personalized_exercise_answer,
+            user_memory_answer,
             session_id
         )
 
@@ -675,4 +679,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-    )
+            )
