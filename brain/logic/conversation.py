@@ -38,6 +38,15 @@ from brain.logic.personalization import (
     get_personalized_follow_up
 )
 
+from brain.logic.onboarding import (
+    is_onboarding_completed,
+    is_new_user,
+    get_onboarding_step,
+    start_onboarding,
+    handle_onboarding_answer,
+    complete_onboarding
+)
+
 from brain.logic.alphabet_router import (
     handle_alphabet
 )
@@ -423,6 +432,12 @@ def generate_conversation_reply(
     if "personalization_exercise" not in state:
         state["personalization_exercise"] = None
 
+    if "onboarding_completed" not in state:
+        state["onboarding_completed"] = False
+
+    if "onboarding_step" not in state:
+        state["onboarding_step"] = 0
+
 
     # ======================================
     # NORMALIZACJA WIADOMOŚCI
@@ -431,6 +446,80 @@ def generate_conversation_reply(
     message = normalize(
         user_message
     )
+
+
+    # ======================================
+    # 0. PIERWSZE SPOTKANIE – NOWY UŻYTKOWNIK
+    # ======================================
+
+    if not is_onboarding_completed(
+        state
+    ):
+
+        onboarding_step = get_onboarding_step(
+            state
+        )
+
+
+        # ==================================
+        # AKTYWNY ONBOARDING
+        # ==================================
+
+        if onboarding_step > 0:
+
+            onboarding_answer = (
+                handle_onboarding_answer(
+                    user_message,
+                    state,
+                    session_id
+                )
+            )
+
+            if onboarding_answer:
+
+                return return_with_memory(
+                    onboarding_answer,
+                    session_id
+                )
+
+
+        # ==================================
+        # NOWY UŻYTKOWNIK
+        # ==================================
+
+        elif is_new_user(
+            state
+        ):
+
+            onboarding_answer = start_onboarding(
+                state
+            )
+
+            return return_with_memory(
+                onboarding_answer,
+                session_id
+            )
+
+
+        # ==================================
+        # STARY UŻYTKOWNIK
+        # ==================================
+        # Użytkownik ma już zapisane dane,
+        # ale pochodzi z wersji Nele sprzed
+        # wprowadzenia onboardingu.
+        # Nie przeprowadzamy go ponownie.
+        # ==================================
+
+        else:
+
+            complete_onboarding(
+                state
+            )
+
+            return_with_memory(
+                None,
+                session_id
+            )
 
 
     # ======================================
@@ -679,4 +768,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-            )
+    )
