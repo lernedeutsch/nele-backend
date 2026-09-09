@@ -72,7 +72,10 @@ def create_empty_state():
         "current_vocabulary_related_word": None,
 
         # pamięć postępów słownictwa
-        "vocabulary_memory": {}
+        "vocabulary_memory": {},
+
+        # aktywne ćwiczenie personalizowane
+        "personalization_exercise": None
     }
 
 
