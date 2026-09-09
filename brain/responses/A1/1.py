@@ -323,9 +323,9 @@ WELLBEING = [
         "intent": "user_wellbeing_good",
 
         "responses": [
-            "Das freut mich!",
-            "Sehr schön!",
-            "Schön zu hören!"
+            "Das freut mich! Was möchtest du heute üben?",
+            "Sehr schön! Möchtest du heute ein bisschen Deutsch üben?",
+            "Schön zu hören! Womit möchtest du heute anfangen?"
         ]
     },
 
@@ -341,8 +341,8 @@ WELLBEING = [
         "intent": "user_wellbeing_bad",
 
         "responses": [
-            "Das tut mir leid.",
-            "Oh, das tut mir leid."
+            "Das tut mir leid. Möchtest du trotzdem ein bisschen Deutsch üben?",
+            "Oh, das tut mir leid. Wir können heute ganz ruhig zusammen Deutsch üben."
         ]
     }
 
