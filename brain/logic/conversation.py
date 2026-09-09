@@ -7,6 +7,10 @@ from brain.logic.memory import (
     save_conversation_state
 )
 
+from brain.logic.matcher import (
+    normalize
+)
+
 from brain.logic.message_parser import (
     split_multiple_questions
 )
@@ -23,6 +27,10 @@ from brain.logic.correction_router import (
 
 from brain.logic.user_memory_router import (
     handle_user_memory
+)
+
+from brain.logic.personalization import (
+    create_personalized_exercise
 )
 
 from brain.logic.alphabet_router import (
@@ -158,6 +166,18 @@ def generate_conversation_reply(
     if "vocabulary_memory" not in state:
         state["vocabulary_memory"] = {}
 
+    if "user_facts" not in state:
+        state["user_facts"] = {}
+
+
+    # ======================================
+    # NORMALIZACJA WIADOMOŚCI
+    # ======================================
+
+    message = normalize(
+        user_message
+    )
+
 
     # ======================================
     # 1. KOREKTA BŁĘDÓW
@@ -212,7 +232,34 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4. PAMIĘĆ NAUKI SŁOWNICTWA
+    # 4. PERSONALIZOWANE ĆWICZENIE
+    # ======================================
+
+    personalized_exercise_commands = [
+        "übe mit mir",
+        "üb mit mir",
+        "lass uns üben",
+        "lass uns deutsch üben",
+        "mach eine übung mit mir",
+        "gib mir eine persönliche übung"
+    ]
+
+    if message in personalized_exercise_commands:
+
+        personalized_answer = (
+            create_personalized_exercise(
+                state
+            )
+        )
+
+        return return_with_memory(
+            personalized_answer,
+            session_id
+        )
+
+
+    # ======================================
+    # 5. PAMIĘĆ NAUKI SŁOWNICTWA
     # ======================================
 
     memory_answer = handle_memory(
@@ -229,7 +276,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. KONTYNUACJA AKTUALNEGO TEMATU
+    # 6. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -246,7 +293,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. PORÓWNANIA
+    # 7. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -264,7 +311,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 7. SŁOWNICTWO
+    # 8. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -281,7 +328,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. ROZPOZNAWANIE INTENCJI
+    # 9. ROZPOZNAWANIE INTENCJI
     # ======================================
 
     intent_answer = handle_intent(
@@ -308,7 +355,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 9. ZNANE PYTANIA I ZWROTY
+    # 10. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -327,7 +374,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. ODPOWIEDŹ KONTEKSTOWA
+    # 11. ODPOWIEDŹ KONTEKSTOWA
     # ======================================
 
     context_answer = handle_context(
@@ -344,7 +391,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. BRAK WIEDZY
+    # 12. BRAK WIEDZY
     # ======================================
 
     return return_with_memory(
@@ -354,4 +401,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-        )
+    )
