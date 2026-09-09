@@ -33,7 +33,9 @@ from brain.logic.personalization import (
     create_personalized_exercise,
     get_personalized_exercise,
     clear_personalized_exercise,
-    validate_personalized_answer
+    validate_personalized_answer,
+    set_personalized_exercise_step,
+    get_personalized_follow_up
 )
 
 from brain.logic.alphabet_router import (
@@ -90,6 +92,84 @@ def return_with_memory(
 
 
 # ==========================================
+# ODPOWIEDŹ PO DRUGIM ETAPIE
+# ==========================================
+
+def create_personalized_final_answer(
+    answer,
+    topic,
+    value
+):
+
+    normalized_answer = normalize(
+        answer
+    )
+
+
+    # ======================================
+    # HOBBY – RADFAHREN
+    # ======================================
+
+    if (
+        topic == "hobby"
+        and normalize(
+            value or ""
+        ) == "radfahren"
+    ):
+
+        if "wochenende" in normalized_answer:
+
+            return (
+                "Sehr gut! "
+                "Du kannst sagen: "
+                "„Ich fahre am Wochenende Rad.“"
+            )
+
+        if "morgens" in normalized_answer:
+
+            return (
+                "Sehr gut! "
+                "Du kannst sagen: "
+                "„Ich fahre morgens Rad.“"
+            )
+
+        if "nachmittags" in normalized_answer:
+
+            return (
+                "Sehr gut! "
+                "Du kannst sagen: "
+                "„Ich fahre nachmittags Rad.“"
+            )
+
+        if "abends" in normalized_answer:
+
+            return (
+                "Sehr gut! "
+                "Du kannst sagen: "
+                "„Ich fahre abends Rad.“"
+            )
+
+        return (
+            f"Sehr gut! "
+            f"Du hast gesagt: "
+            f"„{answer}“ "
+            f"Das passt gut zu deinem Hobby "
+            f"{value}."
+        )
+
+
+    # ======================================
+    # INNY TEMAT
+    # ======================================
+
+    return (
+        f"Sehr gut! "
+        f"Du hast gesagt: "
+        f"„{answer}“"
+    )
+
+
+# ==========================================
 # ODPOWIEDŹ NA PERSONALIZOWANE ĆWICZENIE
 # ==========================================
 
@@ -134,13 +214,6 @@ def handle_personalized_exercise_answer(
         )
 
 
-    # ======================================
-    # ODPOWIEDŹ ZAAKCEPTOWANA
-    # ======================================
-
-    if status != "accepted":
-        return None
-
     answer = validation.get(
         "answer",
         user_message.strip()
@@ -156,81 +229,73 @@ def handle_personalized_exercise_answer(
 
 
     # ======================================
-    # ĆWICZENIE ZAKOŃCZONE
+    # ETAP 1 ZAAKCEPTOWANY
     # ======================================
 
-    clear_personalized_exercise(
-        state
-    )
+    if status == "step_1_accepted":
+
+        set_personalized_exercise_step(
+            state,
+            2
+        )
+
+        follow_up = get_personalized_follow_up(
+            state
+        )
+
+        if follow_up:
+
+            return follow_up
+
+        return (
+            "Sehr gut! "
+            "Machen wir weiter."
+        )
 
 
     # ======================================
-    # HOBBY
+    # ETAP 2 ZAAKCEPTOWANY
     # ======================================
 
-    if topic == "hobby":
+    if status == "step_2_accepted":
+
+        clear_personalized_exercise(
+            state
+        )
+
+        return create_personalized_final_answer(
+            answer,
+            topic,
+            value
+        )
+
+
+    # ======================================
+    # STARSZY / INNY TYP ĆWICZENIA
+    # ======================================
+
+    if status == "accepted":
+
+        clear_personalized_exercise(
+            state
+        )
+
+        if topic == "learning_goal":
+
+            return (
+                f"Sehr gut! "
+                f"Wir arbeiten weiter an "
+                f"deinem Lernziel {value}."
+            )
 
         return (
             f"Sehr gut! "
-            f"Das ist ein passender Satz "
-            f"zu deinem Hobby {value}. "
-            f"Dein Satz lautet: "
+            f"Deine Antwort lautet: "
             f"„{answer}“"
         )
 
 
-    # ======================================
-    # ULUBIONY KOLOR
-    # ======================================
-
-    if topic == "favorite_color":
-
-        return (
-            f"Sehr gut! "
-            f"Du hast einen Satz über "
-            f"deine Lieblingsfarbe "
-            f"{value} gebildet: "
-            f"„{answer}“"
-        )
-
-
-    # ======================================
-    # ULUBIONE SŁOWO
-    # ======================================
-
-    if topic == "favorite_word":
-
-        return (
-            f"Sehr gut! "
-            f"Du hast einen Satz mit "
-            f"deinem Lieblingswort "
-            f"„{value}“ gebildet: "
-            f"„{answer}“"
-        )
-
-
-    # ======================================
-    # CEL NAUKI
-    # ======================================
-
-    if topic == "learning_goal":
-
-        return (
-            f"Sehr gut! "
-            f"Wir arbeiten weiter an "
-            f"deinem Lernziel {value}."
-        )
-
-
-    # ======================================
-    # INNY TEMAT
-    # ======================================
-
-    return (
-        f"Sehr gut! "
-        f"Dein Satz lautet: "
-        f"„{answer}“"
-    )
+    return None
 
 
 # ==========================================
@@ -571,4 +636,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-        )
+    )
