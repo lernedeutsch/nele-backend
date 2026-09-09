@@ -12,7 +12,7 @@ from brain.logic.matcher import (
 
 
 # ==========================================
-# PODSTAWOWE CZASOWNIKI DO WALIDACJI ZDANIA
+# PODSTAWOWE CZASOWNIKI
 # ==========================================
 
 BASIC_GERMAN_VERBS = {
@@ -104,7 +104,7 @@ BASIC_GERMAN_VERBS = {
 
 
 # ==========================================
-# SŁOWA POWIĄZANE Z WYBRANYMI TEMATAMI
+# SŁOWA POWIĄZANE Z TEMATAMI
 # ==========================================
 
 PERSONALIZATION_KEYWORDS = {
@@ -115,6 +115,7 @@ PERSONALIZATION_KEYWORDS = {
         "fahrrad",
         "fahre",
         "fährst",
+        "fahrt",
         "fahren"
     }
 
@@ -163,7 +164,7 @@ TIME_KEYWORDS = {
 
 
 # ==========================================
-# POBRANIE PROFILU DO PERSONALIZACJI
+# POBRANIE PROFILU
 # ==========================================
 
 def get_learning_profile(
@@ -231,7 +232,7 @@ def remember_personalized_exercise(
 
 
 # ==========================================
-# WYCZYSZCZENIE AKTYWNEGO ĆWICZENIA
+# WYCZYSZCZENIE ĆWICZENIA
 # ==========================================
 
 def clear_personalized_exercise(
@@ -244,7 +245,7 @@ def clear_personalized_exercise(
 
 
 # ==========================================
-# POBRANIE AKTYWNEGO ĆWICZENIA
+# POBRANIE ĆWICZENIA
 # ==========================================
 
 def get_personalized_exercise(
@@ -268,7 +269,7 @@ def get_personalized_exercise(
 
 
 # ==========================================
-# USTAWIENIE ETAPU ĆWICZENIA
+# USTAWIENIE ETAPU
 # ==========================================
 
 def set_personalized_exercise_step(
@@ -291,7 +292,7 @@ def set_personalized_exercise_step(
 
 
 # ==========================================
-# SPRAWDZENIE, CZY ZDANIE MA CZASOWNIK
+# CZY ZDANIE MA CZASOWNIK
 # ==========================================
 
 def sentence_has_verb(
@@ -307,7 +308,7 @@ def sentence_has_verb(
 
 
 # ==========================================
-# SŁOWA POWIĄZANE Z TEMATEM
+# SŁOWA TEMATYCZNE
 # ==========================================
 
 def get_topic_keywords(
@@ -361,7 +362,7 @@ def get_topic_keywords(
 
 
 # ==========================================
-# SPRAWDZENIE ZWIĄZKU Z TEMATEM
+# CZY ODPOWIEDŹ PASUJE DO TEMATU
 # ==========================================
 
 def answer_matches_topic(
@@ -382,16 +383,16 @@ def answer_matches_topic(
         words
     )
 
+    joined_answer = " ".join(
+        words
+    )
+
     for keyword in keywords:
 
         if keyword in word_set:
             return True
 
         if " " in keyword:
-
-            joined_answer = " ".join(
-                words
-            )
 
             if keyword in joined_answer:
                 return True
@@ -400,7 +401,7 @@ def answer_matches_topic(
 
 
 # ==========================================
-# SPRAWDZENIE ODPOWIEDZI CZASOWEJ
+# CZY ODPOWIEDŹ ZAWIERA CZAS
 # ==========================================
 
 def answer_contains_time(
@@ -416,10 +417,80 @@ def answer_contains_time(
 
 
 # ==========================================
-# WALIDACJA PIERWSZEGO ETAPU
+# ETAP 1 – JAKIE MASZ HOBBY?
 # ==========================================
 
-def validate_sentence_step(
+def validate_hobby_step(
+    user_message,
+    value
+):
+
+    message = normalize(
+        user_message
+    )
+
+    words = message.split()
+
+    if not words:
+
+        return {
+            "status": "retry",
+            "answer": (
+                "Ich habe noch keine Antwort "
+                "gehört. Was ist dein Hobby?"
+            )
+        }
+
+    expected_hobby = normalize(
+        value or ""
+    )
+
+    topic_keywords = get_topic_keywords(
+        "hobby",
+        value
+    )
+
+    word_set = set(
+        words
+    )
+
+    hobby_found = False
+
+    if expected_hobby in message:
+        hobby_found = True
+
+    if not hobby_found:
+
+        for keyword in topic_keywords:
+
+            if keyword in word_set:
+                hobby_found = True
+                break
+
+    if not hobby_found:
+
+        return {
+            "status": "retry",
+            "answer": (
+                "Versuch es noch einmal. "
+                "Antworte zum Beispiel: "
+                "„Mein Hobby ist ...“"
+            )
+        }
+
+    return {
+        "status": "step_1_accepted",
+        "answer": user_message.strip(),
+        "topic": "hobby",
+        "value": value
+    }
+
+
+# ==========================================
+# ETAP 2 – CO LUBISZ ROBIĆ?
+# ==========================================
+
+def validate_activity_step(
     user_message,
     topic,
     value
@@ -437,8 +508,8 @@ def validate_sentence_step(
             "status": "retry",
             "answer": (
                 "Ich habe noch keine Antwort "
-                "gehört. Versuch es bitte "
-                "noch einmal."
+                "gehört. Was machst du gern "
+                "in deiner Freizeit?"
             )
         }
 
@@ -449,9 +520,8 @@ def validate_sentence_step(
         return {
             "status": "retry",
             "answer": (
-                "Das ist noch kein ganzer "
-                "Satz. Bilde bitte einen "
-                "vollständigen Satz."
+                "Antworte bitte mit einem "
+                "ganzen Satz."
             )
         }
 
@@ -463,9 +533,8 @@ def validate_sentence_step(
             "status": "retry",
             "answer": (
                 "Noch nicht ganz. "
-                "Ich erkenne noch keinen "
-                "passenden vollständigen Satz. "
-                "Versuch es noch einmal."
+                "Bilde bitte einen "
+                "vollständigen Satz."
             )
         }
 
@@ -478,15 +547,14 @@ def validate_sentence_step(
         return {
             "status": "retry",
             "answer": (
-                "Der Satz ist noch nicht "
-                "klar mit dem Thema verbunden. "
-                "Versuch bitte einen Satz "
-                f"zum Thema „{value}“."
+                "Das passt noch nicht ganz "
+                "zu deinem Hobby. "
+                "Versuch es noch einmal."
             )
         }
 
     return {
-        "status": "step_1_accepted",
+        "status": "step_2_accepted",
         "answer": user_message.strip(),
         "topic": topic,
         "value": value
@@ -494,7 +562,7 @@ def validate_sentence_step(
 
 
 # ==========================================
-# WALIDACJA DRUGIEGO ETAPU – CZAS
+# ETAP 3 – KIEDY?
 # ==========================================
 
 def validate_time_step(
@@ -533,7 +601,7 @@ def validate_time_step(
         }
 
     return {
-        "status": "step_2_accepted",
+        "status": "step_3_accepted",
         "answer": user_message.strip(),
         "topic": topic,
         "value": value
@@ -541,7 +609,7 @@ def validate_time_step(
 
 
 # ==========================================
-# WALIDACJA ODPOWIEDZI UCZNIA
+# WALIDACJA ODPOWIEDZI
 # ==========================================
 
 def validate_personalized_answer(
@@ -575,20 +643,30 @@ def validate_personalized_answer(
 
 
     # ======================================
-    # ĆWICZENIE ZDANIOWE
+    # ROZMOWA O HOBBY
     # ======================================
 
-    if exercise_type == "sentence":
+    if (
+        exercise_type == "conversation"
+        and topic == "hobby"
+    ):
 
         if step == 1:
 
-            return validate_sentence_step(
+            return validate_hobby_step(
+                user_message,
+                value
+            )
+
+        if step == 2:
+
+            return validate_activity_step(
                 user_message,
                 topic,
                 value
             )
 
-        if step == 2:
+        if step == 3:
 
             return validate_time_step(
                 user_message,
@@ -598,7 +676,20 @@ def validate_personalized_answer(
 
 
     # ======================================
-    # INNY TYP ĆWICZENIA
+    # STARSZY TYP ĆWICZENIA ZDANIOWEGO
+    # ======================================
+
+    if exercise_type == "sentence":
+
+        return validate_activity_step(
+            user_message,
+            topic,
+            value
+        )
+
+
+    # ======================================
+    # INNY TYP
     # ======================================
 
     return {
@@ -610,7 +701,7 @@ def validate_personalized_answer(
 
 
 # ==========================================
-# PYTANIE DRUGIEGO ETAPU
+# KOLEJNE PYTANIE
 # ==========================================
 
 def get_personalized_follow_up(
@@ -632,6 +723,11 @@ def get_personalized_follow_up(
         "value"
     )
 
+    step = exercise.get(
+        "step",
+        1
+    )
+
 
     # ======================================
     # HOBBY
@@ -639,34 +735,48 @@ def get_personalized_follow_up(
 
     if topic == "hobby":
 
-        if normalize(
-            value or ""
-        ) == "radfahren":
+
+        # ==================================
+        # ETAP 2
+        # ==================================
+
+        if step == 2:
 
             return (
                 "Sehr gut! "
-                "Wann fährst du normalerweise Rad?"
+                "Was machst du gern "
+                "in deiner Freizeit?"
             )
 
-        return (
-            "Sehr gut! "
-            "Wann machst du dein Hobby "
-            "normalerweise?"
-        )
+
+        # ==================================
+        # ETAP 3
+        # ==================================
+
+        if step == 3:
+
+            if normalize(
+                value or ""
+            ) == "radfahren":
+
+                return (
+                    "Super! "
+                    "Wann fährst du "
+                    "normalerweise Rad?"
+                )
+
+            return (
+                "Super! "
+                "Wann machst du dein Hobby "
+                "normalerweise?"
+            )
 
 
-    # ======================================
-    # INNY TEMAT
-    # ======================================
-
-    return (
-        "Sehr gut! "
-        "Wann machst du das normalerweise?"
-    )
+    return None
 
 
 # ==========================================
-# PERSONALIZOWANE ĆWICZENIE
+# NOWE PERSONALIZOWANE ĆWICZENIE
 # ==========================================
 
 def create_personalized_exercise(
@@ -695,24 +805,21 @@ def create_personalized_exercise(
 
 
     # ======================================
-    # HOBBY
+    # HOBBY – NATURALNA ROZMOWA
     # ======================================
 
     if hobby:
 
         remember_personalized_exercise(
             state,
-            "sentence",
+            "conversation",
             "hobby",
             hobby,
             step=1
         )
 
         return (
-            f"Du hast mir erzählt, dass "
-            f"dein Hobby {hobby} ist. "
-            f"Bilde einen Satz über "
-            f"dein Hobby."
+            "Was ist dein Hobby?"
         )
 
 
@@ -731,10 +838,7 @@ def create_personalized_exercise(
         )
 
         return (
-            f"Deine Lieblingsfarbe ist "
-            f"{favorite_color}. "
-            f"Bilde einen Satz über "
-            f"deine Lieblingsfarbe."
+            "Was ist deine Lieblingsfarbe?"
         )
 
 
@@ -753,10 +857,7 @@ def create_personalized_exercise(
         )
 
         return (
-            f"Dein Lieblingswort ist "
-            f"„{favorite_word}“. "
-            f"Bilde einen Satz mit "
-            f"diesem Wort."
+            "Was ist dein Lieblingswort?"
         )
 
 
@@ -775,14 +876,12 @@ def create_personalized_exercise(
         )
 
         return (
-            f"Dein Lernziel ist "
-            f"{learning_goal}. "
-            f"Lass uns dafür Deutsch üben."
+            "Was ist dein Lernziel?"
         )
 
 
     # ======================================
-    # BRAK DANYCH DO PERSONALIZACJI
+    # BRAK DANYCH
     # ======================================
 
     clear_personalized_exercise(
