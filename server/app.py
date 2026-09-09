@@ -9,7 +9,8 @@ from flask import Flask, jsonify, request, send_file
 from speech.speaker import Speaker
 
 from brain.logic.conversation import (
-    generate_conversation_reply
+    generate_conversation_reply,
+    generate_welcome_reply
 )
 
 from brain.logic.memory import (
@@ -17,16 +18,8 @@ from brain.logic.memory import (
     save_conversation_state
 )
 
-from brain.logic.onboarding import (
-    is_onboarding_completed,
-    is_new_user,
-    get_onboarding_step,
-    start_onboarding,
-    get_onboarding_question
-)
-
-from brain.memory.user_facts import (
-    get_user_fact
+from brain.logic.vocabulary_modules.practice import (
+    finish_vocabulary_practice
 )
 
 
@@ -243,9 +236,11 @@ def normalize_session_id(
         session_id or "default"
     ).strip()
 
+
     if not session_id:
 
         session_id = "default"
+
 
     return session_id[:100]
 
@@ -290,96 +285,46 @@ def create_welcome_reply(
 
     try:
 
+        # ==================================
+        # POBRANIE PAMIĘCI UŻYTKOWNIKA
+        # ==================================
+
         state = get_conversation_state(
             session_id
         )
 
 
         # ==================================
-        # NOWY UŻYTKOWNIK
+        # ZAKOŃCZENIE STAREGO
+        # AKTYWNEGO ĆWICZENIA SŁOWNICTWA
+        # ==================================
+        #
+        # Nie usuwamy historii nauki.
+        # Usuwamy tylko stan:
+        # "czekam teraz na odpowiedź
+        # do poprzedniego ćwiczenia".
         # ==================================
 
-        if (
-            not is_onboarding_completed(
-                state
-            )
-            and is_new_user(
-                state
-            )
-        ):
-
-            onboarding_step = (
-                get_onboarding_step(
-                    state
-                )
-            )
-
-            if onboarding_step == 0:
-
-                answer = start_onboarding(
-                    state
-                )
-
-                save_conversation_state(
-                    session_id
-                )
-
-                return answer
-
-
-        # ==================================
-        # ONBOARDING JUŻ ROZPOCZĘTY
-        # ==================================
-
-        if not is_onboarding_completed(
+        finish_vocabulary_practice(
             state
-        ):
-
-            onboarding_step = (
-                get_onboarding_step(
-                    state
-                )
-            )
-
-            if onboarding_step > 0:
-
-                question = (
-                    get_onboarding_question(
-                        state
-                    )
-                )
-
-                if question:
-
-                    return question
-
-
-        # ==================================
-        # ZNANY UŻYTKOWNIK
-        # ==================================
-
-        name = get_user_fact(
-            state,
-            "name"
         )
 
-        if name:
 
-            return (
-                f"Hallo {name}! "
-                f"Schön, dich wiederzusehen. "
-                f"Wie geht es dir?"
-            )
+        # ==================================
+        # ZAPISANIE ZMIANY
+        # ==================================
+
+        save_conversation_state(
+            session_id
+        )
 
 
         # ==================================
-        # ZNANY UŻYTKOWNIK BEZ IMIENIA
+        # NORMALNE POWITANIE
         # ==================================
 
-        return (
-            "Hallo! "
-            "Schön, dich wiederzusehen. "
-            "Wie geht es dir?"
+        return generate_welcome_reply(
+            session_id
         )
 
 
