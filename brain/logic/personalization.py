@@ -122,6 +122,47 @@ PERSONALIZATION_KEYWORDS = {
 
 
 # ==========================================
+# OKREŚLENIA CZASU
+# ==========================================
+
+TIME_KEYWORDS = {
+    "heute",
+    "morgen",
+    "morgens",
+    "mittags",
+    "nachmittags",
+    "abends",
+
+    "montag",
+    "dienstag",
+    "mittwoch",
+    "donnerstag",
+    "freitag",
+    "samstag",
+    "sonntag",
+
+    "montags",
+    "dienstags",
+    "mittwochs",
+    "donnerstags",
+    "freitags",
+    "samstags",
+    "sonntags",
+
+    "wochenende",
+    "wochentags",
+
+    "oft",
+    "manchmal",
+    "selten",
+    "immer",
+
+    "früh",
+    "spät"
+}
+
+
+# ==========================================
 # POBRANIE PROFILU DO PERSONALIZACJI
 # ==========================================
 
@@ -175,7 +216,8 @@ def remember_personalized_exercise(
     state,
     exercise_type,
     topic,
-    value
+    value,
+    step=1
 ):
 
     state[
@@ -183,7 +225,8 @@ def remember_personalized_exercise(
     ] = {
         "type": exercise_type,
         "topic": topic,
-        "value": value
+        "value": value,
+        "step": step
     }
 
 
@@ -218,7 +261,33 @@ def get_personalized_exercise(
     ):
         return None
 
+    if "step" not in exercise:
+        exercise["step"] = 1
+
     return exercise
+
+
+# ==========================================
+# USTAWIENIE ETAPU ĆWICZENIA
+# ==========================================
+
+def set_personalized_exercise_step(
+    state,
+    step
+):
+
+    exercise = get_personalized_exercise(
+        state
+    )
+
+    if not exercise:
+        return False
+
+    exercise[
+        "step"
+    ] = step
+
+    return True
 
 
 # ==========================================
@@ -276,21 +345,11 @@ def get_topic_keywords(
         additional_keywords
     )
 
-
-    # ======================================
-    # ULUBIONY KOLOR
-    # ======================================
-
     if topic == "favorite_color":
 
         keywords.add(
             normalized_value
         )
-
-
-    # ======================================
-    # ULUBIONE SŁOWO
-    # ======================================
 
     if topic == "favorite_word":
 
@@ -341,6 +400,147 @@ def answer_matches_topic(
 
 
 # ==========================================
+# SPRAWDZENIE ODPOWIEDZI CZASOWEJ
+# ==========================================
+
+def answer_contains_time(
+    words
+):
+
+    for word in words:
+
+        if word in TIME_KEYWORDS:
+            return True
+
+    return False
+
+
+# ==========================================
+# WALIDACJA PIERWSZEGO ETAPU
+# ==========================================
+
+def validate_sentence_step(
+    user_message,
+    topic,
+    value
+):
+
+    message = normalize(
+        user_message
+    )
+
+    words = message.split()
+
+    if not words:
+
+        return {
+            "status": "retry",
+            "answer": (
+                "Ich habe noch keine Antwort "
+                "gehört. Versuch es bitte "
+                "noch einmal."
+            )
+        }
+
+    if len(
+        words
+    ) < 3:
+
+        return {
+            "status": "retry",
+            "answer": (
+                "Das ist noch kein ganzer "
+                "Satz. Bilde bitte einen "
+                "vollständigen Satz."
+            )
+        }
+
+    if not sentence_has_verb(
+        words
+    ):
+
+        return {
+            "status": "retry",
+            "answer": (
+                "Noch nicht ganz. "
+                "Ich erkenne noch keinen "
+                "passenden vollständigen Satz. "
+                "Versuch es noch einmal."
+            )
+        }
+
+    if not answer_matches_topic(
+        words,
+        topic,
+        value
+    ):
+
+        return {
+            "status": "retry",
+            "answer": (
+                "Der Satz ist noch nicht "
+                "klar mit dem Thema verbunden. "
+                "Versuch bitte einen Satz "
+                f"zum Thema „{value}“."
+            )
+        }
+
+    return {
+        "status": "step_1_accepted",
+        "answer": user_message.strip(),
+        "topic": topic,
+        "value": value
+    }
+
+
+# ==========================================
+# WALIDACJA DRUGIEGO ETAPU – CZAS
+# ==========================================
+
+def validate_time_step(
+    user_message,
+    topic,
+    value
+):
+
+    message = normalize(
+        user_message
+    )
+
+    words = message.split()
+
+    if not words:
+
+        return {
+            "status": "retry",
+            "answer": (
+                "Ich habe noch keine Antwort "
+                "gehört. Wann machst du das?"
+            )
+        }
+
+    if not answer_contains_time(
+        words
+    ):
+
+        return {
+            "status": "retry",
+            "answer": (
+                "Sag bitte, wann du das machst. "
+                "Zum Beispiel: "
+                "„Am Wochenende.“"
+            )
+        }
+
+    return {
+        "status": "step_2_accepted",
+        "answer": user_message.strip(),
+        "topic": topic,
+        "value": value
+    }
+
+
+# ==========================================
 # WALIDACJA ODPOWIEDZI UCZNIA
 # ==========================================
 
@@ -368,27 +568,10 @@ def validate_personalized_answer(
         "value"
     )
 
-    message = normalize(
-        user_message
+    step = exercise.get(
+        "step",
+        1
     )
-
-    words = message.split()
-
-
-    # ======================================
-    # BRAK ODPOWIEDZI
-    # ======================================
-
-    if not words:
-
-        return {
-            "status": "retry",
-            "answer": (
-                "Ich habe noch keine Antwort "
-                "gehört. Versuch es bitte "
-                "noch einmal."
-            )
-        }
 
 
     # ======================================
@@ -397,75 +580,21 @@ def validate_personalized_answer(
 
     if exercise_type == "sentence":
 
+        if step == 1:
 
-        # ==================================
-        # ZA KRÓTKA ODPOWIEDŹ
-        # ==================================
+            return validate_sentence_step(
+                user_message,
+                topic,
+                value
+            )
 
-        if len(
-            words
-        ) < 3:
+        if step == 2:
 
-            return {
-                "status": "retry",
-                "answer": (
-                    "Das ist noch kein ganzer "
-                    "Satz. Bilde bitte einen "
-                    "vollständigen Satz."
-                )
-            }
-
-
-        # ==================================
-        # BRAK ROZPOZNANEGO CZASOWNIKA
-        # ==================================
-
-        if not sentence_has_verb(
-            words
-        ):
-
-            return {
-                "status": "retry",
-                "answer": (
-                    "Noch nicht ganz. "
-                    "Ich erkenne noch keinen "
-                    "passenden vollständigen Satz. "
-                    "Versuch es noch einmal."
-                )
-            }
-
-
-        # ==================================
-        # ODPOWIEDŹ NIE DOTYCZY TEMATU
-        # ==================================
-
-        if not answer_matches_topic(
-            words,
-            topic,
-            value
-        ):
-
-            return {
-                "status": "retry",
-                "answer": (
-                    "Der Satz ist noch nicht "
-                    "klar mit dem Thema verbunden. "
-                    "Versuch bitte einen Satz "
-                    f"zum Thema „{value}“."
-                )
-            }
-
-
-        # ==================================
-        # PODSTAWOWO POPRAWNA ODPOWIEDŹ
-        # ==================================
-
-        return {
-            "status": "accepted",
-            "answer": user_message.strip(),
-            "topic": topic,
-            "value": value
-        }
+            return validate_time_step(
+                user_message,
+                topic,
+                value
+            )
 
 
     # ======================================
@@ -478,6 +607,62 @@ def validate_personalized_answer(
         "topic": topic,
         "value": value
     }
+
+
+# ==========================================
+# PYTANIE DRUGIEGO ETAPU
+# ==========================================
+
+def get_personalized_follow_up(
+    state
+):
+
+    exercise = get_personalized_exercise(
+        state
+    )
+
+    if not exercise:
+        return None
+
+    topic = exercise.get(
+        "topic"
+    )
+
+    value = exercise.get(
+        "value"
+    )
+
+
+    # ======================================
+    # HOBBY
+    # ======================================
+
+    if topic == "hobby":
+
+        if normalize(
+            value or ""
+        ) == "radfahren":
+
+            return (
+                "Sehr gut! "
+                "Wann fährst du normalerweise Rad?"
+            )
+
+        return (
+            "Sehr gut! "
+            "Wann machst du dein Hobby "
+            "normalerweise?"
+        )
+
+
+    # ======================================
+    # INNY TEMAT
+    # ======================================
+
+    return (
+        "Sehr gut! "
+        "Wann machst du das normalerweise?"
+    )
 
 
 # ==========================================
@@ -519,7 +704,8 @@ def create_personalized_exercise(
             state,
             "sentence",
             "hobby",
-            hobby
+            hobby,
+            step=1
         )
 
         return (
@@ -540,7 +726,8 @@ def create_personalized_exercise(
             state,
             "sentence",
             "favorite_color",
-            favorite_color
+            favorite_color,
+            step=1
         )
 
         return (
@@ -561,7 +748,8 @@ def create_personalized_exercise(
             state,
             "sentence",
             "favorite_word",
-            favorite_word
+            favorite_word,
+            step=1
         )
 
         return (
@@ -582,7 +770,8 @@ def create_personalized_exercise(
             state,
             "learning",
             "learning_goal",
-            learning_goal
+            learning_goal,
+            step=1
         )
 
         return (
@@ -604,4 +793,4 @@ def create_personalized_exercise(
         "Erzähl mir etwas über dich, "
         "damit ich die Übungen besser "
         "an dich anpassen kann."
-    )
+        )
