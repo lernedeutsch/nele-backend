@@ -2,12 +2,12 @@
 # NELE – PIERWSZE SPOTKANIE Z UŻYTKOWNIKIEM
 # ==========================================
 
-from brain.logic.matcher import (
-    normalize
-)
-
 from brain.memory.user_facts import (
     get_user_fact
+)
+
+from brain.logic.user_info import (
+    extract_user_information
 )
 
 
@@ -206,9 +206,7 @@ def get_onboarding_question(
     if step == 4:
 
         return (
-            "Was machst du gern "
-            "in deiner Freizeit? "
-            "Hast du ein Hobby?"
+            "Was ist dein Hobby?"
         )
 
 
@@ -219,8 +217,7 @@ def get_onboarding_question(
     if step == 5:
 
         return (
-            "Und was möchtest du "
-            "auf Deutsch lernen?"
+            "Was ist dein Lernziel?"
         )
 
 
@@ -248,6 +245,54 @@ def advance_onboarding(
 
     return get_onboarding_question(
         state
+    )
+
+
+# ==========================================
+# ODPOWIEDŹ, GDY NELE NIE ROZUMIE
+# ==========================================
+
+def get_onboarding_retry(
+    step
+):
+
+    if step == 1:
+
+        return (
+            "Sag bitte zum Beispiel: "
+            "„Ich heiße Anna.“"
+        )
+
+    if step == 2:
+
+        return (
+            "Sag bitte zum Beispiel: "
+            "„Ich komme aus Polen.“"
+        )
+
+    if step == 3:
+
+        return (
+            "Sag bitte zum Beispiel: "
+            "„Ich wohne in Heidelberg.“"
+        )
+
+    if step == 4:
+
+        return (
+            "Sag bitte zum Beispiel: "
+            "„Mein Hobby ist Radfahren.“"
+        )
+
+    if step == 5:
+
+        return (
+            "Sag bitte zum Beispiel: "
+            "„Mein Lernziel ist Deutsch B1.“"
+        )
+
+    return (
+        "Versuch es bitte noch einmal."
     )
 
 
@@ -284,3 +329,170 @@ def finish_onboarding(
         "Wir können zusammen Deutsch üben. "
         "Ich passe die Übungen an dich an."
     )
+
+
+# ==========================================
+# OBSŁUGA ODPOWIEDZI PODCZAS ONBOARDINGU
+# ==========================================
+
+def handle_onboarding_answer(
+    user_message,
+    state,
+    session_id="default"
+):
+
+    if is_onboarding_completed(
+        state
+    ):
+        return None
+
+    step = get_onboarding_step(
+        state
+    )
+
+    if step == 0:
+        return None
+
+
+    # ======================================
+    # ZAPAMIĘTANIE ODPOWIEDZI
+    # ======================================
+
+    extract_user_information(
+        user_message,
+        session_id
+    )
+
+
+    # ======================================
+    # ETAP 1 – IMIĘ
+    # ======================================
+
+    if step == 1:
+
+        name = get_user_fact(
+            state,
+            "name"
+        )
+
+        if not name:
+
+            return get_onboarding_retry(
+                step
+            )
+
+        set_onboarding_step(
+            state,
+            2
+        )
+
+        return (
+            f"Schön, dich kennenzulernen, "
+            f"{name}! Woher kommst du?"
+        )
+
+
+    # ======================================
+    # ETAP 2 – POCHODZENIE
+    # ======================================
+
+    if step == 2:
+
+        origin = get_user_fact(
+            state,
+            "origin"
+        )
+
+        if not origin:
+
+            return get_onboarding_retry(
+                step
+            )
+
+        set_onboarding_step(
+            state,
+            3
+        )
+
+        return (
+            "Und wo wohnst du jetzt?"
+        )
+
+
+    # ======================================
+    # ETAP 3 – MIEJSCE ZAMIESZKANIA
+    # ======================================
+
+    if step == 3:
+
+        residence = get_user_fact(
+            state,
+            "residence"
+        )
+
+        if not residence:
+
+            return get_onboarding_retry(
+                step
+            )
+
+        set_onboarding_step(
+            state,
+            4
+        )
+
+        return (
+            "Was ist dein Hobby?"
+        )
+
+
+    # ======================================
+    # ETAP 4 – HOBBY
+    # ======================================
+
+    if step == 4:
+
+        hobby = get_user_fact(
+            state,
+            "hobby"
+        )
+
+        if not hobby:
+
+            return get_onboarding_retry(
+                step
+            )
+
+        set_onboarding_step(
+            state,
+            5
+        )
+
+        return (
+            "Schön! Und was ist dein Lernziel?"
+        )
+
+
+    # ======================================
+    # ETAP 5 – CEL NAUKI
+    # ======================================
+
+    if step == 5:
+
+        learning_goal = get_user_fact(
+            state,
+            "learning_goal"
+        )
+
+        if not learning_goal:
+
+            return get_onboarding_retry(
+                step
+            )
+
+        return finish_onboarding(
+            state
+        )
+
+
+    return None
