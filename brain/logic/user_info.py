@@ -29,6 +29,18 @@ def extract_user_information(
 
 
     # ======================================
+    # USER FACTS
+    # ======================================
+
+    if "user_facts" not in state:
+        state["user_facts"] = {}
+
+    user_facts = state[
+        "user_facts"
+    ]
+
+
+    # ======================================
     # ULUBIONE SŁOWO
     # ======================================
 
@@ -56,7 +68,13 @@ def extract_user_information(
                     value
                 )
 
+                # zgodność ze starszą pamięcią
                 state[
+                    "favorite_word"
+                ] = value
+
+                # nowa elastyczna pamięć
+                user_facts[
                     "favorite_word"
                 ] = value
 
@@ -64,6 +82,126 @@ def extract_user_information(
                     f"Schön! Ich merke mir: "
                     f"Dein Lieblingswort ist "
                     f"„{value}“."
+                )
+
+
+    # ======================================
+    # ULUBIONY KOLOR
+    # ==========================================
+
+    favorite_color_prefixes = [
+        "meine lieblingsfarbe ist "
+    ]
+
+    for prefix in favorite_color_prefixes:
+
+        normalized_prefix = normalize(
+            prefix
+        )
+
+        if message.startswith(
+            normalized_prefix + " "
+        ):
+
+            value = original[
+                len(prefix):
+            ].strip()
+
+            if value:
+
+                value = capitalize_value(
+                    value
+                )
+
+                user_facts[
+                    "favorite_color"
+                ] = value
+
+                return (
+                    f"Schön! Ich merke mir: "
+                    f"Deine Lieblingsfarbe ist "
+                    f"{value}."
+                )
+
+
+    # ======================================
+    # HOBBY
+    # ==========================================
+
+    hobby_prefixes = [
+        "mein hobby ist ",
+        "mein hobby heißt ",
+        "mein hobby heisst "
+    ]
+
+    for prefix in hobby_prefixes:
+
+        normalized_prefix = normalize(
+            prefix
+        )
+
+        if message.startswith(
+            normalized_prefix + " "
+        ):
+
+            value = original[
+                len(prefix):
+            ].strip()
+
+            if value:
+
+                value = capitalize_value(
+                    value
+                )
+
+                user_facts[
+                    "hobby"
+                ] = value
+
+                return (
+                    f"Schön! Ich merke mir: "
+                    f"Dein Hobby ist "
+                    f"{value}."
+                )
+
+
+    # ======================================
+    # CEL NAUKI
+    # ==========================================
+
+    learning_goal_prefixes = [
+        "mein lernziel ist ",
+        "mein ziel ist "
+    ]
+
+    for prefix in learning_goal_prefixes:
+
+        normalized_prefix = normalize(
+            prefix
+        )
+
+        if message.startswith(
+            normalized_prefix + " "
+        ):
+
+            value = original[
+                len(prefix):
+            ].strip()
+
+            if value:
+
+                value = capitalize_value(
+                    value
+                )
+
+                user_facts[
+                    "learning_goal"
+                ] = value
+
+                return (
+                    f"Gut! Ich merke mir: "
+                    f"Dein Lernziel ist "
+                    f"{value}."
                 )
 
 
@@ -99,6 +237,10 @@ def extract_user_information(
                 )
 
                 state[
+                    "name"
+                ] = value
+
+                user_facts[
                     "name"
                 ] = value
 
@@ -145,6 +287,10 @@ def extract_user_information(
                     "origin"
                 ] = value
 
+                user_facts[
+                    "origin"
+                ] = value
+
                 state[
                     "last_question"
                 ] = "residence"
@@ -186,6 +332,10 @@ def extract_user_information(
                 )
 
                 state[
+                    "residence"
+                ] = value
+
+                user_facts[
                     "residence"
                 ] = value
 
