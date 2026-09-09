@@ -7,7 +7,27 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_file
 
 from speech.speaker import Speaker
-from brain.logic.conversation import generate_conversation_reply
+
+from brain.logic.conversation import (
+    generate_conversation_reply
+)
+
+from brain.logic.memory import (
+    get_conversation_state,
+    save_conversation_state
+)
+
+from brain.logic.onboarding import (
+    is_onboarding_completed,
+    is_new_user,
+    get_onboarding_step,
+    start_onboarding,
+    get_onboarding_question
+)
+
+from brain.memory.user_facts import (
+    get_user_fact
+)
 
 
 app = Flask(__name__)
@@ -32,9 +52,19 @@ avatar_state = {
 
 @app.after_request
 def after_request(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+
+    response.headers[
+        "Access-Control-Allow-Origin"
+    ] = "*"
+
+    response.headers[
+        "Access-Control-Allow-Headers"
+    ] = "Content-Type"
+
+    response.headers[
+        "Access-Control-Allow-Methods"
+    ] = "GET, POST, OPTIONS"
+
     return response
 
 
@@ -44,6 +74,7 @@ def after_request(response):
 
 @app.route("/")
 def home():
+
     return jsonify({
         "name": "Nele Backend",
         "status": "online",
@@ -60,16 +91,25 @@ def status():
 
     state = avatar_state.copy()
 
-    avatar_state["nod"] = False
+    avatar_state[
+        "nod"
+    ] = False
 
-    return jsonify(state)
+    return jsonify(
+        state
+    )
 
 
 @app.route("/start")
 def start():
 
-    avatar_state["speaking"] = True
-    avatar_state["mouth"] = 0.5
+    avatar_state[
+        "speaking"
+    ] = True
+
+    avatar_state[
+        "mouth"
+    ] = 0.5
 
     return jsonify({
         "ok": True
@@ -79,10 +119,21 @@ def start():
 @app.route("/stop")
 def stop():
 
-    avatar_state["speaking"] = False
-    avatar_state["mouth"] = 0.0
-    avatar_state["emotion"] = "neutral"
-    avatar_state["nod"] = False
+    avatar_state[
+        "speaking"
+    ] = False
+
+    avatar_state[
+        "mouth"
+    ] = 0.0
+
+    avatar_state[
+        "emotion"
+    ] = "neutral"
+
+    avatar_state[
+        "nod"
+    ] = False
 
     return jsonify({
         "ok": True
@@ -98,21 +149,32 @@ def mouth():
     )
 
     try:
-        value = float(value)
+
+        value = float(
+            value
+        )
 
     except ValueError:
+
         value = 0.0
 
 
     value = max(
         0.0,
-        min(1.0, value)
+        min(
+            1.0,
+            value
+        )
     )
 
 
-    avatar_state["mouth"] = value
+    avatar_state[
+        "mouth"
+    ] = value
 
-    avatar_state["speaking"] = (
+    avatar_state[
+        "speaking"
+    ] = (
         value > 0.02
     )
 
@@ -142,10 +204,13 @@ def emotion():
 
 
     if value not in allowed_emotions:
+
         value = "neutral"
 
 
-    avatar_state["emotion"] = value
+    avatar_state[
+        "emotion"
+    ] = value
 
 
     return jsonify({
@@ -157,11 +222,32 @@ def emotion():
 @app.route("/nod")
 def nod():
 
-    avatar_state["nod"] = True
+    avatar_state[
+        "nod"
+    ] = True
 
     return jsonify({
         "ok": True
     })
+
+
+# ==========================================
+# NORMALIZACJA SESSION ID
+# ==========================================
+
+def normalize_session_id(
+    session_id
+):
+
+    session_id = str(
+        session_id or "default"
+    ).strip()
+
+    if not session_id:
+
+        session_id = "default"
+
+    return session_id[:100]
 
 
 # ==========================================
@@ -192,6 +278,166 @@ def create_nele_reply(
             "Entschuldigung. "
             "Ich kann gerade keine Antwort erstellen."
         )
+
+
+# ==========================================
+# POWITANIE NELE
+# ==========================================
+
+def create_welcome_reply(
+    session_id
+):
+
+    try:
+
+        state = get_conversation_state(
+            session_id
+        )
+
+
+        # ==================================
+        # NOWY UŻYTKOWNIK
+        # ==================================
+
+        if (
+            not is_onboarding_completed(
+                state
+            )
+            and is_new_user(
+                state
+            )
+        ):
+
+            onboarding_step = (
+                get_onboarding_step(
+                    state
+                )
+            )
+
+            if onboarding_step == 0:
+
+                answer = start_onboarding(
+                    state
+                )
+
+                save_conversation_state(
+                    session_id
+                )
+
+                return answer
+
+
+        # ==================================
+        # ONBOARDING JUŻ ROZPOCZĘTY
+        # ==================================
+
+        if not is_onboarding_completed(
+            state
+        ):
+
+            onboarding_step = (
+                get_onboarding_step(
+                    state
+                )
+            )
+
+            if onboarding_step > 0:
+
+                question = (
+                    get_onboarding_question(
+                        state
+                    )
+                )
+
+                if question:
+
+                    return question
+
+
+        # ==================================
+        # ZNANY UŻYTKOWNIK
+        # ==================================
+
+        name = get_user_fact(
+            state,
+            "name"
+        )
+
+        if name:
+
+            return (
+                f"Hallo {name}! "
+                f"Schön, dich wiederzusehen. "
+                f"Wie geht es dir?"
+            )
+
+
+        # ==================================
+        # ZNANY UŻYTKOWNIK BEZ IMIENIA
+        # ==================================
+
+        return (
+            "Hallo! "
+            "Schön, dich wiederzusehen. "
+            "Wie geht es dir?"
+        )
+
+
+    except Exception as error:
+
+        print(
+            f"Nele welcome error: {error}"
+        )
+
+        return (
+            "Hallo! "
+            "Ich bin Nele, "
+            "deine persönliche Deutschtrainerin."
+        )
+
+
+# ==========================================
+# WELCOME
+# ==========================================
+
+@app.route(
+    "/welcome",
+    methods=["POST", "OPTIONS"]
+)
+def welcome():
+
+    if request.method == "OPTIONS":
+
+        return jsonify({
+            "ok": True
+        })
+
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+
+    session_id = normalize_session_id(
+        data.get(
+            "session_id",
+            "default"
+        )
+    )
+
+
+    answer = create_welcome_reply(
+        session_id
+    )
+
+
+    return jsonify({
+        "reply": answer,
+        "session_id": session_id
+    })
 
 
 # ==========================================
@@ -227,21 +473,12 @@ def chat():
     ).strip()
 
 
-    session_id = str(
+    session_id = normalize_session_id(
         data.get(
             "session_id",
             "default"
         )
-    ).strip()
-
-
-    if not session_id:
-        session_id = "default"
-
-
-    # zabezpieczenie przed absurdalnie długim ID
-
-    session_id = session_id[:100]
+    )
 
 
     if not user_message:
@@ -345,7 +582,9 @@ def tts():
 
 
         return send_file(
-            BytesIO(audio_data),
+            BytesIO(
+                audio_data
+            ),
             mimetype="audio/wav",
             as_attachment=False,
             download_name="nele.wav"
@@ -356,7 +595,8 @@ def tts():
 
         return jsonify({
             "error":
-                "Piper oder das deutsche Sprachmodell wurde nicht gefunden."
+                "Piper oder das deutsche "
+                "Sprachmodell wurde nicht gefunden."
         }), 503
 
 
@@ -369,7 +609,8 @@ def tts():
 
         return jsonify({
             "error":
-                "Die Sprachausgabe konnte nicht erstellt werden."
+                "Die Sprachausgabe konnte "
+                "nicht erstellt werden."
         }), 500
 
 
@@ -401,4 +642,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-      )
+    )
