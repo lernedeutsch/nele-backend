@@ -50,7 +50,17 @@ def create_empty_state():
     return {
         "last_question": None,
 
-        # informacje o użytkowniku
+        # ==================================
+        # PIERWSZE SPOTKANIE Z NELE
+        # ==================================
+
+        "onboarding_completed": False,
+        "onboarding_step": 0,
+
+        # ==================================
+        # INFORMACJE O UŻYTKOWNIKU
+        # ==================================
+
         "name": None,
         "origin": None,
         "residence": None,
@@ -58,23 +68,35 @@ def create_empty_state():
         # elastyczna pamięć informacji o użytkowniku
         "user_facts": {},
 
-        # kontekst rozmowy
+        # ==================================
+        # KONTEKST ROZMOWY
+        # ==================================
+
         "current_topic": None,
         "current_comparison": None,
         "current_expression": None,
 
-        # przykłady
+        # ==================================
+        # PRZYKŁADY
+        # ==================================
+
         "last_example_expression": None,
         "example_index": -1,
 
-        # słownictwo
+        # ==================================
+        # SŁOWNICTWO
+        # ==================================
+
         "current_vocabulary_word": None,
         "current_vocabulary_related_word": None,
 
         # pamięć postępów słownictwa
         "vocabulary_memory": {},
 
-        # aktywne ćwiczenie personalizowane
+        # ==================================
+        # PERSONALIZACJA
+        # ==================================
+
         "personalization_exercise": None
     }
 
