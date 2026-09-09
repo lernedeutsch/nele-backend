@@ -61,12 +61,10 @@ def extract_user_information(
                     value
                 )
 
-                # zgodność ze starszą pamięcią
                 state[
                     "favorite_word"
                 ] = value
 
-                # nowa elastyczna pamięć
                 remember_user_fact(
                     state,
                     "favorite_word",
@@ -207,6 +205,61 @@ def extract_user_information(
 
 
     # ======================================
+    # POCHODZENIE
+    # ======================================
+    # Ważne:
+    # sprawdzamy pochodzenie PRZED "ich bin",
+    # żeby "Ich bin aus Polen" nie zostało
+    # zapisane jako imię "Aus Polen".
+    # ======================================
+
+    origin_prefixes = [
+        "ich komme aus ",
+        "ich bin aus "
+    ]
+
+    for prefix in origin_prefixes:
+
+        normalized_prefix = normalize(
+            prefix
+        )
+
+        if message.startswith(
+            normalized_prefix + " "
+        ):
+
+            value = original[
+                len(prefix):
+            ].strip()
+
+            if value:
+
+                value = capitalize_value(
+                    value
+                )
+
+                state[
+                    "origin"
+                ] = value
+
+                remember_user_fact(
+                    state,
+                    "origin",
+                    value
+                )
+
+                state[
+                    "last_question"
+                ] = "residence"
+
+                return (
+                    f"Schön. "
+                    f"Du kommst aus {value}. "
+                    f"Wo wohnst du jetzt?"
+                )
+
+
+    # ======================================
     # IMIĘ
     # ======================================
 
@@ -237,12 +290,10 @@ def extract_user_information(
                     value
                 )
 
-                # zgodność ze starszą pamięcią
                 state[
                     "name"
                 ] = value
 
-                # nowa elastyczna pamięć
                 remember_user_fact(
                     state,
                     "name",
@@ -256,58 +307,6 @@ def extract_user_information(
                 return (
                     f"Freut mich, {value}. "
                     f"Woher kommst du?"
-                )
-
-
-    # ======================================
-    # POCHODZENIE
-    # ======================================
-
-    origin_prefixes = [
-        "ich komme aus ",
-        "ich bin aus "
-    ]
-
-    for prefix in origin_prefixes:
-
-        normalized_prefix = normalize(
-            prefix
-        )
-
-        if message.startswith(
-            normalized_prefix + " "
-        ):
-
-            value = original[
-                len(prefix):
-            ].strip()
-
-            if value:
-
-                value = capitalize_value(
-                    value
-                )
-
-                # zgodność ze starszą pamięcią
-                state[
-                    "origin"
-                ] = value
-
-                # nowa elastyczna pamięć
-                remember_user_fact(
-                    state,
-                    "origin",
-                    value
-                )
-
-                state[
-                    "last_question"
-                ] = "residence"
-
-                return (
-                    f"Schön. "
-                    f"Du kommst aus {value}. "
-                    f"Wo wohnst du jetzt?"
                 )
 
 
@@ -340,12 +339,10 @@ def extract_user_information(
                     value
                 )
 
-                # zgodność ze starszą pamięcią
                 state[
                     "residence"
                 ] = value
 
-                # nowa elastyczna pamięć
                 remember_user_fact(
                     state,
                     "residence",
