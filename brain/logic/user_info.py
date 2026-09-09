@@ -1,8 +1,13 @@
 from brain.logic.memory import get_conversation_state
+
 from brain.logic.matcher import (
     normalize,
     clean_short_answer,
     capitalize_value
+)
+
+from brain.memory.user_facts import (
+    remember_user_fact
 )
 
 
@@ -26,18 +31,6 @@ def extract_user_information(
     message = normalize(
         user_message
     )
-
-
-    # ======================================
-    # USER FACTS
-    # ======================================
-
-    if "user_facts" not in state:
-        state["user_facts"] = {}
-
-    user_facts = state[
-        "user_facts"
-    ]
 
 
     # ======================================
@@ -74,9 +67,11 @@ def extract_user_information(
                 ] = value
 
                 # nowa elastyczna pamięć
-                user_facts[
-                    "favorite_word"
-                ] = value
+                remember_user_fact(
+                    state,
+                    "favorite_word",
+                    value
+                )
 
                 return (
                     f"Schön! Ich merke mir: "
@@ -87,7 +82,7 @@ def extract_user_information(
 
     # ======================================
     # ULUBIONY KOLOR
-    # ==========================================
+    # ======================================
 
     favorite_color_prefixes = [
         "meine lieblingsfarbe ist "
@@ -113,9 +108,11 @@ def extract_user_information(
                     value
                 )
 
-                user_facts[
-                    "favorite_color"
-                ] = value
+                remember_user_fact(
+                    state,
+                    "favorite_color",
+                    value
+                )
 
                 return (
                     f"Schön! Ich merke mir: "
@@ -126,7 +123,7 @@ def extract_user_information(
 
     # ======================================
     # HOBBY
-    # ==========================================
+    # ======================================
 
     hobby_prefixes = [
         "mein hobby ist ",
@@ -154,9 +151,11 @@ def extract_user_information(
                     value
                 )
 
-                user_facts[
-                    "hobby"
-                ] = value
+                remember_user_fact(
+                    state,
+                    "hobby",
+                    value
+                )
 
                 return (
                     f"Schön! Ich merke mir: "
@@ -167,7 +166,7 @@ def extract_user_information(
 
     # ======================================
     # CEL NAUKI
-    # ==========================================
+    # ======================================
 
     learning_goal_prefixes = [
         "mein lernziel ist ",
@@ -194,9 +193,11 @@ def extract_user_information(
                     value
                 )
 
-                user_facts[
-                    "learning_goal"
-                ] = value
+                remember_user_fact(
+                    state,
+                    "learning_goal",
+                    value
+                )
 
                 return (
                     f"Gut! Ich merke mir: "
@@ -236,13 +237,17 @@ def extract_user_information(
                     value
                 )
 
+                # zgodność ze starszą pamięcią
                 state[
                     "name"
                 ] = value
 
-                user_facts[
-                    "name"
-                ] = value
+                # nowa elastyczna pamięć
+                remember_user_fact(
+                    state,
+                    "name",
+                    value
+                )
 
                 state[
                     "last_question"
@@ -283,13 +288,17 @@ def extract_user_information(
                     value
                 )
 
+                # zgodność ze starszą pamięcią
                 state[
                     "origin"
                 ] = value
 
-                user_facts[
-                    "origin"
-                ] = value
+                # nowa elastyczna pamięć
+                remember_user_fact(
+                    state,
+                    "origin",
+                    value
+                )
 
                 state[
                     "last_question"
@@ -331,13 +340,17 @@ def extract_user_information(
                     value
                 )
 
+                # zgodność ze starszą pamięcią
                 state[
                     "residence"
                 ] = value
 
-                user_facts[
-                    "residence"
-                ] = value
+                # nowa elastyczna pamięć
+                remember_user_fact(
+                    state,
+                    "residence",
+                    value
+                )
 
                 state[
                     "last_question"
@@ -360,5 +373,9 @@ def extract_user_information(
                     f"{value}. Schön!"
                 )
 
+
+    # ======================================
+    # BRAK DOPASOWANIA
+    # ======================================
 
     return None
