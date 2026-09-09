@@ -19,6 +19,11 @@ def answer_from_memory(
         user_message
     )
 
+    user_facts = state.get(
+        "user_facts",
+        {}
+    )
+
 
     # ======================================
     # ULUBIONE SŁOWO
@@ -30,9 +35,14 @@ def answer_from_memory(
         "welches ist mein lieblingswort"
     ]:
 
-        favorite_word = state.get(
+        favorite_word = user_facts.get(
             "favorite_word"
         )
+
+        if not favorite_word:
+            favorite_word = state.get(
+                "favorite_word"
+            )
 
         if favorite_word:
 
@@ -44,6 +54,88 @@ def answer_from_memory(
         return (
             "Das weiß ich noch nicht. "
             "Was ist dein Lieblingswort?"
+        )
+
+
+    # ======================================
+    # ULUBIONY KOLOR
+    # ======================================
+
+    if message in [
+        "was ist meine lieblingsfarbe",
+        "welche ist meine lieblingsfarbe",
+        "wie lautet meine lieblingsfarbe"
+    ]:
+
+        favorite_color = user_facts.get(
+            "favorite_color"
+        )
+
+        if favorite_color:
+
+            return (
+                f"Deine Lieblingsfarbe ist "
+                f"{favorite_color}."
+            )
+
+        return (
+            "Das weiß ich noch nicht. "
+            "Was ist deine Lieblingsfarbe?"
+        )
+
+
+    # ======================================
+    # HOBBY
+    # ======================================
+
+    if message in [
+        "was ist mein hobby",
+        "welches hobby habe ich",
+        "wie heißt mein hobby",
+        "wie heisst mein hobby"
+    ]:
+
+        hobby = user_facts.get(
+            "hobby"
+        )
+
+        if hobby:
+
+            return (
+                f"Dein Hobby ist "
+                f"{hobby}."
+            )
+
+        return (
+            "Das weiß ich noch nicht. "
+            "Was ist dein Hobby?"
+        )
+
+
+    # ======================================
+    # CEL NAUKI
+    # ======================================
+
+    if message in [
+        "was ist mein lernziel",
+        "was ist mein ziel",
+        "welches lernziel habe ich"
+    ]:
+
+        learning_goal = user_facts.get(
+            "learning_goal"
+        )
+
+        if learning_goal:
+
+            return (
+                f"Dein Lernziel ist "
+                f"{learning_goal}."
+            )
+
+        return (
+            "Das weiß ich noch nicht. "
+            "Was ist dein Lernziel?"
         )
 
 
@@ -60,6 +152,11 @@ def answer_from_memory(
         name = state.get(
             "name"
         )
+
+        if not name:
+            name = user_facts.get(
+                "name"
+            )
 
         if name:
 
@@ -90,6 +187,11 @@ def answer_from_memory(
             "origin"
         )
 
+        if not origin:
+            origin = user_facts.get(
+                "origin"
+            )
+
         if origin:
 
             return (
@@ -119,6 +221,11 @@ def answer_from_memory(
         residence = state.get(
             "residence"
         )
+
+        if not residence:
+            residence = user_facts.get(
+                "residence"
+            )
 
         if residence:
 
