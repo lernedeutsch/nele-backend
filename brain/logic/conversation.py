@@ -119,7 +119,7 @@ def generate_welcome_reply(
 
 
     # ======================================
-    # UZUPEŁNIENIE POL ONBOARDINGU
+    # UZUPEŁNIENIE PÓL ONBOARDINGU
     # ======================================
 
     if "onboarding_completed" not in state:
@@ -264,6 +264,18 @@ def generate_welcome_reply(
     # ======================================
     # ZNANY UŻYTKOWNIK
     # ======================================
+    #
+    # Nele pyta teraz o samopoczucie.
+    # Zapamiętujemy to, aby kolejna odpowiedź
+    # "Gut", "Mir geht es gut" itd.
+    # została rozpoznana jako odpowiedź
+    # na pytanie powitalne.
+    # ======================================
+
+    state[
+        "last_question"
+    ] = "wellbeing"
+
 
     if name:
 
@@ -280,6 +292,7 @@ def generate_welcome_reply(
             "Schön, dich wiederzusehen. "
             "Wie geht es dir?"
         )
+
 
     return return_with_memory(
         answer,
@@ -625,6 +638,12 @@ def generate_conversation_reply(
     if "onboarding_step" not in state:
         state["onboarding_step"] = 0
 
+    if "last_activity" not in state:
+        state["last_activity"] = None
+
+    if "last_activity_detail" not in state:
+        state["last_activity_detail"] = None
+
 
     # ======================================
     # NORMALIZACJA WIADOMOŚCI
@@ -685,10 +704,6 @@ def generate_conversation_reply(
 
         # ==================================
         # STARY UŻYTKOWNIK
-        # ==================================
-        # Użytkownik ma już zapisane dane,
-        # ale pochodzi z wersji Nele sprzed
-        # wprowadzenia onboardingu.
         # ==================================
 
         else:
@@ -949,4 +964,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-    )
+                )
