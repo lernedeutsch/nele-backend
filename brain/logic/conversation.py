@@ -72,6 +72,10 @@ from brain.logic.vocabulary_router import (
     handle_vocabulary
 )
 
+from brain.logic.vocabulary_modules.practice import (
+    start_vocabulary_practice
+)
+
 from brain.memory.review import (
     handle_memory
 )
@@ -251,10 +255,6 @@ def generate_welcome_reply(
         # ==================================
         # STARY UŻYTKOWNIK
         # ==================================
-        # Ma już zapisane dane z wersji Nele
-        # sprzed wprowadzenia onboardingu.
-        # Nie pytamy go wszystkiego ponownie.
-        # ==================================
 
         complete_onboarding(
             state
@@ -263,13 +263,6 @@ def generate_welcome_reply(
 
     # ======================================
     # ZNANY UŻYTKOWNIK
-    # ======================================
-    #
-    # Nele pyta teraz o samopoczucie.
-    # Zapamiętujemy to, aby kolejna odpowiedź
-    # "Gut", "Mir geht es gut" itd.
-    # została rozpoznana jako odpowiedź
-    # na pytanie powitalne.
     # ======================================
 
     state[
@@ -298,6 +291,144 @@ def generate_welcome_reply(
         answer,
         session_id
     )
+
+
+# ==========================================
+# KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
+# ==========================================
+
+def handle_continue_last_activity(
+    user_message,
+    state
+):
+
+    if state.get(
+        "last_question"
+    ) != "continue_last_activity":
+
+        return None
+
+
+    message = normalize(
+        user_message
+    )
+
+
+    # ======================================
+    # TAK
+    # ======================================
+
+    yes_answers = {
+        "ja",
+        "ja gern",
+        "ja gerne",
+        "gerne",
+        "gern",
+        "klar",
+        "okay",
+        "ok",
+        "natürlich",
+        "ja bitte",
+        "machen wir",
+        "weiter"
+    }
+
+
+    if message in yes_answers:
+
+        last_activity = state.get(
+            "last_activity"
+        )
+
+        last_activity_detail = state.get(
+            "last_activity_detail"
+        )
+
+
+        # ==================================
+        # OSTATNIO – SŁOWNICTWO
+        # ==================================
+
+        if (
+            last_activity == "vocabulary"
+            and last_activity_detail
+        ):
+
+            state[
+                "last_question"
+            ] = None
+
+            practice_answer = (
+                start_vocabulary_practice(
+                    (
+                        "übe mit mir das wort "
+                        + str(
+                            last_activity_detail
+                        )
+                    ),
+                    state
+                )
+            )
+
+            if practice_answer:
+
+                return (
+                    "Gerne! "
+                    + practice_answer
+                )
+
+
+        # ==================================
+        # BRAK MOŻLIWOŚCI WZNOWIENIA
+        # ==================================
+
+        state[
+            "last_question"
+        ] = None
+
+        return (
+            "Gerne! "
+            "Was möchtest du heute üben?"
+        )
+
+
+    # ======================================
+    # NIE
+    # ======================================
+
+    no_answers = {
+        "nein",
+        "nein danke",
+        "nein lieber nicht",
+        "nicht heute",
+        "lieber nicht",
+        "etwas anderes",
+        "was anderes"
+    }
+
+
+    if message in no_answers:
+
+        state[
+            "last_question"
+        ] = None
+
+        return (
+            "Kein Problem. "
+            "Was möchtest du heute üben?"
+        )
+
+
+    # ======================================
+    # INNA ODPOWIEDŹ
+    # ======================================
+    #
+    # Jeśli użytkownik nie mówi
+    # ani "Ja", ani "Nein",
+    # nie blokujemy normalnej rozmowy.
+    # ======================================
+
+    return None
 
 
 # ==========================================
@@ -719,7 +850,32 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 1. KOREKTA BŁĘDÓW
+    # 1. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
+    # ======================================
+    #
+    # Ta część musi być wysoko w kolejności,
+    # ponieważ zwykłe "Ja" lub "Nein"
+    # ma znaczenie zależne od poprzedniego
+    # pytania Nele.
+    # ======================================
+
+    continue_answer = (
+        handle_continue_last_activity(
+            user_message,
+            state
+        )
+    )
+
+    if continue_answer:
+
+        return return_with_memory(
+            continue_answer,
+            session_id
+        )
+
+
+    # ======================================
+    # 2. KOREKTA BŁĘDÓW
     # ======================================
 
     correction_answer = handle_correction(
@@ -736,7 +892,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 2. ALFABET
+    # 3. ALFABET
     # ======================================
 
     alphabet_answer = handle_alphabet(
@@ -754,7 +910,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 3. NOWE PERSONALIZOWANE ĆWICZENIE
+    # 4. NOWE PERSONALIZOWANE ĆWICZENIE
     # ======================================
 
     personalized_exercise_commands = [
@@ -781,7 +937,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4. ODPOWIEDŹ NA AKTYWNE
+    # 5. ODPOWIEDŹ NA AKTYWNE
     #    PERSONALIZOWANE ĆWICZENIE
     # ======================================
 
@@ -805,7 +961,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. PAMIĘĆ I INFORMACJE O UŻYTKOWNIKU
+    # 6. PAMIĘĆ I INFORMACJE O UŻYTKOWNIKU
     # ======================================
 
     user_memory_answer = handle_user_memory(
@@ -822,7 +978,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. PAMIĘĆ NAUKI SŁOWNICTWA
+    # 7. PAMIĘĆ NAUKI SŁOWNICTWA
     # ======================================
 
     memory_answer = handle_memory(
@@ -839,7 +995,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 7. KONTYNUACJA AKTUALNEGO TEMATU
+    # 8. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -856,7 +1012,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. PORÓWNANIA
+    # 9. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -874,7 +1030,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 9. SŁOWNICTWO
+    # 10. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -891,7 +1047,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. ROZPOZNAWANIE INTENCJI
+    # 11. ROZPOZNAWANIE INTENCJI
     # ======================================
 
     intent_answer = handle_intent(
@@ -918,7 +1074,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. ZNANE PYTANIA I ZWROTY
+    # 12. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -937,7 +1093,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 12. ODPOWIEDŹ KONTEKSTOWA
+    # 13. ODPOWIEDŹ KONTEKSTOWA
     # ======================================
 
     context_answer = handle_context(
@@ -954,7 +1110,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 13. BRAK WIEDZY
+    # 14. BRAK WIEDZY
     # ======================================
 
     return return_with_memory(
@@ -964,4 +1120,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-                )
+        )
