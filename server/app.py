@@ -9,13 +9,17 @@ from flask import Flask, jsonify, request, send_file
 from speech.speaker import Speaker
 
 from brain.logic.conversation import (
-    generate_conversation_reply,
+    generate_conversation_reply
+)
+
+from brain.logic.welcome import (
     generate_welcome_reply
 )
 
 from brain.logic.memory import (
     get_conversation_state,
-    save_conversation_state
+    save_conversation_state,
+    reset_conversation_state
 )
 
 from brain.logic.vocabulary_modules.practice import (
@@ -298,12 +302,6 @@ def create_welcome_reply(
         # ZAKOŃCZENIE STAREGO
         # AKTYWNEGO ĆWICZENIA SŁOWNICTWA
         # ==================================
-        #
-        # Nie usuwamy historii nauki.
-        # Usuwamy tylko stan:
-        # "czekam teraz na odpowiedź
-        # do poprzedniego ćwiczenia".
-        # ==================================
 
         finish_vocabulary_practice(
             state
@@ -380,6 +378,91 @@ def welcome():
 
 
     return jsonify({
+        "reply": answer,
+        "session_id": session_id
+    })
+
+
+# ==========================================
+# RESET CAŁEJ PAMIĘCI UŻYTKOWNIKA
+# ==========================================
+
+@app.route(
+    "/reset",
+    methods=["POST", "OPTIONS"]
+)
+def reset():
+
+    if request.method == "OPTIONS":
+
+        return jsonify({
+            "ok": True
+        })
+
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+
+    session_id = normalize_session_id(
+        data.get(
+            "session_id",
+            "default"
+        )
+    )
+
+
+    # ======================================
+    # USUNIĘCIE CAŁEJ PAMIĘCI
+    # ======================================
+
+    try:
+
+        reset_success = (
+            reset_conversation_state(
+                session_id
+            )
+        )
+
+    except Exception as error:
+
+        print(
+            f"Nele reset error: {error}"
+        )
+
+        reset_success = False
+
+
+    # ======================================
+    # RESET NIEUDANY
+    # ======================================
+
+    if not reset_success:
+
+        return jsonify({
+            "ok": False,
+            "error":
+                "Die Lerndaten konnten "
+                "nicht gelöscht werden.",
+            "session_id": session_id
+        }), 500
+
+
+    # ======================================
+    # NOWE PIERWSZE POWITANIE
+    # ======================================
+
+    answer = create_welcome_reply(
+        session_id
+    )
+
+
+    return jsonify({
+        "ok": True,
         "reply": answer,
         "session_id": session_id
     })
