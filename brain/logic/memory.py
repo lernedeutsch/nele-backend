@@ -5,7 +5,8 @@
 from brain.memory.persistent_memory import (
     initialize_persistent_memory,
     load_persistent_memory,
-    save_persistent_memory
+    save_persistent_memory,
+    delete_persistent_memory
 )
 
 
@@ -118,13 +119,6 @@ def create_empty_state():
 
         # ==================================
         # OSTATNIA AKTYWNOŚĆ
-        # ==================================
-        #
-        # Dzięki temu Nele może po ponownym
-        # otwarciu strony powiedzieć np.:
-        #
-        # "Möchtest du mit dem Wort
-        # „Langsam“ weitermachen?"
         # ==================================
 
         "last_activity": None,
@@ -305,3 +299,68 @@ def save_conversation_state(
         )
 
         return False
+
+
+# ==========================================
+# CAŁKOWITY RESET UŻYTKOWNIKA
+# ==========================================
+
+def reset_conversation_state(
+    session_id="default"
+):
+    """
+    Usuwa całą pamięć użytkownika:
+
+    - dane osobowe zapisane przez Nele
+    - onboarding
+    - postępy słownictwa
+    - aktywne ćwiczenia
+    - ostatnią aktywność
+    - kontekst rozmowy
+
+    Dane są usuwane zarówno z PostgreSQL,
+    jak i z pamięci RAM.
+    """
+
+    if not session_id:
+
+        session_id = "default"
+
+    ensure_persistent_memory()
+
+
+    # ======================================
+    # USUNIĘCIE Z POSTGRESQL
+    # ======================================
+
+    try:
+
+        deleted = delete_persistent_memory(
+            session_id
+        )
+
+    except Exception as error:
+
+        print(
+            f"Conversation reset error: {error}"
+        )
+
+        return False
+
+
+    if not deleted:
+
+        return False
+
+
+    # ======================================
+    # USUNIĘCIE Z RAM
+    # ======================================
+
+    conversation_sessions.pop(
+        session_id,
+        None
+    )
+
+
+    return True
