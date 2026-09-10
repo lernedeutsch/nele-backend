@@ -46,6 +46,40 @@ def save_and_return(
 
 
 # ==========================================
+# WYCZYSZCZENIE STAREJ AKTYWNEJ SESJI
+# ==========================================
+
+def clear_old_active_exercises(
+    state
+):
+
+    # ======================================
+    # PERSONALIZOWANE ĆWICZENIE
+    # ======================================
+
+    state[
+        "personalization_exercise"
+    ] = None
+
+
+    # ======================================
+    # AKTYWNE ĆWICZENIE SŁOWNICTWA
+    # ======================================
+
+    state[
+        "vocabulary_practice_active"
+    ] = False
+
+    state[
+        "vocabulary_practice_word"
+    ] = None
+
+    state[
+        "vocabulary_practice_type"
+    ] = None
+
+
+# ==========================================
 # AUTOMATYCZNE POWITANIE
 # ==========================================
 
@@ -198,15 +232,20 @@ def generate_welcome_reply(
         # ==================================
         # STARY UŻYTKOWNIK
         # ==================================
-        #
-        # Użytkownik ma zapisane dane
-        # z czasu sprzed onboardingu.
-        # Nie pytamy go ponownie.
-        # ==================================
 
         complete_onboarding(
             state
         )
+
+
+    # ======================================
+    # NOWE SPOTKANIE – WYCZYŚĆ STARE
+    # AKTYWNE ĆWICZENIA
+    # ======================================
+
+    clear_old_active_exercises(
+        state
+    )
 
 
     # ======================================
@@ -238,4 +277,4 @@ def generate_welcome_reply(
     return save_and_return(
         answer,
         session_id
-      )
+    )
