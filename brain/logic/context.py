@@ -2,13 +2,108 @@
 # NELE – ODPOWIEDZI KONTEKSTOWE
 # ==========================================
 
-from brain.logic.memory import get_conversation_state
+from brain.logic.memory import (
+    get_conversation_state
+)
+
 from brain.logic.matcher import (
     normalize,
     clean_short_answer,
     capitalize_value
 )
 
+from brain.memory.user_facts import (
+    remember_user_fact
+)
+
+
+# ==========================================
+# CZY UŻYTKOWNIK ZADAJE PYTANIE
+# ==========================================
+
+def is_user_question(
+    normalized_answer
+):
+
+    question_starts = (
+        "wie ",
+        "was ",
+        "wo ",
+        "woher ",
+        "wohin ",
+        "wer ",
+        "wann ",
+        "warum ",
+        "welche ",
+        "welcher ",
+        "welches ",
+        "kann ",
+        "kannst ",
+        "ist ",
+        "sind "
+    )
+
+    return normalized_answer.startswith(
+        question_starts
+    )
+
+
+# ==========================================
+# USUNIĘCIE POCZĄTKU ZDANIA
+# ==========================================
+
+def remove_prefix(
+    text,
+    normalized_text,
+    prefixes
+):
+
+    for prefix in prefixes:
+
+        if normalized_text.startswith(
+            prefix
+        ):
+
+            return text[
+                len(prefix):
+            ].strip()
+
+    return text
+
+
+# ==========================================
+# ZAPISANIE FAKTU
+# ==========================================
+
+def remember_context_fact(
+    state,
+    key,
+    value
+):
+
+    if not value:
+        return
+
+    remember_user_fact(
+        state,
+        key,
+        value
+    )
+
+    if key in {
+        "name",
+        "origin",
+        "residence"
+    }:
+
+        state[
+            key
+        ] = value
+
+
+# ==========================================
+# GŁÓWNA OBSŁUGA KONTEKSTU
+# ==========================================
 
 def handle_context_answer(
     user_message,
@@ -26,6 +121,7 @@ def handle_context_answer(
     if not last_question:
         return None
 
+
     answer = clean_short_answer(
         user_message
     )
@@ -33,21 +129,21 @@ def handle_context_answer(
     if not answer:
         return None
 
+
     normalized_answer = normalize(
         answer
     )
 
-    # Nie traktujemy pytania użytkownika
-    # jako odpowiedzi na wcześniejsze pytanie Nele.
 
-    if (
-        normalized_answer.startswith("wie ")
-        or normalized_answer.startswith("was ")
-        or normalized_answer.startswith("wo ")
-        or normalized_answer.startswith("wer ")
-        or normalized_answer.startswith("wann ")
-        or normalized_answer.startswith("warum ")
+    # ======================================
+    # PYTANIE UŻYTKOWNIKA
+    # NIE JEST ODPOWIEDZIĄ
+    # ======================================
+
+    if is_user_question(
+        normalized_answer
     ):
+
         return None
 
 
@@ -57,19 +153,46 @@ def handle_context_answer(
 
     if last_question == "name":
 
-        if len(answer.split()) > 4:
-            return None
-
-        answer = capitalize_value(
-            answer
+        name = remove_prefix(
+            answer,
+            normalized_answer,
+            (
+                "ich heiße ",
+                "ich heisse ",
+                "ich bin ",
+                "mein name ist "
+            )
         )
 
-        state["name"] = answer
-        state["last_question"] = "origin"
+        if not name:
+            return None
+
+        if len(
+            name.split()
+        ) > 4:
+            return None
+
+
+        name = capitalize_value(
+            name
+        )
+
+
+        remember_context_fact(
+            state,
+            "name",
+            name
+        )
+
+
+        state[
+            "last_question"
+        ] = "origin"
+
 
         return (
-            f"Freut mich, {answer}. "
-            f"Woher kommst du?"
+            f"Freut mich, {name}! "
+            "Woher kommst du?"
         )
 
 
@@ -79,24 +202,41 @@ def handle_context_answer(
 
     if last_question == "origin":
 
-        origin = answer
+        origin = remove_prefix(
+            answer,
+            normalized_answer,
+            (
+                "ich komme aus ",
+                "ich bin aus ",
+                "aus "
+            )
+        )
 
-        if normalized_answer.startswith(
-            "aus "
-        ):
-            origin = answer[4:].strip()
+
+        if not origin:
+            return None
+
 
         origin = capitalize_value(
             origin
         )
 
-        state["origin"] = origin
-        state["last_question"] = "residence"
+
+        remember_context_fact(
+            state,
+            "origin",
+            origin
+        )
+
+
+        state[
+            "last_question"
+        ] = "residence"
+
 
         return (
-            f"Schön. "
-            f"Du kommst aus {origin}. "
-            f"Wo wohnst du jetzt?"
+            f"Ah, aus {origin}. "
+            "Und wo wohnst du jetzt?"
         )
 
 
@@ -106,34 +246,189 @@ def handle_context_answer(
 
     if last_question == "residence":
 
-        residence = answer
+        residence = remove_prefix(
+            answer,
+            normalized_answer,
+            (
+                "ich wohne in ",
+                "ich lebe in ",
+                "in "
+            )
+        )
 
-        if normalized_answer.startswith(
-            "in "
-        ):
-            residence = answer[3:].strip()
+
+        if not residence:
+            return None
+
 
         residence = capitalize_value(
             residence
         )
 
-        state["residence"] = residence
-        state["last_question"] = None
+
+        remember_context_fact(
+            state,
+            "residence",
+            residence
+        )
+
+
+        state[
+            "last_question"
+        ] = None
+
 
         name = state.get(
             "name"
         )
 
+
         if name:
+
             return (
                 f"Ah, {name}, "
                 f"du wohnst in {residence}. "
-                f"Schön!"
+                "Schön!"
             )
+
 
         return (
             f"Ah, du wohnst in "
             f"{residence}. Schön!"
+        )
+
+
+    # ======================================
+    # HOBBY / CZAS WOLNY
+    # ZWYKŁA ROZMOWA
+    # ======================================
+
+    if last_question in {
+        "hobby",
+        "free_time"
+    }:
+
+        hobby = answer
+
+
+        if normalized_answer in {
+            "radfahren",
+            "fahrradfahren",
+            "rad fahren",
+            "fahrrad fahren"
+        }:
+
+            hobby = "Radfahren"
+
+
+        elif (
+            "fahre gern rad"
+            in normalized_answer
+            or
+            "fahre gerne rad"
+            in normalized_answer
+        ):
+
+            hobby = "Radfahren"
+
+
+        elif normalized_answer in {
+            "lesen",
+            "kochen",
+            "schwimmen",
+            "wandern",
+            "reisen",
+            "tanzen",
+            "joggen",
+            "fotografieren"
+        }:
+
+            hobby = capitalize_value(
+                answer
+            )
+
+
+        remember_context_fact(
+            state,
+            "hobby",
+            hobby
+        )
+
+
+        state[
+            "last_question"
+        ] = "activity_time"
+
+
+        if hobby == "Radfahren":
+
+            return (
+                "Schön! "
+                "Wann fährst du normalerweise Rad?"
+            )
+
+
+        return (
+            "Schön! "
+            "Wann machst du das normalerweise?"
+        )
+
+
+    # ======================================
+    # KIEDY UŻYTKOWNIK COŚ ROBI
+    # ZWYKŁA ROZMOWA
+    # ======================================
+
+    if last_question == "activity_time":
+
+        state[
+            "last_question"
+        ] = None
+
+
+        if normalized_answer.startswith(
+            "am wochenende"
+        ):
+
+            return (
+                "Ah, am Wochenende. "
+                "Das passt gut!"
+            )
+
+
+        if normalized_answer in {
+            "morgens",
+            "vormittags",
+            "mittags",
+            "nachmittags",
+            "abends",
+            "nachts"
+        }:
+
+            return (
+                f"Ah, {answer.lower()}. "
+                "Schön!"
+            )
+
+
+        if normalized_answer.startswith(
+            (
+                "am ",
+                "um ",
+                "nach ",
+                "vor "
+            )
+        ):
+
+            return (
+                f"Ah, {answer}. "
+                "Schön!"
+            )
+
+
+        return (
+            f"Ah, {answer}. "
+            "Danke!"
         )
 
 
@@ -143,33 +438,72 @@ def handle_context_answer(
 
     if last_question == "wellbeing":
 
-        state["last_question"] = None
+        state[
+            "last_question"
+        ] = None
 
-        if normalized_answer in [
+
+        if normalized_answer in {
             "gut",
             "sehr gut",
+            "ganz gut",
+            "super",
+            "prima",
             "mir geht es gut",
-            "mir gehts gut"
-        ]:
+            "mir gehts gut",
+            "mir geht es sehr gut",
+            "mir gehts sehr gut"
+        }:
+
             return (
-                "Das freut mich! "
-                "Was möchtest du heute üben?"
+                "Schön zu hören! "
+                "Was möchtest du heute machen?"
             )
 
-        if normalized_answer in [
+
+        if normalized_answer in {
+            "geht so",
+            "so lala",
+            "naja",
+            "na ja"
+        }:
+
+            return (
+                "Verstehe. "
+                "Möchtest du ein bisschen "
+                "Deutsch üben?"
+            )
+
+
+        if normalized_answer in {
             "nicht gut",
             "schlecht",
             "mir geht es nicht gut",
             "mir gehts nicht gut"
-        ]:
+        }:
+
             return (
                 "Das tut mir leid. "
                 "Möchtest du trotzdem "
                 "ein bisschen Deutsch üben?"
             )
 
+
+        if normalized_answer in {
+            "müde",
+            "ich bin müde"
+        }:
+
+            return (
+                "Oh, du bist müde. "
+                "Dann können wir heute "
+                "etwas Leichtes machen."
+            )
+
+
         return (
             "Danke, dass du mir das sagst."
         )
+
 
     return None
