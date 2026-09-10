@@ -42,10 +42,12 @@ from brain.logic.onboarding import (
     is_onboarding_completed,
     is_new_user,
     get_onboarding_step,
-    get_onboarding_question,
-    set_onboarding_step,
     handle_onboarding_answer,
     complete_onboarding
+)
+
+from brain.logic.welcome import (
+    generate_welcome_reply
 )
 
 from brain.logic.activity_resume import (
@@ -80,10 +82,6 @@ from brain.memory.review import (
     handle_memory
 )
 
-from brain.memory.user_facts import (
-    get_user_fact
-)
-
 
 # ==========================================
 # ZAPISANIE STANU I ZWROT ODPOWIEDZI
@@ -107,190 +105,6 @@ def return_with_memory(
         )
 
     return answer
-
-
-# ==========================================
-# AUTOMATYCZNE POWITANIE PO OTWARCIU STRONY
-# ==========================================
-
-def generate_welcome_reply(
-    session_id="default"
-):
-
-    state = get_conversation_state(
-        session_id
-    )
-
-
-    # ======================================
-    # UZUPEŁNIENIE PÓL ONBOARDINGU
-    # ======================================
-
-    if "onboarding_completed" not in state:
-        state["onboarding_completed"] = False
-
-    if "onboarding_step" not in state:
-        state["onboarding_step"] = 0
-
-    if "user_facts" not in state:
-        state["user_facts"] = {}
-
-
-    # ======================================
-    # POBRANIE IMIENIA
-    # ======================================
-
-    name = get_user_fact(
-        state,
-        "name"
-    )
-
-    if not name:
-
-        name = state.get(
-            "name"
-        )
-
-
-    # ======================================
-    # ONBOARDING NIEZAKOŃCZONY
-    # ======================================
-
-    if not is_onboarding_completed(
-        state
-    ):
-
-        onboarding_step = get_onboarding_step(
-            state
-        )
-
-
-        # ==================================
-        # ONBOARDING JUŻ TRWA
-        # ==================================
-
-        if onboarding_step > 0:
-
-            question = get_onboarding_question(
-                state
-            )
-
-
-            # ------------------------------
-            # Użytkownik nie podał jeszcze
-            # nawet imienia
-            # ------------------------------
-
-            if onboarding_step == 1:
-
-                answer = (
-                    "Hallo! Ich bin Nele, "
-                    "deine persönliche "
-                    "Deutschtrainerin. "
-                    "Schön, dich kennenzulernen! "
-                    "Wie heißt du?"
-                )
-
-                return return_with_memory(
-                    answer,
-                    session_id
-                )
-
-
-            # ------------------------------
-            # Użytkownik już podał imię
-            # i wrócił w trakcie onboardingu
-            # ------------------------------
-
-            if question:
-
-                if name:
-
-                    answer = (
-                        f"Hallo {name}! "
-                        f"Schön, dass du wieder da bist. "
-                        f"{question}"
-                    )
-
-                else:
-
-                    answer = (
-                        "Hallo! "
-                        "Schön, dass du wieder da bist. "
-                        f"{question}"
-                    )
-
-                return return_with_memory(
-                    answer,
-                    session_id
-                )
-
-
-        # ==================================
-        # ZUPEŁNIE NOWY UŻYTKOWNIK
-        # ==================================
-
-        if is_new_user(
-            state
-        ):
-
-            set_onboarding_step(
-                state,
-                1
-            )
-
-            answer = (
-                "Hallo! Ich bin Nele, "
-                "deine persönliche Deutschtrainerin. "
-                "Schön, dich kennenzulernen! "
-                "Wie heißt du?"
-            )
-
-            return return_with_memory(
-                answer,
-                session_id
-            )
-
-
-        # ==================================
-        # STARY UŻYTKOWNIK
-        # ==================================
-
-        complete_onboarding(
-            state
-        )
-
-
-    # ======================================
-    # ZNANY UŻYTKOWNIK
-    # ======================================
-
-    state[
-        "last_question"
-    ] = "wellbeing"
-
-
-    if name:
-
-        answer = (
-            f"Hallo {name}! "
-            "Schön, dich wiederzusehen. "
-            "Wie geht es dir?"
-        )
-
-    else:
-
-        answer = (
-            "Hallo! "
-            "Schön, dich wiederzusehen. "
-            "Wie geht es dir?"
-        )
-
-
-    return return_with_memory(
-        answer,
-        session_id
-    )
 
 
 # ==========================================
@@ -976,4 +790,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-                    )
+        )
