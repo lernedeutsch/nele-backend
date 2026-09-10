@@ -102,6 +102,139 @@ def remember_context_fact(
 
 
 # ==========================================
+# POLECENIA ROZPOCZYNAJĄCE MINI-ROZMOWĘ
+# ==========================================
+
+def handle_context_prompt(
+    user_message,
+    state
+):
+
+    message = normalize(
+        user_message
+    )
+
+
+    # ======================================
+    # POCHODZENIE
+    # ======================================
+
+    origin_prompts = {
+        "frag mich woher ich komme",
+        "frag mich woher ich komme.",
+        "frag mich nach meiner herkunft",
+        "frag mich nach meiner herkunft."
+    }
+
+    if message in origin_prompts:
+
+        state[
+            "last_question"
+        ] = "origin"
+
+        return (
+            "Gerne! "
+            "Woher kommst du?"
+        )
+
+
+    # ======================================
+    # MIEJSCE ZAMIESZKANIA
+    # ======================================
+
+    residence_prompts = {
+        "frag mich wo ich wohne",
+        "frag mich wo ich wohne.",
+        "frag mich wo ich jetzt wohne",
+        "frag mich wo ich jetzt wohne."
+    }
+
+    if message in residence_prompts:
+
+        state[
+            "last_question"
+        ] = "residence"
+
+        return (
+            "Gerne! "
+            "Wo wohnst du?"
+        )
+
+
+    # ======================================
+    # HOBBY / CZAS WOLNY
+    # ======================================
+
+    hobby_prompts = {
+        "frag mich nach meinem hobby",
+        "frag mich nach meinem hobby.",
+        "frag mich was ich gern in meiner freizeit mache",
+        "frag mich was ich gern in meiner freizeit mache.",
+        "frag mich was ich gerne in meiner freizeit mache",
+        "frag mich was ich gerne in meiner freizeit mache."
+    }
+
+    if message in hobby_prompts:
+
+        state[
+            "last_question"
+        ] = "hobby"
+
+        return (
+            "Gerne! "
+            "Was machst du gern "
+            "in deiner Freizeit?"
+        )
+
+
+    # ======================================
+    # CZAS AKTYWNOŚCI
+    # ======================================
+
+    activity_time_prompts = {
+        "frag mich wann ich rad fahre",
+        "frag mich wann ich rad fahre.",
+        "frag mich wann ich das mache",
+        "frag mich wann ich das mache."
+    }
+
+    if message in activity_time_prompts:
+
+        state[
+            "last_question"
+        ] = "activity_time"
+
+        return (
+            "Gerne! "
+            "Wann machst du das normalerweise?"
+        )
+
+
+    # ======================================
+    # SAMOPOCZUCIE
+    # ======================================
+
+    wellbeing_prompts = {
+        "frag mich wie es mir geht",
+        "frag mich wie es mir geht."
+    }
+
+    if message in wellbeing_prompts:
+
+        state[
+            "last_question"
+        ] = "wellbeing"
+
+        return (
+            "Gerne! "
+            "Wie geht es dir?"
+        )
+
+
+    return None
+
+
+# ==========================================
 # GŁÓWNA OBSŁUGA KONTEKSTU
 # ==========================================
 
@@ -113,6 +246,27 @@ def handle_context_answer(
     state = get_conversation_state(
         session_id
     )
+
+
+    # ======================================
+    # NAJPIERW SPRAWDZAMY,
+    # CZY UŻYTKOWNIK CHCE,
+    # ŻEBY NELE ZADAŁA PYTANIE
+    # ======================================
+
+    prompt_answer = handle_context_prompt(
+        user_message,
+        state
+    )
+
+    if prompt_answer:
+
+        return prompt_answer
+
+
+    # ======================================
+    # OSTATNIE PYTANIE NELE
+    # ======================================
 
     last_question = state.get(
         "last_question"
