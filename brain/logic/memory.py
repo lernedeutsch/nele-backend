@@ -9,6 +9,10 @@ from brain.memory.persistent_memory import (
     delete_persistent_memory
 )
 
+from brain.memory.student_progress import (
+    create_empty_student_progress
+)
+
 
 conversation_sessions = {}
 
@@ -74,6 +78,15 @@ def create_empty_state():
         "residence": None,
 
         "user_facts": {},
+
+
+        # ==================================
+        # STUDENT MEMORY 2.0
+        # OGÓLNY POSTĘP UCZNIA
+        # ==================================
+
+        "student_progress":
+            create_empty_student_progress(),
 
 
         # ==================================
@@ -311,8 +324,9 @@ def reset_conversation_state(
     """
     Usuwa całą pamięć użytkownika:
 
-    - dane osobowe zapisane przez Nele
+    - dane użytkownika
     - onboarding
+    - Student Memory 2.0
     - postępy słownictwa
     - aktywne ćwiczenia
     - ostatnią aktywność
