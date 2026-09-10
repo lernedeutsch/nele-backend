@@ -5,10 +5,12 @@
 import random
 
 from brain.logic.memory import get_conversation_state
+
 from brain.logic.matcher import (
     normalize,
     pattern_matches
 )
+
 from brain.logic.lesson_loader import (
     load_lesson
 )
@@ -93,6 +95,86 @@ def remember_follow_up(
 
 
 # ==========================================
+# NAZWA SŁOWA DO WYŚWIETLENIA
+# ==========================================
+
+def display_activity_word(
+    word
+):
+
+    if not word:
+        return ""
+
+    word = str(
+        word
+    ).strip()
+
+    if not word:
+        return ""
+
+    return (
+        word[:1].upper()
+        + word[1:]
+    )
+
+
+# ==========================================
+# ODPOWIEDŹ PO POWITANIU
+# ==========================================
+
+def create_returning_user_follow_up(
+    state,
+    normal_answer
+):
+
+    last_activity = state.get(
+        "last_activity"
+    )
+
+    last_activity_detail = state.get(
+        "last_activity_detail"
+    )
+
+
+    # ======================================
+    # OSTATNIO ĆWICZONE SŁOWO
+    # ======================================
+
+    if (
+        last_activity == "vocabulary"
+        and last_activity_detail
+    ):
+
+        word = display_activity_word(
+            last_activity_detail
+        )
+
+        state[
+            "last_question"
+        ] = "continue_last_activity"
+
+        return (
+            f"{normal_answer} "
+            f"Möchtest du mit dem Wort "
+            f"„{word}“ weitermachen?"
+        )
+
+
+    # ======================================
+    # BRAK ZAPISANEJ AKTYWNOŚCI
+    # ======================================
+
+    state[
+        "last_question"
+    ] = None
+
+    return (
+        f"{normal_answer} "
+        f"Womit möchtest du heute anfangen?"
+    )
+
+
+# ==========================================
 # ZNANE ZWROTY Z LEKCJI
 # ==========================================
 
@@ -113,6 +195,16 @@ def find_response(
     )
 
     matches = []
+
+
+    # ======================================
+    # CZY NELE CZEKA NA ODPOWIEDŹ
+    # O SAMOPOCZUCIU
+    # ======================================
+
+    previous_question = state.get(
+        "last_question"
+    )
 
 
     # ======================================
@@ -170,6 +262,11 @@ def find_response(
         "item"
     ]
 
+    intent = item.get(
+        "intent",
+        ""
+    )
+
 
     answers = item.get(
         "responses",
@@ -192,6 +289,31 @@ def find_response(
 
         answer = ""
 
+
+    # ======================================
+    # ODPOWIEDŹ NA PYTANIE:
+    # "WIE GEHT ES DIR?"
+    # ======================================
+
+    wellbeing_intents = {
+        "user_wellbeing_good",
+        "user_wellbeing_bad"
+    }
+
+    if (
+        previous_question == "wellbeing"
+        and intent in wellbeing_intents
+    ):
+
+        return create_returning_user_follow_up(
+            state,
+            answer
+        )
+
+
+    # ======================================
+    # STANDARDOWY FOLLOW-UP
+    # ======================================
 
     if follow_up:
 
