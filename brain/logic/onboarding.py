@@ -2,12 +2,11 @@
 # NELE – PIERWSZE SPOTKANIE Z UŻYTKOWNIKIEM
 # ==========================================
 
-from brain.memory.user_facts import (
-    get_user_fact
-)
+import re
 
-from brain.logic.user_info import (
-    extract_user_information
+from brain.memory.user_facts import (
+    get_user_fact,
+    remember_user_fact
 )
 
 
@@ -120,6 +119,555 @@ def is_new_user(
 
 
 # ==========================================
+# POMOCNICZE CZYSZCZENIE TEKSTU
+# ==========================================
+
+def clean_value(
+    value
+):
+
+    if not value:
+        return ""
+
+    value = str(
+        value
+    ).strip()
+
+    value = re.sub(
+        r"\s+",
+        " ",
+        value
+    )
+
+    value = value.strip(
+        " .,!?:;„“\"'"
+    )
+
+    if not value:
+        return ""
+
+    return (
+        value[:1].upper()
+        + value[1:]
+    )
+
+
+# ==========================================
+# NORMALIZACJA DO SPRAWDZANIA
+# ==========================================
+
+def normalize_answer(
+    text
+):
+
+    text = str(
+        text or ""
+    ).strip().lower()
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text
+    )
+
+    return text.strip(
+        " .,!?:;„“\"'"
+    )
+
+
+# ==========================================
+# ZAPAMIĘTANIE FAKTU
+# ==========================================
+
+def save_onboarding_fact(
+    state,
+    key,
+    value
+):
+
+    if not value:
+        return
+
+    remember_user_fact(
+        state,
+        key,
+        value
+    )
+
+
+    # ======================================
+    # ZGODNOŚĆ ZE STARSZĄ PAMIĘCIĄ
+    # ======================================
+
+    if key in {
+        "name",
+        "origin",
+        "residence"
+    }:
+
+        state[
+            key
+        ] = value
+
+
+# ==========================================
+# WYSZUKANIE WARTOŚCI W PEŁNYM ZDANIU
+# ==========================================
+
+def extract_pattern_value(
+    user_message,
+    patterns
+):
+
+    text = str(
+        user_message or ""
+    ).strip()
+
+    for pattern in patterns:
+
+        match = re.match(
+            pattern,
+            text,
+            flags=re.IGNORECASE
+        )
+
+        if match:
+
+            return clean_value(
+                match.group(1)
+            )
+
+    return ""
+
+
+# ==========================================
+# IMIĘ
+# ==========================================
+
+def extract_name_sentence(
+    user_message
+):
+
+    return extract_pattern_value(
+        user_message,
+        [
+            r"^\s*ich\s+hei(?:ß|ss)e\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*ich\s+bin\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*mein\s+name\s+ist\s+(.+?)\s*[.!?]*\s*$"
+        ]
+    )
+
+
+# ==========================================
+# POCHODZENIE
+# ==========================================
+
+def extract_origin_sentence(
+    user_message
+):
+
+    return extract_pattern_value(
+        user_message,
+        [
+            r"^\s*ich\s+komme\s+aus\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*ich\s+bin\s+aus\s+(.+?)\s*[.!?]*\s*$"
+        ]
+    )
+
+
+# ==========================================
+# MIEJSCE ZAMIESZKANIA
+# ==========================================
+
+def extract_residence_sentence(
+    user_message
+):
+
+    return extract_pattern_value(
+        user_message,
+        [
+            r"^\s*ich\s+wohne\s+in\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*ich\s+lebe\s+in\s+(.+?)\s*[.!?]*\s*$"
+        ]
+    )
+
+
+# ==========================================
+# HOBBY – NATURALNE ZDANIA
+# ==========================================
+
+def extract_hobby_sentence(
+    user_message
+):
+
+    normalized = normalize_answer(
+        user_message
+    )
+
+
+    # ======================================
+    # CZĘSTE NATURALNE ODPOWIEDZI
+    # ======================================
+
+    hobby_patterns = [
+
+        (
+            (
+                "fahre gern rad" in normalized
+                or
+                "fahre gerne rad" in normalized
+            ),
+            "Radfahren"
+        ),
+
+        (
+            (
+                "lese gern" in normalized
+                or
+                "lese gerne" in normalized
+            ),
+            "Lesen"
+        ),
+
+        (
+            (
+                "koche gern" in normalized
+                or
+                "koche gerne" in normalized
+            ),
+            "Kochen"
+        ),
+
+        (
+            (
+                "schwimme gern" in normalized
+                or
+                "schwimme gerne" in normalized
+            ),
+            "Schwimmen"
+        ),
+
+        (
+            (
+                "wandere gern" in normalized
+                or
+                "wandere gerne" in normalized
+            ),
+            "Wandern"
+        ),
+
+        (
+            (
+                "reise gern" in normalized
+                or
+                "reise gerne" in normalized
+            ),
+            "Reisen"
+        ),
+
+        (
+            (
+                "tanze gern" in normalized
+                or
+                "tanze gerne" in normalized
+            ),
+            "Tanzen"
+        ),
+
+        (
+            (
+                "jogge gern" in normalized
+                or
+                "jogge gerne" in normalized
+            ),
+            "Joggen"
+        ),
+
+        (
+            (
+                "fotografiere gern" in normalized
+                or
+                "fotografiere gerne" in normalized
+            ),
+            "Fotografieren"
+        ),
+
+        (
+            (
+                "höre gern musik" in normalized
+                or
+                "höre gerne musik" in normalized
+            ),
+            "Musik hören"
+        ),
+
+        (
+            (
+                "gehe gern spazieren" in normalized
+                or
+                "gehe gerne spazieren" in normalized
+            ),
+            "Spazierengehen"
+        )
+    ]
+
+
+    for condition, hobby in hobby_patterns:
+
+        if condition:
+
+            return hobby
+
+
+    # ======================================
+    # "MEIN HOBBY IST ..."
+    # NADAL POPRAWNE I AKCEPTOWANE
+    # ======================================
+
+    hobby = extract_pattern_value(
+        user_message,
+        [
+            r"^\s*mein\s+hobby\s+ist\s+(.+?)\s*[.!?]*\s*$"
+        ]
+    )
+
+    if hobby:
+
+        return hobby
+
+
+    # ======================================
+    # INNA NATURALNA ODPOWIEDŹ Z "GERN"
+    # ======================================
+
+    if (
+        normalized.startswith(
+            "ich "
+        )
+        and
+        (
+            " gern " in
+            f" {normalized} "
+            or
+            " gerne " in
+            f" {normalized} "
+        )
+    ):
+
+        return clean_value(
+            user_message
+        )
+
+
+    if (
+        normalized.startswith(
+            "in meiner freizeit "
+        )
+        and
+        (
+            " gern " in
+            f" {normalized} "
+            or
+            " gerne " in
+            f" {normalized} "
+        )
+    ):
+
+        return clean_value(
+            user_message
+        )
+
+
+    return ""
+
+
+# ==========================================
+# CEL NAUKI
+# ==========================================
+
+def extract_learning_goal_sentence(
+    user_message
+):
+
+    normalized = normalize_answer(
+        user_message
+    )
+
+
+    # ======================================
+    # MUSI TO BYĆ PEŁNE ZDANIE
+    # ======================================
+
+    valid_start = (
+        normalized.startswith(
+            "ich möchte "
+        )
+        or
+        normalized.startswith(
+            "mein ziel ist "
+        )
+        or
+        normalized.startswith(
+            "mein lernziel ist "
+        )
+    )
+
+
+    if not valid_start:
+
+        return ""
+
+
+    # ======================================
+    # JEŻELI PODANO POZIOM
+    # ======================================
+
+    level_match = re.search(
+        r"\b(a1|a2|b1|b2|c1|c2)\b",
+        normalized,
+        flags=re.IGNORECASE
+    )
+
+
+    if level_match:
+
+        level = (
+            level_match
+            .group(1)
+            .upper()
+        )
+
+        return (
+            f"Deutsch {level}"
+        )
+
+
+    # ======================================
+    # INNY CEL, NP.
+    # "ICH MÖCHTE BESSER SPRECHEN."
+    # ======================================
+
+    goal = extract_pattern_value(
+        user_message,
+        [
+            r"^\s*ich\s+möchte\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*mein\s+ziel\s+ist\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*mein\s+lernziel\s+ist\s+(.+?)\s*[.!?]*\s*$"
+        ]
+    )
+
+    return goal
+
+
+# ==========================================
+# KRÓTKA ODPOWIEDŹ
+# ==========================================
+
+def get_short_answer_value(
+    user_message,
+    step
+):
+
+    normalized = normalize_answer(
+        user_message
+    )
+
+    if not normalized:
+        return ""
+
+
+    # ======================================
+    # NIE TRAKTUJEMY BŁĘDNEGO ZDANIA
+    # JAKO KRÓTKIEJ ODPOWIEDZI
+    # ======================================
+
+    if normalized.startswith(
+        (
+            "ich ",
+            "mein ",
+            "meine "
+        )
+    ):
+
+        return ""
+
+
+    # ======================================
+    # POCHODZENIE:
+    # "AUS POLEN"
+    # ======================================
+
+    if (
+        step == 2
+        and
+        normalized.startswith(
+            "aus "
+        )
+    ):
+
+        return clean_value(
+            normalized[4:]
+        )
+
+
+    # ======================================
+    # MIEJSCE:
+    # "IN HEIDELBERG"
+    # ======================================
+
+    if (
+        step == 3
+        and
+        normalized.startswith(
+            "in "
+        )
+    ):
+
+        return clean_value(
+            normalized[3:]
+        )
+
+
+    words = normalized.split()
+
+
+    if len(words) > 4:
+
+        return ""
+
+
+    return clean_value(
+        normalized
+    )
+
+
+# ==========================================
+# POZIOM Z KRÓTKIEJ ODPOWIEDZI
+# ==========================================
+
+def get_short_learning_level(
+    user_message
+):
+
+    match = re.search(
+        r"\b(a1|a2|b1|b2|c1|c2)\b",
+        str(
+            user_message or ""
+        ),
+        flags=re.IGNORECASE
+    )
+
+    if not match:
+        return ""
+
+    return (
+        match
+        .group(1)
+        .upper()
+    )
+
+
+# ==========================================
 # ROZPOCZĘCIE PIERWSZEGO SPOTKANIA
 # ==========================================
 
@@ -134,7 +682,7 @@ def start_onboarding(
 
     return (
         "Hallo! Ich bin Nele, "
-        "deine persönliche Deutschlehrerin. "
+        "deine persönliche Deutschtrainerin. "
         "Schön, dich kennenzulernen! "
         "Wie heißt du?"
     )
@@ -200,13 +748,14 @@ def get_onboarding_question(
 
 
     # ======================================
-    # 4. HOBBY
+    # 4. CZAS WOLNY / HOBBY
     # ======================================
 
     if step == 4:
 
         return (
-            "Was ist dein Hobby?"
+            "Was machst du gern "
+            "in deiner Freizeit?"
         )
 
 
@@ -217,7 +766,8 @@ def get_onboarding_question(
     if step == 5:
 
         return (
-            "Was ist dein Lernziel?"
+            "Was ist dein Ziel "
+            "beim Deutschlernen?"
         )
 
 
@@ -249,47 +799,142 @@ def advance_onboarding(
 
 
 # ==========================================
-# ODPOWIEDŹ, GDY NELE NIE ROZUMIE
+# ODPOWIEDŹ TRENINGOWA
 # ==========================================
 
 def get_onboarding_retry(
-    step
+    step,
+    user_message=""
 ):
+
+    short_value = get_short_answer_value(
+        user_message,
+        step
+    )
+
+
+    # ======================================
+    # 1. IMIĘ
+    # ======================================
 
     if step == 1:
 
+        if short_value:
+
+            return (
+                "Ich habe dich verstanden. "
+                "Sag es bitte jetzt als "
+                "ganzen Satz: "
+                f"„Ich heiße {short_value}.“"
+            )
+
         return (
-            "Sag bitte zum Beispiel: "
+            "Sag bitte als ganzen Satz, "
+            "zum Beispiel: "
             "„Ich heiße Anna.“"
         )
 
+
+    # ======================================
+    # 2. POCHODZENIE
+    # ======================================
+
     if step == 2:
 
+        if short_value:
+
+            return (
+                "Ich habe dich verstanden. "
+                "Sag es bitte jetzt als "
+                "ganzen Satz: "
+                f"„Ich komme aus {short_value}.“"
+            )
+
         return (
-            "Sag bitte zum Beispiel: "
+            "Sag bitte als ganzen Satz, "
+            "zum Beispiel: "
             "„Ich komme aus Polen.“"
         )
 
+
+    # ======================================
+    # 3. MIEJSCE ZAMIESZKANIA
+    # ======================================
+
     if step == 3:
 
+        if short_value:
+
+            return (
+                "Ich habe dich verstanden. "
+                "Sag es bitte jetzt als "
+                "ganzen Satz: "
+                f"„Ich wohne in {short_value}.“"
+            )
+
         return (
-            "Sag bitte zum Beispiel: "
+            "Sag bitte als ganzen Satz, "
+            "zum Beispiel: "
             "„Ich wohne in Heidelberg.“"
         )
 
+
+    # ======================================
+    # 4. HOBBY
+    # ======================================
+
     if step == 4:
 
-        return (
-            "Sag bitte zum Beispiel: "
-            "„Mein Hobby ist Radfahren.“"
+        normalized = normalize_answer(
+            user_message
         )
+
+        if normalized in {
+            "radfahren",
+            "fahrradfahren",
+            "rad fahren",
+            "fahrrad fahren"
+        }:
+
+            return (
+                "Ich habe dich verstanden. "
+                "Sag es bitte jetzt als "
+                "ganzen Satz: "
+                "„Ich fahre gern Rad.“"
+            )
+
+        return (
+            "Sag bitte als ganzen Satz, "
+            "zum Beispiel: "
+            "„Ich fahre gern Rad.“"
+        )
+
+
+    # ======================================
+    # 5. CEL NAUKI
+    # ======================================
 
     if step == 5:
 
-        return (
-            "Sag bitte zum Beispiel: "
-            "„Mein Lernziel ist Deutsch B1.“"
+        level = get_short_learning_level(
+            user_message
         )
+
+        if level:
+
+            return (
+                "Ich habe dich verstanden. "
+                "Sag es bitte jetzt als "
+                "ganzen Satz: "
+                f"„Ich möchte {level} erreichen.“"
+            )
+
+        return (
+            "Sag bitte als ganzen Satz, "
+            "zum Beispiel: "
+            "„Ich möchte B1 erreichen.“"
+        )
+
 
     return (
         "Versuch es bitte noch einmal."
@@ -318,15 +963,16 @@ def finish_onboarding(
         return (
             f"Super, {name}! "
             "Jetzt kenne ich dich schon "
-            "ein bisschen. "
-            "Wir können zusammen Deutsch üben. "
+            "ein bisschen besser. "
+            "Wir können loslegen. "
             "Ich passe die Übungen an dich an."
         )
 
     return (
-        "Super! Jetzt kenne ich dich schon "
-        "ein bisschen. "
-        "Wir können zusammen Deutsch üben. "
+        "Super! "
+        "Jetzt kenne ich dich schon "
+        "ein bisschen besser. "
+        "Wir können loslegen. "
         "Ich passe die Übungen an dich an."
     )
 
@@ -355,31 +1001,27 @@ def handle_onboarding_answer(
 
 
     # ======================================
-    # ZAPAMIĘTANIE ODPOWIEDZI
-    # ======================================
-
-    extract_user_information(
-        user_message,
-        session_id
-    )
-
-
-    # ======================================
     # ETAP 1 – IMIĘ
     # ======================================
 
     if step == 1:
 
-        name = get_user_fact(
-            state,
-            "name"
+        name = extract_name_sentence(
+            user_message
         )
 
         if not name:
 
             return get_onboarding_retry(
-                step
+                step,
+                user_message
             )
+
+        save_onboarding_fact(
+            state,
+            "name",
+            name
+        )
 
         set_onboarding_step(
             state,
@@ -398,16 +1040,22 @@ def handle_onboarding_answer(
 
     if step == 2:
 
-        origin = get_user_fact(
-            state,
-            "origin"
+        origin = extract_origin_sentence(
+            user_message
         )
 
         if not origin:
 
             return get_onboarding_retry(
-                step
+                step,
+                user_message
             )
+
+        save_onboarding_fact(
+            state,
+            "origin",
+            origin
+        )
 
         set_onboarding_step(
             state,
@@ -425,16 +1073,24 @@ def handle_onboarding_answer(
 
     if step == 3:
 
-        residence = get_user_fact(
-            state,
-            "residence"
+        residence = (
+            extract_residence_sentence(
+                user_message
+            )
         )
 
         if not residence:
 
             return get_onboarding_retry(
-                step
+                step,
+                user_message
             )
+
+        save_onboarding_fact(
+            state,
+            "residence",
+            residence
+        )
 
         set_onboarding_step(
             state,
@@ -442,26 +1098,33 @@ def handle_onboarding_answer(
         )
 
         return (
-            "Was ist dein Hobby?"
+            "Was machst du gern "
+            "in deiner Freizeit?"
         )
 
 
     # ======================================
-    # ETAP 4 – HOBBY
+    # ETAP 4 – HOBBY / CZAS WOLNY
     # ======================================
 
     if step == 4:
 
-        hobby = get_user_fact(
-            state,
-            "hobby"
+        hobby = extract_hobby_sentence(
+            user_message
         )
 
         if not hobby:
 
             return get_onboarding_retry(
-                step
+                step,
+                user_message
             )
+
+        save_onboarding_fact(
+            state,
+            "hobby",
+            hobby
+        )
 
         set_onboarding_step(
             state,
@@ -469,7 +1132,9 @@ def handle_onboarding_answer(
         )
 
         return (
-            "Schön! Und was ist dein Lernziel?"
+            "Schön! "
+            "Und was ist dein Ziel "
+            "beim Deutschlernen?"
         )
 
 
@@ -479,16 +1144,24 @@ def handle_onboarding_answer(
 
     if step == 5:
 
-        learning_goal = get_user_fact(
-            state,
-            "learning_goal"
+        learning_goal = (
+            extract_learning_goal_sentence(
+                user_message
+            )
         )
 
         if not learning_goal:
 
             return get_onboarding_retry(
-                step
+                step,
+                user_message
             )
+
+        save_onboarding_fact(
+            state,
+            "learning_goal",
+            learning_goal
+        )
 
         return finish_onboarding(
             state
