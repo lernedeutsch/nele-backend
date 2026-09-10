@@ -65,8 +65,15 @@ def create_empty_state():
         "origin": None,
         "residence": None,
 
-        # elastyczna pamięć informacji o użytkowniku
+        # elastyczna pamięć informacji
         "user_facts": {},
+
+        # ==================================
+        # OSTATNIA AKTYWNOŚĆ
+        # ==================================
+
+        "last_activity": None,
+        "last_activity_detail": None,
 
         # ==================================
         # KONTEKST ROZMOWY
@@ -120,7 +127,10 @@ def complete_state(
     for key, default_value in default_state.items():
 
         if key not in state:
-            state[key] = default_value
+
+            state[
+                key
+            ] = default_value
 
     return state
 
@@ -145,6 +155,7 @@ def get_conversation_state(
     """
 
     if not session_id:
+
         session_id = "default"
 
     ensure_persistent_memory()
@@ -227,11 +238,13 @@ def save_conversation_state(
     """
 
     if not session_id:
+
         session_id = "default"
 
     ensure_persistent_memory()
 
     if session_id not in conversation_sessions:
+
         return False
 
     state = conversation_sessions[
