@@ -249,7 +249,6 @@ def handle_context_answer(
 
 
     # ======================================
-    # NAJPIERW SPRAWDZAMY,
     # CZY UŻYTKOWNIK CHCE,
     # ŻEBY NELE ZADAŁA PYTANIE
     # ======================================
@@ -429,26 +428,69 @@ def handle_context_answer(
 
         state[
             "last_question"
-        ] = None
-
-
-        name = state.get(
-            "name"
-        )
-
-
-        if name:
-
-            return (
-                f"Ah, {name}, "
-                f"du wohnst in {residence}. "
-                "Schön!"
-            )
+        ] = "residence_duration"
 
 
         return (
-            f"Ah, du wohnst in "
-            f"{residence}. Schön!"
+            f"Ah, {residence}! "
+            "Wie lange wohnst du "
+            "schon dort?"
+        )
+
+
+    # ======================================
+    # JAK DŁUGO UŻYTKOWNIK TAM MIESZKA
+    # ======================================
+
+    if last_question == "residence_duration":
+
+        duration = answer
+
+
+        remember_context_fact(
+            state,
+            "residence_duration",
+            duration
+        )
+
+
+        state[
+            "last_question"
+        ] = "residence_favorite"
+
+
+        return (
+            "Interessant! "
+            "Was gefällt dir dort "
+            "besonders?"
+        )
+
+
+    # ======================================
+    # CO PODOBA SIĘ W MIEJSCU ZAMIESZKANIA
+    # ======================================
+
+    if last_question == "residence_favorite":
+
+        favorite = answer
+
+
+        remember_context_fact(
+            state,
+            "residence_favorite",
+            favorite
+        )
+
+
+        state[
+            "last_question"
+        ] = "hobby"
+
+
+        return (
+            "Das klingt schön! "
+            "Und was machst du dort "
+            "gern in deiner Freizeit?"
         )
 
 
@@ -518,22 +560,30 @@ def handle_context_answer(
 
             return (
                 "Schön! "
-                "Wann fährst du normalerweise Rad?"
+                "Wann fährst du "
+                "normalerweise Rad?"
             )
 
 
         return (
             "Schön! "
-            "Wann machst du das normalerweise?"
+            "Wann machst du das "
+            "normalerweise?"
         )
 
 
     # ======================================
     # KIEDY UŻYTKOWNIK COŚ ROBI
-    # ZWYKŁA ROZMOWA
     # ======================================
 
     if last_question == "activity_time":
+
+        remember_context_fact(
+            state,
+            "activity_time",
+            answer
+        )
+
 
         state[
             "last_question"
@@ -611,7 +661,8 @@ def handle_context_answer(
 
             return (
                 "Schön zu hören! "
-                "Was möchtest du heute machen?"
+                "Was möchtest du "
+                "heute machen?"
             )
 
 
