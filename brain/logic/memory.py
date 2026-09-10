@@ -48,7 +48,13 @@ def create_empty_state():
     """
 
     return {
+
+        # ==================================
+        # OGÓLNY KONTEKST ROZMOWY
+        # ==================================
+
         "last_question": None,
+
 
         # ==================================
         # PIERWSZE SPOTKANIE Z NELE
@@ -56,6 +62,7 @@ def create_empty_state():
 
         "onboarding_completed": False,
         "onboarding_step": 0,
+
 
         # ==================================
         # INFORMACJE O UŻYTKOWNIKU
@@ -65,15 +72,8 @@ def create_empty_state():
         "origin": None,
         "residence": None,
 
-        # elastyczna pamięć informacji
         "user_facts": {},
 
-        # ==================================
-        # OSTATNIA AKTYWNOŚĆ
-        # ==================================
-
-        "last_activity": None,
-        "last_activity_detail": None,
 
         # ==================================
         # KONTEKST ROZMOWY
@@ -83,6 +83,7 @@ def create_empty_state():
         "current_comparison": None,
         "current_expression": None,
 
+
         # ==================================
         # PRZYKŁADY
         # ==================================
@@ -90,15 +91,45 @@ def create_empty_state():
         "last_example_expression": None,
         "example_index": -1,
 
+
         # ==================================
-        # SŁOWNICTWO
+        # SŁOWNICTWO – KONTEKST
         # ==================================
 
         "current_vocabulary_word": None,
         "current_vocabulary_related_word": None,
 
-        # pamięć postępów słownictwa
+
+        # ==================================
+        # SŁOWNICTWO – POSTĘPY
+        # ==================================
+
         "vocabulary_memory": {},
+
+
+        # ==================================
+        # AKTYWNE ĆWICZENIE SŁOWNICTWA
+        # ==================================
+
+        "vocabulary_practice_active": False,
+        "vocabulary_practice_word": None,
+        "vocabulary_practice_type": None,
+
+
+        # ==================================
+        # OSTATNIA AKTYWNOŚĆ
+        # ==================================
+        #
+        # Dzięki temu Nele może po ponownym
+        # otwarciu strony powiedzieć np.:
+        #
+        # "Möchtest du mit dem Wort
+        # „Langsam“ weitermachen?"
+        # ==================================
+
+        "last_activity": None,
+        "last_activity_detail": None,
+
 
         # ==================================
         # PERSONALIZACJA
@@ -120,6 +151,7 @@ def complete_state(
         state,
         dict
     ):
+
         state = {}
 
     default_state = create_empty_state()
@@ -254,6 +286,10 @@ def save_conversation_state(
     state = complete_state(
         state
     )
+
+    conversation_sessions[
+        session_id
+    ] = state
 
     try:
 
