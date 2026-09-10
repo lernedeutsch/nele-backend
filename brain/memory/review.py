@@ -1,5 +1,6 @@
 # ==========================================
 # NELE – WIEDERHOLUNG UND LERNFORTSCHRITT
+# STUDENT MEMORY 2.0
 # ==========================================
 
 from brain.logic.matcher import normalize
@@ -8,6 +9,167 @@ from brain.memory.vocabulary_memory import (
     get_vocabulary_memory,
     get_words_for_review
 )
+
+from brain.memory.student_progress import (
+    get_student_progress
+)
+
+
+# ==========================================
+# FRAGE NACH DER LETZTEN LERNAKTIVITÄT
+# ==========================================
+
+def is_last_learning_request(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!"
+    )
+
+    questions = [
+        "was habe ich zuletzt geübt",
+        "was habe ich zuletzt gelernt",
+        "was haben wir zuletzt geübt",
+        "was haben wir zuletzt gelernt",
+        "was war meine letzte übung",
+        "was war meine letzte lernaktivität",
+        "was habe ich als letztes geübt",
+        "was habe ich als letztes gelernt",
+        "womit habe ich zuletzt geübt"
+    ]
+
+    return message in questions
+
+
+# ==========================================
+# LETZTES GELERNTES WORT SCHÖN ANZEIGEN
+# ==========================================
+
+def display_memory_word(
+    word
+):
+
+    if not word:
+        return ""
+
+    word = str(
+        word
+    ).strip()
+
+    if not word:
+        return ""
+
+    return (
+        word[:1].upper()
+        + word[1:]
+    )
+
+
+# ==========================================
+# ANTWORT – LETZTE LERNAKTIVITÄT
+# ==========================================
+
+def answer_last_learning(
+    user_message,
+    state
+):
+
+    if not is_last_learning_request(
+        user_message
+    ):
+        return None
+
+
+    # ======================================
+    # STUDENT MEMORY 2.0
+    # ======================================
+
+    progress = get_student_progress(
+        state
+    )
+
+    last_topic = progress.get(
+        "last_learning_topic"
+    )
+
+
+    # ======================================
+    # ZGODNOŚĆ ZE STARSZĄ PAMIĘCIĄ
+    # ======================================
+
+    if not last_topic:
+
+        last_activity = state.get(
+            "last_activity"
+        )
+
+        last_detail = state.get(
+            "last_activity_detail"
+        )
+
+        if (
+            last_activity == "vocabulary"
+            and last_detail
+        ):
+
+            display_word = display_memory_word(
+                last_detail
+            )
+
+            return (
+                "Zuletzt hast du das Wort "
+                f"„{display_word}“ geübt."
+            )
+
+
+    # ======================================
+    # JESZCZE BRAK HISTORII
+    # ======================================
+
+    if not last_topic:
+
+        return (
+            "Ich habe noch keine letzte "
+            "Lernaktivität gespeichert. "
+            "Lass uns etwas üben!"
+        )
+
+
+    # ======================================
+    # SŁOWNICTWO
+    # np. "Wortschatz: Langsam"
+    # ======================================
+
+    if last_topic.startswith(
+        "Wortschatz:"
+    ):
+
+        word = last_topic.split(
+            ":",
+            1
+        )[1].strip()
+
+        word = display_memory_word(
+            word
+        )
+
+        return (
+            "Zuletzt hast du das Wort "
+            f"„{word}“ geübt."
+        )
+
+
+    # ======================================
+    # INNY TEMAT
+    # ======================================
+
+    return (
+        "Zuletzt hast du "
+        f"„{last_topic}“ geübt."
+    )
 
 
 # ==========================================
@@ -318,6 +480,7 @@ def get_mastered_words(
             correct_streak >= 3
             and not needs_review
         ):
+
             words.append(
                 word
             )
@@ -415,6 +578,7 @@ def get_difficult_words(
             mistakes > 0
             or needs_review
         ):
+
             words.append(
                 word
             )
@@ -465,6 +629,24 @@ def handle_memory(
     state
 ):
 
+    # ======================================
+    # STUDENT MEMORY 2.0
+    # OSTATNIA AKTYWNOŚĆ
+    # ======================================
+
+    answer = answer_last_learning(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # ĆWICZONE SŁOWA
+    # ======================================
+
     answer = answer_practiced_words(
         user_message,
         state
@@ -472,6 +654,11 @@ def handle_memory(
 
     if answer:
         return answer
+
+
+    # ======================================
+    # LICZBA ĆWICZEŃ SŁOWA
+    # ======================================
 
     answer = answer_practice_count(
         user_message,
@@ -481,6 +668,11 @@ def handle_memory(
     if answer:
         return answer
 
+
+    # ======================================
+    # SŁOWA DO POWTÓRKI
+    # ======================================
+
     answer = answer_review_words(
         user_message,
         state
@@ -489,6 +681,11 @@ def handle_memory(
     if answer:
         return answer
 
+
+    # ======================================
+    # OPANOWANE SŁOWA
+    # ======================================
+
     answer = answer_mastered_words(
         user_message,
         state
@@ -496,6 +693,11 @@ def handle_memory(
 
     if answer:
         return answer
+
+
+    # ======================================
+    # TRUDNE SŁOWA
+    # ======================================
 
     answer = answer_difficult_words(
         user_message,
