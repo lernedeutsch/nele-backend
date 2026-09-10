@@ -17,6 +17,11 @@ from brain.memory.vocabulary_memory import (
     remember_mistake
 )
 
+from brain.memory.student_progress import (
+    remember_completed_exercise,
+    remember_learning_topic
+)
+
 
 # ==========================================
 # ÜBUNG – WORT ERKENNEN
@@ -106,6 +111,11 @@ def start_vocabulary_practice(
     if word not in VOCABULARY:
         return None
 
+
+    # ======================================
+    # WORT IM WORTSCHATZ SPEICHERN
+    # ======================================
+
     remember_vocabulary_word(
         state,
         word
@@ -115,6 +125,11 @@ def start_vocabulary_practice(
         word,
         state
     )
+
+
+    # ======================================
+    # AKTIVE ÜBUNG
+    # ======================================
 
     state[
         "vocabulary_practice_active"
@@ -142,9 +157,20 @@ def start_vocabulary_practice(
     ] = word
 
 
+    # ======================================
+    # STUDENT MEMORY 2.0
+    # OSTATNI TEMAT I DATA NAUKI
+    # ======================================
+
     display_word = display_vocabulary_word(
         word
     )
+
+    remember_learning_topic(
+        state,
+        f"Wortschatz: {display_word}"
+    )
+
 
     return (
         f"Was bedeutet „{display_word}“?"
@@ -643,6 +669,17 @@ def answer_vocabulary_practice(
                     f"{next_question}"
                 )
 
+
+            # ==================================
+            # STUDENT MEMORY 2.0
+            # CAŁE ĆWICZENIE UKOŃCZONE
+            # ==================================
+
+            remember_completed_exercise(
+                state
+            )
+
+
             finish_vocabulary_practice(
                 state
             )
@@ -654,6 +691,7 @@ def answer_vocabulary_practice(
                 )
 
             return "Richtig!"
+
 
         remember_mistake(
             word,
@@ -706,6 +744,17 @@ def answer_vocabulary_practice(
                 state
             )
 
+
+            # ==================================
+            # STUDENT MEMORY 2.0
+            # CAŁE ĆWICZENIE UKOŃCZONE
+            # ==================================
+
+            remember_completed_exercise(
+                state
+            )
+
+
             finish_vocabulary_practice(
                 state
             )
@@ -717,6 +766,7 @@ def answer_vocabulary_practice(
                 f"„{display_vocabulary_word(word)}“ "
                 f"erfolgreich geübt."
             )
+
 
         remember_mistake(
             word,
