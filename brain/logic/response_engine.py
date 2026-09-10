@@ -119,13 +119,106 @@ def display_activity_word(
 
 
 # ==========================================
+# KRÓTKA CZĘŚĆ ODPOWIEDZI
+# ==========================================
+#
+# Przykład:
+#
+# "Sehr schön! Möchtest du heute ..."
+#
+# zostanie skrócone do:
+#
+# "Sehr schön!"
+#
+# Dzięki temu Nele nie zada dwóch
+# różnych pytań w jednej odpowiedzi.
+# ==========================================
+
+def get_short_answer(
+    answer
+):
+
+    if not answer:
+        return ""
+
+    answer = str(
+        answer
+    ).strip()
+
+    if not answer:
+        return ""
+
+    endings = [
+        "!",
+        ".",
+        "?"
+    ]
+
+    positions = []
+
+    for ending in endings:
+
+        position = answer.find(
+            ending
+        )
+
+        if position >= 0:
+
+            positions.append(
+                position
+            )
+
+
+    if not positions:
+
+        return answer
+
+
+    first_position = min(
+        positions
+    )
+
+
+    return answer[
+        :first_position + 1
+    ].strip()
+
+
+# ==========================================
 # ODPOWIEDŹ PO POWITANIU
 # ==========================================
 
 def create_returning_user_follow_up(
     state,
-    normal_answer
+    normal_answer,
+    intent=""
 ):
+
+    short_answer = get_short_answer(
+        normal_answer
+    )
+
+
+    # ======================================
+    # GORSZE SAMOPOCZUCIE
+    # ======================================
+
+    if intent == "user_wellbeing_bad":
+
+        state[
+            "last_question"
+        ] = None
+
+        return (
+            f"{short_answer} "
+            f"Möchtest du heute lieber "
+            f"etwas Leichtes auf Deutsch üben?"
+        )
+
+
+    # ======================================
+    # OSTATNIA AKTYWNOŚĆ
+    # ======================================
 
     last_activity = state.get(
         "last_activity"
@@ -154,7 +247,7 @@ def create_returning_user_follow_up(
         ] = "continue_last_activity"
 
         return (
-            f"{normal_answer} "
+            f"{short_answer} "
             f"Möchtest du mit dem Wort "
             f"„{word}“ weitermachen?"
         )
@@ -169,7 +262,7 @@ def create_returning_user_follow_up(
     ] = None
 
     return (
-        f"{normal_answer} "
+        f"{short_answer} "
         f"Womit möchtest du heute anfangen?"
     )
 
@@ -198,8 +291,7 @@ def find_response(
 
 
     # ======================================
-    # CZY NELE CZEKA NA ODPOWIEDŹ
-    # O SAMOPOCZUCIU
+    # POPRZEDNIE PYTANIE NELE
     # ======================================
 
     previous_question = state.get(
@@ -256,7 +348,9 @@ def find_response(
         reverse=True
     )
 
-    best_match = matches[0]
+    best_match = matches[
+        0
+    ]
 
     item = best_match[
         "item"
@@ -291,7 +385,7 @@ def find_response(
 
 
     # ======================================
-    # ODPOWIEDŹ NA PYTANIE:
+    # ODPOWIEDŹ NA:
     # "WIE GEHT ES DIR?"
     # ======================================
 
@@ -300,6 +394,7 @@ def find_response(
         "user_wellbeing_bad"
     }
 
+
     if (
         previous_question == "wellbeing"
         and intent in wellbeing_intents
@@ -307,7 +402,8 @@ def find_response(
 
         return create_returning_user_follow_up(
             state,
-            answer
+            answer,
+            intent
         )
 
 
@@ -329,7 +425,8 @@ def find_response(
         if answer:
 
             answer += (
-                " " + question
+                " "
+                + question
             )
 
         else:
