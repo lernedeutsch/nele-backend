@@ -128,6 +128,20 @@ def start_vocabulary_practice(
         "vocabulary_practice_type"
     ] = "meaning"
 
+
+    # ======================================
+    # OSTATNIA AKTYWNOŚĆ UŻYTKOWNIKA
+    # ======================================
+
+    state[
+        "last_activity"
+    ] = "vocabulary"
+
+    state[
+        "last_activity_detail"
+    ] = word
+
+
     display_word = display_vocabulary_word(
         word
     )
