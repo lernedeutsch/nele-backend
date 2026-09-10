@@ -29,16 +29,8 @@ from brain.logic.personalization_router import (
     handle_personalization
 )
 
-from brain.logic.onboarding import (
-    is_onboarding_completed,
-    is_new_user,
-    get_onboarding_step,
-    handle_onboarding_answer,
-    complete_onboarding
-)
-
-from brain.logic.welcome import (
-    generate_welcome_reply
+from brain.logic.onboarding_router import (
+    handle_onboarding
 )
 
 from brain.logic.activity_resume import (
@@ -159,65 +151,18 @@ def generate_conversation_reply(
     # 0. PIERWSZE SPOTKANIE / ONBOARDING
     # ======================================
 
-    if not is_onboarding_completed(
-        state
-    ):
+    onboarding_answer = handle_onboarding(
+        user_message,
+        state,
+        session_id
+    )
 
-        onboarding_step = get_onboarding_step(
-            state
+    if onboarding_answer:
+
+        return return_with_memory(
+            onboarding_answer,
+            session_id
         )
-
-
-        # ==================================
-        # ONBOARDING JUŻ TRWA
-        # ==================================
-
-        if onboarding_step > 0:
-
-            onboarding_answer = (
-                handle_onboarding_answer(
-                    user_message,
-                    state,
-                    session_id
-                )
-            )
-
-            if onboarding_answer:
-
-                return return_with_memory(
-                    onboarding_answer,
-                    session_id
-                )
-
-
-        # ==================================
-        # NOWY UŻYTKOWNIK
-        # ==================================
-
-        elif is_new_user(
-            state
-        ):
-
-            return generate_welcome_reply(
-                session_id
-            )
-
-
-        # ==================================
-        # STARY UŻYTKOWNIK
-        # SPRZED WPROWADZENIA ONBOARDINGU
-        # ==================================
-
-        else:
-
-            complete_onboarding(
-                state
-            )
-
-            return_with_memory(
-                None,
-                session_id
-            )
 
 
     # ======================================
@@ -453,4 +398,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-        )
+    )
