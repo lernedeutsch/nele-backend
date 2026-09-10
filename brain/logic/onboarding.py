@@ -822,9 +822,8 @@ def get_onboarding_retry(
         if short_value:
 
             return (
-                "Ich habe dich verstanden. "
-                "Sag es bitte jetzt als "
-                "ganzen Satz: "
+                "Genau! "
+                "Sag es bitte als ganzen Satz: "
                 f"„Ich heiße {short_value}.“"
             )
 
@@ -844,9 +843,8 @@ def get_onboarding_retry(
         if short_value:
 
             return (
-                "Ich habe dich verstanden. "
-                "Sag es bitte jetzt als "
-                "ganzen Satz: "
+                "Genau! "
+                "Sag es bitte als ganzen Satz: "
                 f"„Ich komme aus {short_value}.“"
             )
 
@@ -866,9 +864,8 @@ def get_onboarding_retry(
         if short_value:
 
             return (
-                "Ich habe dich verstanden. "
-                "Sag es bitte jetzt als "
-                "ganzen Satz: "
+                "Genau! "
+                "Sag es bitte als ganzen Satz: "
                 f"„Ich wohne in {short_value}.“"
             )
 
@@ -897,9 +894,8 @@ def get_onboarding_retry(
         }:
 
             return (
-                "Ich habe dich verstanden. "
-                "Sag es bitte jetzt als "
-                "ganzen Satz: "
+                "Genau! "
+                "Sag es bitte als ganzen Satz: "
                 "„Ich fahre gern Rad.“"
             )
 
@@ -923,9 +919,8 @@ def get_onboarding_retry(
         if level:
 
             return (
-                "Ich habe dich verstanden. "
-                "Sag es bitte jetzt als "
-                "ganzen Satz: "
+                "Genau! "
+                "Sag es bitte als ganzen Satz: "
                 f"„Ich möchte {level} erreichen.“"
             )
 
