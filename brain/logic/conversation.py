@@ -1,14 +1,10 @@
 # ==========================================
-# NELE – LOGIKA ROZMOWY Z PAMIĘCIĄ SESJI
+# NELE – GŁÓWNY ROUTER ROZMOWY
 # ==========================================
 
 from brain.logic.memory import (
     get_conversation_state,
     save_conversation_state
-)
-
-from brain.logic.matcher import (
-    normalize
 )
 
 from brain.logic.message_parser import (
@@ -29,13 +25,8 @@ from brain.logic.user_memory_router import (
     handle_user_memory
 )
 
-from brain.logic.personalization import (
-    create_personalized_exercise,
-    get_personalized_exercise,
-    clear_personalized_exercise,
-    validate_personalized_answer,
-    set_personalized_exercise_step,
-    get_personalized_follow_up
+from brain.logic.personalization_router import (
+    handle_personalization
 )
 
 from brain.logic.onboarding import (
@@ -84,7 +75,7 @@ from brain.memory.review import (
 
 
 # ==========================================
-# ZAPISANIE STANU I ZWROT ODPOWIEDZI
+# ZAPIS STANU I ZWROT ODPOWIEDZI
 # ==========================================
 
 def return_with_memory(
@@ -105,226 +96,6 @@ def return_with_memory(
         )
 
     return answer
-
-
-# ==========================================
-# ODPOWIEDŹ KOŃCOWA PERSONALIZOWANEJ LEKCJI
-# ==========================================
-
-def create_personalized_final_answer(
-    answer,
-    topic,
-    value
-):
-
-    normalized_answer = normalize(
-        answer
-    )
-
-    # ======================================
-    # HOBBY – RADFAHREN
-    # ======================================
-
-    if (
-        topic == "hobby"
-        and normalize(
-            value or ""
-        ) == "radfahren"
-    ):
-
-        if "wochenende" in normalized_answer:
-            return (
-                "Sehr gut! "
-                "Du kannst sagen: "
-                "„Ich fahre am Wochenende Rad.“"
-            )
-
-        if "morgens" in normalized_answer:
-            return (
-                "Sehr gut! "
-                "Du kannst sagen: "
-                "„Ich fahre morgens Rad.“"
-            )
-
-        if "nachmittags" in normalized_answer:
-            return (
-                "Sehr gut! "
-                "Du kannst sagen: "
-                "„Ich fahre nachmittags Rad.“"
-            )
-
-        if "abends" in normalized_answer:
-            return (
-                "Sehr gut! "
-                "Du kannst sagen: "
-                "„Ich fahre abends Rad.“"
-            )
-
-        if "samstag" in normalized_answer:
-            return (
-                "Sehr gut! "
-                "Du kannst sagen: "
-                "„Ich fahre am Samstag Rad.“"
-            )
-
-        if "sonntag" in normalized_answer:
-            return (
-                "Sehr gut! "
-                "Du kannst sagen: "
-                "„Ich fahre am Sonntag Rad.“"
-            )
-
-        return (
-            f"Sehr gut! "
-            f"Du hast gesagt: "
-            f"„{answer}“ "
-            f"Das passt gut zu deinem Hobby "
-            f"{value}."
-        )
-
-    # ======================================
-    # INNY TEMAT
-    # ======================================
-
-    return (
-        f"Sehr gut! "
-        f"Du hast gesagt: "
-        f"„{answer}“"
-    )
-
-
-# ==========================================
-# ODPOWIEDŹ NA PERSONALIZOWANE ĆWICZENIE
-# ==========================================
-
-def handle_personalized_exercise_answer(
-    user_message,
-    state
-):
-
-    exercise = get_personalized_exercise(
-        state
-    )
-
-    if not exercise:
-        return None
-
-    validation = validate_personalized_answer(
-        user_message,
-        state
-    )
-
-    if not validation:
-        return None
-
-    status = validation.get(
-        "status"
-    )
-
-    if status == "retry":
-        return validation.get(
-            "answer"
-        )
-
-    answer = validation.get(
-        "answer",
-        user_message.strip()
-    )
-
-    topic = validation.get(
-        "topic"
-    )
-
-    value = validation.get(
-        "value"
-    )
-
-    # ======================================
-    # ETAP 1 ZAAKCEPTOWANY
-    # ======================================
-
-    if status == "step_1_accepted":
-
-        set_personalized_exercise_step(
-            state,
-            2
-        )
-
-        follow_up = get_personalized_follow_up(
-            state
-        )
-
-        if follow_up:
-            return follow_up
-
-        return (
-            "Sehr gut! "
-            "Machen wir weiter."
-        )
-
-    # ======================================
-    # ETAP 2 ZAAKCEPTOWANY
-    # ======================================
-
-    if status == "step_2_accepted":
-
-        set_personalized_exercise_step(
-            state,
-            3
-        )
-
-        follow_up = get_personalized_follow_up(
-            state
-        )
-
-        if follow_up:
-            return follow_up
-
-        return (
-            "Super! "
-            "Machen wir weiter."
-        )
-
-    # ======================================
-    # ETAP 3 ZAAKCEPTOWANY
-    # ======================================
-
-    if status == "step_3_accepted":
-
-        clear_personalized_exercise(
-            state
-        )
-
-        return create_personalized_final_answer(
-            answer,
-            topic,
-            value
-        )
-
-    # ======================================
-    # STARSZY / INNY TYP ĆWICZENIA
-    # ======================================
-
-    if status == "accepted":
-
-        clear_personalized_exercise(
-            state
-        )
-
-        if topic == "learning_goal":
-            return (
-                f"Sehr gut! "
-                f"Wir arbeiten weiter an "
-                f"deinem Lernziel {value}."
-            )
-
-        return (
-            f"Sehr gut! "
-            f"Deine Antwort lautet: "
-            f"„{answer}“"
-        )
-
-    return None
 
 
 # ==========================================
@@ -360,11 +131,13 @@ def generate_conversation_reply(
             )
 
             if answer:
+
                 answers.append(
                     answer
                 )
 
         if answers:
+
             return return_with_memory(
                 "\n\n".join(
                     answers
@@ -372,36 +145,18 @@ def generate_conversation_reply(
                 session_id
             )
 
+
     # ======================================
-    # PAMIĘĆ SESJI
+    # PAMIĘĆ UŻYTKOWNIKA
     # ======================================
 
     state = get_conversation_state(
         session_id
     )
 
-    # Te dwa pola zostają jako zabezpieczenie.
-    # Jeśli dodasz je do create_empty_state()
-    # w memory.py, można usunąć też to.
-    state.setdefault(
-        "last_activity",
-        None
-    )
-    state.setdefault(
-        "last_activity_detail",
-        None
-    )
 
     # ======================================
-    # NORMALIZACJA WIADOMOŚCI
-    # ======================================
-
-    message = normalize(
-        user_message
-    )
-
-    # ======================================
-    # 0. PIERWSZE SPOTKANIE
+    # 0. PIERWSZE SPOTKANIE / ONBOARDING
     # ======================================
 
     if not is_onboarding_completed(
@@ -411,6 +166,11 @@ def generate_conversation_reply(
         onboarding_step = get_onboarding_step(
             state
         )
+
+
+        # ==================================
+        # ONBOARDING JUŻ TRWA
+        # ==================================
 
         if onboarding_step > 0:
 
@@ -423,10 +183,16 @@ def generate_conversation_reply(
             )
 
             if onboarding_answer:
+
                 return return_with_memory(
                     onboarding_answer,
                     session_id
                 )
+
+
+        # ==================================
+        # NOWY UŻYTKOWNIK
+        # ==================================
 
         elif is_new_user(
             state
@@ -436,11 +202,23 @@ def generate_conversation_reply(
                 session_id
             )
 
+
+        # ==================================
+        # STARY UŻYTKOWNIK
+        # SPRZED WPROWADZENIA ONBOARDINGU
+        # ==================================
+
         else:
 
             complete_onboarding(
                 state
             )
+
+            return_with_memory(
+                None,
+                session_id
+            )
+
 
     # ======================================
     # 1. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
@@ -454,13 +232,15 @@ def generate_conversation_reply(
     )
 
     if continue_answer:
+
         return return_with_memory(
             continue_answer,
             session_id
         )
 
+
     # ======================================
-    # 2. KOREKTA BŁĘDÓW
+    # 2. KOREKTA
     # ======================================
 
     correction_answer = handle_correction(
@@ -469,10 +249,12 @@ def generate_conversation_reply(
     )
 
     if correction_answer:
+
         return return_with_memory(
             correction_answer,
             session_id
         )
+
 
     # ======================================
     # 3. ALFABET
@@ -485,61 +267,34 @@ def generate_conversation_reply(
     )
 
     if alphabet_answer:
+
         return return_with_memory(
             alphabet_answer,
             session_id
         )
 
+
     # ======================================
-    # 4. NOWE PERSONALIZOWANE ĆWICZENIE
+    # 4. PERSONALIZOWANE ĆWICZENIA
     # ======================================
 
-    personalized_exercise_commands = [
-        "übe mit mir",
-        "üb mit mir",
-        "lass uns üben",
-        "lass uns deutsch üben",
-        "mach eine übung mit mir",
-        "gib mir eine persönliche übung"
-    ]
-
-    if message in personalized_exercise_commands:
-
-        personalized_answer = (
-            create_personalized_exercise(
-                state
-            )
+    personalization_answer = (
+        handle_personalization(
+            user_message,
+            state
         )
+    )
+
+    if personalization_answer:
 
         return return_with_memory(
-            personalized_answer,
+            personalization_answer,
             session_id
         )
 
-    # ======================================
-    # 5. ODPOWIEDŹ NA AKTYWNE
-    #    PERSONALIZOWANE ĆWICZENIE
-    # ======================================
-
-    if get_personalized_exercise(
-        state
-    ):
-
-        personalized_exercise_answer = (
-            handle_personalized_exercise_answer(
-                user_message,
-                state
-            )
-        )
-
-        if personalized_exercise_answer:
-            return return_with_memory(
-                personalized_exercise_answer,
-                session_id
-            )
 
     # ======================================
-    # 6. PAMIĘĆ I INFORMACJE O UŻYTKOWNIKU
+    # 5. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
     # ======================================
 
     user_memory_answer = handle_user_memory(
@@ -548,13 +303,15 @@ def generate_conversation_reply(
     )
 
     if user_memory_answer:
+
         return return_with_memory(
             user_memory_answer,
             session_id
         )
 
+
     # ======================================
-    # 7. PAMIĘĆ NAUKI SŁOWNICTWA
+    # 6. PAMIĘĆ NAUKI SŁOWNICTWA
     # ======================================
 
     memory_answer = handle_memory(
@@ -563,13 +320,15 @@ def generate_conversation_reply(
     )
 
     if memory_answer:
+
         return return_with_memory(
             memory_answer,
             session_id
         )
 
+
     # ======================================
-    # 8. KONTYNUACJA AKTUALNEGO TEMATU
+    # 7. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -578,13 +337,15 @@ def generate_conversation_reply(
     )
 
     if topic_answer:
+
         return return_with_memory(
             topic_answer,
             session_id
         )
 
+
     # ======================================
-    # 9. PORÓWNANIA
+    # 8. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -594,13 +355,15 @@ def generate_conversation_reply(
     )
 
     if comparison_answer:
+
         return return_with_memory(
             comparison_answer,
             session_id
         )
 
+
     # ======================================
-    # 10. SŁOWNICTWO
+    # 9. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -609,13 +372,15 @@ def generate_conversation_reply(
     )
 
     if vocabulary_answer:
+
         return return_with_memory(
             vocabulary_answer,
             session_id
         )
 
+
     # ======================================
-    # 11. ROZPOZNAWANIE INTENCJI
+    # 10. INTENCJE
     # ======================================
 
     intent_answer = handle_intent(
@@ -640,8 +405,9 @@ def generate_conversation_reply(
             session_id
         )
 
+
     # ======================================
-    # 12. ZNANE PYTANIA I ZWROTY
+    # 11. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -652,13 +418,15 @@ def generate_conversation_reply(
     )
 
     if known_answer:
+
         return return_with_memory(
             known_answer,
             session_id
         )
 
+
     # ======================================
-    # 13. ODPOWIEDŹ KONTEKSTOWA
+    # 12. KONTEKST
     # ======================================
 
     context_answer = handle_context(
@@ -667,13 +435,15 @@ def generate_conversation_reply(
     )
 
     if context_answer:
+
         return return_with_memory(
             context_answer,
             session_id
         )
 
+
     # ======================================
-    # 14. BRAK WIEDZY
+    # 13. BRAK ZNANEJ ODPOWIEDZI
     # ======================================
 
     return return_with_memory(
@@ -683,4 +453,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-    )
+        )
