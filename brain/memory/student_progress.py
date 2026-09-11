@@ -7,6 +7,13 @@ from datetime import date
 
 
 # ==========================================
+# MAKSYMALNA HISTORIA NAUKI
+# ==========================================
+
+MAX_LEARNING_HISTORY = 30
+
+
+# ==========================================
 # DOMYŚLNY STAN POSTĘPU
 # ==========================================
 
@@ -22,7 +29,14 @@ def create_empty_student_progress():
         "total_exercises": 0,
 
         "last_learning_date": None,
-        "last_learning_topic": None
+        "last_learning_topic": None,
+
+        # ==================================
+        # STUDENT MEMORY 2.0
+        # HISTORIA OSTATNICH AKTYWNOŚCI
+        # ==================================
+
+        "learning_history": []
     }
 
 
@@ -49,6 +63,20 @@ def get_student_progress(
     ]
 
 
+    if not isinstance(
+        progress,
+        dict
+    ):
+
+        progress = (
+            create_empty_student_progress()
+        )
+
+        state[
+            "student_progress"
+        ] = progress
+
+
     # ======================================
     # UZUPEŁNIENIE STARSZEJ PAMIĘCI
     # ======================================
@@ -64,6 +92,22 @@ def get_student_progress(
             progress[
                 key
             ] = value
+
+
+    # ======================================
+    # OCHRONA HISTORII
+    # ======================================
+
+    if not isinstance(
+        progress.get(
+            "learning_history"
+        ),
+        list
+    ):
+
+        progress[
+            "learning_history"
+        ] = []
 
 
     return progress
@@ -305,6 +349,7 @@ def remember_completed_exercise(
 
 # ==========================================
 # OSTATNI TEMAT NAUKI
+# + HISTORIA NAUKI
 # ==========================================
 
 def remember_learning_topic(
@@ -327,13 +372,191 @@ def remember_learning_topic(
         state
     )
 
+    today = date.today().isoformat()
+
+
+    # ======================================
+    # OSTATNI TEMAT
+    # ======================================
+
     progress[
         "last_learning_topic"
     ] = topic
 
     progress[
         "last_learning_date"
-    ] = date.today().isoformat()
+    ] = today
+
+
+    # ======================================
+    # HISTORIA
+    # ======================================
+
+    history = progress[
+        "learning_history"
+    ]
+
+
+    history.append({
+        "topic": topic,
+        "date": today
+    })
+
+
+    # ======================================
+    # NIE PRZECHOWUJEMY NIESKOŃCZONEJ
+    # HISTORII W GŁÓWNYM STANIE
+    # ======================================
+
+    if len(
+        history
+    ) > MAX_LEARNING_HISTORY:
+
+        progress[
+            "learning_history"
+        ] = history[
+            -MAX_LEARNING_HISTORY:
+        ]
+
+
+# ==========================================
+# CAŁA HISTORIA NAUKI
+# ==========================================
+
+def get_learning_history(
+    state
+):
+
+    progress = get_student_progress(
+        state
+    )
+
+    return list(
+        progress.get(
+            "learning_history",
+            []
+        )
+    )
+
+
+# ==========================================
+# OSTATNIE TEMATY NAUKI
+# ==========================================
+
+def get_recent_learning_topics(
+    state,
+    limit=5
+):
+
+    try:
+
+        limit = int(
+            limit
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        limit = 5
+
+
+    if limit < 1:
+        return []
+
+
+    history = get_learning_history(
+        state
+    )
+
+    topics = []
+
+    seen_topics = set()
+
+
+    # ======================================
+    # OD NAJNOWSZYCH DO NAJSTARSZYCH
+    # ======================================
+
+    for item in reversed(
+        history
+    ):
+
+        if not isinstance(
+            item,
+            dict
+        ):
+            continue
+
+
+        topic = item.get(
+            "topic"
+        )
+
+        if not topic:
+            continue
+
+
+        topic = str(
+            topic
+        ).strip()
+
+        if not topic:
+            continue
+
+
+        # ==================================
+        # NIE POKAZUJEMY TEGO SAMEGO
+        # TEMATU KILKA RAZY POD RZĄD
+        # ==================================
+
+        normalized_topic = (
+            topic.lower()
+        )
+
+        if normalized_topic in seen_topics:
+            continue
+
+
+        seen_topics.add(
+            normalized_topic
+        )
+
+        topics.append(
+            topic
+        )
+
+
+        if len(
+            topics
+        ) >= limit:
+            break
+
+
+    return topics
+
+
+# ==========================================
+# POPRZEDNI TEMAT NAUKI
+# ==========================================
+
+def get_previous_learning_topic(
+    state
+):
+
+    topics = get_recent_learning_topics(
+        state,
+        limit=2
+    )
+
+    if len(
+        topics
+    ) < 2:
+
+        return None
+
+    return topics[1]
 
 
 # ==========================================
@@ -389,5 +612,13 @@ def get_progress_summary(
         "last_learning_topic":
             progress.get(
                 "last_learning_topic"
+            ),
+
+        "learning_history":
+            list(
+                progress.get(
+                    "learning_history",
+                    []
+                )
             )
-  }
+    }
