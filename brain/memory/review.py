@@ -16,7 +16,8 @@ from brain.memory.student_progress import (
 )
 
 from brain.memory.next_learning_step import (
-    get_next_learning_step
+    get_next_learning_step,
+    get_next_new_learning_step
 )
 
 
@@ -129,7 +130,7 @@ def answer_last_learning(
 
 
     # ======================================
-    # NOWA HISTORIA STUDENT MEMORY 2.0
+    # HISTORIA STUDENT MEMORY 2.0
     # ======================================
 
     recent_topics = get_recent_learning_topics(
@@ -160,7 +161,7 @@ def answer_last_learning(
 
 
         # ==================================
-        # PRZYGOTOWANIE "JA" → KONTYNUACJA
+        # "JA" → KONTYNUACJA
         # ==================================
 
         state[
@@ -284,10 +285,11 @@ def answer_last_learning(
 
 
 # ==========================================
-# FRAGE NACH DEM NÄCHSTEN LERNSCHRITT
+# FRAGE:
+# WAS SOLL ICH ÜBEN?
 # ==========================================
 
-def is_next_learning_request(
+def is_next_practice_request(
     user_message
 ):
 
@@ -300,34 +302,27 @@ def is_next_learning_request(
     questions = [
         "was soll ich heute üben",
         "was soll ich üben",
-        "was soll ich heute lernen",
         "was üben wir heute",
-        "was lernen wir heute",
-        "was empfiehlst du mir",
-        "was empfiehlst du mir heute",
-        "was machen wir als nächstes",
-        "was machen wir jetzt",
         "was soll ich als nächstes üben",
-        "was soll ich als nächstes lernen",
-        "womit soll ich weitermachen",
-        "wie soll ich weitermachen",
-        "was ist der nächste schritt",
-        "was ist mein nächster lernschritt"
+        "womit soll ich weiterüben",
+        "was kann ich heute üben",
+        "was empfiehlst du mir zum üben"
     ]
 
     return message in questions
 
 
 # ==========================================
-# ANTWORT – NÄCHSTER LERNSCHRITT
+# ANTWORT:
+# WAS SOLL ICH ÜBEN?
 # ==========================================
 
-def answer_next_learning_step(
+def answer_next_practice_step(
     user_message,
     state
 ):
 
-    if not is_next_learning_request(
+    if not is_next_practice_request(
         user_message
     ):
         return None
@@ -350,10 +345,6 @@ def answer_next_learning_step(
         "message"
     )
 
-    plan_type = plan.get(
-        "type"
-    )
-
     words = plan.get(
         "words",
         []
@@ -369,8 +360,7 @@ def answer_next_learning_step(
 
 
     # ======================================
-    # PLAN ZAWIERA SŁOWA
-    # PIERWSZE SŁOWO MOŻNA OD RAZU URUCHOMIĆ
+    # PLAN MA KONKRETNE SŁOWA
     # ======================================
 
     if words:
@@ -397,11 +387,6 @@ def answer_next_learning_step(
         ] = "continue_last_activity"
 
 
-        # ==================================
-        # JEŻELI PLAN JUŻ ZAWIERA PYTANIE,
-        # NIE DODAJEMY DRUGIEGO
-        # ==================================
-
         if message.strip().endswith(
             "?"
         ):
@@ -417,20 +402,215 @@ def answer_next_learning_step(
         )
 
 
-    # ======================================
-    # KONTYNUACJA TEMATU BEZ KONKRETNEGO SŁOWA
-    # ======================================
+    return message
 
-    if plan_type == "continue_topic":
 
-        return message
+# ==========================================
+# FRAGE:
+# WAS SOLL ICH LERNEN?
+# ==========================================
+
+def is_next_new_learning_request(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!"
+    )
+
+    questions = [
+        "was soll ich heute lernen",
+        "was soll ich lernen",
+        "was lernen wir heute",
+        "was soll ich als nächstes lernen",
+        "was kann ich heute lernen",
+        "was ist der nächste lernstoff",
+        "was ist mein nächster lernstoff",
+        "was ist mein nächster lernschritt",
+        "was soll ich neu lernen"
+    ]
+
+    return message in questions
+
+
+# ==========================================
+# ANTWORT:
+# WAS SOLL ICH LERNEN?
+# ==========================================
+
+def answer_next_new_learning_step(
+    user_message,
+    state
+):
+
+    if not is_next_new_learning_request(
+        user_message
+    ):
+        return None
+
+
+    plan = get_next_new_learning_step(
+        state
+    )
+
+
+    if not plan:
+
+        return (
+            "Lass uns mit etwas Neuem "
+            "anfangen."
+        )
+
+
+    message = plan.get(
+        "message"
+    )
+
+
+    if not message:
+
+        return (
+            "Lass uns mit etwas Neuem "
+            "anfangen."
+        )
 
 
     return message
 
 
 # ==========================================
-# FRAGE NACH GEÜBTEN WÖRTERN ERKENNEN
+# ALLGEMEINE EMPFEHLUNG
+# ==========================================
+
+def is_general_recommendation_request(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!"
+    )
+
+    questions = [
+        "was empfiehlst du mir",
+        "was machen wir als nächstes",
+        "was machen wir jetzt",
+        "wie soll ich weitermachen",
+        "was ist der nächste schritt"
+    ]
+
+    return message in questions
+
+
+# ==========================================
+# ANTWORT – ALLGEMEINE EMPFEHLUNG
+# ==========================================
+
+def answer_general_recommendation(
+    user_message,
+    state
+):
+
+    if not is_general_recommendation_request(
+        user_message
+    ):
+        return None
+
+
+    # ======================================
+    # ZUERST PRÜFEN, OB ETWAS
+    # WIEDERHOLT WERDEN SOLLTE
+    # ======================================
+
+    practice_plan = get_next_learning_step(
+        state
+    )
+
+    practice_type = practice_plan.get(
+        "type"
+    )
+
+
+    if practice_type in {
+        "vocabulary_review",
+        "difficult_vocabulary"
+    }:
+
+        message = practice_plan.get(
+            "message"
+        )
+
+        words = practice_plan.get(
+            "words",
+            []
+        )
+
+
+        if words:
+
+            first_word = words[0]
+
+            first_word_display = (
+                display_memory_word(
+                    first_word
+                )
+            )
+
+
+            state[
+                "last_activity"
+            ] = "vocabulary"
+
+            state[
+                "last_activity_detail"
+            ] = first_word
+
+            state[
+                "last_question"
+            ] = "continue_last_activity"
+
+
+            return (
+                f"{message} "
+                f"Möchtest du mit "
+                f"„{first_word_display}“ "
+                "anfangen?"
+            )
+
+
+        if message:
+            return message
+
+
+    # ======================================
+    # WENN KEINE WICHTIGE WIEDERHOLUNG
+    # ANSTEHT → NEUER STOFF
+    # ======================================
+
+    new_plan = get_next_new_learning_step(
+        state
+    )
+
+    message = new_plan.get(
+        "message"
+    )
+
+
+    if message:
+        return message
+
+
+    return (
+        "Lass uns mit dem nächsten "
+        "Lernschritt weitermachen."
+    )
+
+
+# ==========================================
+# FRAGE NACH GEÜBTEN WÖRTERN
 # ==========================================
 
 def is_practiced_words_request(
@@ -458,7 +638,7 @@ def is_practiced_words_request(
 
 
 # ==========================================
-# FRAGE NACH ANZAHL DER ÜBUNGEN ERKENNEN
+# FRAGE NACH ANZAHL DER ÜBUNGEN
 # ==========================================
 
 def extract_practice_count_word(
@@ -511,7 +691,7 @@ def extract_practice_count_word(
 
 
 # ==========================================
-# GEÜBTE WÖRTER FORMATIEREN
+# WORTLISTE FORMATIEREN
 # ==========================================
 
 def format_word_list(
@@ -581,7 +761,7 @@ def answer_practiced_words(
 
 
 # ==========================================
-# ANTWORT – WIE OFT WURDE EIN WORT GEÜBT
+# ANTWORT – WIE OFT
 # ==========================================
 
 def answer_practice_count(
@@ -627,7 +807,7 @@ def answer_practice_count(
 
 
 # ==========================================
-# FRAGE NACH WIEDERHOLUNG ERKENNEN
+# FRAGE NACH WIEDERHOLUNG
 # ==========================================
 
 def is_review_request(
@@ -652,7 +832,7 @@ def is_review_request(
 
 
 # ==========================================
-# ANTWORT – WÖRTER ZUM WIEDERHOLEN
+# ANTWORT – WIEDERHOLUNG
 # ==========================================
 
 def answer_review_words(
@@ -714,7 +894,7 @@ def is_mastered_words_request(
 
 
 # ==========================================
-# GUT GEKONNTE WÖRTER HOLEN
+# GUT GEKONNTE WÖRTER
 # ==========================================
 
 def get_mastered_words(
@@ -818,7 +998,7 @@ def is_difficult_words_request(
 
 
 # ==========================================
-# SCHWIERIGE WÖRTER HOLEN
+# SCHWIERIGE WÖRTER
 # ==========================================
 
 def get_difficult_words(
@@ -918,11 +1098,36 @@ def handle_memory(
 
 
     # ======================================
-    # STUDENT MEMORY 2.0
-    # NASTĘPNY KROK
+    # CO ĆWICZYĆ
     # ======================================
 
-    answer = answer_next_learning_step(
+    answer = answer_next_practice_step(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # CZEGO NOWEGO SIĘ UCZYĆ
+    # ======================================
+
+    answer = answer_next_new_learning_step(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # OGÓLNA REKOMENDACJA
+    # ======================================
+
+    answer = answer_general_recommendation(
         user_message,
         state
     )
@@ -945,7 +1150,7 @@ def handle_memory(
 
 
     # ======================================
-    # LICZBA ĆWICZEŃ SŁOWA
+    # LICZBA ĆWICZEŃ
     # ======================================
 
     answer = answer_practice_count(
@@ -958,7 +1163,7 @@ def handle_memory(
 
 
     # ======================================
-    # SŁOWA DO POWTÓRKI
+    # POWTÓRKI
     # ======================================
 
     answer = answer_review_words(
@@ -971,7 +1176,7 @@ def handle_memory(
 
 
     # ======================================
-    # OPANOWANE SŁOWA
+    # OPANOWANE
     # ======================================
 
     answer = answer_mastered_words(
@@ -984,7 +1189,7 @@ def handle_memory(
 
 
     # ======================================
-    # TRUDNE SŁOWA
+    # TRUDNE
     # ======================================
 
     answer = answer_difficult_words(
