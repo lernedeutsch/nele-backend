@@ -11,8 +11,68 @@ from brain.memory.vocabulary_memory import (
 )
 
 from brain.memory.student_progress import (
-    get_student_progress
+    get_student_progress,
+    get_recent_learning_topics
 )
+
+from brain.memory.next_learning_step import (
+    get_next_learning_step
+)
+
+
+# ==========================================
+# WORT SCHÖN ANZEIGEN
+# ==========================================
+
+def display_memory_word(
+    word
+):
+
+    if not word:
+        return ""
+
+    word = str(
+        word
+    ).strip()
+
+    if not word:
+        return ""
+
+    return (
+        word[:1].upper()
+        + word[1:]
+    )
+
+
+# ==========================================
+# WORT AUS LERNTHEMA HOLEN
+# ==========================================
+
+def get_word_from_learning_topic(
+    topic
+):
+
+    if not topic:
+        return None
+
+    topic = str(
+        topic
+    ).strip()
+
+    if not topic.startswith(
+        "Wortschatz:"
+    ):
+        return None
+
+    word = topic.split(
+        ":",
+        1
+    )[1].strip()
+
+    if not word:
+        return None
+
+    return word
 
 
 # ==========================================
@@ -45,30 +105,6 @@ def is_last_learning_request(
 
 
 # ==========================================
-# LETZTES GELERNTES WORT SCHÖN ANZEIGEN
-# ==========================================
-
-def display_memory_word(
-    word
-):
-
-    if not word:
-        return ""
-
-    word = str(
-        word
-    ).strip()
-
-    if not word:
-        return ""
-
-    return (
-        word[:1].upper()
-        + word[1:]
-    )
-
-
-# ==========================================
 # ANTWORT – LETZTE LERNAKTIVITÄT
 # ==========================================
 
@@ -83,10 +119,6 @@ def answer_last_learning(
         return None
 
 
-    # ======================================
-    # STUDENT MEMORY 2.0
-    # ======================================
-
     progress = get_student_progress(
         state
     )
@@ -97,79 +129,304 @@ def answer_last_learning(
 
 
     # ======================================
-    # ZGODNOŚĆ ZE STARSZĄ PAMIĘCIĄ
+    # NOWA HISTORIA STUDENT MEMORY 2.0
     # ======================================
 
-    if not last_topic:
+    recent_topics = get_recent_learning_topics(
+        state,
+        limit=2
+    )
 
-        last_activity = state.get(
+
+    if recent_topics:
+
+        last_topic = recent_topics[0]
+
+
+    # ======================================
+    # OSTATNIE SŁOWO
+    # ======================================
+
+    last_word = get_word_from_learning_topic(
+        last_topic
+    )
+
+
+    if last_word:
+
+        last_word_display = display_memory_word(
+            last_word
+        )
+
+
+        # ==================================
+        # PRZYGOTOWANIE "JA" → KONTYNUACJA
+        # ==================================
+
+        state[
             "last_activity"
-        )
+        ] = "vocabulary"
 
-        last_detail = state.get(
+        state[
             "last_activity_detail"
-        )
+        ] = last_word
 
-        if (
-            last_activity == "vocabulary"
-            and last_detail
-        ):
+        state[
+            "last_question"
+        ] = "continue_last_activity"
 
-            display_word = display_memory_word(
-                last_detail
+
+        # ==================================
+        # POPRZEDNIA AKTYWNOŚĆ
+        # ==================================
+
+        previous_text = ""
+
+
+        if len(
+            recent_topics
+        ) >= 2:
+
+            previous_topic = recent_topics[1]
+
+            previous_word = (
+                get_word_from_learning_topic(
+                    previous_topic
+                )
             )
 
-            return (
-                "Zuletzt hast du das Wort "
-                f"„{display_word}“ geübt."
-            )
 
+            if previous_word:
 
-    # ======================================
-    # JESZCZE BRAK HISTORII
-    # ======================================
+                previous_display = (
+                    display_memory_word(
+                        previous_word
+                    )
+                )
 
-    if not last_topic:
+                previous_text = (
+                    f" Davor hast du "
+                    f"„{previous_display}“ geübt."
+                )
 
-        return (
-            "Ich habe noch keine letzte "
-            "Lernaktivität gespeichert. "
-            "Lass uns etwas üben!"
-        )
+            else:
 
+                previous_text = (
+                    f" Davor hast du "
+                    f"„{previous_topic}“ geübt."
+                )
 
-    # ======================================
-    # SŁOWNICTWO
-    # np. "Wortschatz: Langsam"
-    # ======================================
-
-    if last_topic.startswith(
-        "Wortschatz:"
-    ):
-
-        word = last_topic.split(
-            ":",
-            1
-        )[1].strip()
-
-        word = display_memory_word(
-            word
-        )
 
         return (
             "Zuletzt hast du das Wort "
-            f"„{word}“ geübt."
+            f"„{last_word_display}“ geübt."
+            f"{previous_text} "
+            f"Möchtest du mit "
+            f"„{last_word_display}“ "
+            "weitermachen?"
         )
 
 
     # ======================================
-    # INNY TEMAT
+    # INNY OSTATNI TEMAT
     # ======================================
 
-    return (
-        "Zuletzt hast du "
-        f"„{last_topic}“ geübt."
+    if last_topic:
+
+        return (
+            "Zuletzt hast du "
+            f"„{last_topic}“ geübt."
+        )
+
+
+    # ======================================
+    # ZGODNOŚĆ ZE STARSZĄ PAMIĘCIĄ
+    # ======================================
+
+    last_activity = state.get(
+        "last_activity"
     )
+
+    last_detail = state.get(
+        "last_activity_detail"
+    )
+
+
+    if (
+        last_activity == "vocabulary"
+        and last_detail
+    ):
+
+        display_word = display_memory_word(
+            last_detail
+        )
+
+
+        state[
+            "last_question"
+        ] = "continue_last_activity"
+
+
+        return (
+            "Zuletzt hast du das Wort "
+            f"„{display_word}“ geübt. "
+            f"Möchtest du mit "
+            f"„{display_word}“ "
+            "weitermachen?"
+        )
+
+
+    return (
+        "Ich habe noch keine letzte "
+        "Lernaktivität gespeichert. "
+        "Lass uns etwas üben!"
+    )
+
+
+# ==========================================
+# FRAGE NACH DEM NÄCHSTEN LERNSCHRITT
+# ==========================================
+
+def is_next_learning_request(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!"
+    )
+
+    questions = [
+        "was soll ich heute üben",
+        "was soll ich üben",
+        "was soll ich heute lernen",
+        "was üben wir heute",
+        "was lernen wir heute",
+        "was empfiehlst du mir",
+        "was empfiehlst du mir heute",
+        "was machen wir als nächstes",
+        "was machen wir jetzt",
+        "was soll ich als nächstes üben",
+        "was soll ich als nächstes lernen",
+        "womit soll ich weitermachen",
+        "wie soll ich weitermachen",
+        "was ist der nächste schritt",
+        "was ist mein nächster lernschritt"
+    ]
+
+    return message in questions
+
+
+# ==========================================
+# ANTWORT – NÄCHSTER LERNSCHRITT
+# ==========================================
+
+def answer_next_learning_step(
+    user_message,
+    state
+):
+
+    if not is_next_learning_request(
+        user_message
+    ):
+        return None
+
+
+    plan = get_next_learning_step(
+        state
+    )
+
+
+    if not plan:
+
+        return (
+            "Lass uns mit einer "
+            "kleinen Übung anfangen."
+        )
+
+
+    message = plan.get(
+        "message"
+    )
+
+    plan_type = plan.get(
+        "type"
+    )
+
+    words = plan.get(
+        "words",
+        []
+    )
+
+
+    if not message:
+
+        return (
+            "Lass uns mit einer "
+            "kleinen Übung anfangen."
+        )
+
+
+    # ======================================
+    # PLAN ZAWIERA SŁOWA
+    # PIERWSZE SŁOWO MOŻNA OD RAZU URUCHOMIĆ
+    # ======================================
+
+    if words:
+
+        first_word = words[0]
+
+        first_word_display = (
+            display_memory_word(
+                first_word
+            )
+        )
+
+
+        state[
+            "last_activity"
+        ] = "vocabulary"
+
+        state[
+            "last_activity_detail"
+        ] = first_word
+
+        state[
+            "last_question"
+        ] = "continue_last_activity"
+
+
+        # ==================================
+        # JEŻELI PLAN JUŻ ZAWIERA PYTANIE,
+        # NIE DODAJEMY DRUGIEGO
+        # ==================================
+
+        if message.strip().endswith(
+            "?"
+        ):
+
+            return message
+
+
+        return (
+            f"{message} "
+            f"Möchtest du mit "
+            f"„{first_word_display}“ "
+            "anfangen?"
+        )
+
+
+    # ======================================
+    # KONTYNUACJA TEMATU BEZ KONKRETNEGO SŁOWA
+    # ======================================
+
+    if plan_type == "continue_topic":
+
+        return message
+
+
+    return message
 
 
 # ==========================================
@@ -268,6 +525,7 @@ def format_word_list(
         return words[0]
 
     if len(words) == 2:
+
         return (
             words[0]
             + " und "
@@ -306,6 +564,7 @@ def answer_practiced_words(
     )
 
     if not words:
+
         return (
             "Du hast noch keine Wörter geübt."
         )
@@ -346,6 +605,7 @@ def answer_practice_count(
     )
 
     if not word_memory:
+
         return (
             f"Du hast „{word}“ noch nicht geübt."
         )
@@ -356,6 +616,7 @@ def answer_practice_count(
     )
 
     if count == 1:
+
         return (
             f"Du hast „{word}“ 1-mal geübt."
         )
@@ -382,7 +643,6 @@ def is_review_request(
         "welche wörter soll ich wiederholen",
         "was muss ich wiederholen",
         "welche wörter muss ich wiederholen",
-        "was soll ich üben",
         "welche wörter soll ich üben"
     ]
 
@@ -410,8 +670,10 @@ def answer_review_words(
     )
 
     if not words:
+
         return (
-            "Im Moment musst du keine Wörter wiederholen."
+            "Im Moment musst du "
+            "keine Wörter wiederholen."
         )
 
     word_list = format_word_list(
@@ -419,7 +681,8 @@ def answer_review_words(
     )
 
     return (
-        "Diese Wörter solltest du wiederholen: "
+        "Diese Wörter solltest du "
+        "wiederholen: "
         + word_list
         + "."
     )
@@ -464,6 +727,7 @@ def get_mastered_words(
 
     words = []
 
+
     for word, word_memory in vocabulary_memory.items():
 
         correct_streak = word_memory.get(
@@ -476,6 +740,7 @@ def get_mastered_words(
             False
         )
 
+
         if (
             correct_streak >= 3
             and not needs_review
@@ -484,6 +749,7 @@ def get_mastered_words(
             words.append(
                 word
             )
+
 
     return words
 
@@ -507,8 +773,10 @@ def answer_mastered_words(
     )
 
     if not words:
+
         return (
-            "Du hast noch keine Wörter sicher gelernt."
+            "Du hast noch keine Wörter "
+            "sicher gelernt."
         )
 
     word_list = format_word_list(
@@ -516,7 +784,8 @@ def answer_mastered_words(
     )
 
     return (
-        "Diese Wörter kannst du schon gut: "
+        "Diese Wörter kannst du "
+        "schon gut: "
         + word_list
         + "."
     )
@@ -562,6 +831,7 @@ def get_difficult_words(
 
     words = []
 
+
     for word, word_memory in vocabulary_memory.items():
 
         mistakes = word_memory.get(
@@ -574,6 +844,7 @@ def get_difficult_words(
             False
         )
 
+
         if (
             mistakes > 0
             or needs_review
@@ -582,6 +853,7 @@ def get_difficult_words(
             words.append(
                 word
             )
+
 
     return words
 
@@ -605,8 +877,10 @@ def answer_difficult_words(
     )
 
     if not words:
+
         return (
-            "Im Moment sehe ich keine schwierigen Wörter."
+            "Im Moment sehe ich "
+            "keine schwierigen Wörter."
         )
 
     word_list = format_word_list(
@@ -614,7 +888,8 @@ def answer_difficult_words(
     )
 
     return (
-        "Diese Wörter waren für dich schwierig: "
+        "Diese Wörter waren für dich "
+        "schwierig: "
         + word_list
         + "."
     )
@@ -630,11 +905,24 @@ def handle_memory(
 ):
 
     # ======================================
-    # STUDENT MEMORY 2.0
     # OSTATNIA AKTYWNOŚĆ
     # ======================================
 
     answer = answer_last_learning(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # STUDENT MEMORY 2.0
+    # NASTĘPNY KROK
+    # ======================================
+
+    answer = answer_next_learning_step(
         user_message,
         state
     )
@@ -706,5 +994,6 @@ def handle_memory(
 
     if answer:
         return answer
+
 
     return None
