@@ -9,7 +9,10 @@ from brain.memory.vocabulary_memory import (
 )
 
 from brain.memory.student_progress import (
-    get_recent_learning_topics
+    get_recent_learning_topics,
+    get_current_level,
+    get_current_lesson,
+    is_lesson_completed
 )
 
 
@@ -286,23 +289,18 @@ def get_review_plan(
 
 
 # ==========================================
-# NASTĘPNY KROK NAUKI
+# NASTĘPNY KROK – POWTÓRKA / ĆWICZENIE
 # ==========================================
 
 def get_next_learning_step(
     state
 ):
     """
-    Analizuje pamięć ucznia i zwraca
-    propozycję następnego kroku nauki.
+    Decyduje, co uczeń powinien
+    POWTÓRZYĆ lub ĆWICZYĆ.
 
-    Zwracany wynik jest słownikiem,
-    żeby później mogły z niego korzystać:
-    - welcome.py
-    - review.py
-    - lekcje
-    - dialogi
-    - przyszły avatar
+    To jest odpowiedź na pytania typu:
+    "Was soll ich heute üben?"
     """
 
     if state is None:
@@ -331,27 +329,14 @@ def get_next_learning_step(
             review_words
         )
 
-
-        if len(review_words) == 1:
-
-            message = (
-                "Heute sollten wir zuerst "
-                f"{word_list} wiederholen."
-            )
-
-        else:
-
-            message = (
-                "Heute sollten wir zuerst "
-                f"{word_list} wiederholen."
-            )
-
-
         return {
             "type": "vocabulary_review",
             "words": review_words,
             "topic": "Wortschatz",
-            "message": message
+            "message": (
+                "Heute sollten wir zuerst "
+                f"{word_list} wiederholen."
+            )
         }
 
 
@@ -404,7 +389,6 @@ def get_next_learning_step(
             recent_words[0]
         )
 
-
         return {
             "type": "continue_vocabulary",
             "words": [
@@ -433,10 +417,6 @@ def get_next_learning_step(
 
         topic = recent_topics[0]
 
-
-        # ==================================
-        # TEMAT HOTEL
-        # ==================================
 
         if "hotel" in topic.lower():
 
@@ -484,7 +464,106 @@ def get_next_learning_step(
 
 
 # ==========================================
-# TYLKO GOTOWA WIADOMOŚĆ DLA NELE
+# NASTĘPNY NOWY MATERIAŁ
+# ==========================================
+
+def get_next_new_learning_step(
+    state
+):
+    """
+    Decyduje, czego NOWEGO uczeń
+    powinien uczyć się dalej.
+
+    To jest odpowiedź na pytania typu:
+    "Was soll ich heute lernen?"
+
+    Funkcja NIE wybiera powtórek.
+    """
+
+    if state is None:
+
+        return {
+            "type": "new_learning",
+            "level": "A1",
+            "lesson": 1,
+            "topic": None,
+            "message": (
+                "Lass uns mit A1, "
+                "Lektion 1 anfangen."
+            )
+        }
+
+
+    # ======================================
+    # AKTUALNY POZIOM
+    # ======================================
+
+    level = get_current_level(
+        state
+    )
+
+
+    # ======================================
+    # AKTUALNA LEKCJA
+    # ======================================
+
+    current_lesson = get_current_lesson(
+        state
+    )
+
+
+    # ======================================
+    # JEŻELI AKTUALNA LEKCJA
+    # JEST JUŻ UKOŃCZONA,
+    # PROPONUJEMY NASTĘPNĄ
+    # ======================================
+
+    if is_lesson_completed(
+        state,
+        current_lesson
+    ):
+
+        next_lesson = (
+            current_lesson + 1
+        )
+
+        return {
+            "type": "new_lesson",
+            "level": level,
+            "lesson": next_lesson,
+            "topic": None,
+            "message": (
+                f"Du hast {level}, "
+                f"Lektion {current_lesson} "
+                "schon abgeschlossen. "
+                "Als Nächstes können wir mit "
+                f"{level}, Lektion {next_lesson} "
+                "weitermachen."
+            )
+        }
+
+
+    # ======================================
+    # AKTUALNA LEKCJA NIE JEST
+    # JESZCZE UKOŃCZONA
+    # ======================================
+
+    return {
+        "type": "continue_lesson",
+        "level": level,
+        "lesson": current_lesson,
+        "topic": None,
+        "message": (
+            f"Du bist gerade bei "
+            f"{level}, Lektion {current_lesson}. "
+            "Als Nächstes können wir dort "
+            "mit neuem Stoff weitermachen."
+        )
+    }
+
+
+# ==========================================
+# WIADOMOŚĆ – POWTÓRKA
 # ==========================================
 
 def get_next_learning_message(
@@ -497,4 +576,21 @@ def get_next_learning_message(
 
     return plan.get(
         "message"
-  )
+    )
+
+
+# ==========================================
+# WIADOMOŚĆ – NOWY MATERIAŁ
+# ==========================================
+
+def get_next_new_learning_message(
+    state
+):
+
+    plan = get_next_new_learning_step(
+        state
+    )
+
+    return plan.get(
+        "message"
+)
