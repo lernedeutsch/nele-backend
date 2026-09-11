@@ -15,6 +15,13 @@ from brain.memory.student_progress import (
     is_lesson_completed
 )
 
+from brain.memory.lesson_progress import (
+    get_lesson_progress,
+    get_next_incomplete_section,
+    get_lesson_completion_percent,
+    is_lesson_fully_completed
+)
+
 
 # ==========================================
 # ŁADNE WYŚWIETLANIE SŁOWA
@@ -159,10 +166,6 @@ def get_difficult_words(
         )
 
 
-    # ======================================
-    # NAJWIĘCEJ BŁĘDÓW NA POCZĄTKU
-    # ======================================
-
     difficult_words.sort(
         key=lambda item: (
             item[1],
@@ -247,11 +250,6 @@ def get_review_plan(
     )
 
 
-    # ======================================
-    # TRUDNE SŁOWA, KTÓRYCH NIE MA JESZCZE
-    # NA LIŚCIE POWTÓREK
-    # ======================================
-
     extra_difficult = []
 
     review_keys = {
@@ -269,10 +267,6 @@ def get_review_plan(
             word
         )
 
-
-    # ======================================
-    # MAKSYMALNIE 3 SŁOWA NA POCZĄTEK
-    # ======================================
 
     main_words = (
         review_words
@@ -299,7 +293,7 @@ def get_next_learning_step(
     Decyduje, co uczeń powinien
     POWTÓRZYĆ lub ĆWICZYĆ.
 
-    To jest odpowiedź na pytania typu:
+    Przykład:
     "Was soll ich heute üben?"
     """
 
@@ -315,7 +309,7 @@ def get_next_learning_step(
 
 
     # ======================================
-    # 1. NAJPIERW POWTÓRKI
+    # 1. SŁOWA DO POWTÓRKI
     # ======================================
 
     review_words = get_review_plan(
@@ -474,10 +468,15 @@ def get_next_new_learning_step(
     Decyduje, czego NOWEGO uczeń
     powinien uczyć się dalej.
 
-    To jest odpowiedź na pytania typu:
+    Przykład:
     "Was soll ich heute lernen?"
 
-    Funkcja NIE wybiera powtórek.
+    Jeżeli znamy strukturę lekcji,
+    wybiera pierwszą nieukończoną część.
+
+    Jeżeli struktura lekcji nie została
+    jeszcze podłączona, zachowuje
+    wcześniejsze działanie.
     """
 
     if state is None:
@@ -486,6 +485,7 @@ def get_next_new_learning_step(
             "type": "new_learning",
             "level": "A1",
             "lesson": 1,
+            "section": None,
             "topic": None,
             "message": (
                 "Lass uns mit A1, "
@@ -513,9 +513,109 @@ def get_next_new_learning_step(
 
 
     # ======================================
-    # JEŻELI AKTUALNA LEKCJA
-    # JEST JUŻ UKOŃCZONA,
-    # PROPONUJEMY NASTĘPNĄ
+    # POSTĘP WEWNĄTRZ LEKCJI
+    # ======================================
+
+    lesson_progress = get_lesson_progress(
+        state,
+        level,
+        current_lesson
+    )
+
+
+    sections = lesson_progress.get(
+        "sections",
+        []
+    )
+
+
+    # ======================================
+    # JEŻELI LEKCJA MA JUŻ
+    # ZDEFINIOWANE CZĘŚCI
+    # ======================================
+
+    if sections:
+
+        next_section = (
+            get_next_incomplete_section(
+                state,
+                level,
+                current_lesson
+            )
+        )
+
+
+        # ==================================
+        # JEST JESZCZE COŚ NOWEGO
+        # DO NAUKI W TEJ LEKCJI
+        # ==================================
+
+        if next_section:
+
+            completion_percent = (
+                get_lesson_completion_percent(
+                    state,
+                    level,
+                    current_lesson
+                )
+            )
+
+
+            return {
+                "type": "new_section",
+                "level": level,
+                "lesson": current_lesson,
+                "section": next_section,
+                "topic": next_section,
+                "completion_percent":
+                    completion_percent,
+
+                "message": (
+                    f"Du bist bei {level}, "
+                    f"Lektion {current_lesson}. "
+                    "Als Nächstes ist "
+                    f"„{next_section}“ dran."
+                )
+            }
+
+
+        # ==================================
+        # WSZYSTKIE CZĘŚCI UKOŃCZONE
+        # ==================================
+
+        if is_lesson_fully_completed(
+            state,
+            level,
+            current_lesson
+        ):
+
+            next_lesson = (
+                current_lesson + 1
+            )
+
+
+            return {
+                "type": "new_lesson",
+                "level": level,
+                "lesson": next_lesson,
+                "section": None,
+                "topic": None,
+                "completion_percent": 100,
+
+                "message": (
+                    f"Du hast {level}, "
+                    f"Lektion {current_lesson} "
+                    "abgeschlossen. "
+                    "Als Nächstes können wir "
+                    f"mit {level}, Lektion "
+                    f"{next_lesson} anfangen."
+                )
+            }
+
+
+    # ======================================
+    # STARY SYSTEM:
+    # CAŁA LEKCJA OZNACZONA JAKO UKOŃCZONA
     # ======================================
 
     if is_lesson_completed(
@@ -527,11 +627,14 @@ def get_next_new_learning_step(
             current_lesson + 1
         )
 
+
         return {
             "type": "new_lesson",
             "level": level,
             "lesson": next_lesson,
+            "section": None,
             "topic": None,
+
             "message": (
                 f"Du hast {level}, "
                 f"Lektion {current_lesson} "
@@ -544,15 +647,16 @@ def get_next_new_learning_step(
 
 
     # ======================================
-    # AKTUALNA LEKCJA NIE JEST
-    # JESZCZE UKOŃCZONA
+    # JESZCZE NIE MA STRUKTURY CZĘŚCI
     # ======================================
 
     return {
         "type": "continue_lesson",
         "level": level,
         "lesson": current_lesson,
+        "section": None,
         "topic": None,
+
         "message": (
             f"Du bist gerade bei "
             f"{level}, Lektion {current_lesson}. "
@@ -593,4 +697,4 @@ def get_next_new_learning_message(
 
     return plan.get(
         "message"
-)
+    )
