@@ -13,6 +13,10 @@ from brain.memory.student_progress import (
     create_empty_student_progress
 )
 
+from brain.memory.lesson_progress import (
+    create_empty_lesson_progress
+)
+
 
 conversation_sessions = {}
 
@@ -87,6 +91,15 @@ def create_empty_state():
 
         "student_progress":
             create_empty_student_progress(),
+
+
+        # ==================================
+        # STUDENT MEMORY 2.0
+        # POSTĘP WEWNĄTRZ LEKCJI
+        # ==================================
+
+        "lesson_progress":
+            create_empty_lesson_progress(),
 
 
         # ==================================
@@ -327,6 +340,7 @@ def reset_conversation_state(
     - dane użytkownika
     - onboarding
     - Student Memory 2.0
+    - postęp w lekcjach
     - postępy słownictwa
     - aktywne ćwiczenia
     - ostatnią aktywność
