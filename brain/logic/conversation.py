@@ -49,6 +49,10 @@ from brain.logic.lesson_teaching import (
     handle_lesson_teaching
 )
 
+from brain.logic.learner_feedback import (
+    prepare_message_with_feedback
+)
+
 from brain.logic.activity_resume import (
     handle_continue_last_activity
 )
@@ -108,6 +112,48 @@ def return_with_memory(
         )
 
     return answer
+
+
+# ==========================================
+# POŁĄCZENIE FEEDBACKU Z ODPOWIEDZIĄ
+# ==========================================
+
+def combine_learner_feedback(
+    feedback_text,
+    answer
+):
+
+    if not feedback_text:
+        return answer
+
+    if not answer:
+        return feedback_text
+
+    return (
+        f"{feedback_text}\n\n"
+        f"{answer}"
+    )
+
+
+# ==========================================
+# ZAPIS + FEEDBACK + ODPOWIEDŹ
+# ==========================================
+
+def return_with_feedback(
+    answer,
+    feedback_text,
+    session_id
+):
+
+    final_answer = combine_learner_feedback(
+        feedback_text,
+        answer
+    )
+
+    return return_with_memory(
+        final_answer,
+        session_id
+    )
 
 
 # ==========================================
@@ -217,7 +263,6 @@ def generate_conversation_reply(
 
         # ==================================
         # STARY UŻYTKOWNIK
-        # SPRZED WPROWADZENIA ONBOARDINGU
         # ==================================
 
         else:
@@ -233,270 +278,291 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 1. KONTYNUACJA NOWEJ NAUKI
-    # STUDENT MEMORY 2.0
+    # 1. LEARNER FEEDBACK
+    #
+    # Nele może poprawić błędne zdanie,
+    # ale dalej rozumie jego intencję.
     #
     # Przykład:
-    # Nele:
-    # "Möchtest du damit anfangen?"
     #
-    # Użytkownik:
-    # "Ja"
+    # Was soll ich lernen heute?
+    #
+    # ->
+    #
+    # Was soll ich heute lernen?
+    # ======================================
+
+    processed_message, feedback_text = (
+        prepare_message_with_feedback(
+            user_message
+        )
+    )
+
+
+    # ======================================
+    # 2. KONTYNUACJA NOWEJ NAUKI
     # ======================================
 
     new_learning_answer = (
         handle_new_learning_resume(
-            user_message,
+            processed_message,
             state
         )
     )
 
     if new_learning_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             new_learning_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 2. AKTYWNA LEKCJA
-    #
-    # Przykład:
-    # Nele:
-    # "Wie heißt du?"
-    #
-    # Użytkownik:
-    # "Ich heiße Moni."
+    # 3. AKTYWNA LEKCJA
     # ======================================
 
     lesson_teaching_answer = (
         handle_lesson_teaching(
-            user_message,
+            processed_message,
             state
         )
     )
 
     if lesson_teaching_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             lesson_teaching_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 3. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
+    # 4. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
     # ======================================
 
     continue_answer = (
         handle_continue_last_activity(
-            user_message,
+            processed_message,
             state
         )
     )
 
     if continue_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             continue_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 4. KOREKTA
+    # 5. KOREKTA
     # ======================================
 
     correction_answer = handle_correction(
-        user_message,
+        processed_message,
         session_id
     )
 
     if correction_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             correction_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 5. ALFABET
+    # 6. ALFABET
     # ======================================
 
     alphabet_answer = handle_alphabet(
-        user_message,
+        processed_message,
         level,
         lesson
     )
 
     if alphabet_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             alphabet_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 6. POSTĘP W LEKCJI
+    # 7. POSTĘP W LEKCJI
     # STUDENT MEMORY 2.0
     # ======================================
 
     lesson_progress_answer = (
         handle_lesson_progress(
-            user_message,
+            processed_message,
             state
         )
     )
 
     if lesson_progress_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             lesson_progress_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 7. PERSONALIZOWANE ĆWICZENIA
+    # 8. PERSONALIZOWANE ĆWICZENIA
     # ======================================
 
     personalization_answer = (
         handle_personalization(
-            user_message,
+            processed_message,
             state
         )
     )
 
     if personalization_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             personalization_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 8. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
+    # 9. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
     # ======================================
 
     user_memory_answer = handle_user_memory(
-        user_message,
+        processed_message,
         session_id
     )
 
     if user_memory_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             user_memory_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 9. PAMIĘĆ NAUKI / STUDENT MEMORY 2.0
+    # 10. PAMIĘĆ NAUKI
+    # STUDENT MEMORY 2.0
     # ======================================
 
     memory_answer = handle_memory(
-        user_message,
+        processed_message,
         state
     )
 
     if memory_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             memory_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 10. KONTYNUACJA AKTUALNEGO TEMATU
+    # 11. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
-        user_message,
+        processed_message,
         session_id
     )
 
     if topic_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             topic_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 11. PORÓWNANIA
+    # 12. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
-        user_message,
+        processed_message,
         state,
         session_id
     )
 
     if comparison_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             comparison_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 12. SŁOWNICTWO
+    # 13. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
-        user_message,
+        processed_message,
         state
     )
 
     if vocabulary_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             vocabulary_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 13. INTENCJE
+    # 14. INTENCJE
     # ======================================
 
     intent_answer = handle_intent(
-        user_message,
+        processed_message,
         session_id
     )
 
     if intent_answer:
 
         remember_current_topic(
-            user_message,
+            processed_message,
             session_id
         )
 
         remember_current_comparison(
-            user_message,
+            processed_message,
             session_id
         )
 
-        return return_with_memory(
+        return return_with_feedback(
             intent_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 14. ZNANE PYTANIA I ZWROTY
+    # 15. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
-        user_message,
+        processed_message,
         level,
         lesson,
         session_id
@@ -504,38 +570,43 @@ def generate_conversation_reply(
 
     if known_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             known_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 15. KONTEKST
+    # 16. KONTEKST
     # ======================================
 
     context_answer = handle_context(
-        user_message,
+        processed_message,
         session_id
     )
 
     if context_answer:
 
-        return return_with_memory(
+        return return_with_feedback(
             context_answer,
+            feedback_text,
             session_id
         )
 
 
     # ======================================
-    # 16. BRAK ZNANEJ ODPOWIEDZI
+    # 17. BRAK ZNANEJ ODPOWIEDZI
     # ======================================
 
-    return return_with_memory(
-        (
-            "Ich habe dich verstanden, "
-            "aber diese Antwort habe ich "
-            "noch nicht gelernt."
-        ),
+    fallback_answer = (
+        "Ich habe dich verstanden, "
+        "aber diese Antwort habe ich "
+        "noch nicht gelernt."
+    )
+
+    return return_with_feedback(
+        fallback_answer,
+        feedback_text,
         session_id
-                )
+            )
