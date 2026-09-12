@@ -134,7 +134,6 @@ def extract_error_progress_type(
         user_message
     )
 
-
     for error_type, keywords in (
         ERROR_PROGRESS_KEYWORDS.items()
     ):
@@ -144,7 +143,6 @@ def extract_error_progress_type(
             if keyword in message:
 
                 return error_type
-
 
     return None
 
@@ -250,10 +248,8 @@ def is_specific_error_progress_question(
         user_message
     )
 
-
     if not error_type:
         return False
-
 
     patterns = (
         "wie gut",
@@ -263,7 +259,6 @@ def is_specific_error_progress_question(
         "wie läuft es mit",
         "kann ich schon"
     )
-
 
     return any(
         pattern in message
@@ -285,7 +280,6 @@ def get_total_error_practice_count(
 
     total = 0
 
-
     for error_item in error_memory.values():
 
         if not isinstance(
@@ -295,12 +289,10 @@ def get_total_error_practice_count(
 
             continue
 
-
         total += error_item.get(
             "practice_count",
             0
         )
-
 
     return total
 
@@ -319,7 +311,6 @@ def get_mastered_error_count(
 
     count = 0
 
-
     for error_item in error_memory.values():
 
         if not isinstance(
@@ -329,14 +320,12 @@ def get_mastered_error_count(
 
             continue
 
-
         if error_item.get(
             "mastered",
             False
         ):
 
             count += 1
-
 
     return count
 
@@ -351,7 +340,6 @@ def parse_progress_timestamp(
 
     if not timestamp:
         return None
-
 
     try:
 
@@ -371,13 +359,11 @@ def parse_progress_timestamp(
 
         return None
 
-
     if parsed.tzinfo is None:
 
         parsed = parsed.replace(
             tzinfo=timezone.utc
         )
-
 
     return parsed.astimezone(
         timezone.utc
@@ -396,7 +382,6 @@ def answer_next_error_review(
     next_review = get_next_error_review(
         state
     )
-
 
     if not next_review:
 
@@ -450,14 +435,20 @@ def answer_next_error_review(
 
 
     # ======================================
-    # JESZCZE DZISIAJ
+    # MNIEJ NIŻ 24 GODZINY
+    #
+    # Nie używamy tutaj "heute" / "morgen",
+    # bo sam czas UTC nie mówi nam pewnie,
+    # po której stronie północy lokalnej
+    # znajduje się użytkownik.
     # ======================================
 
-    if hours < 8:
+    if hours < 24:
 
         return (
-            "Heute musst du sie noch nicht "
-            "wiederholen. Wir machen später weiter."
+            "Im Moment musst du deine Fehler "
+            "noch nicht wiederholen. "
+            "Wir machen später weiter."
         )
 
 
@@ -465,23 +456,11 @@ def answer_next_error_review(
     # OKOŁO JEDNEGO DNIA
     # ======================================
 
-    if hours < 36:
+    if hours < 48:
 
         return (
-            "Heute musst du deine Fehler nicht "
-            "mehr üben. Wir machen morgen weiter."
-        )
-
-
-    # ======================================
-    # OKOŁO DWÓCH DNI
-    # ======================================
-
-    if hours < 60:
-
-        return (
-            "Wir wiederholen deine Fehler "
-            "übermorgen."
+            "Die nächste Wiederholung ist "
+            "ungefähr in einem Tag dran."
         )
 
 
@@ -490,7 +469,7 @@ def answer_next_error_review(
     # ======================================
 
     days = max(
-        1,
+        2,
         round(
             hours / 24
         )
@@ -499,7 +478,7 @@ def answer_next_error_review(
 
     return (
         f"Wir wiederholen deine Fehler "
-        f"in {days} Tagen."
+        f"in ungefähr {days} Tagen."
     )
 
 
@@ -516,7 +495,6 @@ def answer_general_improvement(
         state
     )
 
-
     saved_errors = [
         error_type
         for error_type, error_item
@@ -530,7 +508,6 @@ def answer_general_improvement(
             0
         ) > 0
     ]
-
 
     if not saved_errors:
 
@@ -571,7 +548,6 @@ def answer_general_improvement(
                 "Einen Bereich hast du schon gut gefestigt."
             )
 
-
         return (
             "Ja, du hast Fortschritte gemacht. "
             f"{mastered_count} Bereiche hast du "
@@ -598,14 +574,12 @@ def answer_general_improvement(
             error_type
         )
 
-
         if summary:
 
             streak = summary.get(
                 "correct_streak",
                 0
             )
-
 
             if streak >= 2:
 
@@ -615,7 +589,6 @@ def answer_general_improvement(
                     "schon deutlich sicherer. "
                     "Wir wiederholen das später noch einmal."
                 )
-
 
             if streak == 1:
 
@@ -648,7 +621,6 @@ def answer_error_practice_count(
         )
     )
 
-
     if practice_count == 0:
 
         return (
@@ -656,14 +628,12 @@ def answer_error_practice_count(
             "Fehlerübung abgeschlossen."
         )
 
-
     if practice_count == 1:
 
         return (
             "Du hast bisher eine "
             "Fehlerübung abgeschlossen."
         )
-
 
     return (
         f"Du hast bisher {practice_count} "
@@ -690,7 +660,6 @@ def answer_specific_error_progress(
         error_type
     )
 
-
     if not summary:
 
         return (
@@ -703,7 +672,6 @@ def answer_specific_error_progress(
         "count",
         0
     )
-
 
     if error_count <= 0:
 
