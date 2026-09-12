@@ -427,6 +427,7 @@ def is_next_new_learning_request(
     questions = [
         "was soll ich heute lernen",
         "was soll ich lernen",
+        "was soll ich lernen heute",
         "was lernen wir heute",
         "was soll ich als nächstes lernen",
         "was kann ich heute lernen",
