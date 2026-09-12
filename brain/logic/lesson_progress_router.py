@@ -3,6 +3,8 @@
 # STUDENT MEMORY 2.0
 # ==========================================
 
+import re
+
 from brain.logic.matcher import normalize
 
 from brain.memory.lesson_progress import (
@@ -16,7 +18,9 @@ from brain.memory.lesson_progress import (
 
 from brain.memory.student_progress import (
     remember_completed_lesson,
-    remember_learning_topic
+    remember_learning_topic,
+    get_current_level,
+    get_current_lesson
 )
 
 from brain.knowledge.A1.lessons import (
@@ -153,6 +157,213 @@ def find_lesson_section(
         ):
 
             return real_section
+
+
+    return None
+
+
+# ==========================================
+# CZY WIADOMOŚĆ OZNACZA UKOŃCZENIE
+# ==========================================
+
+def has_completion_intent(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!„“\"'"
+    )
+
+
+    completion_words = [
+        "fertig",
+        "abgeschlossen",
+        "geschafft",
+        "beendet"
+    ]
+
+
+    return any(
+        word in message
+        for word in completion_words
+    )
+
+
+# ==========================================
+# NUMER CZĘŚCI Z WIADOMOŚCI
+# ==========================================
+
+def extract_part_number(
+    user_message
+):
+
+    message = normalize(
+        user_message
+    )
+
+
+    # ======================================
+    # TEIL 1 / TEIL 2 / TEIL 3
+    # ======================================
+
+    match = re.search(
+        r"\bteil\s+([0-9]+)\b",
+        message
+    )
+
+
+    if match:
+
+        try:
+
+            return int(
+                match.group(1)
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            return None
+
+
+    # ======================================
+    # TEIL EINS / ZWEI / DREI ...
+    # ======================================
+
+    german_numbers = {
+        "eins": 1,
+        "ein": 1,
+        "erste": 1,
+        "ersten": 1,
+        "erster": 1,
+
+        "zwei": 2,
+        "zweite": 2,
+        "zweiten": 2,
+        "zweiter": 2,
+
+        "drei": 3,
+        "dritte": 3,
+        "dritten": 3,
+        "dritter": 3,
+
+        "vier": 4,
+        "vierte": 4,
+        "vierten": 4,
+        "vierter": 4,
+
+        "fünf": 5,
+        "fünfte": 5,
+        "fünften": 5,
+        "fünfter": 5
+    }
+
+
+    for word, number in german_numbers.items():
+
+        patterns = [
+            f"teil {word}",
+            f"{word} teil"
+        ]
+
+
+        if any(
+            pattern in message
+            for pattern in patterns
+        ):
+
+            return number
+
+
+    return None
+
+
+# ==========================================
+# CZĘŚĆ LEKCJI Z NATURALNEJ WIADOMOŚCI
+# ==========================================
+
+def extract_completed_section(
+    user_message,
+    state,
+    level,
+    lesson
+):
+
+    if not has_completion_intent(
+        user_message
+    ):
+
+        return None
+
+
+    sections = sync_lesson_progress(
+        state,
+        level,
+        lesson
+    )
+
+
+    if not sections:
+        return None
+
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!„“\"'"
+    )
+
+
+    # ======================================
+    # 1. UŻYTKOWNIK PODAŁ NAZWĘ CZĘŚCI
+    # ======================================
+
+    for real_section in sections:
+
+        normalized_section = normalize(
+            real_section
+        ).strip(
+            " .?!„“\"'"
+        )
+
+
+        if normalized_section in message:
+
+            return real_section
+
+
+    # ======================================
+    # 2. UŻYTKOWNIK POWIEDZIAŁ:
+    # "TEIL 1 IST FERTIG"
+    # ======================================
+
+    part_number = extract_part_number(
+        user_message
+    )
+
+
+    if part_number is not None:
+
+        section_index = (
+            part_number - 1
+        )
+
+
+        if (
+            section_index >= 0
+            and
+            section_index < len(
+                sections
+            )
+        ):
+
+            return sections[
+                section_index
+            ]
 
 
     return None
@@ -459,6 +670,32 @@ def create_section_completed_message(
         False
     )
 
+    already_completed = result.get(
+        "already_completed",
+        False
+    )
+
+
+    # ======================================
+    # CZĘŚĆ BYŁA JUŻ WCZEŚNIEJ UKOŃCZONA
+    # ======================================
+
+    if already_completed:
+
+        if next_section:
+
+            return (
+                f"„{completed_section}“ "
+                "hast du schon abgeschlossen. "
+                "Als Nächstes ist "
+                f"„{next_section}“ dran."
+            )
+
+        return (
+            f"„{completed_section}“ "
+            "hast du schon abgeschlossen."
+        )
+
 
     # ======================================
     # CAŁA LEKCJA UKOŃCZONA
@@ -494,4 +731,84 @@ def create_section_completed_message(
         f"Sehr gut! "
         f"„{completed_section}“ "
         "hast du abgeschlossen."
-  )
+    )
+
+
+# ==========================================
+# GŁÓWNY ROUTER POSTĘPU LEKCJI
+# ==========================================
+
+def handle_lesson_progress(
+    user_message,
+    state
+):
+    """
+    Rozpoznaje naturalną informację
+    użytkownika o ukończeniu części lekcji.
+
+    Przykłady:
+
+    "Ich bin mit Wir begrüßen uns fertig."
+    "Ich habe Wir begrüßen uns abgeschlossen."
+    "Teil 1 ist fertig."
+    """
+
+    if state is None:
+        return None
+
+
+    # ======================================
+    # AKTUALNY POZIOM I LEKCJA
+    # ======================================
+
+    level = get_current_level(
+        state
+    )
+
+    lesson = get_current_lesson(
+        state
+    )
+
+
+    # ======================================
+    # ROZPOZNANIE UKOŃCZONEJ CZĘŚCI
+    # ======================================
+
+    section = extract_completed_section(
+        user_message,
+        state,
+        level,
+        lesson
+    )
+
+
+    if not section:
+        return None
+
+
+    # ======================================
+    # ZAPIS DO STUDENT MEMORY 2.0
+    # ======================================
+
+    result = complete_lesson_section(
+        state,
+        level,
+        lesson,
+        section
+    )
+
+
+    if not result.get(
+        "ok"
+    ):
+
+        return None
+
+
+    # ======================================
+    # ODPOWIEDŹ NELE
+    # ======================================
+
+    return create_section_completed_message(
+        result
+        )
