@@ -17,9 +17,16 @@ from brain.memory.student_progress import (
 
 from brain.memory.lesson_progress import (
     get_lesson_progress,
+    set_lesson_sections,
     get_next_incomplete_section,
     get_lesson_completion_percent,
     is_lesson_fully_completed
+)
+
+from brain.knowledge.A1.lessons import (
+    lesson_exists as a1_lesson_exists,
+    get_lesson_sections as get_a1_lesson_sections,
+    get_next_lesson_number as get_next_a1_lesson_number
 )
 
 
@@ -104,7 +111,6 @@ def format_word_list(
         return ""
 
     if len(words) == 1:
-
         return words[0]
 
     if len(words) == 2:
@@ -139,7 +145,6 @@ def get_difficult_words(
 
     difficult_words = []
 
-
     for word, memory in vocabulary_memory.items():
 
         mistakes = memory.get(
@@ -152,10 +157,8 @@ def get_difficult_words(
             0
         )
 
-
         if mistakes <= 0:
             continue
-
 
         difficult_words.append(
             (
@@ -165,7 +168,6 @@ def get_difficult_words(
             )
         )
 
-
     difficult_words.sort(
         key=lambda item: (
             item[1],
@@ -173,7 +175,6 @@ def get_difficult_words(
         ),
         reverse=True
     )
-
 
     return [
         item[0]
@@ -199,7 +200,6 @@ def get_recent_vocabulary_words(
 
     words = []
 
-
     for topic in topics:
 
         if not topic.startswith(
@@ -217,7 +217,6 @@ def get_recent_vocabulary_words(
             words.append(
                 word
             )
-
 
     words = unique_items(
         words
@@ -249,14 +248,12 @@ def get_review_plan(
         limit=5
     )
 
-
     extra_difficult = []
 
     review_keys = {
         word.lower()
         for word in review_words
     }
-
 
     for word in difficult_words:
 
@@ -266,7 +263,6 @@ def get_review_plan(
         extra_difficult.append(
             word
         )
-
 
     main_words = (
         review_words
@@ -316,7 +312,6 @@ def get_next_learning_step(
         state
     )
 
-
     if review_words:
 
         word_list = format_word_list(
@@ -327,6 +322,7 @@ def get_next_learning_step(
             "type": "vocabulary_review",
             "words": review_words,
             "topic": "Wortschatz",
+
             "message": (
                 "Heute sollten wir zuerst "
                 f"{word_list} wiederholen."
@@ -347,7 +343,6 @@ def get_next_learning_step(
         difficult_words
     )
 
-
     if difficult_words:
 
         word_list = format_word_list(
@@ -358,6 +353,7 @@ def get_next_learning_step(
             "type": "difficult_vocabulary",
             "words": difficult_words,
             "topic": "Wortschatz",
+
             "message": (
                 "Diese Wörter waren zuletzt "
                 "etwas schwieriger für dich: "
@@ -376,7 +372,6 @@ def get_next_learning_step(
         limit=2
     )
 
-
     if recent_words:
 
         last_word = display_word(
@@ -385,10 +380,13 @@ def get_next_learning_step(
 
         return {
             "type": "continue_vocabulary",
+
             "words": [
                 recent_words[0]
             ],
+
             "topic": "Wortschatz",
+
             "message": (
                 "Zuletzt hast du das Wort "
                 f"„{last_word}“ geübt. "
@@ -406,11 +404,9 @@ def get_next_learning_step(
         limit=1
     )
 
-
     if recent_topics:
 
         topic = recent_topics[0]
-
 
         if "hotel" in topic.lower():
 
@@ -418,6 +414,7 @@ def get_next_learning_step(
                 "type": "continue_topic",
                 "words": [],
                 "topic": topic,
+
                 "message": (
                     "Zuletzt hast du das Thema "
                     f"„{topic}“ geübt. "
@@ -427,11 +424,11 @@ def get_next_learning_step(
                 )
             }
 
-
         return {
             "type": "continue_topic",
             "words": [],
             "topic": topic,
+
             "message": (
                 "Zuletzt hast du "
                 f"„{topic}“ geübt. "
@@ -448,6 +445,7 @@ def get_next_learning_step(
         "type": "start",
         "words": [],
         "topic": None,
+
         "message": (
             "Wir haben noch keinen "
             "Lernschwerpunkt gespeichert. "
@@ -455,6 +453,87 @@ def get_next_learning_step(
             "Übung anfangen."
         )
     }
+
+
+# ==========================================
+# STRUKTURA PRAWDZIWEJ LEKCJI
+# ==========================================
+
+def sync_lesson_structure(
+    state,
+    level,
+    lesson
+):
+    """
+    Pobiera prawdziwą strukturę kursu
+    z brain/knowledge/... i zapisuje ją
+    w pamięci postępu lekcji.
+
+    Nie usuwa ukończonych części.
+    """
+
+    level = str(
+        level or ""
+    ).strip().upper()
+
+
+    # ======================================
+    # A1
+    # ======================================
+
+    if level == "A1":
+
+        if not a1_lesson_exists(
+            lesson
+        ):
+            return []
+
+        sections = get_a1_lesson_sections(
+            lesson
+        )
+
+        if sections:
+
+            set_lesson_sections(
+                state,
+                level,
+                lesson,
+                sections
+            )
+
+        return sections
+
+
+    # ======================================
+    # INNE POZIOMY
+    # PÓŹNIEJ PODŁĄCZYMY A2/B1...
+    # ======================================
+
+    return []
+
+
+# ==========================================
+# NASTĘPNA PRAWDZIWA LEKCJA
+# ==========================================
+
+def get_next_course_lesson(
+    level,
+    lesson
+):
+
+    level = str(
+        level or ""
+    ).strip().upper()
+
+
+    if level == "A1":
+
+        return get_next_a1_lesson_number(
+            lesson
+        )
+
+
+    return None
 
 
 # ==========================================
@@ -471,12 +550,8 @@ def get_next_new_learning_step(
     Przykład:
     "Was soll ich heute lernen?"
 
-    Jeżeli znamy strukturę lekcji,
-    wybiera pierwszą nieukończoną część.
-
-    Jeżeli struktura lekcji nie została
-    jeszcze podłączona, zachowuje
-    wcześniejsze działanie.
+    Korzysta z prawdziwej struktury
+    kursu, jeśli jest dostępna.
     """
 
     if state is None:
@@ -487,6 +562,7 @@ def get_next_new_learning_step(
             "lesson": 1,
             "section": None,
             "topic": None,
+
             "message": (
                 "Lass uns mit A1, "
                 "Lektion 1 anfangen."
@@ -513,6 +589,18 @@ def get_next_new_learning_step(
 
 
     # ======================================
+    # PODŁĄCZENIE PRAWDZIWEJ
+    # STRUKTURY LEKCJI
+    # ======================================
+
+    sync_lesson_structure(
+        state,
+        level,
+        current_lesson
+    )
+
+
+    # ======================================
     # POSTĘP WEWNĄTRZ LEKCJI
     # ======================================
 
@@ -530,8 +618,7 @@ def get_next_new_learning_step(
 
 
     # ======================================
-    # JEŻELI LEKCJA MA JUŻ
-    # ZDEFINIOWANE CZĘŚCI
+    # JEŻELI LEKCJA MA CZĘŚCI
     # ======================================
 
     if sections:
@@ -546,8 +633,7 @@ def get_next_new_learning_step(
 
 
         # ==================================
-        # JEST JESZCZE COŚ NOWEGO
-        # DO NAUKI W TEJ LEKCJI
+        # NASTĘPNA NIEUKOŃCZONA CZĘŚĆ
         # ==================================
 
         if next_section:
@@ -560,13 +646,13 @@ def get_next_new_learning_step(
                 )
             )
 
-
             return {
                 "type": "new_section",
                 "level": level,
                 "lesson": current_lesson,
                 "section": next_section,
                 "topic": next_section,
+
                 "completion_percent":
                     completion_percent,
 
@@ -580,7 +666,7 @@ def get_next_new_learning_step(
 
 
         # ==================================
-        # WSZYSTKIE CZĘŚCI UKOŃCZONE
+        # CAŁA LEKCJA UKOŃCZONA
         # ==================================
 
         if is_lesson_fully_completed(
@@ -589,15 +675,46 @@ def get_next_new_learning_step(
             current_lesson
         ):
 
-            next_lesson = (
-                current_lesson + 1
+            next_lesson = get_next_course_lesson(
+                level,
+                current_lesson
             )
 
 
+            # =================================
+            # MAMY PRAWDZIWĄ NASTĘPNĄ LEKCJĘ
+            # =================================
+
+            if next_lesson is not None:
+
+                return {
+                    "type": "new_lesson",
+                    "level": level,
+                    "lesson": next_lesson,
+                    "section": None,
+                    "topic": None,
+                    "completion_percent": 100,
+
+                    "message": (
+                        f"Du hast {level}, "
+                        f"Lektion {current_lesson} "
+                        "abgeschlossen. "
+                        "Als Nächstes können wir "
+                        f"mit {level}, Lektion "
+                        f"{next_lesson} anfangen."
+                    )
+                }
+
+
+            # =================================
+            # NASTĘPNA LEKCJA NIE JEST JESZCZE
+            # W STRUKTURZE BACKENDU
+            # =================================
+
             return {
-                "type": "new_lesson",
+                "type": "lesson_completed",
                 "level": level,
-                "lesson": next_lesson,
+                "lesson": current_lesson,
                 "section": None,
                 "topic": None,
                 "completion_percent": 100,
@@ -605,16 +722,13 @@ def get_next_new_learning_step(
                 "message": (
                     f"Du hast {level}, "
                     f"Lektion {current_lesson} "
-                    "abgeschlossen. "
-                    "Als Nächstes können wir "
-                    f"mit {level}, Lektion "
-                    f"{next_lesson} anfangen."
+                    "vollständig abgeschlossen."
                 )
             }
 
 
     # ======================================
-    # STARY SYSTEM:
+    # STARSZY SYSTEM:
     # CAŁA LEKCJA OZNACZONA JAKO UKOŃCZONA
     # ======================================
 
@@ -623,31 +737,34 @@ def get_next_new_learning_step(
         current_lesson
     ):
 
-        next_lesson = (
-            current_lesson + 1
+        next_lesson = get_next_course_lesson(
+            level,
+            current_lesson
         )
 
 
-        return {
-            "type": "new_lesson",
-            "level": level,
-            "lesson": next_lesson,
-            "section": None,
-            "topic": None,
+        if next_lesson is not None:
 
-            "message": (
-                f"Du hast {level}, "
-                f"Lektion {current_lesson} "
-                "schon abgeschlossen. "
-                "Als Nächstes können wir mit "
-                f"{level}, Lektion {next_lesson} "
-                "weitermachen."
-            )
-        }
+            return {
+                "type": "new_lesson",
+                "level": level,
+                "lesson": next_lesson,
+                "section": None,
+                "topic": None,
+
+                "message": (
+                    f"Du hast {level}, "
+                    f"Lektion {current_lesson} "
+                    "schon abgeschlossen. "
+                    "Als Nächstes können wir mit "
+                    f"{level}, Lektion {next_lesson} "
+                    "weitermachen."
+                )
+            }
 
 
     # ======================================
-    # JESZCZE NIE MA STRUKTURY CZĘŚCI
+    # BRAK STRUKTURY LEKCJI
     # ======================================
 
     return {
@@ -697,4 +814,4 @@ def get_next_new_learning_message(
 
     return plan.get(
         "message"
-    )
+)
