@@ -1,9 +1,14 @@
 # ==========================================
 # NELE – FEEDBACK FÜR LERNENDE
 # NATÜRLICHES DEUTSCH IM ALLTAG
+# STUDENT MEMORY 2.0
 # ==========================================
 
 from brain.logic.matcher import normalize
+
+from brain.memory.error_memory import (
+    remember_error
+)
 
 
 # ==========================================
@@ -27,13 +32,12 @@ def clean_feedback_message(
 # BEKANNTE KORREKTUREN
 # ==========================================
 #
-# Ważne:
-#
 # Nele rozumie błędne zdanie,
-# ale pokazuje użytkownikowi
-# naturalną wersję.
+# pokazuje naturalną wersję
+# i może zapisać błąd
+# w Student Memory 2.0.
 #
-# Nie przerywamy przez to rozmowy.
+# Rozmowa nie jest przerywana.
 # ==========================================
 
 KNOWN_CORRECTIONS = {
@@ -43,6 +47,7 @@ KNOWN_CORRECTIONS = {
     # ======================================
 
     "was soll ich lernen heute": {
+
         "corrected_message":
             "Was soll ich heute lernen?",
 
@@ -62,6 +67,7 @@ KNOWN_CORRECTIONS = {
     # ======================================
 
     "was soll ich üben heute": {
+
         "corrected_message":
             "Was soll ich heute üben?",
 
@@ -81,6 +87,7 @@ KNOWN_CORRECTIONS = {
     # ======================================
 
     "was machen heute wir": {
+
         "corrected_message":
             "Was machen wir heute?",
 
@@ -122,6 +129,7 @@ def get_learner_feedback(
 
 
     return {
+
         "original_message":
             user_message,
 
@@ -172,7 +180,6 @@ def get_corrected_user_message(
 
 
     if not feedback:
-
         return user_message
 
 
@@ -182,7 +189,6 @@ def get_corrected_user_message(
 
 
     if not corrected_message:
-
         return user_message
 
 
@@ -203,7 +209,6 @@ def get_feedback_text(
 
 
     if not feedback:
-
         return None
 
 
@@ -213,12 +218,55 @@ def get_feedback_text(
 
 
 # ==========================================
+# ZAPIS BŁĘDU W STUDENT MEMORY 2.0
+# ==========================================
+
+def remember_learner_feedback_error(
+    feedback,
+    state
+):
+
+    if state is None:
+        return False
+
+
+    if not feedback:
+        return False
+
+
+    error_type = feedback.get(
+        "error_type"
+    )
+
+    original_message = feedback.get(
+        "original_message"
+    )
+
+    corrected_message = feedback.get(
+        "corrected_message"
+    )
+
+
+    if not error_type:
+        return False
+
+
+    return remember_error(
+        state,
+        error_type,
+        original_message,
+        corrected_message
+    )
+
+
+# ==========================================
 # PRZYGOTOWANIE WIADOMOŚCI
 # DO NORMALNEJ ROZMOWY
 # ==========================================
 
 def prepare_message_with_feedback(
-    user_message
+    user_message,
+    state=None
 ):
     """
     Zwraca:
@@ -228,18 +276,34 @@ def prepare_message_with_feedback(
         krótki feedback dla ucznia
     )
 
+    Jeżeli przekazano state,
+    znaleziony błąd zostaje również
+    zapisany w Student Memory 2.0.
+
     Przykład:
 
     użytkownik:
     Was soll ich lernen heute?
 
     wynik:
+
     (
         "Was soll ich heute lernen?",
         "Fast! Natürlicher sagt man:
          „Was soll ich heute lernen?“"
     )
+
+    pamięć:
+
+    word_order:
+        count += 1
+        last_wrong =
+            "Was soll ich lernen heute?"
+        last_correct =
+            "Was soll ich heute lernen?"
+        needs_practice = True
     """
+
 
     feedback = get_learner_feedback(
         user_message
@@ -253,6 +317,22 @@ def prepare_message_with_feedback(
             None
         )
 
+
+    # ======================================
+    # BŁĄD ZAPISUJEMY W PAMIĘCI
+    # ======================================
+
+    if state is not None:
+
+        remember_learner_feedback_error(
+            feedback,
+            state
+        )
+
+
+    # ======================================
+    # POPRAWIONA WIADOMOŚĆ
+    # ======================================
 
     corrected_message = feedback.get(
         "corrected_message"
