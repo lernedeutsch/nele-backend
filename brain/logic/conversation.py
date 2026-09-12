@@ -29,12 +29,24 @@ from brain.logic.personalization_router import (
     handle_personalization
 )
 
-from brain.logic.onboarding_router import (
-    handle_onboarding
+from brain.logic.onboarding import (
+    is_onboarding_completed,
+    is_new_user,
+    get_onboarding_step,
+    handle_onboarding_answer,
+    complete_onboarding
+)
+
+from brain.logic.welcome import (
+    generate_welcome_reply
 )
 
 from brain.logic.activity_resume import (
     handle_continue_last_activity
+)
+
+from brain.logic.lesson_progress_router import (
+    handle_lesson_progress
 )
 
 from brain.logic.alphabet_router import (
@@ -151,18 +163,65 @@ def generate_conversation_reply(
     # 0. PIERWSZE SPOTKANIE / ONBOARDING
     # ======================================
 
-    onboarding_answer = handle_onboarding(
-        user_message,
-        state,
-        session_id
-    )
+    if not is_onboarding_completed(
+        state
+    ):
 
-    if onboarding_answer:
-
-        return return_with_memory(
-            onboarding_answer,
-            session_id
+        onboarding_step = get_onboarding_step(
+            state
         )
+
+
+        # ==================================
+        # ONBOARDING JUŻ TRWA
+        # ==================================
+
+        if onboarding_step > 0:
+
+            onboarding_answer = (
+                handle_onboarding_answer(
+                    user_message,
+                    state,
+                    session_id
+                )
+            )
+
+            if onboarding_answer:
+
+                return return_with_memory(
+                    onboarding_answer,
+                    session_id
+                )
+
+
+        # ==================================
+        # NOWY UŻYTKOWNIK
+        # ==================================
+
+        elif is_new_user(
+            state
+        ):
+
+            return generate_welcome_reply(
+                session_id
+            )
+
+
+        # ==================================
+        # STARY UŻYTKOWNIK
+        # SPRZED WPROWADZENIA ONBOARDINGU
+        # ==================================
+
+        else:
+
+            complete_onboarding(
+                state
+            )
+
+            return_with_memory(
+                None,
+                session_id
+            )
 
 
     # ======================================
@@ -220,7 +279,27 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4. PERSONALIZOWANE ĆWICZENIA
+    # 4. POSTĘP W LEKCJI
+    # STUDENT MEMORY 2.0
+    # ======================================
+
+    lesson_progress_answer = (
+        handle_lesson_progress(
+            user_message,
+            state
+        )
+    )
+
+    if lesson_progress_answer:
+
+        return return_with_memory(
+            lesson_progress_answer,
+            session_id
+        )
+
+
+    # ======================================
+    # 5. PERSONALIZOWANE ĆWICZENIA
     # ======================================
 
     personalization_answer = (
@@ -239,7 +318,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
+    # 6. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
     # ======================================
 
     user_memory_answer = handle_user_memory(
@@ -256,7 +335,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. PAMIĘĆ NAUKI SŁOWNICTWA
+    # 7. PAMIĘĆ NAUKI / STUDENT MEMORY 2.0
     # ======================================
 
     memory_answer = handle_memory(
@@ -273,7 +352,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 7. KONTYNUACJA AKTUALNEGO TEMATU
+    # 8. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -290,7 +369,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. PORÓWNANIA
+    # 9. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -308,7 +387,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 9. SŁOWNICTWO
+    # 10. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -325,7 +404,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. INTENCJE
+    # 11. INTENCJE
     # ======================================
 
     intent_answer = handle_intent(
@@ -352,7 +431,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. ZNANE PYTANIA I ZWROTY
+    # 12. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -371,7 +450,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 12. KONTEKST
+    # 13. KONTEKST
     # ======================================
 
     context_answer = handle_context(
@@ -388,7 +467,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 13. BRAK ZNANEJ ODPOWIEDZI
+    # 14. BRAK ZNANEJ ODPOWIEDZI
     # ======================================
 
     return return_with_memory(
@@ -398,4 +477,4 @@ def generate_conversation_reply(
             "noch nicht gelernt."
         ),
         session_id
-    )
+                )
