@@ -53,6 +53,10 @@ from brain.logic.error_practice import (
     handle_error_practice
 )
 
+from brain.logic.error_progress import (
+    handle_error_progress
+)
+
 from brain.logic.learner_feedback import (
     prepare_message_with_feedback
 )
@@ -293,10 +297,6 @@ def generate_conversation_reply(
     # 1. SPRAWDZENIE POWTÓREK BŁĘDÓW
     # SPACED REPETITION
     # STUDENT MEMORY 2.0
-    #
-    # Jeżeli minął odpowiedni czas,
-    # błąd może zostać ponownie oznaczony
-    # jako wymagający ćwiczenia.
     # ======================================
 
     try:
@@ -316,9 +316,9 @@ def generate_conversation_reply(
     # 2. AKTYWNE ĆWICZENIE BŁĘDÓW
     # STUDENT MEMORY 2.0
     #
-    # Musi być przed learner feedback,
+    # Musi być przed innymi routerami,
     # żeby odpowiedź użytkownika została
-    # najpierw oceniona przez ćwiczenie.
+    # oceniona przez aktywne ćwiczenie.
     # ======================================
 
     error_practice_answer = (
@@ -337,19 +337,40 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 3. LEARNER FEEDBACK
+    # 3. POSTĘP W BŁĘDACH
+    # STUDENT MEMORY 2.0
+    #
+    # Musi być odpowiednio wcześnie,
+    # żeby np.:
+    #
+    # Wie gut kann ich die Wortstellung schon?
+    #
+    # nie zostało pomylone ze słowem:
+    #
+    # Gut
+    # ======================================
+
+    error_progress_answer = (
+        handle_error_progress(
+            user_message,
+            state
+        )
+    )
+
+    if error_progress_answer:
+
+        return return_with_memory(
+            error_progress_answer,
+            session_id
+        )
+
+
+    # ======================================
+    # 4. LEARNER FEEDBACK
     #
     # Nele może poprawić błędne zdanie,
     # dalej rozumie jego intencję
     # i zapisuje błąd w Student Memory 2.0.
-    #
-    # Przykład:
-    #
-    # Was soll ich lernen heute?
-    #
-    # ->
-    #
-    # Was soll ich heute lernen?
     # ======================================
 
     processed_message, feedback_text = (
@@ -361,7 +382,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4. KONTYNUACJA NOWEJ NAUKI
+    # 5. KONTYNUACJA NOWEJ NAUKI
     # ======================================
 
     new_learning_answer = (
@@ -381,7 +402,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. AKTYWNA LEKCJA
+    # 6. AKTYWNA LEKCJA
     # ======================================
 
     lesson_teaching_answer = (
@@ -401,7 +422,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
+    # 7. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
     # ======================================
 
     continue_answer = (
@@ -421,7 +442,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 7. KOREKTA
+    # 8. KOREKTA
     # ======================================
 
     correction_answer = handle_correction(
@@ -439,7 +460,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. ALFABET
+    # 9. ALFABET
     # ======================================
 
     alphabet_answer = handle_alphabet(
@@ -458,7 +479,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 9. POSTĘP W LEKCJI
+    # 10. POSTĘP W LEKCJI
     # STUDENT MEMORY 2.0
     # ======================================
 
@@ -479,7 +500,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. PERSONALIZOWANE ĆWICZENIA
+    # 11. PERSONALIZOWANE ĆWICZENIA
     # ======================================
 
     personalization_answer = (
@@ -499,7 +520,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
+    # 12. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
     # ======================================
 
     user_memory_answer = handle_user_memory(
@@ -517,7 +538,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 12. PAMIĘĆ BŁĘDÓW
+    # 13. PAMIĘĆ BŁĘDÓW
     # STUDENT MEMORY 2.0
     # ======================================
 
@@ -536,7 +557,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 13. PAMIĘĆ NAUKI
+    # 14. PAMIĘĆ NAUKI
     # STUDENT MEMORY 2.0
     # ======================================
 
@@ -555,7 +576,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 14. KONTYNUACJA AKTUALNEGO TEMATU
+    # 15. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -573,7 +594,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 15. PORÓWNANIA
+    # 16. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -592,7 +613,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 16. SŁOWNICTWO
+    # 17. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -610,7 +631,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 17. INTENCJE
+    # 18. INTENCJE
     # ======================================
 
     intent_answer = handle_intent(
@@ -638,7 +659,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 18. ZNANE PYTANIA I ZWROTY
+    # 19. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -658,7 +679,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 19. KONTEKST
+    # 20. KONTEKST
     # ======================================
 
     context_answer = handle_context(
@@ -676,7 +697,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 20. BRAK ZNANEJ ODPOWIEDZI
+    # 21. BRAK ZNANEJ ODPOWIEDZI
     # ======================================
 
     fallback_answer = (
@@ -689,4 +710,4 @@ def generate_conversation_reply(
         fallback_answer,
         feedback_text,
         session_id
-)
+        )
