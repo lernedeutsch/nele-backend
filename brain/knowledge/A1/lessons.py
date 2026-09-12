@@ -6,16 +6,41 @@
 # ==========================================
 # LEKCJE A1
 # ==========================================
-#
-# Tutaj później będziemy podłączać
-# prawdziwą strukturę kursu.
-#
-# Student Memory 2.0 korzysta z tego pliku,
-# ale pamięć postępu pozostaje osobno
-# w brain/memory/lesson_progress.py.
-# ==========================================
 
-A1_LESSONS = {}
+A1_LESSONS = {
+
+    1: {
+        "level": "A1",
+        "lesson": 1,
+
+        "title":
+            "Guten Tag! – Begrüßung und Vorstellung",
+
+        "description":
+            (
+                "Begrüßung, Vorstellung "
+                "und das deutsche Alphabet."
+            ),
+
+        # ==================================
+        # PRAWDZIWA KOLEJNOŚĆ Z
+        # lessons/a1/lektion-1.html
+        # ==================================
+
+        "sections": [
+            "Wir begrüßen uns",
+            "Ich stelle mich vor",
+            "Das deutsche Alphabet"
+        ],
+
+        # ==================================
+        # INFORMACJA POMOCNICZA
+        # ==================================
+
+        "source":
+            "lessons/a1/lektion-1.html"
+    }
+}
 
 
 # ==========================================
@@ -83,6 +108,27 @@ def get_lesson_title(
 
 
 # ==========================================
+# OPIS LEKCJI
+# ==========================================
+
+def get_lesson_description(
+    lesson
+):
+
+    lesson_data = get_lesson(
+        lesson
+    )
+
+    if not lesson_data:
+        return None
+
+
+    return lesson_data.get(
+        "description"
+    )
+
+
+# ==========================================
 # CZĘŚCI LEKCJI
 # ==========================================
 
@@ -129,6 +175,64 @@ def get_lesson_section_count(
         get_lesson_sections(
             lesson
         )
+    )
+
+
+# ==========================================
+# POBRANIE KONKRETNEJ CZĘŚCI
+# ==========================================
+
+def get_lesson_section(
+    lesson,
+    index
+):
+
+    sections = get_lesson_sections(
+        lesson
+    )
+
+
+    try:
+
+        index = int(
+            index
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return None
+
+
+    if index < 0:
+        return None
+
+
+    if index >= len(
+        sections
+    ):
+
+        return None
+
+
+    return sections[
+        index
+    ]
+
+
+# ==========================================
+# PIERWSZA CZĘŚĆ LEKCJI
+# ==========================================
+
+def get_first_lesson_section(
+    lesson
+):
+
+    return get_lesson_section(
+        lesson,
+        0
     )
 
 
