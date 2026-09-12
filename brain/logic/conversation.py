@@ -61,6 +61,10 @@ from brain.logic.lesson_progress_router import (
     handle_lesson_progress
 )
 
+from brain.logic.error_memory_router import (
+    handle_error_memory
+)
+
 from brain.logic.alphabet_router import (
     handle_alphabet
 )
@@ -458,7 +462,26 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. PAMIĘĆ NAUKI
+    # 10. PAMIĘĆ BŁĘDÓW
+    # STUDENT MEMORY 2.0
+    # ======================================
+
+    error_memory_answer = handle_error_memory(
+        processed_message,
+        state
+    )
+
+    if error_memory_answer:
+
+        return return_with_feedback(
+            error_memory_answer,
+            feedback_text,
+            session_id
+        )
+
+
+    # ======================================
+    # 11. PAMIĘĆ NAUKI
     # STUDENT MEMORY 2.0
     # ======================================
 
@@ -477,7 +500,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. KONTYNUACJA AKTUALNEGO TEMATU
+    # 12. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -495,7 +518,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 12. PORÓWNANIA
+    # 13. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -514,7 +537,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 13. SŁOWNICTWO
+    # 14. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -532,7 +555,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 14. INTENCJE
+    # 15. INTENCJE
     # ======================================
 
     intent_answer = handle_intent(
@@ -560,7 +583,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 15. ZNANE PYTANIA I ZWROTY
+    # 16. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -580,7 +603,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 16. KONTEKST
+    # 17. KONTEKST
     # ======================================
 
     context_answer = handle_context(
@@ -598,7 +621,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 17. BRAK ZNANEJ ODPOWIEDZI
+    # 18. BRAK ZNANEJ ODPOWIEDZI
     # ======================================
 
     fallback_answer = (
@@ -611,4 +634,4 @@ def generate_conversation_reply(
         fallback_answer,
         feedback_text,
         session_id
-)
+    )
