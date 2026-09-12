@@ -245,9 +245,9 @@ def handle_introduction_section(
 
 
         return (
-            "Genau! So klingt das ganz natürlich. "
-            "Und jetzt andersherum: "
-            "Wie fragst du jemanden nach dem Namen?"
+            "Genau! Das klingt ganz natürlich. "
+            "Jetzt bist du dran: "
+            "Wie fragst du nach dem Namen?"
         )
 
 
@@ -263,8 +263,8 @@ def handle_introduction_section(
         ):
 
             return (
-                "Fast. Unter Freunden oder "
-                "wenn ihr euch duzt, sagst du: "
+                "Fast. Wenn ihr euch duzt, "
+                "sagst du: "
                 "„Wie heißt du?“ "
                 "Versuch es noch einmal."
             )
@@ -277,7 +277,7 @@ def handle_introduction_section(
 
         return (
             "Perfekt! „Wie heißt du?“ "
-            "ist ganz normal im Alltag. "
+            "sagt man im Alltag sehr oft. "
             "Jetzt noch die höfliche Form: "
             "Wie fragst du zum Beispiel "
             "einen Gast im Hotel nach dem Namen?"
