@@ -1,6 +1,6 @@
 # ==========================================
 # NELE – POWTÓRKI BŁĘDÓW
-# SPACED REPETITION
+# ADAPTIVE REVIEW 2.0
 # STUDENT MEMORY 2.0
 # ==========================================
 
@@ -9,25 +9,26 @@ from datetime import datetime, timezone, timedelta
 from brain.memory.error_memory import (
     get_error_memory,
     get_error_item,
+    get_error_next_review_at as get_stored_error_next_review_at,
     mark_error_for_review
 )
 
 
 # ==========================================
-# ODSTĘPY MIĘDZY POWTÓRKAMI
+# STARE ODSTĘPY
+# TYLKO DLA DAWNYCH WPISÓW
 # ==========================================
 #
-# correct_streak = 1
-# -> następna powtórka po 1 dniu
+# Adaptive Review 2.0 używa teraz:
 #
-# correct_streak = 2
-# -> następna powtórka po 3 dniach
+# next_review_at
 #
-# correct_streak >= 3
-# -> błąd powinien być już mastered
+# Ten słownik zostaje wyłącznie jako
+# zabezpieczenie dla starszej pamięci,
+# która nie ma jeszcze next_review_at.
 # ==========================================
 
-ERROR_REVIEW_INTERVALS = {
+LEGACY_ERROR_REVIEW_INTERVALS = {
 
     0: 0,
 
@@ -89,8 +90,8 @@ def parse_review_timestamp(
 
 
     # ======================================
-    # JEŚLI DATA NIE MA STREFY CZASOWEJ,
-    # TRAKTUJEMY JĄ JAK UTC
+    # DATA BEZ STREFY
+    # -> TRAKTUJEMY JAK UTC
     # ======================================
 
     if parsed.tzinfo is None:
@@ -106,10 +107,11 @@ def parse_review_timestamp(
 
 
 # ==========================================
-# LICZBA GODZIN DO KOLEJNEJ POWTÓRKI
+# STARY ODSTĘP
+# TYLKO DLA LEGACY MEMORY
 # ==========================================
 
-def get_error_review_interval_hours(
+def get_legacy_review_interval_hours(
     correct_streak
 ):
 
@@ -127,19 +129,89 @@ def get_error_review_interval_hours(
         correct_streak = 0
 
 
+    correct_streak = max(
+        0,
+        correct_streak
+    )
+
+
     if correct_streak >= 3:
 
         return None
 
 
-    return ERROR_REVIEW_INTERVALS.get(
+    return LEGACY_ERROR_REVIEW_INTERVALS.get(
         correct_streak,
         24
     )
 
 
 # ==========================================
+# STARA DATA POWTÓRKI
+# TYLKO DLA LEGACY MEMORY
+# ==========================================
+
+def get_legacy_error_next_review_at(
+    error_item
+):
+
+    if not error_item:
+        return None
+
+
+    last_practiced = parse_review_timestamp(
+        error_item.get(
+            "last_practiced"
+        )
+    )
+
+
+    correct_streak = error_item.get(
+        "correct_streak",
+        0
+    )
+
+
+    interval_hours = (
+        get_legacy_review_interval_hours(
+            correct_streak
+        )
+    )
+
+
+    if interval_hours is None:
+        return None
+
+
+    # ======================================
+    # BRAK DATY
+    # -> POWTÓRKA MOŻE BYĆ TERAZ
+    # ======================================
+
+    if last_practiced is None:
+
+        return get_review_now()
+
+
+    return (
+        last_practiced
+        +
+        timedelta(
+            hours=interval_hours
+        )
+    )
+
+
+# ==========================================
 # DATA KOLEJNEJ POWTÓRKI
+# ==========================================
+#
+# PRIORYTET:
+#
+# 1. next_review_at z Adaptive Review 2.0
+#
+# 2. stary harmonogram tylko wtedy,
+#    gdy wpis nie ma jeszcze nowej daty
 # ==========================================
 
 def get_error_next_review_at(
@@ -158,8 +230,7 @@ def get_error_next_review_at(
 
 
     # ======================================
-    # OPANOWANEGO BŁĘDU
-    # NIE PLANUJEMY
+    # OPANOWANY BŁĄD
     # ======================================
 
     if error_item.get(
@@ -170,49 +241,36 @@ def get_error_next_review_at(
         return None
 
 
-    last_practiced = parse_review_timestamp(
-        error_item.get(
-            "last_practiced"
+    # ======================================
+    # ADAPTIVE REVIEW 2.0
+    # ======================================
+
+    stored_review = (
+        get_stored_error_next_review_at(
+            state,
+            error_type
         )
     )
 
 
-    correct_streak = error_item.get(
-        "correct_streak",
-        0
-    )
-
-
-    interval_hours = (
-        get_error_review_interval_hours(
-            correct_streak
+    adaptive_review_at = (
+        parse_review_timestamp(
+            stored_review
         )
     )
 
 
-    if interval_hours is None:
-        return None
+    if adaptive_review_at is not None:
+
+        return adaptive_review_at
 
 
     # ======================================
-    # BRAK DATY POPRZEDNIEGO ĆWICZENIA
-    #
-    # Dotyczy m.in. starszej pamięci,
-    # utworzonej przed dodaniem
-    # spaced repetition.
+    # LEGACY FALLBACK
     # ======================================
 
-    if last_practiced is None:
-
-        return get_review_now()
-
-
-    return (
-        last_practiced
-        +
-        timedelta(
-            hours=interval_hours
-        )
+    return get_legacy_error_next_review_at(
+        error_item
     )
 
 
@@ -249,7 +307,7 @@ def is_error_due_for_review(
 
 
     # ======================================
-    # JUŻ JEST OZNACZONY DO ĆWICZENIA
+    # JUŻ CZEKA NA ĆWICZENIE
     # ======================================
 
     if error_item.get(
@@ -261,7 +319,7 @@ def is_error_due_for_review(
 
 
     # ======================================
-    # CZAS KOLEJNEJ POWTÓRKI
+    # TERMIN POWTÓRKI
     # ======================================
 
     next_review = get_error_next_review_at(
@@ -284,6 +342,11 @@ def is_error_due_for_review(
         now = now.replace(
             tzinfo=timezone.utc
         )
+
+
+    now = now.astimezone(
+        timezone.utc
+    )
 
 
     return now >= next_review
@@ -319,6 +382,11 @@ def get_error_review_wait_seconds(
         now = now.replace(
             tzinfo=timezone.utc
         )
+
+
+    now = now.astimezone(
+        timezone.utc
+    )
 
 
     seconds = (
@@ -360,6 +428,10 @@ def refresh_error_review(
         return False
 
 
+    # ======================================
+    # OPANOWANEGO NIE AKTYWUJEMY
+    # ======================================
+
     if error_item.get(
         "mastered",
         False
@@ -367,6 +439,10 @@ def refresh_error_review(
 
         return False
 
+
+    # ======================================
+    # JUŻ CZEKA NA ĆWICZENIE
+    # ======================================
 
     if error_item.get(
         "needs_practice",
@@ -376,6 +452,10 @@ def refresh_error_review(
         return False
 
 
+    # ======================================
+    # JESZCZE NIE CZAS
+    # ======================================
+
     if not is_error_due_for_review(
         state,
         error_type,
@@ -384,6 +464,11 @@ def refresh_error_review(
 
         return False
 
+
+    # ======================================
+    # TERMIN NADSZEDŁ
+    # -> BŁĄD WRACA DO ĆWICZENIA
+    # ======================================
 
     return mark_error_for_review(
         state,
@@ -414,6 +499,18 @@ def refresh_error_reviews(
         now = get_review_now()
 
 
+    if now.tzinfo is None:
+
+        now = now.replace(
+            tzinfo=timezone.utc
+        )
+
+
+    now = now.astimezone(
+        timezone.utc
+    )
+
+
     activated = []
 
 
@@ -439,7 +536,7 @@ def refresh_error_reviews(
 
 
 # ==========================================
-# BŁĘDY, KTÓRE SĄ TERAZ DO POWTÓRKI
+# BŁĘDY TERAZ DO POWTÓRKI
 # ==========================================
 
 def get_due_error_reviews(
@@ -459,6 +556,18 @@ def get_due_error_reviews(
     if now is None:
 
         now = get_review_now()
+
+
+    if now.tzinfo is None:
+
+        now = now.replace(
+            tzinfo=timezone.utc
+        )
+
+
+    now = now.astimezone(
+        timezone.utc
+    )
 
 
     due_errors = []
@@ -496,6 +605,7 @@ def get_next_error_review(
         state
     )
 
+
     reviews = []
 
 
@@ -511,6 +621,10 @@ def get_next_error_review(
             continue
 
 
+        # ==================================
+        # OPANOWANE
+        # ==================================
+
         if error_item.get(
             "mastered",
             False
@@ -518,6 +632,10 @@ def get_next_error_review(
 
             continue
 
+
+        # ==================================
+        # JUŻ DO ĆWICZENIA
+        # ==================================
 
         if error_item.get(
             "needs_practice",
@@ -533,6 +651,10 @@ def get_next_error_review(
 
             continue
 
+
+        # ==================================
+        # ADAPTIVE REVIEW / LEGACY FALLBACK
+        # ==================================
 
         next_review = get_error_next_review_at(
             state,
@@ -563,9 +685,10 @@ def get_next_error_review(
 
 
     return {
+
         "error_type":
             error_type,
 
         "review_at":
             review_at.isoformat()
-      }
+    }
