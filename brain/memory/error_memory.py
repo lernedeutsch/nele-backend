@@ -1,6 +1,7 @@
 # ==========================================
 # NELE – PAMIĘĆ BŁĘDÓW UCZNIA
 # STUDENT MEMORY 2.0
+# ADAPTIVE REVIEW 2.0
 # ==========================================
 
 from datetime import datetime, timezone
@@ -12,6 +13,8 @@ from datetime import datetime, timezone
 
 MASTERED_CORRECT_STREAK = 3
 MAX_PRACTICE_HISTORY = 20
+
+DEFAULT_DIFFICULTY = 0.5
 
 
 # ==========================================
@@ -26,26 +29,119 @@ def get_current_timestamp():
 
 
 # ==========================================
+# OGRANICZENIE TRUDNOŚCI
+# ==========================================
+
+def clamp_difficulty(
+    value
+):
+
+    try:
+
+        value = float(
+            value
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        value = DEFAULT_DIFFICULTY
+
+
+    return max(
+        0.0,
+        min(
+            1.0,
+            value
+        )
+    )
+
+
+# ==========================================
 # DOMYŚLNA STRUKTURA BŁĘDU
 # ==========================================
 
 def create_empty_error_item():
 
     return {
+
+        # ==================================
+        # BŁĄD
+        # ==================================
+
         "count": 0,
+
         "last_wrong": None,
         "last_correct": None,
 
         "needs_practice": False,
 
+
+        # ==================================
+        # POSTĘP
+        # ==================================
+
         "practice_count": 0,
+
         "correct_streak": 0,
 
         "mastered": False,
 
         "last_practiced": None,
 
-        "practice_history": []
+        "practice_history": [],
+
+
+        # ==================================
+        # ADAPTIVE REVIEW 2.0
+        # ==================================
+
+        # 0.0 = łatwe
+        # 0.5 = normalne
+        # 1.0 = trudne
+
+        "difficulty":
+            DEFAULT_DIFFICULTY,
+
+
+        # Ostatni wynik:
+        #
+        # wrong
+        # correct_with_help
+        # correct_with_difficulty
+        # correct
+        # correct_easy
+
+        "last_result":
+            None,
+
+
+        # Jakość 0–4
+
+        "last_quality":
+            None,
+
+
+        # Termin kolejnej powtórki
+
+        "next_review_at":
+            None,
+
+
+        # Ile razy błąd wrócił
+        # po wcześniejszej nauce
+
+        "lapses":
+            0,
+
+
+        # Poprawne odpowiedzi
+        # w ćwiczeniach mówienia
+
+        "spoken_successes":
+            0
     }
 
 
@@ -53,19 +149,11 @@ def create_empty_error_item():
 # MIGRACJA STAREGO WPISU
 # ==========================================
 #
-# Starsza wersja pamięci potrafiła już:
+# Starsza wersja pamięci mogła już
+# oznaczyć błąd jako przećwiczony,
+# ale nie posiadała nowych pól.
 #
-# - zapisać błąd
-# - oznaczyć go jako przećwiczony
-#
-# ale nie miała jeszcze:
-#
-# - practice_count
-# - correct_streak
-# - last_practiced
-# - practice_history
-#
-# Jeżeli błąd:
+# Jeżeli mamy:
 #
 # count > 0
 # needs_practice = False
@@ -74,8 +162,8 @@ def create_empty_error_item():
 # last_practiced = None
 # practice_history = []
 #
-# traktujemy go jako jeden poprawnie
-# wykonany trening ze starego systemu.
+# traktujemy to jako jedno poprawnie
+# wykonane ćwiczenie starego systemu.
 # ==========================================
 
 def migrate_legacy_error_item(
@@ -120,21 +208,28 @@ def migrate_legacy_error_item(
     )
 
 
-    # ======================================
-    # CZY TO STARY PRZEĆWICZONY WPIS?
-    # ======================================
-
     is_legacy_practiced_error = (
+
         count > 0
+
         and
+
         needs_practice is False
+
         and
+
         practice_count == 0
+
         and
+
         correct_streak == 0
+
         and
+
         not last_practiced
+
         and
+
         not practice_history
     )
 
@@ -143,10 +238,6 @@ def migrate_legacy_error_item(
 
         return error_item
 
-
-    # ======================================
-    # MIGRACJA
-    # ======================================
 
     migrated_at = get_current_timestamp()
 
@@ -177,11 +268,22 @@ def migrate_legacy_error_item(
 
 
     error_item[
+        "last_result"
+    ] = "correct"
+
+
+    error_item[
         "practice_history"
     ] = [
         {
-            "result": "correct",
-            "timestamp": migrated_at
+            "result":
+                "correct",
+
+            "timestamp":
+                migrated_at,
+
+            "legacy":
+                True
         }
     ]
 
@@ -190,7 +292,7 @@ def migrate_legacy_error_item(
 
 
 # ==========================================
-# UZUPEŁNIENIE STAREJ PAMIĘCI
+# UZUPEŁNIENIE / NORMALIZACJA PAMIĘCI
 # ==========================================
 
 def normalize_error_item(
@@ -207,6 +309,10 @@ def normalize_error_item(
 
     defaults = create_empty_error_item()
 
+
+    # ======================================
+    # BRAKUJĄCE POLA
+    # ======================================
 
     for key, value in defaults.items():
 
@@ -229,44 +335,45 @@ def normalize_error_item(
 
 
     # ======================================
-    # BEZPIECZNE TYPY
+    # LICZNIKI
     # ======================================
 
-    if not isinstance(
-        error_item.get(
-            "count"
-        ),
-        int
-    ):
+    integer_fields = (
 
-        error_item[
-            "count"
-        ] = 0
+        "count",
+        "practice_count",
+        "correct_streak",
+        "lapses",
+        "spoken_successes"
+    )
 
 
-    if not isinstance(
-        error_item.get(
-            "practice_count"
-        ),
-        int
-    ):
+    for field in integer_fields:
 
-        error_item[
-            "practice_count"
-        ] = 0
+        if not isinstance(
+            error_item.get(
+                field
+            ),
+            int
+        ):
+
+            error_item[
+                field
+            ] = 0
 
 
-    if not isinstance(
-        error_item.get(
-            "correct_streak"
-        ),
-        int
-    ):
+        if error_item[
+            field
+        ] < 0:
 
-        error_item[
-            "correct_streak"
-        ] = 0
+            error_item[
+                field
+            ] = 0
 
+
+    # ======================================
+    # HISTORIA
+    # ======================================
 
     if not isinstance(
         error_item.get(
@@ -279,6 +386,10 @@ def normalize_error_item(
             "practice_history"
         ] = []
 
+
+    # ======================================
+    # BOOLEAN
+    # ======================================
 
     error_item[
         "needs_practice"
@@ -298,6 +409,63 @@ def normalize_error_item(
             False
         )
     )
+
+
+    # ======================================
+    # TRUDNOŚĆ
+    # ======================================
+
+    error_item[
+        "difficulty"
+    ] = clamp_difficulty(
+        error_item.get(
+            "difficulty",
+            DEFAULT_DIFFICULTY
+        )
+    )
+
+
+    # ======================================
+    # JAKOŚĆ
+    # ======================================
+
+    last_quality = error_item.get(
+        "last_quality"
+    )
+
+
+    if last_quality is not None:
+
+        try:
+
+            last_quality = int(
+                last_quality
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            last_quality = None
+
+
+        if (
+            last_quality is not None
+            and
+            (
+                last_quality < 0
+                or
+                last_quality > 4
+            )
+        ):
+
+            last_quality = None
+
+
+    error_item[
+        "last_quality"
+    ] = last_quality
 
 
     # ======================================
@@ -321,6 +489,7 @@ def get_error_memory(
 ):
 
     if state is None:
+
         return {}
 
 
@@ -349,7 +518,7 @@ def get_error_memory(
 
 
     # ======================================
-    # AKTUALIZACJA STARYCH WPISÓW
+    # AKTUALIZACJA WSZYSTKICH WPISÓW
     # ======================================
 
     for error_type in list(
@@ -378,10 +547,12 @@ def get_error_item(
 ):
 
     if state is None:
+
         return None
 
 
     if not error_type:
+
         return None
 
 
@@ -391,6 +562,7 @@ def get_error_item(
 
 
     if not error_type:
+
         return None
 
 
@@ -421,15 +593,19 @@ def get_error_item(
 
 
 # ==========================================
-# DODANIE WPISU DO HISTORII ĆWICZEŃ
+# HISTORIA ĆWICZEŃ
 # ==========================================
 
 def add_practice_history(
     error_item,
-    result
+    result,
+    quality=None,
+    spoken=False,
+    next_review_at=None
 ):
 
     if not error_item:
+
         return
 
 
@@ -450,17 +626,42 @@ def add_practice_history(
         ] = history
 
 
+    history_entry = {
+
+        "result":
+            result,
+
+        "timestamp":
+            get_current_timestamp(),
+
+        "spoken":
+            bool(
+                spoken
+            )
+    }
+
+
+    if quality is not None:
+
+        history_entry[
+            "quality"
+        ] = quality
+
+
+    if next_review_at:
+
+        history_entry[
+            "next_review_at"
+        ] = next_review_at
+
+
     history.append(
-        {
-            "result": result,
-            "timestamp": get_current_timestamp()
-        }
+        history_entry
     )
 
 
     # ======================================
-    # NIE POZWALAMY HISTORII ROSNĄĆ
-    # W NIESKOŃCZONOŚĆ
+    # HISTORIA NIE ROŚNIE BEZ KOŃCA
     # ======================================
 
     if len(
@@ -486,10 +687,12 @@ def remember_error(
 ):
 
     if state is None:
+
         return False
 
 
     if not error_type:
+
         return False
 
 
@@ -500,7 +703,43 @@ def remember_error(
 
 
     if error_item is None:
+
         return False
+
+
+    # ======================================
+    # CZY BŁĄD WRÓCIŁ PO WCZEŚNIEJSZEJ
+    # NAUCE?
+    # ======================================
+
+    was_already_learned = (
+
+        error_item.get(
+            "practice_count",
+            0
+        ) > 0
+
+        or
+
+        error_item.get(
+            "correct_streak",
+            0
+        ) > 0
+
+        or
+
+        error_item.get(
+            "mastered",
+            False
+        )
+    )
+
+
+    if was_already_learned:
+
+        error_item[
+            "lapses"
+        ] += 1
 
 
     # ======================================
@@ -526,7 +765,7 @@ def remember_error(
 
 
     # ======================================
-    # OSTATNIA POPRAWNA WERSJA
+    # POPRAWNA WERSJA
     # ======================================
 
     if correct_text:
@@ -557,11 +796,130 @@ def remember_error(
     ] = False
 
 
+    error_item[
+        "last_result"
+    ] = "wrong"
+
+
+    error_item[
+        "last_quality"
+    ] = 0
+
+
+    # ======================================
+    # STARY TERMIN JUŻ NIE OBOWIĄZUJE
+    # ======================================
+
+    error_item[
+        "next_review_at"
+    ] = None
+
+
+    # ======================================
+    # BŁĄD WRÓCIŁ -> LEKKO PODNOSIMY
+    # OCENĘ TRUDNOŚCI
+    # ======================================
+
+    error_item[
+        "difficulty"
+    ] = clamp_difficulty(
+
+        error_item.get(
+            "difficulty",
+            DEFAULT_DIFFICULTY
+        )
+        +
+        0.08
+    )
+
+
     return True
 
 
 # ==========================================
-# LICZBA BŁĘDÓW DANEGO TYPU
+# AKTUALIZACJA DANYCH ADAPTACYJNYCH
+# ==========================================
+
+def update_error_adaptive_data(
+    state,
+    error_type,
+    difficulty=None,
+    last_result=None,
+    last_quality=None,
+    next_review_at=None
+):
+
+    error_item = get_error_item(
+        error_type,
+        state
+    )
+
+
+    if error_item is None:
+
+        return False
+
+
+    if difficulty is not None:
+
+        error_item[
+            "difficulty"
+        ] = clamp_difficulty(
+            difficulty
+        )
+
+
+    if last_result is not None:
+
+        error_item[
+            "last_result"
+        ] = str(
+            last_result
+        )
+
+
+    if last_quality is not None:
+
+        try:
+
+            last_quality = int(
+                last_quality
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            last_quality = None
+
+
+        if (
+            last_quality is not None
+            and
+            0 <= last_quality <= 4
+        ):
+
+            error_item[
+                "last_quality"
+            ] = last_quality
+
+
+    # ======================================
+    # next_review_at może być również None
+    # przy świadomym wyzerowaniu terminu.
+    # ======================================
+
+    error_item[
+        "next_review_at"
+    ] = next_review_at
+
+
+    return True
+
+
+# ==========================================
+# LICZBA BŁĘDÓW
 # ==========================================
 
 def get_error_count(
@@ -576,6 +934,7 @@ def get_error_count(
 
 
     if error_item is None:
+
         return 0
 
 
@@ -586,7 +945,7 @@ def get_error_count(
 
 
 # ==========================================
-# LICZBA ĆWICZEŃ DANEGO BŁĘDU
+# LICZBA ĆWICZEŃ
 # ==========================================
 
 def get_error_practice_count(
@@ -601,6 +960,7 @@ def get_error_practice_count(
 
 
     if error_item is None:
+
         return 0
 
 
@@ -626,12 +986,116 @@ def get_error_correct_streak(
 
 
     if error_item is None:
+
         return 0
 
 
     return error_item.get(
         "correct_streak",
         0
+    )
+
+
+# ==========================================
+# LICZBA POPRAWNYCH ODPOWIEDZI GŁOSOWYCH
+# ==========================================
+
+def get_spoken_successes(
+    state,
+    error_type
+):
+
+    error_item = get_error_item(
+        error_type,
+        state
+    )
+
+
+    if error_item is None:
+
+        return 0
+
+
+    return error_item.get(
+        "spoken_successes",
+        0
+    )
+
+
+# ==========================================
+# LICZBA POWROTÓW BŁĘDU
+# ==========================================
+
+def get_error_lapses(
+    state,
+    error_type
+):
+
+    error_item = get_error_item(
+        error_type,
+        state
+    )
+
+
+    if error_item is None:
+
+        return 0
+
+
+    return error_item.get(
+        "lapses",
+        0
+    )
+
+
+# ==========================================
+# TRUDNOŚĆ
+# ==========================================
+
+def get_error_difficulty(
+    state,
+    error_type
+):
+
+    error_item = get_error_item(
+        error_type,
+        state
+    )
+
+
+    if error_item is None:
+
+        return DEFAULT_DIFFICULTY
+
+
+    return error_item.get(
+        "difficulty",
+        DEFAULT_DIFFICULTY
+    )
+
+
+# ==========================================
+# TERMIN NASTĘPNEJ POWTÓRKI
+# ==========================================
+
+def get_error_next_review_at(
+    state,
+    error_type
+):
+
+    error_item = get_error_item(
+        error_type,
+        state
+    )
+
+
+    if error_item is None:
+
+        return None
+
+
+    return error_item.get(
+        "next_review_at"
     )
 
 
@@ -651,6 +1115,7 @@ def is_error_mastered(
 
 
     if error_item is None:
+
         return False
 
 
@@ -678,6 +1143,7 @@ def error_needs_practice(
 
 
     if error_item is None:
+
         return False
 
 
@@ -692,10 +1158,26 @@ def error_needs_practice(
 # ==========================================
 # POPRAWNIE PRZEĆWICZONY BŁĄD
 # ==========================================
+#
+# Parametry Adaptive Review są opcjonalne,
+# więc dotychczasowe wywołanie:
+#
+# mark_error_practiced(
+#     state,
+#     error_type
+# )
+#
+# nadal działa.
+# ==========================================
 
 def mark_error_practiced(
     state,
-    error_type
+    error_type,
+    result="correct",
+    spoken=False,
+    quality=None,
+    next_review_at=None,
+    difficulty=None
 ):
 
     error_item = get_error_item(
@@ -705,6 +1187,7 @@ def mark_error_practiced(
 
 
     if error_item is None:
+
         return False
 
 
@@ -727,6 +1210,17 @@ def mark_error_practiced(
 
 
     # ======================================
+    # ODPOWIEDŹ GŁOSOWA
+    # ======================================
+
+    if spoken:
+
+        error_item[
+            "spoken_successes"
+        ] += 1
+
+
+    # ======================================
     # DATA OSTATNIEGO ĆWICZENIA
     # ======================================
 
@@ -736,18 +1230,83 @@ def mark_error_practiced(
 
 
     # ======================================
+    # OSTATNI WYNIK
+    # ======================================
+
+    error_item[
+        "last_result"
+    ] = result
+
+
+    # ======================================
+    # JAKOŚĆ 0–4
+    # ======================================
+
+    if quality is not None:
+
+        try:
+
+            quality = int(
+                quality
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            quality = None
+
+
+        if (
+            quality is not None
+            and
+            0 <= quality <= 4
+        ):
+
+            error_item[
+                "last_quality"
+            ] = quality
+
+
+    # ======================================
+    # TRUDNOŚĆ
+    # ======================================
+
+    if difficulty is not None:
+
+        error_item[
+            "difficulty"
+        ] = clamp_difficulty(
+            difficulty
+        )
+
+
+    # ======================================
+    # TERMIN KOLEJNEJ POWTÓRKI
+    # ======================================
+
+    error_item[
+        "next_review_at"
+    ] = next_review_at
+
+
+    # ======================================
     # HISTORIA
     # ======================================
 
     add_practice_history(
         error_item,
-        "correct"
+        result,
+        quality,
+        spoken,
+        next_review_at
     )
 
 
     # ======================================
     # PO DOBRYM ĆWICZENIU
-    # NIE POWTARZAMY OD RAZU
+    # NIE POWTARZAMY NATYCHMIAST
     # ======================================
 
     error_item[
@@ -756,8 +1315,14 @@ def mark_error_practiced(
 
 
     # ======================================
-    # OPANOWANIE PO 3
-    # POPRAWNYCH POWTÓRKACH Z RZĘDU
+    # OPANOWANIE
+    #
+    # Na tym etapie zachowujemy istniejącą
+    # zasadę 3 poprawnych powtórek.
+    #
+    # W kolejnym kroku połączymy ją
+    # z Adaptive Review i odpowiedziami
+    # w różne dni.
     # ======================================
 
     if (
@@ -797,6 +1362,7 @@ def mark_error_for_review(
 
 
     if error_item is None:
+
         return False
 
 
@@ -831,7 +1397,10 @@ def get_errors_for_practice(
     errors = []
 
 
-    for error_type, error_item in error_memory.items():
+    for (
+        error_type,
+        error_item
+    ) in error_memory.items():
 
         if not isinstance(
             error_item,
@@ -869,7 +1438,10 @@ def get_unmastered_errors(
     errors = []
 
 
-    for error_type, error_item in error_memory.items():
+    for (
+        error_type,
+        error_item
+    ) in error_memory.items():
 
         if not isinstance(
             error_item,
@@ -884,7 +1456,9 @@ def get_unmastered_errors(
                 "count",
                 0
             ) > 0
+
             and
+
             not error_item.get(
                 "mastered",
                 False
@@ -915,7 +1489,10 @@ def get_most_common_errors(
     errors = []
 
 
-    for error_type, error_item in error_memory.items():
+    for (
+        error_type,
+        error_item
+    ) in error_memory.items():
 
         if not isinstance(
             error_item,
@@ -928,6 +1505,7 @@ def get_most_common_errors(
         errors.append(
             (
                 error_type,
+
                 error_item.get(
                     "count",
                     0
@@ -944,8 +1522,12 @@ def get_most_common_errors(
 
     return [
         error_type
-        for error_type, count
-        in errors[:limit]
+
+        for (
+            error_type,
+            count
+        ) in errors[:limit]
+
         if count > 0
     ]
 
@@ -966,6 +1548,7 @@ def get_error_practice_history(
 
 
     if error_item is None:
+
         return []
 
 
@@ -1002,12 +1585,15 @@ def get_error_summary(
 
 
     if error_item is None:
+
         return None
 
 
     return {
+
         "type":
             error_type,
+
 
         "count":
             error_item.get(
@@ -1015,15 +1601,18 @@ def get_error_summary(
                 0
             ),
 
+
         "last_wrong":
             error_item.get(
                 "last_wrong"
             ),
 
+
         "last_correct":
             error_item.get(
                 "last_correct"
             ),
+
 
         "needs_practice":
             error_item.get(
@@ -1031,11 +1620,13 @@ def get_error_summary(
                 False
             ),
 
+
         "practice_count":
             error_item.get(
                 "practice_count",
                 0
             ),
+
 
         "correct_streak":
             error_item.get(
@@ -1043,21 +1634,67 @@ def get_error_summary(
                 0
             ),
 
+
         "mastered":
             error_item.get(
                 "mastered",
                 False
             ),
 
+
         "last_practiced":
             error_item.get(
                 "last_practiced"
             ),
 
+
         "practice_history":
             error_item.get(
                 "practice_history",
                 []
+            ),
+
+
+        # ==================================
+        # ADAPTIVE REVIEW 2.0
+        # ==================================
+
+        "difficulty":
+            error_item.get(
+                "difficulty",
+                DEFAULT_DIFFICULTY
+            ),
+
+
+        "last_result":
+            error_item.get(
+                "last_result"
+            ),
+
+
+        "last_quality":
+            error_item.get(
+                "last_quality"
+            ),
+
+
+        "next_review_at":
+            error_item.get(
+                "next_review_at"
+            ),
+
+
+        "lapses":
+            error_item.get(
+                "lapses",
+                0
+            ),
+
+
+        "spoken_successes":
+            error_item.get(
+                "spoken_successes",
+                0
             )
     }
 
