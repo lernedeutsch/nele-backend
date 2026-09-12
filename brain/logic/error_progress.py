@@ -3,12 +3,18 @@
 # STUDENT MEMORY 2.0
 # ==========================================
 
+from datetime import datetime, timezone
+
 from brain.logic.matcher import normalize
 
 from brain.memory.error_memory import (
     get_error_memory,
     get_error_summary,
     get_most_common_errors
+)
+
+from brain.memory.error_review import (
+    get_next_error_review
 )
 
 
@@ -71,13 +77,13 @@ ERROR_PROGRESS_KEYWORDS = {
     },
 
     "verb": {
-        "verben",
+        "verb",
         "verben"
     },
 
     "preposition": {
-        "präpositionen",
-        "präposition"
+        "präposition",
+        "präpositionen"
     }
 }
 
@@ -199,6 +205,36 @@ def is_error_practice_count_question(
 
 # ==========================================
 # PYTANIE:
+# KIEDY NASTĘPNA POWTÓRKA?
+# ==========================================
+
+def is_next_error_review_question(
+    user_message
+):
+
+    message = clean_error_progress_message(
+        user_message
+    )
+
+    questions = {
+
+        "wann soll ich meine fehler wiederholen",
+        "wann soll ich meine fehler wieder üben",
+        "wann muss ich meine fehler wiederholen",
+        "wann muss ich meine fehler wieder üben",
+        "wann üben wir meine fehler wieder",
+        "wann wiederholen wir meine fehler",
+        "wann machen wir mit meinen fehlern weiter",
+        "wann übe ich meine fehler wieder",
+        "wann ist die nächste fehlerübung",
+        "wann ist meine nächste fehlerübung"
+    }
+
+    return message in questions
+
+
+# ==========================================
+# PYTANIE:
 # JAK DOBRZE UMIEM KONKRETNY OBSZAR?
 # ==========================================
 
@@ -306,6 +342,168 @@ def get_mastered_error_count(
 
 
 # ==========================================
+# ODCZYT DATY ISO
+# ==========================================
+
+def parse_progress_timestamp(
+    timestamp
+):
+
+    if not timestamp:
+        return None
+
+
+    try:
+
+        parsed = datetime.fromisoformat(
+            str(
+                timestamp
+            ).replace(
+                "Z",
+                "+00:00"
+            )
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return None
+
+
+    if parsed.tzinfo is None:
+
+        parsed = parsed.replace(
+            tzinfo=timezone.utc
+        )
+
+
+    return parsed.astimezone(
+        timezone.utc
+    )
+
+
+# ==========================================
+# ODPOWIEDŹ:
+# KIEDY NASTĘPNA POWTÓRKA?
+# ==========================================
+
+def answer_next_error_review(
+    state
+):
+
+    next_review = get_next_error_review(
+        state
+    )
+
+
+    if not next_review:
+
+        return (
+            "Im Moment ist keine weitere "
+            "Fehlerübung geplant."
+        )
+
+
+    review_at = parse_progress_timestamp(
+        next_review.get(
+            "review_at"
+        )
+    )
+
+
+    if review_at is None:
+
+        return (
+            "Wir machen später mit deinen "
+            "Fehlern weiter."
+        )
+
+
+    now = datetime.now(
+        timezone.utc
+    )
+
+
+    seconds = (
+        review_at
+        -
+        now
+    ).total_seconds()
+
+
+    # ======================================
+    # POWTÓRKA JEST JUŻ GOTOWA
+    # ======================================
+
+    if seconds <= 0:
+
+        return (
+            "Jetzt ist eine gute Zeit für die "
+            "Wiederholung. Wir können gleich "
+            "deine Fehler üben."
+        )
+
+
+    hours = seconds / 3600
+
+
+    # ======================================
+    # JESZCZE DZISIAJ
+    # ======================================
+
+    if hours < 8:
+
+        return (
+            "Heute musst du sie noch nicht "
+            "wiederholen. Wir machen später weiter."
+        )
+
+
+    # ======================================
+    # OKOŁO JEDNEGO DNIA
+    # ======================================
+
+    if hours < 36:
+
+        return (
+            "Heute musst du deine Fehler nicht "
+            "mehr üben. Wir machen morgen weiter."
+        )
+
+
+    # ======================================
+    # OKOŁO DWÓCH DNI
+    # ======================================
+
+    if hours < 60:
+
+        return (
+            "Wir wiederholen deine Fehler "
+            "übermorgen."
+        )
+
+
+    # ======================================
+    # WIĘCEJ NIŻ DWA DNI
+    # ======================================
+
+    days = max(
+        1,
+        round(
+            hours / 24
+        )
+    )
+
+
+    return (
+        f"Wir wiederholen deine Fehler "
+        f"in {days} Tagen."
+    )
+
+
+# ==========================================
 # ODPOWIEDŹ:
 # CZY SIĘ POPRAWIŁEM?
 # ==========================================
@@ -355,10 +553,6 @@ def answer_general_improvement(
     )
 
 
-    # ======================================
-    # JESZCZE NIE BYŁO ĆWICZENIA
-    # ======================================
-
     if practice_count == 0:
 
         return (
@@ -367,10 +561,6 @@ def answer_general_improvement(
             "um deinen Fortschritt gut zu beurteilen."
         )
 
-
-    # ======================================
-    # COŚ JUŻ OPANOWANE
-    # ======================================
 
     if mastered_count > 0:
 
@@ -388,10 +578,6 @@ def answer_general_improvement(
             "schon gut gefestigt."
         )
 
-
-    # ======================================
-    # JEST POSTĘP, ALE JESZCZE NIE MASTERED
-    # ======================================
 
     common_errors = get_most_common_errors(
         state,
@@ -548,10 +734,6 @@ def answer_specific_error_progress(
     )
 
 
-    # ======================================
-    # OPANOWANE
-    # ======================================
-
     if mastered:
 
         return (
@@ -559,10 +741,6 @@ def answer_specific_error_progress(
             "Du hast sie mehrmals richtig geübt."
         )
 
-
-    # ======================================
-    # DWIE POPRAWNE POWTÓRKI
-    # ======================================
 
     if correct_streak >= 2:
 
@@ -574,10 +752,6 @@ def answer_specific_error_progress(
         )
 
 
-    # ======================================
-    # JEDNA POPRAWNA POWTÓRKA
-    # ======================================
-
     if correct_streak == 1:
 
         return (
@@ -588,10 +762,6 @@ def answer_specific_error_progress(
         )
 
 
-    # ======================================
-    # ĆWICZONE, ALE SERIA = 0
-    # ======================================
-
     if practice_count > 0:
 
         return (
@@ -599,10 +769,6 @@ def answer_specific_error_progress(
             "aber wir sollten sie noch weiter festigen."
         )
 
-
-    # ======================================
-    # BŁĄD CZEKA NA ĆWICZENIE
-    # ======================================
 
     if needs_practice:
 
@@ -629,6 +795,19 @@ def handle_error_progress(
 
     if state is None:
         return None
+
+
+    # ======================================
+    # KIEDY NASTĘPNA POWTÓRKA?
+    # ======================================
+
+    if is_next_error_review_question(
+        user_message
+    ):
+
+        return answer_next_error_review(
+            state
+        )
 
 
     # ======================================
