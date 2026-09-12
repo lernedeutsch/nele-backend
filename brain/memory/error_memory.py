@@ -50,6 +50,146 @@ def create_empty_error_item():
 
 
 # ==========================================
+# MIGRACJA STAREGO WPISU
+# ==========================================
+#
+# Starsza wersja pamięci potrafiła już:
+#
+# - zapisać błąd
+# - oznaczyć go jako przećwiczony
+#
+# ale nie miała jeszcze:
+#
+# - practice_count
+# - correct_streak
+# - last_practiced
+# - practice_history
+#
+# Jeżeli błąd:
+#
+# count > 0
+# needs_practice = False
+# practice_count = 0
+# correct_streak = 0
+# last_practiced = None
+# practice_history = []
+#
+# traktujemy go jako jeden poprawnie
+# wykonany trening ze starego systemu.
+# ==========================================
+
+def migrate_legacy_error_item(
+    error_item
+):
+
+    if not isinstance(
+        error_item,
+        dict
+    ):
+
+        return error_item
+
+
+    count = error_item.get(
+        "count",
+        0
+    )
+
+    needs_practice = error_item.get(
+        "needs_practice",
+        False
+    )
+
+    practice_count = error_item.get(
+        "practice_count",
+        0
+    )
+
+    correct_streak = error_item.get(
+        "correct_streak",
+        0
+    )
+
+    last_practiced = error_item.get(
+        "last_practiced"
+    )
+
+    practice_history = error_item.get(
+        "practice_history",
+        []
+    )
+
+
+    # ======================================
+    # CZY TO STARY PRZEĆWICZONY WPIS?
+    # ======================================
+
+    is_legacy_practiced_error = (
+        count > 0
+        and
+        needs_practice is False
+        and
+        practice_count == 0
+        and
+        correct_streak == 0
+        and
+        not last_practiced
+        and
+        not practice_history
+    )
+
+
+    if not is_legacy_practiced_error:
+
+        return error_item
+
+
+    # ======================================
+    # MIGRACJA
+    # ======================================
+
+    migrated_at = get_current_timestamp()
+
+
+    error_item[
+        "practice_count"
+    ] = 1
+
+
+    error_item[
+        "correct_streak"
+    ] = 1
+
+
+    error_item[
+        "mastered"
+    ] = False
+
+
+    error_item[
+        "needs_practice"
+    ] = False
+
+
+    error_item[
+        "last_practiced"
+    ] = migrated_at
+
+
+    error_item[
+        "practice_history"
+    ] = [
+        {
+            "result": "correct",
+            "timestamp": migrated_at
+        }
+    ]
+
+
+    return error_item
+
+
+# ==========================================
 # UZUPEŁNIENIE STAREJ PAMIĘCI
 # ==========================================
 
@@ -157,6 +297,15 @@ def normalize_error_item(
             "mastered",
             False
         )
+    )
+
+
+    # ======================================
+    # MIGRACJA STARYCH DANYCH
+    # ======================================
+
+    error_item = migrate_legacy_error_item(
+        error_item
     )
 
 
@@ -391,18 +540,17 @@ def remember_error(
 
     # ======================================
     # BŁĄD POJAWIŁ SIĘ PONOWNIE
-    #
-    # Czyli wcześniejsza dobra seria
-    # nie jest już aktualna.
     # ======================================
 
     error_item[
         "needs_practice"
     ] = True
 
+
     error_item[
         "correct_streak"
     ] = 0
+
 
     error_item[
         "mastered"
@@ -598,8 +746,8 @@ def mark_error_practiced(
 
 
     # ======================================
-    # PO JEDNYM DOBRYM ĆWICZENIU
-    # NIE MUSI BYĆ POWTARZANY NATYCHMIAST
+    # PO DOBRYM ĆWICZENIU
+    # NIE POWTARZAMY OD RAZU
     # ======================================
 
     error_item[
@@ -608,7 +756,7 @@ def mark_error_practiced(
 
 
     # ======================================
-    # OPANOWANIE DOPIERO PO 3
+    # OPANOWANIE PO 3
     # POPRAWNYCH POWTÓRKACH Z RZĘDU
     # ======================================
 
