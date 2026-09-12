@@ -281,7 +281,8 @@ def generate_conversation_reply(
     # 1. LEARNER FEEDBACK
     #
     # Nele może poprawić błędne zdanie,
-    # ale dalej rozumie jego intencję.
+    # dalej rozumie jego intencję
+    # i zapisuje błąd w Student Memory 2.0.
     #
     # Przykład:
     #
@@ -294,7 +295,8 @@ def generate_conversation_reply(
 
     processed_message, feedback_text = (
         prepare_message_with_feedback(
-            user_message
+            user_message,
+            state
         )
     )
 
@@ -609,4 +611,4 @@ def generate_conversation_reply(
         fallback_answer,
         feedback_text,
         session_id
-            )
+)
