@@ -364,7 +364,7 @@ def handle_error_practice_step_one(
         return (
             "Richtig! Sehr gut. "
             f"„{correct_sentence}“ ist korrekt. "
-            "Schreib den richtigen Satz "
+            "Sag den richtigen Satz "
             "jetzt bitte selbst."
         )
 
@@ -414,7 +414,7 @@ def handle_error_practice_step_one(
 
 # ==========================================
 # KROK 2
-# SAMODZIELNE NAPISANIE ZDANIA
+# SAMODZIELNE POWIEDZENIE ZDANIA
 # ==========================================
 
 def handle_error_practice_step_two(
@@ -486,7 +486,7 @@ def handle_error_practice_step_two(
     return (
         "Fast. "
         f"Richtig ist: „{correct_sentence}“ "
-        "Schreib den Satz bitte noch einmal."
+        "Sag den Satz bitte noch einmal."
     )
 
 
