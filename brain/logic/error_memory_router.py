@@ -5,6 +5,10 @@
 
 from brain.logic.matcher import normalize
 
+from brain.logic.error_practice import (
+    start_error_practice
+)
+
 from brain.memory.error_memory import (
     get_error_summary,
     get_most_common_errors,
@@ -48,6 +52,9 @@ ERROR_LABELS = {
 def clean_error_memory_message(
     text
 ):
+
+    if not text:
+        return ""
 
     text = normalize(
         text
@@ -109,6 +116,38 @@ def is_error_practice_question(
     }
 
     return message in questions
+
+
+# ==========================================
+# CZY UŻYTKOWNIK CHCE ROZPOCZĄĆ
+# ĆWICZENIE SWOICH BŁĘDÓW
+# ==========================================
+
+def is_error_practice_start_request(
+    user_message
+):
+
+    message = clean_error_memory_message(
+        user_message
+    )
+
+    requests = {
+
+        "ich möchte meine fehler üben",
+        "ich will meine fehler üben",
+        "lass uns meine fehler üben",
+        "wir können meine fehler üben",
+        "ich möchte fehler üben",
+        "ich will fehler üben",
+        "lass uns fehler üben",
+        "fehler üben",
+        "meine fehler üben",
+        "ich möchte meine fehler trainieren",
+        "ich will meine fehler trainieren",
+        "lass uns meine fehler trainieren"
+    }
+
+    return message in requests
 
 
 # ==========================================
@@ -296,6 +335,19 @@ def handle_error_memory(
 
     if state is None:
         return None
+
+
+    # ======================================
+    # ROZPOCZĘCIE ĆWICZENIA BŁĘDÓW
+    # ======================================
+
+    if is_error_practice_start_request(
+        user_message
+    ):
+
+        return start_error_practice(
+            state
+        )
 
 
     # ======================================
