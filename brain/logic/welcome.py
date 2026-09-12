@@ -79,6 +79,29 @@ def clear_old_active_exercises(
     ] = None
 
 
+    # ======================================
+    # AKTYWNE PROWADZENIE LEKCJI
+    #
+    # Przy nowym otwarciu strony
+    # nie kontynuujemy automatycznie
+    # niedokończonego pytania z lekcji.
+    #
+    # Nie usuwamy postępu lekcji.
+    # ======================================
+
+    state[
+        "lesson_teaching_active"
+    ] = False
+
+    state[
+        "lesson_teaching_section"
+    ] = None
+
+    state[
+        "lesson_teaching_step"
+    ] = 0
+
+
 # ==========================================
 # AUTOMATYCZNE POWITANIE
 # ==========================================
@@ -239,8 +262,10 @@ def generate_welcome_reply(
 
 
     # ======================================
-    # NOWE SPOTKANIE – WYCZYŚĆ STARE
-    # AKTYWNE ĆWICZENIA
+    # NOWE SPOTKANIE
+    #
+    # Czyścimy tylko stare aktywne tryby.
+    # Pamięć ucznia i postęp zostają.
     # ======================================
 
     clear_old_active_exercises(
@@ -277,4 +302,4 @@ def generate_welcome_reply(
     return save_and_return(
         answer,
         session_id
-    )
+                    )
