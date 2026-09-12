@@ -1,6 +1,7 @@
 # ==========================================
 # NELE – ĆWICZENIE Z BŁĘDÓW UCZNIA
 # STUDENT MEMORY 2.0
+# ADAPTIVE REVIEW 2.0
 # ==========================================
 
 from brain.logic.matcher import normalize
@@ -8,7 +9,17 @@ from brain.logic.matcher import normalize
 from brain.memory.error_memory import (
     get_error_summary,
     get_errors_for_practice,
+    get_error_difficulty,
     mark_error_practiced
+)
+
+from brain.memory.adaptive_review import (
+    calculate_answer_quality,
+    build_adaptive_review_plan,
+    QUALITY_WITH_HELP,
+    QUALITY_DIFFICULT,
+    QUALITY_GOOD,
+    QUALITY_EASY
 )
 
 
@@ -95,6 +106,164 @@ def is_error_practice_active(
 
 
 # ==========================================
+# CZY ODPOWIEDŹ POCHODZIŁA Z MIKROFONU
+# ==========================================
+#
+# Obecnie backend może nie dostawać
+# tej informacji.
+#
+# Gdy frontend zacznie zapisywać:
+#
+# state["last_input_mode"] = "voice"
+#
+# albo:
+#
+# state["input_mode"] = "voice"
+#
+# wtedy spoken_successes będzie naliczane
+# automatycznie.
+# ==========================================
+
+def is_voice_input(
+    state
+):
+
+    if not state:
+        return False
+
+
+    input_mode = (
+        state.get(
+            "last_input_mode"
+        )
+        or
+        state.get(
+            "input_mode"
+        )
+        or
+        ""
+    )
+
+
+    input_mode = str(
+        input_mode
+    ).strip().lower()
+
+
+    return input_mode in {
+        "voice",
+        "speech",
+        "microphone",
+        "mic"
+    }
+
+
+# ==========================================
+# LICZNIK NIEUDANYCH PRÓB
+# ==========================================
+
+def increase_error_practice_attempts(
+    state
+):
+
+    attempts = state.get(
+        "error_practice_attempts",
+        0
+    )
+
+
+    try:
+
+        attempts = int(
+            attempts
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        attempts = 0
+
+
+    attempts += 1
+
+
+    state[
+        "error_practice_attempts"
+    ] = attempts
+
+
+    return attempts
+
+
+# ==========================================
+# ZMIANA TRUDNOŚCI
+# ==========================================
+#
+# quality 4
+# -> było łatwo
+# -> trudność lekko spada
+#
+# quality 3
+# -> dobra odpowiedź
+# -> trudność trochę spada
+#
+# quality 2
+# -> było trudno
+# -> trudność rośnie
+#
+# quality 1
+# -> potrzebna była pomoc
+# -> trudność rośnie mocniej
+# ==========================================
+
+def calculate_updated_difficulty(
+    current_difficulty,
+    quality
+):
+
+    try:
+
+        difficulty = float(
+            current_difficulty
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        difficulty = 0.5
+
+
+    if quality >= QUALITY_EASY:
+
+        difficulty -= 0.08
+
+    elif quality == QUALITY_GOOD:
+
+        difficulty -= 0.04
+
+    elif quality == QUALITY_DIFFICULT:
+
+        difficulty += 0.04
+
+    elif quality <= QUALITY_WITH_HELP:
+
+        difficulty += 0.08
+
+
+    return max(
+        0.0,
+        min(
+            1.0,
+            difficulty
+        )
+    )
+
+
+# ==========================================
 # ZAKOŃCZENIE ĆWICZENIA
 # ==========================================
 
@@ -104,6 +273,7 @@ def finish_error_practice(
 
     if state is None:
         return
+
 
     state[
         "error_practice_active"
@@ -120,6 +290,10 @@ def finish_error_practice(
     state[
         "error_practice_attempts"
     ] = 0
+
+    state[
+        "error_practice_used_hint"
+    ] = False
 
 
 # ==========================================
@@ -150,13 +324,15 @@ def start_error_practice(
             state
         )
 
+
         if not errors:
 
             return (
-                "Im Moment habe ich keinen "
-                "bestimmten Fehler gespeichert, "
-                "den du üben musst."
+                "Wir machen später mit deinen "
+                "Fehlern weiter. "
+                "Im Moment gibt es nichts zu üben."
             )
+
 
         error_type = errors[0]
 
@@ -212,9 +388,18 @@ def start_error_practice(
         "error_practice_step"
     ] = 1
 
+
+    # ======================================
+    # ADAPTIVE REVIEW
+    # ======================================
+
     state[
         "error_practice_attempts"
     ] = 0
+
+    state[
+        "error_practice_used_hint"
+    ] = False
 
 
     label = get_error_practice_label(
@@ -357,9 +542,16 @@ def handle_error_practice_step_one(
             "error_practice_step"
         ] = 2
 
-        state[
-            "error_practice_attempts"
-        ] = 0
+
+        # ==================================
+        # UWAGA
+        #
+        # Nie zerujemy tutaj attempts.
+        #
+        # Jeżeli użytkownik wcześniej
+        # wybrał zły wariant, Adaptive Review
+        # powinien o tym pamiętać.
+        # ==================================
 
         return (
             "Richtig! Sehr gut. "
@@ -381,15 +573,10 @@ def handle_error_practice_step_one(
         user_clean == wrong_clean
     ):
 
-        state[
-            "error_practice_attempts"
-        ] = (
-            state.get(
-                "error_practice_attempts",
-                0
-            )
-            + 1
+        increase_error_practice_attempts(
+            state
         )
+
 
         return (
             "Noch nicht. "
@@ -450,9 +637,169 @@ def handle_error_practice_step_two(
 
         if error_type:
 
+            # ==================================
+            # ILE WCZEŚNIEJ BYŁO BŁĘDNYCH PRÓB?
+            # ==================================
+
+            attempts = state.get(
+                "error_practice_attempts",
+                0
+            )
+
+
+            try:
+
+                attempts = int(
+                    attempts
+                )
+
+            except (
+                TypeError,
+                ValueError
+            ):
+
+                attempts = 0
+
+
+            attempts = max(
+                0,
+                attempts
+            )
+
+
+            # ==================================
+            # CZY UŻYTKOWNIK DOSTAŁ PODPOWIEDŹ?
+            # ==================================
+
+            used_hint = bool(
+                state.get(
+                    "error_practice_used_hint",
+                    False
+                )
+            )
+
+
+            # ==================================
+            # OCENA JAKOŚCI 1–4
+            # ==================================
+
+            quality = calculate_answer_quality(
+                attempts=attempts,
+                used_hint=used_hint
+            )
+
+
+            # ==================================
+            # OBECNA TRUDNOŚĆ
+            # ==================================
+
+            current_difficulty = (
+                get_error_difficulty(
+                    state,
+                    error_type
+                )
+            )
+
+
+            # ==================================
+            # NOWA TRUDNOŚĆ
+            # ==================================
+
+            new_difficulty = (
+                calculate_updated_difficulty(
+                    current_difficulty,
+                    quality
+                )
+            )
+
+
+            # ==================================
+            # DOTYCHCZASOWA SERIA
+            # ==================================
+
+            current_streak = summary.get(
+                "correct_streak",
+                0
+            )
+
+
+            try:
+
+                current_streak = int(
+                    current_streak
+                )
+
+            except (
+                TypeError,
+                ValueError
+            ):
+
+                current_streak = 0
+
+
+            current_streak = max(
+                0,
+                current_streak
+            )
+
+
+            # ==================================
+            # ADAPTIVE REVIEW 2.0
+            #
+            # Kalkulator wyznacza:
+            #
+            # - quality
+            # - result
+            # - nowy correct_streak
+            # - odstęp
+            # - next_review_at
+            # ==================================
+
+            review_plan = (
+                build_adaptive_review_plan(
+                    attempts=attempts,
+                    used_hint=used_hint,
+                    correct_streak=current_streak,
+                    difficulty=new_difficulty
+                )
+            )
+
+
+            result = review_plan.get(
+                "quality_name",
+                "correct"
+            )
+
+
+            next_review_at = (
+                review_plan.get(
+                    "next_review_at"
+                )
+            )
+
+
+            # ==================================
+            # CZY MAMY PEWNĄ INFORMACJĘ,
+            # ŻE TO BYŁ MIKROFON?
+            # ==================================
+
+            spoken = is_voice_input(
+                state
+            )
+
+
+            # ==================================
+            # ZAPIS DO STUDENT MEMORY 2.0
+            # ==================================
+
             mark_error_practiced(
                 state,
-                error_type
+                error_type,
+                result=result,
+                spoken=spoken,
+                quality=quality,
+                next_review_at=next_review_at,
+                difficulty=new_difficulty
             )
 
 
@@ -472,15 +819,23 @@ def handle_error_practice_step_two(
     # ZŁA ODPOWIEDŹ
     # ======================================
 
-    state[
-        "error_practice_attempts"
-    ] = (
-        state.get(
-            "error_practice_attempts",
-            0
-        )
-        + 1
+    increase_error_practice_attempts(
+        state
     )
+
+
+    # ======================================
+    # TERAZ UŻYTKOWNIK OTRZYMUJE JUŻ
+    # PEŁNĄ POPRAWNĄ ODPOWIEDŹ.
+    #
+    # Adaptive Review musi wiedzieć,
+    # że następna poprawna odpowiedź
+    # nastąpi po podpowiedzi.
+    # ======================================
+
+    state[
+        "error_practice_used_hint"
+    ] = True
 
 
     return (
