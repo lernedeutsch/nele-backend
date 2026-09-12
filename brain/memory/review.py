@@ -5,6 +5,10 @@
 
 from brain.logic.matcher import normalize
 
+from brain.logic.new_learning_resume import (
+    set_new_learning_offer
+)
+
 from brain.memory.vocabulary_memory import (
     get_vocabulary_memory,
     get_words_for_review
@@ -454,7 +458,7 @@ def answer_next_new_learning_step(
     # ======================================
     # UŻYTKOWNIK WYBRAŁ NOWĄ NAUKĘ
     #
-    # Czyścimy tylko stary aktywny kontekst
+    # Czyścimy stary aktywny kontekst
     # słownictwa.
     #
     # Nie usuwamy historii ani postępów.
@@ -505,6 +509,27 @@ def answer_next_new_learning_step(
         return (
             "Lass uns mit etwas Neuem "
             "anfangen."
+        )
+
+
+    # ======================================
+    # KONKRETNA CZĘŚĆ LEKCJI
+    #
+    # Zapamiętujemy ją, aby późniejsze
+    # "Ja" dotyczyło właśnie tej części.
+    # ======================================
+
+    offer_saved = set_new_learning_offer(
+        state,
+        plan
+    )
+
+
+    if offer_saved:
+
+        return (
+            f"{message} "
+            "Möchtest du damit anfangen?"
         )
 
 
@@ -631,6 +656,21 @@ def answer_general_recommendation(
 
 
     if message:
+
+        offer_saved = set_new_learning_offer(
+            state,
+            new_plan
+        )
+
+
+        if offer_saved:
+
+            return (
+                f"{message} "
+                "Möchtest du damit anfangen?"
+            )
+
+
         return message
 
 
