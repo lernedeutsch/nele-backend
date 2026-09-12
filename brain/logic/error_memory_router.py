@@ -273,9 +273,8 @@ def answer_error_practice_question(
     if not errors:
 
         return (
-            "Im Moment habe ich keinen "
-            "bestimmten Fehler gespeichert, "
-            "den du besonders üben musst."
+            "Wir machen später mit deinen Fehlern weiter. "
+            "Im Moment gibt es nichts zu üben."
         )
 
 
@@ -344,6 +343,17 @@ def handle_error_memory(
     if is_error_practice_start_request(
         user_message
     ):
+
+        errors = get_errors_for_practice(
+            state
+        )
+
+        if not errors:
+
+            return (
+                "Wir machen später mit deinen Fehlern weiter. "
+                "Im Moment gibt es nichts zu üben."
+            )
 
         return start_error_practice(
             state
