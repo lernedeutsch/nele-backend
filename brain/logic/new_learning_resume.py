@@ -5,6 +5,10 @@
 
 from brain.logic.matcher import normalize
 
+from brain.logic.lesson_teaching import (
+    start_lesson_teaching
+)
+
 from brain.memory.lesson_progress import (
     set_current_section
 )
@@ -60,16 +64,6 @@ def set_new_learning_offer(
     state,
     plan
 ):
-    """
-    Zapamiętuje materiał,
-    który Nele właśnie zaproponowała.
-
-    Przykład:
-
-    A1
-    Lektion 1
-    Ich stelle mich vor
-    """
 
     if state is None:
         return False
@@ -95,8 +89,7 @@ def set_new_learning_offer(
 
 
     # ======================================
-    # NA RAZIE INTERESUJE NAS
-    # KONKRETNA CZĘŚĆ LEKCJI
+    # MUSIMY MIEĆ KONKRETNĄ CZĘŚĆ LEKCJI
     # ======================================
 
     if not section:
@@ -129,7 +122,7 @@ def set_new_learning_offer(
 
     # ======================================
     # KOLEJNE "JA" DOTYCZY
-    # NOWEGO MATERIAŁU
+    # WŁAŚNIE TEJ PROPOZYCJI
     # ======================================
 
     state[
@@ -270,7 +263,7 @@ def start_new_learning(
 
 
     # ======================================
-    # USTAWIAMY AKTUALNĄ CZĘŚĆ LEKCJI
+    # AKTUALNA CZĘŚĆ LEKCJI
     # ======================================
 
     if (
@@ -288,7 +281,7 @@ def start_new_learning(
 
 
     # ======================================
-    # ZAPAMIĘTANIE AKTYWNOŚCI
+    # OSTATNIA AKTYWNOŚĆ
     # ======================================
 
     state[
@@ -302,6 +295,7 @@ def start_new_learning(
 
     # ======================================
     # STUDENT MEMORY 2.0
+    # HISTORIA NAUKI
     # ======================================
 
     if (
@@ -321,8 +315,7 @@ def start_new_learning(
 
 
     # ======================================
-    # STARA PROPOZYCJA NIE JEST
-    # JUŻ POTRZEBNA
+    # PROPOZYCJA ZOSTAŁA PRZYJĘTA
     # ======================================
 
     clear_new_learning_offer(
@@ -330,9 +323,32 @@ def start_new_learning(
     )
 
 
+    # ======================================
+    # FAKTYCZNE ROZPOCZĘCIE NAUCZANIA
+    # ======================================
+
+    teaching_answer = (
+        start_lesson_teaching(
+            section,
+            state
+        )
+    )
+
+
+    if teaching_answer:
+
+        return teaching_answer
+
+
+    # ======================================
+    # FALLBACK DLA CZĘŚCI, KTÓRYCH
+    # LESSON_TEACHING JESZCZE NIE OBSŁUGUJE
+    # ======================================
+
     return (
-        f"Gerne! Dann beginnen wir mit "
-        f"„{section}“."
+        f"Super, dann legen wir los! "
+        f"Wir machen jetzt mit "
+        f"„{section}“ weiter."
     )
 
 
@@ -344,23 +360,6 @@ def handle_new_learning_resume(
     user_message,
     state
 ):
-    """
-    Obsługuje odpowiedź użytkownika
-    po propozycji nowego materiału.
-
-    Przykład:
-
-    Nele:
-    Als Nächstes ist
-    „Ich stelle mich vor“ dran.
-
-    Benutzer:
-    Ja.
-
-    Nele:
-    Gerne! Dann beginnen wir mit
-    „Ich stelle mich vor“.
-    """
 
     if state is None:
         return None
@@ -411,7 +410,7 @@ def handle_new_learning_resume(
         )
 
         return (
-            "Kein Problem. "
+            "Alles klar. "
             "Was möchtest du stattdessen machen?"
         )
 
