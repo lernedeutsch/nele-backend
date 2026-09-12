@@ -451,6 +451,37 @@ def answer_next_new_learning_step(
         return None
 
 
+    # ======================================
+    # UŻYTKOWNIK WYBRAŁ NOWĄ NAUKĘ
+    #
+    # Czyścimy tylko stary aktywny kontekst
+    # słownictwa.
+    #
+    # Nie usuwamy historii ani postępów.
+    # ======================================
+
+    state[
+        "last_question"
+    ] = None
+
+
+    state[
+        "vocabulary_practice_active"
+    ] = False
+
+    state[
+        "vocabulary_practice_word"
+    ] = None
+
+    state[
+        "vocabulary_practice_type"
+    ] = None
+
+
+    # ======================================
+    # WYBÓR NASTĘPNEGO NOWEGO MATERIAŁU
+    # ======================================
+
     plan = get_next_new_learning_step(
         state
     )
