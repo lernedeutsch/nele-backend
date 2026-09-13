@@ -4,7 +4,9 @@
 
 import random
 
-from brain.logic.memory import get_conversation_state
+from brain.logic.memory import (
+    get_conversation_state
+)
 
 from brain.logic.matcher import (
     normalize,
@@ -14,6 +16,45 @@ from brain.logic.matcher import (
 from brain.logic.lesson_loader import (
     load_lesson
 )
+
+from brain.logic.error_practice import (
+    start_error_practice,
+    get_error_practice_label
+)
+
+from brain.memory.error_review import (
+    refresh_error_reviews,
+    get_due_error_reviews
+)
+
+
+# ==========================================
+# ODPOWIEDZI TAK / NIE
+# ==========================================
+
+YES_ANSWERS = {
+    "ja",
+    "ja gerne",
+    "ja gern",
+    "gerne",
+    "gern",
+    "okay",
+    "ok",
+    "klar",
+    "natürlich",
+    "machen wir",
+    "ja machen wir"
+}
+
+
+NO_ANSWERS = {
+    "nein",
+    "nein danke",
+    "nicht jetzt",
+    "später",
+    "lieber nicht",
+    "jetzt nicht"
+}
 
 
 # ==========================================
@@ -121,18 +162,6 @@ def display_activity_word(
 # ==========================================
 # KRÓTKA CZĘŚĆ ODPOWIEDZI
 # ==========================================
-#
-# Przykład:
-#
-# "Sehr schön! Möchtest du heute ..."
-#
-# zostanie skrócone do:
-#
-# "Sehr schön!"
-#
-# Dzięki temu Nele nie zada dwóch
-# różnych pytań w jednej odpowiedzi.
-# ==========================================
 
 def get_short_answer(
     answer
@@ -168,20 +197,261 @@ def get_short_answer(
                 position
             )
 
-
     if not positions:
 
         return answer
-
 
     first_position = min(
         positions
     )
 
-
     return answer[
         :first_position + 1
     ].strip()
+
+
+# ==========================================
+# WYCZYSZCZENIE OCZEKUJĄCEJ
+# PROPOZYCJI POWTÓRKI
+# ==========================================
+
+def clear_pending_error_review(
+    state
+):
+
+    if state is None:
+        return
+
+    state[
+        "pending_error_review"
+    ] = None
+
+    if (
+        state.get(
+            "last_question"
+        )
+        ==
+        "continue_error_review"
+    ):
+
+        state[
+            "last_question"
+        ] = None
+
+
+# ==========================================
+# ZAPISANIE PROPOZYCJI POWTÓRKI
+# ==========================================
+
+def set_pending_error_review(
+    state,
+    error_type
+):
+
+    if state is None:
+        return False
+
+    if not error_type:
+        return False
+
+    state[
+        "pending_error_review"
+    ] = error_type
+
+    state[
+        "last_question"
+    ] = "continue_error_review"
+
+    return True
+
+
+# ==========================================
+# CZY UŻYTKOWNIK ODPOWIADA
+# NA PROPOZYCJĘ POWTÓRKI?
+# ==========================================
+
+def handle_pending_error_review_reply(
+    user_message,
+    state
+):
+
+    if state is None:
+
+        return (
+            False,
+            None
+        )
+
+
+    if (
+        state.get(
+            "last_question"
+        )
+        !=
+        "continue_error_review"
+    ):
+
+        return (
+            False,
+            None
+        )
+
+
+    error_type = state.get(
+        "pending_error_review"
+    )
+
+
+    if not error_type:
+
+        clear_pending_error_review(
+            state
+        )
+
+        return (
+            False,
+            None
+        )
+
+
+    message = normalize(
+        user_message
+    ).strip(
+        " .?!„“\"'"
+    )
+
+
+    # ======================================
+    # TAK
+    # ======================================
+
+    if message in YES_ANSWERS:
+
+        clear_pending_error_review(
+            state
+        )
+
+        answer = start_error_practice(
+            state,
+            error_type
+        )
+
+        return (
+            True,
+            answer
+        )
+
+
+    # ======================================
+    # NIE
+    # ======================================
+
+    if message in NO_ANSWERS:
+
+        clear_pending_error_review(
+            state
+        )
+
+        return (
+            True,
+            (
+                "Okay. "
+                "Womit möchtest du heute anfangen?"
+            )
+        )
+
+
+    # ======================================
+    # UŻYTKOWNIK ZADAŁ INNE PYTANIE
+    #
+    # Nie blokujemy rozmowy.
+    # Powtórka nadal pozostaje w pamięci
+    # jako needs_practice=True.
+    # ======================================
+
+    clear_pending_error_review(
+        state
+    )
+
+    return (
+        False,
+        None
+    )
+
+
+# ==========================================
+# NALEŻNA POWTÓRKA BŁĘDU
+# ==========================================
+
+def get_due_error_review(
+    state
+):
+
+    if state is None:
+        return None
+
+
+    # ======================================
+    # Adaptive Review sprawdza,
+    # czy termin którejś powtórki nadszedł.
+    #
+    # Jeśli tak:
+    #
+    # needs_practice = True
+    # ======================================
+
+    refresh_error_reviews(
+        state
+    )
+
+
+    due_errors = get_due_error_reviews(
+        state
+    )
+
+
+    if not due_errors:
+        return None
+
+
+    return due_errors[0]
+
+
+# ==========================================
+# PROPOZYCJA NALEŻNEJ POWTÓRKI
+# ==========================================
+
+def create_due_error_review_offer(
+    state,
+    short_answer
+):
+
+    error_type = get_due_error_review(
+        state
+    )
+
+
+    if not error_type:
+        return None
+
+
+    label = get_error_practice_label(
+        error_type
+    )
+
+
+    set_pending_error_review(
+        state,
+        error_type
+    )
+
+
+    return (
+        f"{short_answer} "
+        f"Heute sollten wir kurz "
+        f"{label} wiederholen. "
+        f"Möchtest du das zuerst machen?"
+    )
 
 
 # ==========================================
@@ -201,6 +471,9 @@ def create_returning_user_follow_up(
 
     # ======================================
     # GORSZE SAMOPOCZUCIE
+    #
+    # W takim momencie nie wciskamy
+    # użytkownikowi powtórki błędów.
     # ======================================
 
     if intent == "user_wellbeing_bad":
@@ -214,6 +487,26 @@ def create_returning_user_follow_up(
             f"Möchtest du heute lieber "
             f"etwas Leichtes auf Deutsch üben?"
         )
+
+
+    # ======================================
+    # NALEŻNA POWTÓRKA BŁĘDU
+    #
+    # Ma pierwszeństwo przed zwykłym
+    # pytaniem "od czego zaczynamy?".
+    # ======================================
+
+    review_offer = (
+        create_due_error_review_offer(
+            state,
+            short_answer
+        )
+    )
+
+
+    if review_offer:
+
+        return review_offer
 
 
     # ======================================
@@ -282,6 +575,28 @@ def find_response(
         session_id
     )
 
+
+    # ======================================
+    # ODPOWIEDŹ NA PROPOZYCJĘ POWTÓRKI
+    #
+    # Sprawdzamy to przed zwykłymi
+    # odpowiedziami lekcji.
+    # ======================================
+
+    (
+        error_review_handled,
+        error_review_answer
+    ) = handle_pending_error_review_reply(
+        user_message,
+        state
+    )
+
+
+    if error_review_handled:
+
+        return error_review_answer
+
+
     responses = load_lesson(
         level,
         lesson
@@ -323,9 +638,12 @@ def find_response(
 
                 matches.append(
                     {
-                        "item": item,
+                        "item":
+                            item,
+
                         "pattern":
                             pattern_normalized,
+
                         "length":
                             len(
                                 pattern_normalized
@@ -397,7 +715,8 @@ def find_response(
 
     if (
         previous_question == "wellbeing"
-        and intent in wellbeing_intents
+        and
+        intent in wellbeing_intents
     ):
 
         return create_returning_user_follow_up(
