@@ -26,6 +26,10 @@ from brain.logic.vocabulary_modules.practice import (
     finish_vocabulary_practice
 )
 
+from brain.logic.pronunciation_audio import (
+    transcribe_audio
+)
+
 
 app = Flask(__name__)
 speaker = Speaker()
@@ -33,13 +37,6 @@ speaker = Speaker()
 
 # ==========================================
 # MAKSYMALNY ROZMIAR AUDIO
-# ==========================================
-#
-# Na razie audio tylko przyjmujemy.
-# Analizator wymowy podłączymy później.
-#
-# 15 MB wystarczy na krótką wypowiedź
-# użytkownika.
 # ==========================================
 
 MAX_AUDIO_SIZE = (
@@ -307,37 +304,20 @@ def create_welcome_reply(
 
     try:
 
-        # ==================================
-        # POBRANIE PAMIĘCI UŻYTKOWNIKA
-        # ==================================
-
         state = get_conversation_state(
             session_id
         )
 
-
-        # ==================================
-        # ZAKOŃCZENIE STAREGO
-        # AKTYWNEGO ĆWICZENIA SŁOWNICTWA
-        # ==================================
 
         finish_vocabulary_practice(
             state
         )
 
 
-        # ==================================
-        # ZAPISANIE ZMIANY
-        # ==================================
-
         save_conversation_state(
             session_id
         )
 
-
-        # ==================================
-        # NORMALNE POWITANIE
-        # ==================================
 
         return generate_welcome_reply(
             session_id
@@ -360,27 +340,6 @@ def create_welcome_reply(
 # ==========================================
 # ODCZYT DANYCH DLA /CHAT
 # ==========================================
-#
-# /chat może teraz otrzymać:
-#
-# 1. stary JSON:
-#
-# {
-#   "message": "...",
-#   "session_id": "..."
-# }
-#
-# albo później:
-#
-# 2. multipart/form-data:
-#
-# message
-# session_id
-# audio
-#
-# Dzięki temu nie psujemy obecnego
-# działania Nele.
-# ==========================================
 
 def get_chat_request_data():
 
@@ -391,7 +350,9 @@ def get_chat_request_data():
 
 
     # ======================================
-    # AUDIO + TEKST
+    # MULTIPART:
+    # TEKST + AUDIO
+    # LUB SAMO AUDIO
     # ======================================
 
     if (
@@ -487,22 +448,10 @@ def get_audio_info(
     ).strip()
 
 
-    # ======================================
-    # BRAK PLIKU
-    # ======================================
-
     if not filename:
 
         return None
 
-
-    # ======================================
-    # SPRAWDZENIE ROZMIARU
-    #
-    # Nie zapisujemy jeszcze pliku.
-    # Sprawdzamy tylko, czy backend
-    # rzeczywiście go otrzymał.
-    # ======================================
 
     stream = audio_file.stream
 
@@ -543,19 +492,322 @@ def get_audio_info(
     ):
 
         return {
-            "error": "audio_too_large",
-            "size": size,
-            "filename": filename,
-            "mimetype": mimetype
+            "error":
+                "audio_too_large",
+
+            "size":
+                size,
+
+            "filename":
+                filename,
+
+            "mimetype":
+                mimetype
         }
 
 
     return {
-        "received": True,
-        "filename": filename,
-        "mimetype": mimetype,
-        "size": size
+        "received":
+            True,
+
+        "filename":
+            filename,
+
+        "mimetype":
+            mimetype,
+
+        "size":
+            size
     }
+
+
+# ==========================================
+# ROZSZERZENIE TYMCZASOWEGO AUDIO
+# ==========================================
+
+def get_audio_suffix(
+    audio_file
+):
+
+    filename = str(
+        getattr(
+            audio_file,
+            "filename",
+            ""
+        )
+        or
+        ""
+    ).lower()
+
+
+    mimetype = str(
+        getattr(
+            audio_file,
+            "mimetype",
+            ""
+        )
+        or
+        ""
+    ).lower()
+
+
+    if filename.endswith(
+        ".webm"
+    ):
+
+        return ".webm"
+
+
+    if filename.endswith(
+        ".ogg"
+    ):
+
+        return ".ogg"
+
+
+    if filename.endswith(
+        ".wav"
+    ):
+
+        return ".wav"
+
+
+    if (
+        filename.endswith(
+            ".m4a"
+        )
+        or
+        filename.endswith(
+            ".mp4"
+        )
+    ):
+
+        return ".m4a"
+
+
+    if (
+        "webm"
+        in mimetype
+    ):
+
+        return ".webm"
+
+
+    if (
+        "ogg"
+        in mimetype
+    ):
+
+        return ".ogg"
+
+
+    if (
+        "wav"
+        in mimetype
+    ):
+
+        return ".wav"
+
+
+    if (
+        "mp4"
+        in mimetype
+        or
+        "m4a"
+        in mimetype
+    ):
+
+        return ".m4a"
+
+
+    return ".webm"
+
+
+# ==========================================
+# ZAPIS AUDIO DO PLIKU TYMCZASOWEGO
+# ==========================================
+
+def save_chat_audio_to_temp(
+    audio_file
+):
+
+    if not audio_file:
+
+        return None
+
+
+    suffix = get_audio_suffix(
+        audio_file
+    )
+
+
+    temporary_file = (
+        tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        )
+    )
+
+
+    audio_path = (
+        temporary_file.name
+    )
+
+
+    temporary_file.close()
+
+
+    try:
+
+        try:
+
+            audio_file.stream.seek(
+                0
+            )
+
+        except Exception:
+
+            pass
+
+
+        audio_file.save(
+            audio_path
+        )
+
+
+        if (
+            not os.path.exists(
+                audio_path
+            )
+        ):
+
+            return None
+
+
+        if (
+            os.path.getsize(
+                audio_path
+            )
+            <= 0
+        ):
+
+            return None
+
+
+        return audio_path
+
+
+    except Exception as error:
+
+        print(
+            "Nele audio save error:",
+            error
+        )
+
+
+        if os.path.exists(
+            audio_path
+        ):
+
+            try:
+
+                os.remove(
+                    audio_path
+                )
+
+            except OSError:
+
+                pass
+
+
+        return None
+
+
+# ==========================================
+# WHISPER:
+# AUDIO -> TEKST
+# ==========================================
+
+def transcribe_chat_audio(
+    audio_file
+):
+
+    audio_path = (
+        save_chat_audio_to_temp(
+            audio_file
+        )
+    )
+
+
+    if not audio_path:
+
+        return {
+            "ok":
+                False,
+
+            "error":
+                "audio_save_failed",
+
+            "text":
+                ""
+        }
+
+
+    try:
+
+        result = transcribe_audio(
+            audio_path,
+            language="de"
+        )
+
+
+        return result
+
+
+    except Exception as error:
+
+        print(
+            "Nele audio transcription error:",
+            error
+        )
+
+
+        return {
+            "ok":
+                False,
+
+            "error":
+                "transcription_failed",
+
+            "message":
+                str(
+                    error
+                ),
+
+            "text":
+                ""
+        }
+
+
+    finally:
+
+        if os.path.exists(
+            audio_path
+        ):
+
+            try:
+
+                os.remove(
+                    audio_path
+                )
+
+            except OSError as error:
+
+                print(
+                    "Nele temporary audio "
+                    "delete error:",
+                    error
+                )
 
 
 # ==========================================
@@ -597,8 +849,11 @@ def welcome():
 
 
     return jsonify({
-        "reply": answer,
-        "session_id": session_id
+        "reply":
+            answer,
+
+        "session_id":
+            session_id
     })
 
 
@@ -635,10 +890,6 @@ def reset():
     )
 
 
-    # ======================================
-    # USUNIĘCIE CAŁEJ PAMIĘCI
-    # ======================================
-
     try:
 
         reset_success = (
@@ -656,24 +907,22 @@ def reset():
         reset_success = False
 
 
-    # ======================================
-    # RESET NIEUDANY
-    # ======================================
-
     if not reset_success:
 
         return jsonify({
-            "ok": False,
+            "ok":
+                False,
+
             "error":
-                "Die Lerndaten konnten "
-                "nicht gelöscht werden.",
-            "session_id": session_id
+                (
+                    "Die Lerndaten konnten "
+                    "nicht gelöscht werden."
+                ),
+
+            "session_id":
+                session_id
         }), 500
 
-
-    # ======================================
-    # NOWE PIERWSZE POWITANIE
-    # ======================================
 
     answer = create_welcome_reply(
         session_id
@@ -681,9 +930,14 @@ def reset():
 
 
     return jsonify({
-        "ok": True,
-        "reply": answer,
-        "session_id": session_id
+        "ok":
+            True,
+
+        "reply":
+            answer,
+
+        "session_id":
+            session_id
     })
 
 
@@ -691,18 +945,33 @@ def reset():
 # CHAT
 # ==========================================
 #
-# Obsługuje teraz:
+# OBSŁUGIWANE:
 #
-# JSON
+# 1. JSON
 #
-# oraz:
+# message
+# session_id
 #
-# multipart/form-data
-# z opcjonalnym plikiem "audio".
 #
-# Na tym etapie audio NIE jest jeszcze
-# analizowane. Przygotowujemy bezpiecznie
-# transport do przyszłego analizatora.
+# 2. multipart/form-data
+#
+# message – opcjonalnie
+# session_id
+# audio
+#
+#
+# Jeśli otrzymamy samo audio:
+#
+# audio
+#   ↓
+# faster-whisper
+#   ↓
+# tekst
+#   ↓
+# mózg Nele
+#   ↓
+# odpowiedź
+#
 # ==========================================
 
 @app.route(
@@ -751,18 +1020,97 @@ def chat():
         return jsonify({
             "reply":
                 "Die Audioaufnahme ist zu lang.",
+
             "session_id":
                 session_id,
+
             "audio_received":
                 False
         }), 413
 
 
     # ======================================
-    # TEKST NADAL JEST POTRZEBNY
+    # WHISPER
     #
-    # Później Whisper będzie mógł
-    # stworzyć go bezpośrednio z audio.
+    # Jeżeli mamy audio,
+    # a nie mamy tekstu,
+    # Whisper tworzy wiadomość.
+    # ======================================
+
+    transcription = None
+
+
+    if (
+        audio_info
+        and
+        not user_message
+    ):
+
+        print(
+            "Nele: audio received, "
+            "starting Whisper."
+        )
+
+
+        transcription = (
+            transcribe_chat_audio(
+                audio_file
+            )
+        )
+
+
+        if not transcription.get(
+            "ok"
+        ):
+
+            print(
+                "Nele Whisper failed:",
+                transcription
+            )
+
+
+            return jsonify({
+                "reply":
+                    (
+                        "Ich konnte deine "
+                        "Aufnahme leider noch "
+                        "nicht verstehen. "
+                        "Versuch es bitte "
+                        "noch einmal."
+                    ),
+
+                "session_id":
+                    session_id,
+
+                "audio_received":
+                    True,
+
+                "transcription_ok":
+                    False,
+
+                "transcription_error":
+                    transcription.get(
+                        "error"
+                    )
+            }), 503
+
+
+        user_message = str(
+            transcription.get(
+                "text",
+                ""
+            )
+        ).strip()
+
+
+        print(
+            "Nele Whisper text:",
+            user_message
+        )
+
+
+    # ======================================
+    # BRAK ROZPOZNANEJ MOWY
     # ======================================
 
     if not user_message:
@@ -772,23 +1120,32 @@ def chat():
             return jsonify({
                 "reply":
                     (
-                        "Die Audioaufnahme ist angekommen, "
-                        "aber die automatische "
-                        "Spracherkennung ist noch "
-                        "nicht aktiviert."
+                        "Ich habe leider keine "
+                        "Sprache erkannt. "
+                        "Sag es bitte noch einmal."
                     ),
+
                 "session_id":
                     session_id,
+
                 "audio_received":
-                    True
+                    True,
+
+                "transcription_ok":
+                    True,
+
+                "transcript":
+                    ""
             }), 400
 
 
         return jsonify({
             "reply":
                 "Bitte sag etwas.",
+
             "session_id":
                 session_id,
+
             "audio_received":
                 False
         }), 400
@@ -804,7 +1161,7 @@ def chat():
     )
 
 
-    return jsonify({
+    response_data = {
         "reply":
             answer,
 
@@ -815,7 +1172,40 @@ def chat():
             bool(
                 audio_info
             )
-    })
+    }
+
+
+    # ======================================
+    # JEŚLI UŻYTO WHISPERA,
+    # ZWRACAMY TEŻ TRANSKRYPCJĘ
+    # ======================================
+
+    if transcription:
+
+        response_data[
+            "transcription_ok"
+        ] = True
+
+        response_data[
+            "transcript"
+        ] = user_message
+
+        response_data[
+            "detected_language"
+        ] = transcription.get(
+            "language"
+        )
+
+        response_data[
+            "audio_duration"
+        ] = transcription.get(
+            "duration"
+        )
+
+
+    return jsonify(
+        response_data
+    )
 
 
 # ==========================================
@@ -912,8 +1302,11 @@ def tts():
 
         return jsonify({
             "error":
-                "Piper oder das deutsche "
-                "Sprachmodell wurde nicht gefunden."
+                (
+                    "Piper oder das deutsche "
+                    "Sprachmodell wurde nicht "
+                    "gefunden."
+                )
         }), 503
 
 
@@ -926,8 +1319,10 @@ def tts():
 
         return jsonify({
             "error":
-                "Die Sprachausgabe konnte "
-                "nicht erstellt werden."
+                (
+                    "Die Sprachausgabe konnte "
+                    "nicht erstellt werden."
+                )
         }), 500
 
 
@@ -959,4 +1354,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-        )
+    )
