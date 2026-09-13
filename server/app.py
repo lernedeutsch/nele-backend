@@ -32,6 +32,24 @@ speaker = Speaker()
 
 
 # ==========================================
+# MAKSYMALNY ROZMIAR AUDIO
+# ==========================================
+#
+# Na razie audio tylko przyjmujemy.
+# Analizator wymowy podłączymy później.
+#
+# 15 MB wystarczy na krótką wypowiedź
+# użytkownika.
+# ==========================================
+
+MAX_AUDIO_SIZE = (
+    15
+    * 1024
+    * 1024
+)
+
+
+# ==========================================
 # STAN AVATARA
 # ==========================================
 
@@ -340,6 +358,207 @@ def create_welcome_reply(
 
 
 # ==========================================
+# ODCZYT DANYCH DLA /CHAT
+# ==========================================
+#
+# /chat może teraz otrzymać:
+#
+# 1. stary JSON:
+#
+# {
+#   "message": "...",
+#   "session_id": "..."
+# }
+#
+# albo później:
+#
+# 2. multipart/form-data:
+#
+# message
+# session_id
+# audio
+#
+# Dzięki temu nie psujemy obecnego
+# działania Nele.
+# ==========================================
+
+def get_chat_request_data():
+
+    content_type = str(
+        request.content_type
+        or ""
+    ).lower()
+
+
+    # ======================================
+    # AUDIO + TEKST
+    # ======================================
+
+    if (
+        "multipart/form-data"
+        in content_type
+    ):
+
+        user_message = str(
+            request.form.get(
+                "message",
+                ""
+            )
+        ).strip()
+
+
+        session_id = normalize_session_id(
+            request.form.get(
+                "session_id",
+                "default"
+            )
+        )
+
+
+        audio_file = request.files.get(
+            "audio"
+        )
+
+
+        return (
+            user_message,
+            session_id,
+            audio_file
+        )
+
+
+    # ======================================
+    # NORMALNY JSON
+    # ======================================
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+
+    user_message = str(
+        data.get(
+            "message",
+            ""
+        )
+    ).strip()
+
+
+    session_id = normalize_session_id(
+        data.get(
+            "session_id",
+            "default"
+        )
+    )
+
+
+    return (
+        user_message,
+        session_id,
+        None
+    )
+
+
+# ==========================================
+# SPRAWDZENIE AUDIO
+# ==========================================
+
+def get_audio_info(
+    audio_file
+):
+
+    if not audio_file:
+
+        return None
+
+
+    filename = str(
+        audio_file.filename
+        or ""
+    ).strip()
+
+
+    mimetype = str(
+        audio_file.mimetype
+        or ""
+    ).strip()
+
+
+    # ======================================
+    # BRAK PLIKU
+    # ======================================
+
+    if not filename:
+
+        return None
+
+
+    # ======================================
+    # SPRAWDZENIE ROZMIARU
+    #
+    # Nie zapisujemy jeszcze pliku.
+    # Sprawdzamy tylko, czy backend
+    # rzeczywiście go otrzymał.
+    # ======================================
+
+    stream = audio_file.stream
+
+
+    try:
+
+        current_position = (
+            stream.tell()
+        )
+
+    except Exception:
+
+        current_position = 0
+
+
+    try:
+
+        stream.seek(
+            0,
+            os.SEEK_END
+        )
+
+        size = stream.tell()
+
+        stream.seek(
+            current_position
+        )
+
+    except Exception:
+
+        size = None
+
+
+    if (
+        size is not None
+        and
+        size > MAX_AUDIO_SIZE
+    ):
+
+        return {
+            "error": "audio_too_large",
+            "size": size,
+            "filename": filename,
+            "mimetype": mimetype
+        }
+
+
+    return {
+        "received": True,
+        "filename": filename,
+        "mimetype": mimetype,
+        "size": size
+    }
+
+
+# ==========================================
 # WELCOME
 # ==========================================
 
@@ -471,6 +690,20 @@ def reset():
 # ==========================================
 # CHAT
 # ==========================================
+#
+# Obsługuje teraz:
+#
+# JSON
+#
+# oraz:
+#
+# multipart/form-data
+# z opcjonalnym plikiem "audio".
+#
+# Na tym etapie audio NIE jest jeszcze
+# analizowane. Przygotowujemy bezpiecznie
+# transport do przyszłego analizatora.
+# ==========================================
 
 @app.route(
     "/chat",
@@ -485,37 +718,85 @@ def chat():
         })
 
 
-    data = (
-        request.get_json(
-            silent=True
-        )
-        or {}
+    (
+        user_message,
+        session_id,
+        audio_file
+    ) = get_chat_request_data()
+
+
+    # ======================================
+    # INFORMACJA O AUDIO
+    # ======================================
+
+    audio_info = get_audio_info(
+        audio_file
     )
 
 
-    user_message = str(
-        data.get(
-            "message",
-            ""
+    # ======================================
+    # AUDIO ZA DUŻE
+    # ======================================
+
+    if (
+        audio_info
+        and
+        audio_info.get(
+            "error"
         )
-    ).strip()
-
-
-    session_id = normalize_session_id(
-        data.get(
-            "session_id",
-            "default"
-        )
-    )
-
-
-    if not user_message:
+        ==
+        "audio_too_large"
+    ):
 
         return jsonify({
             "reply":
-                "Bitte sag etwas."
+                "Die Audioaufnahme ist zu lang.",
+            "session_id":
+                session_id,
+            "audio_received":
+                False
+        }), 413
+
+
+    # ======================================
+    # TEKST NADAL JEST POTRZEBNY
+    #
+    # Później Whisper będzie mógł
+    # stworzyć go bezpośrednio z audio.
+    # ======================================
+
+    if not user_message:
+
+        if audio_info:
+
+            return jsonify({
+                "reply":
+                    (
+                        "Die Audioaufnahme ist angekommen, "
+                        "aber die automatische "
+                        "Spracherkennung ist noch "
+                        "nicht aktiviert."
+                    ),
+                "session_id":
+                    session_id,
+                "audio_received":
+                    True
+            }), 400
+
+
+        return jsonify({
+            "reply":
+                "Bitte sag etwas.",
+            "session_id":
+                session_id,
+            "audio_received":
+                False
         }), 400
 
+
+    # ======================================
+    # NORMALNA ODPOWIEDŹ NELE
+    # ======================================
 
     answer = create_nele_reply(
         user_message,
@@ -524,8 +805,16 @@ def chat():
 
 
     return jsonify({
-        "reply": answer,
-        "session_id": session_id
+        "reply":
+            answer,
+
+        "session_id":
+            session_id,
+
+        "audio_received":
+            bool(
+                audio_info
+            )
     })
 
 
@@ -670,4 +959,4 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port
-    )
+        )
