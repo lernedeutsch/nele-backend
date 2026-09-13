@@ -243,6 +243,26 @@ def extract_pattern_value(
 # ==========================================
 # IMIĘ
 # ==========================================
+#
+# WAŻNE:
+#
+# Akceptujemy tylko bezpieczne formy:
+#
+# Ich heiße Moni.
+# Mein Name ist Moni.
+#
+# NIE używamy już:
+#
+# Ich bin ...
+#
+# ponieważ:
+#
+# Ich bin müde.
+# Ich bin Anfängerin.
+# Ich bin bei A1.
+#
+# nie są imieniem.
+# ==========================================
 
 def extract_name_sentence(
     user_message
@@ -252,7 +272,6 @@ def extract_name_sentence(
         user_message,
         [
             r"^\s*ich\s+hei(?:ß|ss)e\s+(.+?)\s*[.!?]*\s*$",
-            r"^\s*ich\s+bin\s+(.+?)\s*[.!?]*\s*$",
             r"^\s*mein\s+name\s+ist\s+(.+?)\s*[.!?]*\s*$"
         ]
     )
@@ -543,8 +562,7 @@ def extract_learning_goal_sentence(
 
 
     # ======================================
-    # INNY CEL, NP.
-    # "ICH MÖCHTE BESSER SPRECHEN."
+    # INNY CEL
     # ======================================
 
     goal = extract_pattern_value(
