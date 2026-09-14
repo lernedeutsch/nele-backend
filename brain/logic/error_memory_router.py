@@ -81,13 +81,24 @@ def is_error_memory_question(
 
         "wo mache ich oft fehler",
         "wo mache ich fehler",
+        "wo mache ich noch fehler",
+
         "welche fehler mache ich oft",
         "welche fehler mache ich",
+        "welche fehler mache ich noch",
+
         "was sind meine häufigsten fehler",
         "was sind meine fehler",
+
         "welche fehler habe ich",
+        "welche fehler habe ich noch",
+
         "wobei mache ich oft fehler",
-        "wobei mache ich fehler"
+        "wobei mache ich fehler",
+        "wobei mache ich noch fehler",
+
+        "was mache ich noch falsch",
+        "was mache ich oft falsch"
     }
 
     return message in questions
@@ -137,11 +148,14 @@ def is_error_practice_start_request(
         "ich will meine fehler üben",
         "lass uns meine fehler üben",
         "wir können meine fehler üben",
+
         "ich möchte fehler üben",
         "ich will fehler üben",
         "lass uns fehler üben",
+
         "fehler üben",
         "meine fehler üben",
+
         "ich möchte meine fehler trainieren",
         "ich will meine fehler trainieren",
         "lass uns meine fehler trainieren"
