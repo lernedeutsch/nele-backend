@@ -94,6 +94,612 @@ def unique_items(
 
 
 # ==========================================
+# ŁADNE NAZWY TYPÓW BŁĘDÓW
+# ==========================================
+
+def display_error_type(
+    error_type
+):
+
+    error_type = str(
+        error_type or ""
+    ).strip().lower()
+
+
+    names = {
+
+        "word_order":
+            "Wortstellung",
+
+        "wortstellung":
+            "Wortstellung",
+
+        "article":
+            "Artikel",
+
+        "articles":
+            "Artikel",
+
+        "artikel":
+            "Artikel",
+
+        "case":
+            "Kasus",
+
+        "kasus":
+            "Kasus",
+
+        "verb":
+            "Verbformen",
+
+        "verb_form":
+            "Verbformen",
+
+        "verb_forms":
+            "Verbformen",
+
+        "verb_conjugation":
+            "Verbformen",
+
+        "conjugation":
+            "Verbformen",
+
+        "grammar":
+            "Grammatik",
+
+        "grammatik":
+            "Grammatik",
+
+        "preposition":
+            "Präpositionen",
+
+        "prepositions":
+            "Präpositionen",
+
+        "pronoun":
+            "Pronomen",
+
+        "pronouns":
+            "Pronomen",
+
+        "sentence_structure":
+            "Satzbau",
+
+        "sentence_order":
+            "Wortstellung"
+
+    }
+
+
+    if error_type in names:
+
+        return names[
+            error_type
+        ]
+
+
+    if not error_type:
+
+        return "Grammatik"
+
+
+    value = error_type.replace(
+        "_",
+        " "
+    ).strip()
+
+
+    return display_word(
+        value
+    )
+
+
+# ==========================================
+# LICZBA Z PAMIĘCI BŁĘDU
+# ==========================================
+
+def get_error_number(
+    memory,
+    keys
+):
+
+    if not isinstance(
+        memory,
+        dict
+    ):
+
+        return 0
+
+
+    for key in keys:
+
+        value = memory.get(
+            key
+        )
+
+        try:
+
+            value = int(
+                value
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            continue
+
+
+        if value > 0:
+
+            return value
+
+
+    return 0
+
+
+# ==========================================
+# CZY BŁĄD WYMAGA POWTÓRKI
+# ==========================================
+
+def error_needs_review(
+    memory
+):
+
+    if not isinstance(
+        memory,
+        dict
+    ):
+
+        return False
+
+
+    # ======================================
+    # BŁĄD JUŻ OPANOWANY
+    # ======================================
+
+    if memory.get(
+        "mastered"
+    ) is True:
+
+        return False
+
+
+    if memory.get(
+        "resolved"
+    ) is True:
+
+        return False
+
+
+    if memory.get(
+        "completed"
+    ) is True:
+
+        return False
+
+
+    # ======================================
+    # JAWNE OZNACZENIE POWTÓRKI
+    # ======================================
+
+    review_flags = (
+        "needs_review",
+        "review_due",
+        "due_for_review",
+        "should_review"
+    )
+
+
+    for flag in review_flags:
+
+        if memory.get(
+            flag
+        ) is True:
+
+            return True
+
+
+    # ======================================
+    # STATUS
+    # ======================================
+
+    status = str(
+        memory.get(
+            "status",
+            ""
+        )
+    ).strip().lower()
+
+
+    if status in {
+        "review",
+        "due",
+        "needs_review",
+        "open",
+        "active"
+    }:
+
+        return True
+
+
+    # ======================================
+    # LICZBA BŁĘDÓW
+    # ======================================
+
+    mistakes = get_error_number(
+        memory,
+        (
+            "mistakes",
+            "count",
+            "occurrences",
+            "wrong",
+            "errors"
+        )
+    )
+
+
+    return mistakes > 0
+
+
+# ==========================================
+# POBRANIE REKORDÓW BŁĘDÓW
+# ==========================================
+
+def collect_error_records(
+    state
+):
+
+    if not isinstance(
+        state,
+        dict
+    ):
+
+        return []
+
+
+    result = []
+
+
+    # ======================================
+    # MOŻLIWE MIEJSCA W STUDENT MEMORY
+    # ======================================
+
+    containers = [
+
+        state.get(
+            "error_memory"
+        ),
+
+        state.get(
+            "student_errors"
+        ),
+
+        state.get(
+            "errors"
+        )
+
+    ]
+
+
+    for container in containers:
+
+        if not container:
+            continue
+
+
+        # ==================================
+        # LISTA REKORDÓW
+        # ==================================
+
+        if isinstance(
+            container,
+            list
+        ):
+
+            for item in container:
+
+                if isinstance(
+                    item,
+                    dict
+                ):
+
+                    result.append(
+                        item
+                    )
+
+            continue
+
+
+        # ==================================
+        # SŁOWNIK
+        # ==================================
+
+        if not isinstance(
+            container,
+            dict
+        ):
+
+            continue
+
+
+        # ==================================
+        # error_memory = {"errors": [...]}
+        # ==================================
+
+        nested_errors = container.get(
+            "errors"
+        )
+
+
+        if isinstance(
+            nested_errors,
+            list
+        ):
+
+            for item in nested_errors:
+
+                if isinstance(
+                    item,
+                    dict
+                ):
+
+                    result.append(
+                        item
+                    )
+
+
+        elif isinstance(
+            nested_errors,
+            dict
+        ):
+
+            for key, value in (
+                nested_errors.items()
+            ):
+
+                if not isinstance(
+                    value,
+                    dict
+                ):
+
+                    continue
+
+                record = dict(
+                    value
+                )
+
+                record.setdefault(
+                    "error_type",
+                    key
+                )
+
+                result.append(
+                    record
+                )
+
+
+        # ==================================
+        # error_memory =
+        # {
+        #   "word_order": {...},
+        #   "article": {...}
+        # }
+        # ==================================
+
+        for key, value in (
+            container.items()
+        ):
+
+            if key == "errors":
+                continue
+
+            if not isinstance(
+                value,
+                dict
+            ):
+                continue
+
+            record = dict(
+                value
+            )
+
+            record.setdefault(
+                "error_type",
+                key
+            )
+
+            result.append(
+                record
+            )
+
+
+    return result
+
+
+# ==========================================
+# BŁĘDY DO POWTÓRKI
+# ==========================================
+
+def get_errors_for_review(
+    state,
+    limit=3
+):
+
+    records = collect_error_records(
+        state
+    )
+
+    review_items = []
+
+
+    for record in records:
+
+        if not error_needs_review(
+            record
+        ):
+
+            continue
+
+
+        error_type = (
+            record.get(
+                "error_type"
+            )
+            or
+            record.get(
+                "type"
+            )
+            or
+            record.get(
+                "category"
+            )
+        )
+
+
+        if not error_type:
+
+            continue
+
+
+        mistakes = get_error_number(
+            record,
+            (
+                "mistakes",
+                "count",
+                "occurrences",
+                "wrong",
+                "errors"
+            )
+        )
+
+
+        review_items.append({
+
+            "error_type":
+                str(
+                    error_type
+                ).strip(),
+
+            "label":
+                display_error_type(
+                    error_type
+                ),
+
+            "mistakes":
+                mistakes
+
+        })
+
+
+    # ======================================
+    # NAJTRUDNIEJSZE NA POCZĄTKU
+    # ======================================
+
+    review_items.sort(
+        key=lambda item:
+            item.get(
+                "mistakes",
+                0
+            ),
+        reverse=True
+    )
+
+
+    # ======================================
+    # USUWANIE DUPLIKATÓW
+    # ======================================
+
+    result = []
+    seen = set()
+
+
+    for item in review_items:
+
+        key = str(
+            item.get(
+                "error_type",
+                ""
+            )
+        ).lower()
+
+
+        if not key:
+            continue
+
+
+        if key in seen:
+            continue
+
+
+        seen.add(
+            key
+        )
+
+        result.append(
+            item
+        )
+
+
+        if len(
+            result
+        ) >= limit:
+
+            break
+
+
+    return result
+
+
+# ==========================================
+# FORMATOWANIE BŁĘDÓW
+# ==========================================
+
+def format_error_list(
+    errors
+):
+
+    labels = unique_items([
+        item.get(
+            "label"
+        )
+        for item in errors
+        if isinstance(
+            item,
+            dict
+        )
+    ])
+
+
+    if not labels:
+        return ""
+
+
+    if len(labels) == 1:
+
+        return labels[0]
+
+
+    if len(labels) == 2:
+
+        return (
+            labels[0]
+            + " und "
+            + labels[1]
+        )
+
+
+    return (
+        ", ".join(
+            labels[:-1]
+        )
+        + " und "
+        + labels[-1]
+    )
+
+
+# ==========================================
 # FORMATOWANIE LISTY SŁÓW
 # ==========================================
 
@@ -139,13 +745,18 @@ def get_difficult_words(
     limit=3
 ):
 
-    vocabulary_memory = get_vocabulary_memory(
-        state
+    vocabulary_memory = (
+        get_vocabulary_memory(
+            state
+        )
     )
 
     difficult_words = []
 
-    for word, memory in vocabulary_memory.items():
+
+    for word, memory in (
+        vocabulary_memory.items()
+    ):
 
         mistakes = memory.get(
             "mistakes",
@@ -157,8 +768,10 @@ def get_difficult_words(
             0
         )
 
+
         if mistakes <= 0:
             continue
+
 
         difficult_words.append(
             (
@@ -168,6 +781,7 @@ def get_difficult_words(
             )
         )
 
+
     difficult_words.sort(
         key=lambda item: (
             item[1],
@@ -175,6 +789,7 @@ def get_difficult_words(
         ),
         reverse=True
     )
+
 
     return [
         item[0]
@@ -200,6 +815,7 @@ def get_recent_vocabulary_words(
 
     words = []
 
+
     for topic in topics:
 
         if not topic.startswith(
@@ -207,10 +823,12 @@ def get_recent_vocabulary_words(
         ):
             continue
 
+
         word = topic.split(
             ":",
             1
         )[1].strip()
+
 
         if word:
 
@@ -218,9 +836,11 @@ def get_recent_vocabulary_words(
                 word
             )
 
+
     words = unique_items(
         words
     )
+
 
     return words[
         :limit
@@ -243,17 +863,21 @@ def get_review_plan(
         review_words
     )
 
+
     difficult_words = get_difficult_words(
         state,
         limit=5
     )
 
+
     extra_difficult = []
+
 
     review_keys = {
         word.lower()
         for word in review_words
     }
+
 
     for word in difficult_words:
 
@@ -264,14 +888,17 @@ def get_review_plan(
             word
         )
 
+
     main_words = (
         review_words
         + extra_difficult
     )
 
+
     main_words = unique_items(
         main_words
     )
+
 
     return main_words[
         :3
@@ -289,28 +916,84 @@ def get_next_learning_step(
     Decyduje, co uczeń powinien
     POWTÓRZYĆ lub ĆWICZYĆ.
 
-    Przykład:
-    "Was soll ich heute üben?"
+    Priorytet:
+
+    1. błędy,
+    2. słownictwo do powtórki,
+    3. trudne słowa,
+    4. ostatnia aktywność.
     """
+
 
     if state is None:
 
         return {
-            "type": "start",
-            "words": [],
-            "topic": None,
+            "type":
+                "start",
+
+            "words":
+                [],
+
+            "errors":
+                [],
+
+            "topic":
+                None,
+
             "message":
-                "Lass uns mit einer kleinen Übung anfangen."
+                (
+                    "Lass uns mit einer "
+                    "kleinen Übung anfangen."
+                )
         }
 
 
     # ======================================
-    # 1. SŁOWA DO POWTÓRKI
+    # 1. BŁĘDY DO POWTÓRKI
+    # ======================================
+
+    errors = get_errors_for_review(
+        state,
+        limit=2
+    )
+
+
+    if errors:
+
+        error_list = format_error_list(
+            errors
+        )
+
+
+        return {
+            "type":
+                "error_review",
+
+            "words":
+                [],
+
+            "errors":
+                errors,
+
+            "topic":
+                "Fehlertraining",
+
+            "message":
+                (
+                    "Heute sollten wir zuerst "
+                    f"kurz {error_list} üben."
+                )
+        }
+
+
+    # ======================================
+    # 2. SŁOWA DO POWTÓRKI
     # ======================================
 
     review_words = get_review_plan(
         state
     )
+
 
     if review_words:
 
@@ -318,20 +1001,30 @@ def get_next_learning_step(
             review_words
         )
 
-        return {
-            "type": "vocabulary_review",
-            "words": review_words,
-            "topic": "Wortschatz",
 
-            "message": (
-                "Heute sollten wir zuerst "
-                f"{word_list} wiederholen."
-            )
+        return {
+            "type":
+                "vocabulary_review",
+
+            "words":
+                review_words,
+
+            "errors":
+                [],
+
+            "topic":
+                "Wortschatz",
+
+            "message":
+                (
+                    "Heute sollten wir zuerst "
+                    f"{word_list} wiederholen."
+                )
         }
 
 
     # ======================================
-    # 2. TRUDNE SŁOWA
+    # 3. TRUDNE SŁOWA
     # ======================================
 
     difficult_words = get_difficult_words(
@@ -343,34 +1036,48 @@ def get_next_learning_step(
         difficult_words
     )
 
+
     if difficult_words:
 
         word_list = format_word_list(
             difficult_words
         )
 
-        return {
-            "type": "difficult_vocabulary",
-            "words": difficult_words,
-            "topic": "Wortschatz",
 
-            "message": (
-                "Diese Wörter waren zuletzt "
-                "etwas schwieriger für dich: "
-                f"{word_list}. "
-                "Lass sie uns kurz üben."
-            )
+        return {
+            "type":
+                "difficult_vocabulary",
+
+            "words":
+                difficult_words,
+
+            "errors":
+                [],
+
+            "topic":
+                "Wortschatz",
+
+            "message":
+                (
+                    "Diese Wörter waren zuletzt "
+                    "etwas schwieriger für dich: "
+                    f"{word_list}. "
+                    "Lass sie uns kurz üben."
+                )
         }
 
 
     # ======================================
-    # 3. OSTATNIE SŁOWO
+    # 4. OSTATNIE SŁOWO
     # ======================================
 
-    recent_words = get_recent_vocabulary_words(
-        state,
-        limit=2
+    recent_words = (
+        get_recent_vocabulary_words(
+            state,
+            limit=2
+        )
     )
+
 
     if recent_words:
 
@@ -378,80 +1085,123 @@ def get_next_learning_step(
             recent_words[0]
         )
 
+
         return {
-            "type": "continue_vocabulary",
+            "type":
+                "continue_vocabulary",
 
-            "words": [
-                recent_words[0]
-            ],
+            "words":
+                [
+                    recent_words[0]
+                ],
 
-            "topic": "Wortschatz",
+            "errors":
+                [],
 
-            "message": (
-                "Zuletzt hast du das Wort "
-                f"„{last_word}“ geübt. "
-                "Möchtest du damit weitermachen?"
-            )
+            "topic":
+                "Wortschatz",
+
+            "message":
+                (
+                    "Zuletzt hast du das Wort "
+                    f"„{last_word}“ geübt. "
+                    "Möchtest du damit "
+                    "weitermachen?"
+                )
         }
 
 
     # ======================================
-    # 4. OSTATNI TEMAT
+    # 5. OSTATNI TEMAT
     # ======================================
 
-    recent_topics = get_recent_learning_topics(
-        state,
-        limit=1
+    recent_topics = (
+        get_recent_learning_topics(
+            state,
+            limit=1
+        )
     )
+
 
     if recent_topics:
 
         topic = recent_topics[0]
 
+
         if "hotel" in topic.lower():
 
             return {
-                "type": "continue_topic",
-                "words": [],
-                "topic": topic,
+                "type":
+                    "continue_topic",
 
-                "message": (
-                    "Zuletzt hast du das Thema "
-                    f"„{topic}“ geübt. "
-                    "Heute können wir damit "
-                    "weitermachen und danach "
-                    "einen kurzen Hotel-Dialog machen."
-                )
+                "words":
+                    [],
+
+                "errors":
+                    [],
+
+                "topic":
+                    topic,
+
+                "message":
+                    (
+                        "Zuletzt hast du das Thema "
+                        f"„{topic}“ geübt. "
+                        "Heute können wir damit "
+                        "weitermachen und danach "
+                        "einen kurzen Hotel-Dialog "
+                        "machen."
+                    )
             }
 
-        return {
-            "type": "continue_topic",
-            "words": [],
-            "topic": topic,
 
-            "message": (
-                "Zuletzt hast du "
-                f"„{topic}“ geübt. "
-                "Möchtest du damit weitermachen?"
-            )
+        return {
+            "type":
+                "continue_topic",
+
+            "words":
+                [],
+
+            "errors":
+                [],
+
+            "topic":
+                topic,
+
+            "message":
+                (
+                    "Zuletzt hast du "
+                    f"„{topic}“ geübt. "
+                    "Möchtest du damit "
+                    "weitermachen?"
+                )
         }
 
 
     # ======================================
-    # 5. JESZCZE BRAK HISTORII
+    # 6. JESZCZE BRAK HISTORII
     # ======================================
 
     return {
-        "type": "start",
-        "words": [],
-        "topic": None,
+        "type":
+            "start",
 
-        "message": (
-            "Wir haben noch keinen "
-            "Lernschwerpunkt gespeichert. "
-            "Lass uns mit einer kleinen "
-            "Übung anfangen."
-        )
+        "words":
+            [],
+
+        "errors":
+            [],
+
+        "topic":
+            None,
+
+        "message":
+            (
+                "Wir haben noch keinen "
+                "Lernschwerpunkt gespeichert. "
+                "Lass uns mit einer kleinen "
+                "Übung anfangen."
+            )
     }
 
 
@@ -464,13 +1214,6 @@ def sync_lesson_structure(
     level,
     lesson
 ):
-    """
-    Pobiera prawdziwą strukturę kursu
-    z brain/knowledge/... i zapisuje ją
-    w pamięci postępu lekcji.
-
-    Nie usuwa ukończonych części.
-    """
 
     level = str(
         level or ""
@@ -486,11 +1229,16 @@ def sync_lesson_structure(
         if not a1_lesson_exists(
             lesson
         ):
+
             return []
 
-        sections = get_a1_lesson_sections(
-            lesson
+
+        sections = (
+            get_a1_lesson_sections(
+                lesson
+            )
         )
+
 
         if sections:
 
@@ -501,12 +1249,12 @@ def sync_lesson_structure(
                 sections
             )
 
+
         return sections
 
 
     # ======================================
-    # INNE POZIOMY
-    # PÓŹNIEJ PODŁĄCZYMY A2/B1...
+    # A2/B1 PÓŹNIEJ
     # ======================================
 
     return []
@@ -543,30 +1291,30 @@ def get_next_course_lesson(
 def get_next_new_learning_step(
     state
 ):
-    """
-    Decyduje, czego NOWEGO uczeń
-    powinien uczyć się dalej.
-
-    Przykład:
-    "Was soll ich heute lernen?"
-
-    Korzysta z prawdziwej struktury
-    kursu, jeśli jest dostępna.
-    """
 
     if state is None:
 
         return {
-            "type": "new_learning",
-            "level": "A1",
-            "lesson": 1,
-            "section": None,
-            "topic": None,
+            "type":
+                "new_learning",
 
-            "message": (
-                "Lass uns mit A1, "
-                "Lektion 1 anfangen."
-            )
+            "level":
+                "A1",
+
+            "lesson":
+                1,
+
+            "section":
+                None,
+
+            "topic":
+                None,
+
+            "message":
+                (
+                    "Lass uns mit A1, "
+                    "Lektion 1 anfangen."
+                )
         }
 
 
@@ -589,8 +1337,7 @@ def get_next_new_learning_step(
 
 
     # ======================================
-    # PODŁĄCZENIE PRAWDZIWEJ
-    # STRUKTURY LEKCJI
+    # SYNCHRONIZACJA STRUKTURY
     # ======================================
 
     sync_lesson_structure(
@@ -601,13 +1348,15 @@ def get_next_new_learning_step(
 
 
     # ======================================
-    # POSTĘP WEWNĄTRZ LEKCJI
+    # POSTĘP LEKCJI
     # ======================================
 
-    lesson_progress = get_lesson_progress(
-        state,
-        level,
-        current_lesson
+    lesson_progress = (
+        get_lesson_progress(
+            state,
+            level,
+            current_lesson
+        )
     )
 
 
@@ -618,7 +1367,7 @@ def get_next_new_learning_step(
 
 
     # ======================================
-    # JEŻELI LEKCJA MA CZĘŚCI
+    # LEKCJA MA CZĘŚCI
     # ======================================
 
     if sections:
@@ -633,7 +1382,7 @@ def get_next_new_learning_step(
 
 
         # ==================================
-        # NASTĘPNA NIEUKOŃCZONA CZĘŚĆ
+        # NIEDOKOŃCZONA CZĘŚĆ
         # ==================================
 
         if next_section:
@@ -646,22 +1395,33 @@ def get_next_new_learning_step(
                 )
             )
 
+
             return {
-                "type": "new_section",
-                "level": level,
-                "lesson": current_lesson,
-                "section": next_section,
-                "topic": next_section,
+                "type":
+                    "new_section",
+
+                "level":
+                    level,
+
+                "lesson":
+                    current_lesson,
+
+                "section":
+                    next_section,
+
+                "topic":
+                    next_section,
 
                 "completion_percent":
                     completion_percent,
 
-                "message": (
-                    f"Du bist bei {level}, "
-                    f"Lektion {current_lesson}. "
-                    "Als Nächstes ist "
-                    f"„{next_section}“ dran."
-                )
+                "message":
+                    (
+                        f"Du bist bei {level}, "
+                        f"Lektion {current_lesson}. "
+                        "Als Nächstes ist "
+                        f"„{next_section}“ dran."
+                    )
             }
 
 
@@ -675,61 +1435,77 @@ def get_next_new_learning_step(
             current_lesson
         ):
 
-            next_lesson = get_next_course_lesson(
-                level,
-                current_lesson
+            next_lesson = (
+                get_next_course_lesson(
+                    level,
+                    current_lesson
+                )
             )
 
-
-            # =================================
-            # MAMY PRAWDZIWĄ NASTĘPNĄ LEKCJĘ
-            # =================================
 
             if next_lesson is not None:
 
                 return {
-                    "type": "new_lesson",
-                    "level": level,
-                    "lesson": next_lesson,
-                    "section": None,
-                    "topic": None,
-                    "completion_percent": 100,
+                    "type":
+                        "new_lesson",
 
-                    "message": (
-                        f"Du hast {level}, "
-                        f"Lektion {current_lesson} "
-                        "abgeschlossen. "
-                        "Als Nächstes können wir "
-                        f"mit {level}, Lektion "
-                        f"{next_lesson} anfangen."
-                    )
+                    "level":
+                        level,
+
+                    "lesson":
+                        next_lesson,
+
+                    "section":
+                        None,
+
+                    "topic":
+                        None,
+
+                    "completion_percent":
+                        100,
+
+                    "message":
+                        (
+                            f"Du hast {level}, "
+                            f"Lektion {current_lesson} "
+                            "abgeschlossen. "
+                            "Als Nächstes können wir "
+                            f"mit {level}, Lektion "
+                            f"{next_lesson} anfangen."
+                        )
                 }
 
 
-            # =================================
-            # NASTĘPNA LEKCJA NIE JEST JESZCZE
-            # W STRUKTURZE BACKENDU
-            # =================================
-
             return {
-                "type": "lesson_completed",
-                "level": level,
-                "lesson": current_lesson,
-                "section": None,
-                "topic": None,
-                "completion_percent": 100,
+                "type":
+                    "lesson_completed",
 
-                "message": (
-                    f"Du hast {level}, "
-                    f"Lektion {current_lesson} "
-                    "vollständig abgeschlossen."
-                )
+                "level":
+                    level,
+
+                "lesson":
+                    current_lesson,
+
+                "section":
+                    None,
+
+                "topic":
+                    None,
+
+                "completion_percent":
+                    100,
+
+                "message":
+                    (
+                        f"Du hast {level}, "
+                        f"Lektion {current_lesson} "
+                        "vollständig abgeschlossen."
+                    )
             }
 
 
     # ======================================
-    # STARSZY SYSTEM:
-    # CAŁA LEKCJA OZNACZONA JAKO UKOŃCZONA
+    # STARSZY SYSTEM
     # ======================================
 
     if is_lesson_completed(
@@ -737,29 +1513,42 @@ def get_next_new_learning_step(
         current_lesson
     ):
 
-        next_lesson = get_next_course_lesson(
-            level,
-            current_lesson
+        next_lesson = (
+            get_next_course_lesson(
+                level,
+                current_lesson
+            )
         )
 
 
         if next_lesson is not None:
 
             return {
-                "type": "new_lesson",
-                "level": level,
-                "lesson": next_lesson,
-                "section": None,
-                "topic": None,
+                "type":
+                    "new_lesson",
 
-                "message": (
-                    f"Du hast {level}, "
-                    f"Lektion {current_lesson} "
-                    "schon abgeschlossen. "
-                    "Als Nächstes können wir mit "
-                    f"{level}, Lektion {next_lesson} "
-                    "weitermachen."
-                )
+                "level":
+                    level,
+
+                "lesson":
+                    next_lesson,
+
+                "section":
+                    None,
+
+                "topic":
+                    None,
+
+                "message":
+                    (
+                        f"Du hast {level}, "
+                        f"Lektion {current_lesson} "
+                        "schon abgeschlossen. "
+                        "Als Nächstes können wir mit "
+                        f"{level}, Lektion "
+                        f"{next_lesson} "
+                        "weitermachen."
+                    )
             }
 
 
@@ -768,18 +1557,285 @@ def get_next_new_learning_step(
     # ======================================
 
     return {
-        "type": "continue_lesson",
-        "level": level,
-        "lesson": current_lesson,
-        "section": None,
-        "topic": None,
+        "type":
+            "continue_lesson",
 
-        "message": (
-            f"Du bist gerade bei "
-            f"{level}, Lektion {current_lesson}. "
-            "Als Nächstes können wir dort "
-            "mit neuem Stoff weitermachen."
+        "level":
+            level,
+
+        "lesson":
+            current_lesson,
+
+        "section":
+            None,
+
+        "topic":
+            None,
+
+        "message":
+            (
+                "Du bist gerade bei "
+                f"{level}, Lektion "
+                f"{current_lesson}. "
+                "Als Nächstes können wir dort "
+                "mit neuem Stoff weitermachen."
+            )
+    }
+
+
+# ==========================================
+# KRÓTKI OPIS NOWEGO KROKU
+# ==========================================
+
+def get_new_learning_short_description(
+    plan
+):
+
+    if not isinstance(
+        plan,
+        dict
+    ):
+
+        return ""
+
+
+    section = plan.get(
+        "section"
+    )
+
+
+    if section:
+
+        return (
+            f"„{section}“"
         )
+
+
+    level = plan.get(
+        "level"
+    )
+
+    lesson = plan.get(
+        "lesson"
+    )
+
+
+    if (
+        level
+        and
+        lesson
+    ):
+
+        return (
+            f"{level}, Lektion {lesson}"
+        )
+
+
+    topic = plan.get(
+        "topic"
+    )
+
+
+    if topic:
+
+        return (
+            f"„{topic}“"
+        )
+
+
+    return ""
+
+
+# ==========================================
+# MÓZG NAUCZYCIELA
+# ==========================================
+
+def get_teacher_learning_plan(
+    state
+):
+    """
+    Decyduje, co Nele powinna zrobić
+    z uczniem TERAZ.
+
+    Priorytet:
+
+    1. błąd wymagający powtórki,
+    2. słowo wymagające powtórki,
+    3. niedokończona część lekcji,
+    4. nowy materiał.
+    """
+
+
+    if state is None:
+
+        return {
+            "type":
+                "teacher_plan",
+
+            "priority":
+                "start",
+
+            "message":
+                (
+                    "Lass uns mit A1, "
+                    "Lektion 1 anfangen."
+                )
+        }
+
+
+    # ======================================
+    # NOWY / NASTĘPNY MATERIAŁ
+    # ======================================
+
+    new_learning_plan = (
+        get_next_new_learning_step(
+            state
+        )
+    )
+
+
+    new_description = (
+        get_new_learning_short_description(
+            new_learning_plan
+        )
+    )
+
+
+    # ======================================
+    # 1. BŁĘDY
+    # ======================================
+
+    errors = get_errors_for_review(
+        state,
+        limit=2
+    )
+
+
+    if errors:
+
+        error_list = format_error_list(
+            errors
+        )
+
+
+        if new_description:
+
+            message = (
+                "Du hattest zuletzt noch "
+                f"Probleme mit {error_list}. "
+                "Wir üben das kurz und machen "
+                "danach mit "
+                f"{new_description} weiter."
+            )
+
+        else:
+
+            message = (
+                "Du hattest zuletzt noch "
+                f"Probleme mit {error_list}. "
+                "Wir üben das zuerst kurz."
+            )
+
+
+        return {
+            "type":
+                "teacher_plan",
+
+            "priority":
+                "error_review",
+
+            "errors":
+                errors,
+
+            "words":
+                [],
+
+            "next":
+                new_learning_plan,
+
+            "message":
+                message
+        }
+
+
+    # ======================================
+    # 2. SŁOWNICTWO DO POWTÓRKI
+    # ======================================
+
+    review_words = get_review_plan(
+        state
+    )
+
+
+    if review_words:
+
+        word_list = format_word_list(
+            review_words
+        )
+
+
+        if new_description:
+
+            message = (
+                "Wir wiederholen zuerst kurz "
+                f"{word_list}. "
+                "Danach machen wir mit "
+                f"{new_description} weiter."
+            )
+
+        else:
+
+            message = (
+                "Wir wiederholen zuerst kurz "
+                f"{word_list}."
+            )
+
+
+        return {
+            "type":
+                "teacher_plan",
+
+            "priority":
+                "vocabulary_review",
+
+            "errors":
+                [],
+
+            "words":
+                review_words,
+
+            "next":
+                new_learning_plan,
+
+            "message":
+                message
+        }
+
+
+    # ======================================
+    # 3. LEKCJA / NOWY MATERIAŁ
+    # ======================================
+
+    return {
+        "type":
+            "teacher_plan",
+
+        "priority":
+            "lesson",
+
+        "errors":
+            [],
+
+        "words":
+            [],
+
+        "next":
+            new_learning_plan,
+
+        "message":
+            new_learning_plan.get(
+                "message"
+            )
     }
 
 
@@ -814,4 +1870,21 @@ def get_next_new_learning_message(
 
     return plan.get(
         "message"
-)
+    )
+
+
+# ==========================================
+# WIADOMOŚĆ – DECYZJA NAUCZYCIELA
+# ==========================================
+
+def get_teacher_learning_message(
+    state
+):
+
+    plan = get_teacher_learning_plan(
+        state
+    )
+
+    return plan.get(
+        "message"
+    )
