@@ -3,6 +3,8 @@
 # TEACHER MODE
 # ==========================================
 
+import re
+
 from brain.logic.memory import (
     get_conversation_state,
     save_conversation_state
@@ -118,6 +120,113 @@ from brain.memory.error_review import (
     refresh_error_reviews
 )
 
+from brain.memory.error_memory import (
+    remember_error
+)
+
+
+# ==========================================
+# POMOCNICZE:
+# ŁĄCZENIE FEEDBACKU
+# ==========================================
+
+def merge_feedback_texts(
+    *feedbacks
+):
+
+    result = []
+
+    for feedback in feedbacks:
+
+        feedback = str(
+            feedback or ""
+        ).strip()
+
+        if not feedback:
+            continue
+
+        if feedback in result:
+            continue
+
+        result.append(
+            feedback
+        )
+
+    return "\n\n".join(
+        result
+    )
+
+
+# ==========================================
+# OSTATNIE PYTANIE NELE
+# ==========================================
+
+def extract_last_question(
+    answer
+):
+
+    if not answer:
+        return None
+
+    text = str(
+        answer
+    ).strip()
+
+    if not text:
+        return None
+
+    questions = re.findall(
+        r'[^.!?\n]*\?',
+        text
+    )
+
+    if not questions:
+        return None
+
+    question = questions[-1].strip()
+
+    if not question:
+        return None
+
+    return question
+
+
+# ==========================================
+# ZAPAMIĘTANIE OSTATNIEJ WYPOWIEDZI NELE
+# ==========================================
+
+def remember_nele_output(
+    answer,
+    state
+):
+
+    if state is None:
+        return
+
+    if not answer:
+        return
+
+    answer = str(
+        answer
+    ).strip()
+
+    if not answer:
+        return
+
+    state[
+        "last_nele_message"
+    ] = answer
+
+    question = extract_last_question(
+        answer
+    )
+
+    if question:
+
+        state[
+            "last_nele_question"
+        ] = question
+
 
 # ==========================================
 # ZAPIS STANU I ZWROT ODPOWIEDZI
@@ -129,6 +238,15 @@ def return_with_memory(
 ):
 
     try:
+
+        state = get_conversation_state(
+            session_id
+        )
+
+        remember_nele_output(
+            answer,
+            state
+        )
 
         save_conversation_state(
             session_id
@@ -151,6 +269,14 @@ def combine_learner_feedback(
     feedback_text,
     answer
 ):
+
+    feedback_text = str(
+        feedback_text or ""
+    ).strip()
+
+    answer = str(
+        answer or ""
+    ).strip()
 
     if not feedback_text:
         return answer
@@ -186,6 +312,75 @@ def return_with_feedback(
 
 
 # ==========================================
+# ZAPAMIĘTANIE SPECJALNEGO BŁĘDU JĘZYKOWEGO
+# ==========================================
+
+def remember_special_language_error(
+    state,
+    wrong_text,
+    correct_text,
+    error_type="grammar"
+):
+
+    if state is None:
+        return
+
+    wrong_text = str(
+        wrong_text or ""
+    ).strip()
+
+    correct_text = str(
+        correct_text or ""
+    ).strip()
+
+    if not wrong_text:
+        return
+
+    if not correct_text:
+        return
+
+    try:
+
+        remember_error(
+            state,
+            error_type,
+            wrong_text,
+            correct_text
+        )
+
+    except Exception as error:
+
+        print(
+            f"Special language error memory: {error}"
+        )
+
+
+# ==========================================
+# CZYSZCZENIE TEKSTU POLECENIA
+# ==========================================
+
+def clean_control_message(
+    text
+):
+
+    text = str(
+        text or ""
+    ).strip().lower()
+
+    text = text.strip(
+        " .?!„“\"'"
+    )
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text
+    )
+
+    return text
+
+
+# ==========================================
 # USUNIĘCIE STARYCH PYTAŃ
 # O WYBÓR UŻYTKOWNIKA
 # ==========================================
@@ -197,11 +392,9 @@ def remove_old_teacher_choice_prompt(
     if not answer:
         return answer
 
-
     answer = str(
         answer
     ).strip()
-
 
     old_prompts = [
         "Möchtest du ",
@@ -209,9 +402,7 @@ def remove_old_teacher_choice_prompt(
         "Womit möchtest du heute anfangen?"
     ]
 
-
     positions = []
-
 
     for prompt in old_prompts:
 
@@ -219,22 +410,18 @@ def remove_old_teacher_choice_prompt(
             prompt
         )
 
-
         if position >= 0:
 
             positions.append(
                 position
             )
 
-
     if not positions:
         return answer
-
 
     first_position = min(
         positions
     )
-
 
     return answer[
         :first_position
@@ -253,11 +440,9 @@ def clear_old_teacher_choice_state(
     if state is None:
         return
 
-
     last_question = state.get(
         "last_question"
     )
-
 
     if last_question in {
         "continue_last_activity",
@@ -283,25 +468,13 @@ def continue_after_side_answer(
         answer
     )
 
-
     clear_old_teacher_choice_state(
         state
     )
 
-
-    # ======================================
-    # 1. DOKŁADNIE PRZERWANY TRENING
-    # ======================================
-
     continuation = resume_current_training(
         state
     )
-
-
-    # ======================================
-    # 2. NIC NIE JEST AKTYWNE
-    # -> TEACHER BRAIN WYBIERA CO DALEJ
-    # ======================================
 
     if not continuation:
 
@@ -311,7 +484,6 @@ def continue_after_side_answer(
                 ""
             )
         )
-
 
     if (
         answer
@@ -324,10 +496,8 @@ def continue_after_side_answer(
             f"{continuation}"
         )
 
-
     if answer:
         return answer
-
 
     return continuation
 
@@ -335,30 +505,6 @@ def continue_after_side_answer(
 # ==========================================
 # ZAKOŃCZONE ĆWICZENIE
 # -> AUTOMATYCZNY KOLEJNY KROK
-# ==========================================
-#
-# Używamy tego wtedy, gdy ćwiczenie
-# właśnie zostało ukończone.
-#
-# Przykład:
-#
-# Was bedeutet „Zimmer“?
-#
-# poprawna odpowiedź
-#
-# Richtig! ...
-#
-# ↓
-#
-# Teacher Brain sam wybiera:
-#
-# kolejna powtórka
-# albo
-# dalsza lekcja.
-#
-# Nie pytamy:
-#
-# Möchtest du ...?
 # ==========================================
 
 def continue_after_finished_training(
@@ -370,11 +516,9 @@ def continue_after_finished_training(
         answer
     )
 
-
     clear_old_teacher_choice_state(
         state
     )
-
 
     continuation = (
         create_teacher_directed_follow_up(
@@ -382,7 +526,6 @@ def continue_after_finished_training(
             ""
         )
     )
-
 
     if (
         answer
@@ -395,12 +538,1189 @@ def continue_after_finished_training(
             f"{continuation}"
         )
 
-
     if answer:
         return answer
 
-
     return continuation
+
+
+# ==========================================
+# PYTANIA O ZNACZENIE SŁOWA
+# ==========================================
+
+def clean_vocabulary_target(
+    target
+):
+
+    target = str(
+        target or ""
+    ).strip()
+
+    target = target.strip(
+        " .?!„“\"'"
+    )
+
+    target = re.sub(
+        r"\s+",
+        " ",
+        target
+    )
+
+    lower_target = target.lower()
+
+    if lower_target.startswith(
+        "das wort "
+    ):
+
+        target = target[
+            len("das wort "):
+        ].strip()
+
+    return target
+
+
+# ==========================================
+# ŁADNA FORMA SŁOWA
+# ==========================================
+
+def display_target_word(
+    target
+):
+
+    target = clean_vocabulary_target(
+        target
+    )
+
+    if not target:
+        return ""
+
+    return (
+        target[:1].upper()
+        + target[1:]
+    )
+
+
+# ==========================================
+# ROZPOZNANIE:
+#
+# Was bedeutet Zimmer?
+# Was heißt Zimmer?
+# Was heißt das Wort Zimmer?
+# Kannst du mir Zimmer erklären?
+# Kannst du mir das Wort Zimmer erklären?
+# Kannst du bitte Zimmer erklären?
+#
+# + częste błędy
+# ==========================================
+
+def analyze_vocabulary_explanation_request(
+    user_message
+):
+
+    text = str(
+        user_message or ""
+    ).strip()
+
+    if not text:
+
+        return {
+            "recognized": False
+        }
+
+
+    # ======================================
+    # POPRAWNE:
+    # WAS BEDEUTET...
+    # ======================================
+
+    match = re.match(
+        r"^\s*was\s+bedeutet\s+(?:das\s+wort\s+)?(.+?)\s*[?.!]*\s*$",
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        if target:
+
+            return {
+                "recognized":
+                    True,
+
+                "target":
+                    target,
+
+                "canonical":
+                    (
+                        "Was bedeutet das Wort "
+                        f"{target}?"
+                    ),
+
+                "feedback":
+                    None,
+
+                "corrected":
+                    None,
+
+                "error_type":
+                    None
+            }
+
+
+    # ======================================
+    # POPRAWNE:
+    # WAS HEISST...
+    # ======================================
+
+    match = re.match(
+        r"^\s*was\s+heißt\s+(?:das\s+wort\s+)?(.+?)\s*[?.!]*\s*$",
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        if target:
+
+            return {
+                "recognized":
+                    True,
+
+                "target":
+                    target,
+
+                "canonical":
+                    (
+                        "Was bedeutet das Wort "
+                        f"{target}?"
+                    ),
+
+                "feedback":
+                    None,
+
+                "corrected":
+                    None,
+
+                "error_type":
+                    None
+            }
+
+
+    # ======================================
+    # HEISST ZAMIAST HEISST
+    # ======================================
+
+    match = re.match(
+        r"^\s*was\s+heisst\s+(?:das\s+wort\s+)?(.+?)\s*[?.!]*\s*$",
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        display_target = display_target_word(
+            target
+        )
+
+        corrected = (
+            f"Was heißt {display_target}?"
+        )
+
+        return {
+            "recognized":
+                True,
+
+            "target":
+                target,
+
+            "canonical":
+                (
+                    "Was bedeutet das Wort "
+                    f"{target}?"
+                ),
+
+            "feedback":
+                (
+                    "Fast! Richtig schreibt man: "
+                    f"„{corrected}“"
+                ),
+
+            "corrected":
+                corrected,
+
+            "error_type":
+                "spelling"
+        }
+
+
+    # ======================================
+    # BEDEUTEN ZAMIAST BEDEUTET
+    # ======================================
+
+    match = re.match(
+        r"^\s*was\s+bedeuten\s+(?:das\s+wort\s+)?(.+?)\s*[?.!]*\s*$",
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        display_target = display_target_word(
+            target
+        )
+
+        corrected = (
+            f"Was bedeutet {display_target}?"
+        )
+
+        return {
+            "recognized":
+                True,
+
+            "target":
+                target,
+
+            "canonical":
+                (
+                    "Was bedeutet das Wort "
+                    f"{target}?"
+                ),
+
+            "feedback":
+                (
+                    "Fast! Richtig sagt man: "
+                    f"„{corrected}“"
+                ),
+
+            "corrected":
+                corrected,
+
+            "error_type":
+                "grammar"
+        }
+
+
+    # ======================================
+    # WAS IST BEDEUTET...
+    # ======================================
+
+    match = re.match(
+        r"^\s*was\s+ist\s+bedeutet\s+(?:das\s+wort\s+)?(.+?)\s*[?.!]*\s*$",
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        display_target = display_target_word(
+            target
+        )
+
+        corrected = (
+            f"Was bedeutet {display_target}?"
+        )
+
+        return {
+            "recognized":
+                True,
+
+            "target":
+                target,
+
+            "canonical":
+                (
+                    "Was bedeutet das Wort "
+                    f"{target}?"
+                ),
+
+            "feedback":
+                (
+                    "Fast! Richtig sagt man: "
+                    f"„{corrected}“"
+                ),
+
+            "corrected":
+                corrected,
+
+            "error_type":
+                "grammar"
+        }
+
+
+    # ======================================
+    # KANNST DU MIR ... ERKLÄREN?
+    # KANNST DU MIR BITTE ... ERKLÄREN?
+    # ======================================
+
+    match = re.match(
+        (
+            r"^\s*kannst\s+du\s+mir\s+"
+            r"(?:bitte\s+)?"
+            r"(?:das\s+wort\s+)?"
+            r"(.+?)\s+erklären\s*[?.!]*\s*$"
+        ),
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        return {
+            "recognized":
+                True,
+
+            "target":
+                target,
+
+            "canonical":
+                (
+                    "Was bedeutet das Wort "
+                    f"{target}?"
+                ),
+
+            "feedback":
+                None,
+
+            "corrected":
+                None,
+
+            "error_type":
+                None
+        }
+
+
+    # ======================================
+    # KANNST DU BITTE ... ERKLÄREN?
+    # ======================================
+
+    match = re.match(
+        (
+            r"^\s*kannst\s+du\s+bitte\s+"
+            r"(?:mir\s+)?"
+            r"(?:das\s+wort\s+)?"
+            r"(.+?)\s+erklären\s*[?.!]*\s*$"
+        ),
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        return {
+            "recognized":
+                True,
+
+            "target":
+                target,
+
+            "canonical":
+                (
+                    "Was bedeutet das Wort "
+                    f"{target}?"
+                ),
+
+            "feedback":
+                None,
+
+            "corrected":
+                None,
+
+            "error_type":
+                None
+        }
+
+
+    # ======================================
+    # KANNST DU MIR DAS WORT ...
+    # BITTE ERKLÄREN?
+    # ======================================
+
+    match = re.match(
+        (
+            r"^\s*kannst\s+du\s+mir\s+"
+            r"(?:das\s+wort\s+)?"
+            r"(.+?)\s+bitte\s+erklären"
+            r"\s*[?.!]*\s*$"
+        ),
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        return {
+            "recognized":
+                True,
+
+            "target":
+                target,
+
+            "canonical":
+                (
+                    "Was bedeutet das Wort "
+                    f"{target}?"
+                ),
+
+            "feedback":
+                None,
+
+            "corrected":
+                None,
+
+            "error_type":
+                None
+        }
+
+
+    # ======================================
+    # ERKLÄRE ZAMIAST ERKLÄREN
+    # ======================================
+
+    match = re.match(
+        (
+            r"^\s*kannst\s+du\s+"
+            r"(?:mir\s+|bitte\s+mir\s+|bitte\s+)?"
+            r"(?:das\s+wort\s+)?"
+            r"(.+?)\s+erkläre\s*[?.!]*\s*$"
+        ),
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        display_target = display_target_word(
+            target
+        )
+
+        corrected = (
+            "Kannst du mir "
+            f"{display_target} erklären?"
+        )
+
+        return {
+            "recognized":
+                True,
+
+            "target":
+                target,
+
+            "canonical":
+                (
+                    "Was bedeutet das Wort "
+                    f"{target}?"
+                ),
+
+            "feedback":
+                (
+                    "Fast! Nach „kannst“ "
+                    "steht der Infinitiv: "
+                    f"„{corrected}“"
+                ),
+
+            "corrected":
+                corrected,
+
+            "error_type":
+                "grammar"
+        }
+
+
+    # ======================================
+    # FALSCHE WORTSTELLUNG:
+    #
+    # Kannst du mir erklären Zimmer?
+    # ======================================
+
+    match = re.match(
+        (
+            r"^\s*kannst\s+du\s+mir\s+"
+            r"erklären\s+"
+            r"(?:das\s+wort\s+)?"
+            r"(.+?)\s*[?.!]*\s*$"
+        ),
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        target = clean_vocabulary_target(
+            match.group(1)
+        )
+
+        display_target = display_target_word(
+            target
+        )
+
+        corrected = (
+            "Kannst du mir "
+            f"{display_target} erklären?"
+        )
+
+        return {
+            "recognized":
+                True,
+
+            "target":
+                target,
+
+            "canonical":
+                (
+                    "Was bedeutet das Wort "
+                    f"{target}?"
+                ),
+
+            "feedback":
+                (
+                    "Fast! Natürlicher sagt man: "
+                    f"„{corrected}“"
+                ),
+
+            "corrected":
+                corrected,
+
+            "error_type":
+                "word_order"
+        }
+
+
+    return {
+        "recognized":
+            False
+    }
+
+
+# ==========================================
+# ODPOWIEDŹ NA PYTANIE O SŁOWO
+# BEZ NISZCZENIA AKTYWNEGO TRENINGU
+# ==========================================
+
+def handle_vocabulary_explanation_request(
+    user_message,
+    state
+):
+
+    analysis = (
+        analyze_vocabulary_explanation_request(
+            user_message
+        )
+    )
+
+    if not analysis.get(
+        "recognized",
+        False
+    ):
+
+        return (
+            False,
+            None,
+            None
+        )
+
+
+    canonical = analysis.get(
+        "canonical"
+    )
+
+    feedback = analysis.get(
+        "feedback"
+    )
+
+    corrected = analysis.get(
+        "corrected"
+    )
+
+    error_type = analysis.get(
+        "error_type"
+    )
+
+
+    if (
+        corrected
+        and
+        error_type
+    ):
+
+        remember_special_language_error(
+            state,
+            user_message,
+            corrected,
+            error_type
+        )
+
+
+    # ======================================
+    # JEŻELI WŁAŚNIE TRWA TRENING SŁOWA,
+    # pytanie użytkownika nie może zostać
+    # potraktowane jako odpowiedź na test.
+    # ======================================
+
+    vocabulary_active = (
+        is_vocabulary_practice_active(
+            state
+        )
+    )
+
+
+    saved_vocabulary_state = None
+
+
+    if vocabulary_active:
+
+        saved_vocabulary_state = {
+
+            "vocabulary_practice_active":
+                state.get(
+                    "vocabulary_practice_active"
+                ),
+
+            "vocabulary_practice_word":
+                state.get(
+                    "vocabulary_practice_word"
+                ),
+
+            "vocabulary_practice_type":
+                state.get(
+                    "vocabulary_practice_type"
+                ),
+
+            "last_activity":
+                state.get(
+                    "last_activity"
+                ),
+
+            "last_activity_detail":
+                state.get(
+                    "last_activity_detail"
+                )
+        }
+
+
+        state[
+            "vocabulary_practice_active"
+        ] = False
+
+
+    answer = handle_vocabulary(
+        canonical,
+        state
+    )
+
+
+    # ======================================
+    # PRZYWRACAMY PRZERWANY TRENING
+    # ======================================
+
+    if saved_vocabulary_state is not None:
+
+        for (
+            key,
+            value
+        ) in saved_vocabulary_state.items():
+
+            state[
+                key
+            ] = value
+
+
+    if not answer:
+
+        return (
+            False,
+            None,
+            feedback
+        )
+
+
+    return (
+        True,
+        answer,
+        feedback
+    )
+
+
+# ==========================================
+# CZY UŻYTKOWNIK PROSI O POWTÓRZENIE
+# ==========================================
+
+def analyze_repeat_request(
+    user_message
+):
+
+    message = clean_control_message(
+        user_message
+    )
+
+
+    correct_requests = {
+
+        "kannst du bitte wiederholen",
+        "kannst du das bitte wiederholen",
+        "kannst du es bitte wiederholen",
+        "kannst du bitte noch einmal wiederholen",
+        "kannst du die frage bitte wiederholen",
+        "kannst du die frage wiederholen",
+        "bitte wiederholen",
+        "bitte noch einmal",
+        "noch einmal bitte",
+        "noch mal bitte",
+        "nochmal bitte",
+        "wiederhole bitte",
+        "kannst du das noch einmal sagen",
+        "kannst du das noch mal sagen"
+    }
+
+
+    if message in correct_requests:
+
+        return {
+
+            "recognized":
+                True,
+
+            "question_only":
+                (
+                    "frage"
+                    in message
+                ),
+
+            "feedback":
+                None,
+
+            "corrected":
+                None,
+
+            "error_type":
+                None
+        }
+
+
+    # ======================================
+    # KANNST DU ... WIEDERHOLE
+    # po czasowniku modalnym potrzebny
+    # jest bezokolicznik
+    # ======================================
+
+    wrong_repeat_patterns = {
+
+        "kannst du bitte wiederhole":
+            "Kannst du bitte wiederholen?",
+
+        "kannst du das bitte wiederhole":
+            "Kannst du das bitte wiederholen?",
+
+        "kannst du die frage bitte wiederhole":
+            "Kannst du die Frage bitte wiederholen?",
+
+        "kanst du bitte wiederholen":
+            "Kannst du bitte wiederholen?",
+
+        "kanst du das bitte wiederholen":
+            "Kannst du das bitte wiederholen?"
+    }
+
+
+    if message in wrong_repeat_patterns:
+
+        corrected = (
+            wrong_repeat_patterns[
+                message
+            ]
+        )
+
+
+        return {
+
+            "recognized":
+                True,
+
+            "question_only":
+                (
+                    "frage"
+                    in message
+                ),
+
+            "feedback":
+                (
+                    "Fast! Richtig sagt man: "
+                    f"„{corrected}“"
+                ),
+
+            "corrected":
+                corrected,
+
+            "error_type":
+                "grammar"
+        }
+
+
+    return {
+        "recognized":
+            False
+    }
+
+
+# ==========================================
+# POWTÓRZENIE OSTATNIEJ WYPOWIEDZI
+# ==========================================
+
+def handle_repeat_request(
+    user_message,
+    state
+):
+
+    analysis = analyze_repeat_request(
+        user_message
+    )
+
+
+    if not analysis.get(
+        "recognized",
+        False
+    ):
+
+        return (
+            False,
+            None,
+            None
+        )
+
+
+    feedback = analysis.get(
+        "feedback"
+    )
+
+    corrected = analysis.get(
+        "corrected"
+    )
+
+    error_type = analysis.get(
+        "error_type"
+    )
+
+
+    if (
+        corrected
+        and
+        error_type
+    ):
+
+        remember_special_language_error(
+            state,
+            user_message,
+            corrected,
+            error_type
+        )
+
+
+    # ======================================
+    # JEŻELI PROSI O POWTÓRZENIE PYTANIA,
+    # powtarzamy ostatnie pytanie,
+    # a nie cały długi komunikat.
+    # ======================================
+
+    if analysis.get(
+        "question_only",
+        False
+    ):
+
+        repeated = state.get(
+            "last_nele_question"
+        )
+
+    else:
+
+        repeated = state.get(
+            "last_nele_message"
+        )
+
+
+    # ======================================
+    # FALLBACK:
+    # aktywny trening sam odtworzy pytanie
+    # ======================================
+
+    if not repeated:
+
+        repeated = resume_current_training(
+            state
+        )
+
+
+    if not repeated:
+
+        repeated = (
+            "Ich habe gerade noch nichts "
+            "zum Wiederholen."
+        )
+
+
+    return (
+        True,
+        repeated,
+        feedback
+    )
+
+
+# ==========================================
+# WRÓĆMY DO TRENINGU
+# ==========================================
+
+def analyze_return_to_training_request(
+    user_message
+):
+
+    message = clean_control_message(
+        user_message
+    )
+
+
+    correct_requests = {
+
+        "zurück zum training",
+        "zuruck zum training",
+
+        "zurück zur übung",
+        "zuruck zur ubung",
+
+        "zurück zur lektion",
+        "zuruck zur lektion",
+
+        "gehen wir zurück zum training",
+        "gehen wir zuruck zum training",
+
+        "lass uns zum training zurückgehen",
+        "lass uns zum training zuruckgehen",
+
+        "lass uns zurück zum training gehen",
+        "lass uns zuruck zum training gehen",
+
+        "machen wir mit dem training weiter",
+        "wir machen mit dem training weiter",
+
+        "weiter mit dem training",
+        "machen wir weiter",
+        "wir machen weiter",
+
+        "weiter bitte",
+        "bitte weiter",
+        "weiter"
+    }
+
+
+    if message in correct_requests:
+
+        return {
+
+            "recognized":
+                True,
+
+            "feedback":
+                None,
+
+            "corrected":
+                None,
+
+            "error_type":
+                None
+        }
+
+
+    wrong_requests = {
+
+        "zurück zu training":
+            "Zurück zum Training.",
+
+        "zuruck zu training":
+            "Zurück zum Training.",
+
+        "gehen wir zurück zu training":
+            "Gehen wir zurück zum Training.",
+
+        "gehen wir zuruck zu training":
+            "Gehen wir zurück zum Training.",
+
+        "lass uns zurück zu training gehen":
+            "Lass uns zum Training zurückgehen.",
+
+        "lass uns zuruck zu training gehen":
+            "Lass uns zum Training zurückgehen.",
+
+        "machen wir weiter mit training":
+            "Machen wir mit dem Training weiter.",
+
+        "wir machen weiter mit training":
+            "Wir machen mit dem Training weiter.",
+
+        "zurück in training":
+            "Zurück zum Training."
+    }
+
+
+    if message in wrong_requests:
+
+        corrected = wrong_requests[
+            message
+        ]
+
+
+        return {
+
+            "recognized":
+                True,
+
+            "feedback":
+                (
+                    "Fast! Richtig sagt man: "
+                    f"„{corrected}“"
+                ),
+
+            "corrected":
+                corrected,
+
+            "error_type":
+                "preposition"
+        }
+
+
+    return {
+        "recognized":
+            False
+    }
+
+
+# ==========================================
+# OBSŁUGA:
+# WRÓĆMY DO TRENINGU
+# ==========================================
+
+def handle_return_to_training_request(
+    user_message,
+    state
+):
+
+    analysis = (
+        analyze_return_to_training_request(
+            user_message
+        )
+    )
+
+
+    if not analysis.get(
+        "recognized",
+        False
+    ):
+
+        return (
+            False,
+            None,
+            None
+        )
+
+
+    feedback = analysis.get(
+        "feedback"
+    )
+
+    corrected = analysis.get(
+        "corrected"
+    )
+
+    error_type = analysis.get(
+        "error_type"
+    )
+
+
+    if (
+        corrected
+        and
+        error_type
+    ):
+
+        remember_special_language_error(
+            state,
+            user_message,
+            corrected,
+            error_type
+        )
+
+
+    clear_old_teacher_choice_state(
+        state
+    )
+
+
+    continuation = resume_current_training(
+        state
+    )
+
+
+    if not continuation:
+
+        continuation = (
+            create_teacher_directed_follow_up(
+                state,
+                ""
+            )
+        )
+
+
+    if continuation:
+
+        answer = (
+            "Gerne. Wir machen weiter.\n\n"
+            f"{continuation}"
+        )
+
+    else:
+
+        answer = (
+            "Gerne. Wir machen weiter."
+        )
+
+
+    return (
+        True,
+        answer,
+        feedback
+    )
 
 
 # ==========================================
@@ -544,9 +1864,11 @@ def generate_conversation_reply(
         user_message
     )
 
+
     if multiple_questions:
 
         answers = []
+
 
         for question in multiple_questions:
 
@@ -557,11 +1879,13 @@ def generate_conversation_reply(
                 session_id
             )
 
+
             if answer:
 
                 answers.append(
                     answer
                 )
+
 
         if answers:
 
@@ -605,6 +1929,7 @@ def generate_conversation_reply(
                 )
             )
 
+
             if onboarding_answer:
 
                 return return_with_memory(
@@ -617,7 +1942,15 @@ def generate_conversation_reply(
             state
         ):
 
-            return generate_welcome_reply(
+            welcome_answer = (
+                generate_welcome_reply(
+                    session_id
+                )
+            )
+
+
+            return return_with_memory(
+                welcome_answer,
                 session_id
             )
 
@@ -662,6 +1995,7 @@ def generate_conversation_reply(
         session_id
     )
 
+
     if wellbeing_answer:
 
         return wellbeing_answer
@@ -680,12 +2014,119 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4. PYTANIA POBOCZNE PODCZAS TRENINGU
+    # 4. SPECJALNE KOMENDY ROZMOWY
+    #
+    # Mają pierwszeństwo przed aktywnym
+    # treningiem.
     # ======================================
 
 
     # ======================================
-    # 4A. PYTANIA O BŁĘDY
+    # 4A. POWTÓRZ
+    # ======================================
+
+    (
+        repeat_handled,
+        repeat_answer,
+        repeat_feedback
+    ) = handle_repeat_request(
+        processed_message,
+        state
+    )
+
+
+    if repeat_handled:
+
+        final_feedback = merge_feedback_texts(
+            feedback_text,
+            repeat_feedback
+        )
+
+
+        return return_with_feedback(
+            repeat_answer,
+            final_feedback,
+            session_id
+        )
+
+
+    # ======================================
+    # 4B. WRÓĆMY DO TRENINGU
+    # ======================================
+
+    (
+        return_handled,
+        return_answer,
+        return_feedback
+    ) = handle_return_to_training_request(
+        processed_message,
+        state
+    )
+
+
+    if return_handled:
+
+        final_feedback = merge_feedback_texts(
+            feedback_text,
+            return_feedback
+        )
+
+
+        return return_with_feedback(
+            return_answer,
+            final_feedback,
+            session_id
+        )
+
+
+    # ======================================
+    # 4C. PYTANIE O ZNACZENIE SŁOWA
+    #
+    # Was bedeutet...?
+    # Was heißt...?
+    # Kannst du mir ... erklären?
+    # ======================================
+
+    (
+        vocabulary_question_handled,
+        vocabulary_question_answer,
+        vocabulary_question_feedback
+    ) = handle_vocabulary_explanation_request(
+        processed_message,
+        state
+    )
+
+
+    if vocabulary_question_handled:
+
+        teacher_answer = (
+            continue_after_side_answer(
+                vocabulary_question_answer,
+                state
+            )
+        )
+
+
+        final_feedback = merge_feedback_texts(
+            feedback_text,
+            vocabulary_question_feedback
+        )
+
+
+        return return_with_feedback(
+            teacher_answer,
+            final_feedback,
+            session_id
+        )
+
+
+    # ======================================
+    # 5. PYTANIA POBOCZNE PODCZAS TRENINGU
+    # ======================================
+
+
+    # ======================================
+    # 5A. PYTANIA O BŁĘDY
     # ======================================
 
     side_error_memory_answer = (
@@ -694,6 +2135,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if side_error_memory_answer:
 
@@ -704,6 +2146,7 @@ def generate_conversation_reply(
             )
         )
 
+
         return return_with_feedback(
             teacher_answer,
             feedback_text,
@@ -712,7 +2155,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4B. PYTANIA O PAMIĘĆ NAUKI
+    # 5B. PYTANIA O PAMIĘĆ NAUKI
     # ======================================
 
     side_memory_answer = (
@@ -721,6 +2164,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if side_memory_answer:
 
@@ -731,6 +2175,7 @@ def generate_conversation_reply(
             )
         )
 
+
         return return_with_feedback(
             teacher_answer,
             feedback_text,
@@ -739,7 +2184,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. AKTYWNE ĆWICZENIE BŁĘDÓW
+    # 6. AKTYWNE ĆWICZENIE BŁĘDÓW
     # ======================================
 
     error_practice_answer = (
@@ -748,6 +2193,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if error_practice_answer:
 
@@ -759,7 +2205,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. POSTĘP W BŁĘDACH
+    # 7. POSTĘP W BŁĘDACH
     # ======================================
 
     error_progress_answer = (
@@ -768,6 +2214,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if error_progress_answer:
 
@@ -779,7 +2226,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 7. KONTYNUACJA NOWEJ NAUKI
+    # 8. KONTYNUACJA NOWEJ NAUKI
     # ======================================
 
     new_learning_answer = (
@@ -788,6 +2235,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if new_learning_answer:
 
@@ -799,7 +2247,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. AKTYWNA LEKCJA
+    # 9. AKTYWNA LEKCJA
     # ======================================
 
     lesson_teaching_answer = (
@@ -808,6 +2256,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if lesson_teaching_answer:
 
@@ -819,7 +2268,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 9. STARA KONTYNUACJA AKTYWNOŚCI
+    # 10. STARA KONTYNUACJA AKTYWNOŚCI
     # ======================================
 
     continue_answer = (
@@ -828,6 +2277,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if continue_answer:
 
@@ -839,13 +2289,14 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. KOREKTA
+    # 11. KOREKTA
     # ======================================
 
     correction_answer = handle_correction(
         processed_message,
         session_id
     )
+
 
     if correction_answer:
 
@@ -857,7 +2308,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. ALFABET
+    # 12. ALFABET
     # ======================================
 
     alphabet_answer = handle_alphabet(
@@ -865,6 +2316,7 @@ def generate_conversation_reply(
         level,
         lesson
     )
+
 
     if alphabet_answer:
 
@@ -876,7 +2328,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 12. POSTĘP W LEKCJI
+    # 13. POSTĘP W LEKCJI
     # ======================================
 
     lesson_progress_answer = (
@@ -885,6 +2337,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if lesson_progress_answer:
 
@@ -896,7 +2349,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 13. PERSONALIZOWANE ĆWICZENIA
+    # 14. PERSONALIZOWANE ĆWICZENIA
     # ======================================
 
     personalization_answer = (
@@ -905,6 +2358,7 @@ def generate_conversation_reply(
             state
         )
     )
+
 
     if personalization_answer:
 
@@ -916,13 +2370,14 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 14. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
+    # 15. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
     # ======================================
 
     user_memory_answer = handle_user_memory(
         processed_message,
         session_id
     )
+
 
     if user_memory_answer:
 
@@ -934,13 +2389,14 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 15. PAMIĘĆ BŁĘDÓW
+    # 16. PAMIĘĆ BŁĘDÓW
     # ======================================
 
     error_memory_answer = handle_error_memory(
         processed_message,
         state
     )
+
 
     if error_memory_answer:
 
@@ -952,13 +2408,14 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 16. PAMIĘĆ NAUKI
+    # 17. PAMIĘĆ NAUKI
     # ======================================
 
     memory_answer = handle_memory(
         processed_message,
         state
     )
+
 
     if memory_answer:
 
@@ -970,13 +2427,14 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 17. KONTYNUACJA AKTUALNEGO TEMATU
+    # 18. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
         processed_message,
         session_id
     )
+
 
     if topic_answer:
 
@@ -988,7 +2446,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 18. PORÓWNANIA
+    # 19. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -996,6 +2454,7 @@ def generate_conversation_reply(
         state,
         session_id
     )
+
 
     if comparison_answer:
 
@@ -1007,28 +2466,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 19. SŁOWNICTWO
-    #
-    # WAŻNE:
-    #
-    # Zapamiętujemy, czy ćwiczenie było
-    # aktywne PRZED odpowiedzią.
-    #
-    # Następnie sprawdzamy, czy po
-    # odpowiedzi nadal jest aktywne.
-    #
-    # Jeśli:
-    #
-    # wcześniej = aktywne
-    # teraz = zakończone
-    #
-    # Teacher Mode natychmiast wybiera
-    # następny krok.
-    #
-    # Jeżeli słowo ma np. pytanie
-    # o przeciwieństwo, ćwiczenie nadal
-    # będzie aktywne i tutaj NIE przejdziemy
-    # jeszcze do lekcji.
+    # 20. SŁOWNICTWO
     # ======================================
 
     vocabulary_was_active = (
@@ -1090,13 +2528,14 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 20. INTENCJE
+    # 21. INTENCJE
     # ======================================
 
     intent_answer = handle_intent(
         processed_message,
         session_id
     )
+
 
     if intent_answer:
 
@@ -1110,6 +2549,7 @@ def generate_conversation_reply(
             session_id
         )
 
+
         return return_with_feedback(
             intent_answer,
             feedback_text,
@@ -1118,7 +2558,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 21. ZNANE PYTANIA I ZWROTY
+    # 22. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -1127,6 +2567,7 @@ def generate_conversation_reply(
         lesson,
         session_id
     )
+
 
     if known_answer:
 
@@ -1138,13 +2579,14 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 22. KONTEKST
+    # 23. KONTEKST
     # ======================================
 
     context_answer = handle_context(
         processed_message,
         session_id
     )
+
 
     if context_answer:
 
@@ -1156,7 +2598,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 23. BRAK ZNANEJ ODPOWIEDZI
+    # 24. BRAK ZNANEJ ODPOWIEDZI
     # ======================================
 
     fallback_answer = (
@@ -1170,4 +2612,4 @@ def generate_conversation_reply(
         fallback_answer,
         feedback_text,
         session_id
-        )
+)
