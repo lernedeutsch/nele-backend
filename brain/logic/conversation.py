@@ -106,6 +106,10 @@ from brain.logic.vocabulary_router import (
     handle_vocabulary
 )
 
+from brain.logic.vocabulary_modules.practice import (
+    is_vocabulary_practice_active
+)
+
 from brain.memory.review import (
     handle_memory
 )
@@ -184,16 +188,6 @@ def return_with_feedback(
 # ==========================================
 # USUNIĘCIE STARYCH PYTAŃ
 # O WYBÓR UŻYTKOWNIKA
-# ==========================================
-#
-# Teacher Mode sam prowadzi trening.
-#
-# Jeżeli starszy moduł pamięci zwróci np.:
-#
-# Möchtest du mit „Zimmer“ weitermachen?
-#
-# usuwamy tę część przed automatycznym
-# wznowieniem treningu.
 # ==========================================
 
 def remove_old_teacher_choice_prompt(
@@ -279,23 +273,6 @@ def clear_old_teacher_choice_state(
 # ODPOWIEDŹ NA PYTANIE POBOCZNE
 # + AUTOMATYCZNY POWRÓT DO TRENINGU
 # ==========================================
-#
-# Przykład:
-#
-# Was bedeutet „Zimmer“?
-#
-# Użytkownik:
-# Welche Wörter sind schwierig für mich?
-#
-# Nele:
-# Diese Wörter waren für dich schwierig: Zimmer.
-#
-# Jetzt machen wir weiter.
-# Was bedeutet „Zimmer“?
-#
-# Jeżeli nie ma aktywnego treningu,
-# Teacher Brain wybiera następny krok.
-# ==========================================
 
 def continue_after_side_answer(
     answer,
@@ -336,9 +313,76 @@ def continue_after_side_answer(
         )
 
 
-    # ======================================
-    # POŁĄCZENIE
-    # ======================================
+    if (
+        answer
+        and
+        continuation
+    ):
+
+        return (
+            f"{answer}\n\n"
+            f"{continuation}"
+        )
+
+
+    if answer:
+        return answer
+
+
+    return continuation
+
+
+# ==========================================
+# ZAKOŃCZONE ĆWICZENIE
+# -> AUTOMATYCZNY KOLEJNY KROK
+# ==========================================
+#
+# Używamy tego wtedy, gdy ćwiczenie
+# właśnie zostało ukończone.
+#
+# Przykład:
+#
+# Was bedeutet „Zimmer“?
+#
+# poprawna odpowiedź
+#
+# Richtig! ...
+#
+# ↓
+#
+# Teacher Brain sam wybiera:
+#
+# kolejna powtórka
+# albo
+# dalsza lekcja.
+#
+# Nie pytamy:
+#
+# Möchtest du ...?
+# ==========================================
+
+def continue_after_finished_training(
+    answer,
+    state
+):
+
+    answer = remove_old_teacher_choice_prompt(
+        answer
+    )
+
+
+    clear_old_teacher_choice_state(
+        state
+    )
+
+
+    continuation = (
+        create_teacher_directed_follow_up(
+            state,
+            ""
+        )
+    )
+
 
     if (
         answer
@@ -456,13 +500,6 @@ def handle_wellbeing_reply(
     if not reaction:
         return None
 
-
-    # ======================================
-    # TEACHER MODE
-    #
-    # każde samopoczucie prowadzi
-    # automatycznie do dalszego treningu
-    # ======================================
 
     continuation_answer = (
         create_returning_user_follow_up(
@@ -617,8 +654,6 @@ def generate_conversation_reply(
     # ======================================
     # 2. ODPOWIEDŹ NA:
     # WIE GEHT ES DIR?
-    #
-    # MUSI BYĆ PRZED PAMIĘCIĄ UŻYTKOWNIKA
     # ======================================
 
     wellbeing_answer = handle_wellbeing_reply(
@@ -646,25 +681,11 @@ def generate_conversation_reply(
 
     # ======================================
     # 4. PYTANIA POBOCZNE PODCZAS TRENINGU
-    # TEACHER MODE
-    #
-    # Te pytania mają pierwszeństwo przed
-    # aktywnym ćwiczeniem, żeby Nele nie
-    # potraktowała ich jako błędnej
-    # odpowiedzi na aktualne zadanie.
-    #
-    # Po odpowiedzi wracamy dokładnie
-    # do przerwanego miejsca.
     # ======================================
 
 
     # ======================================
     # 4A. PYTANIA O BŁĘDY
-    #
-    # np.
-    #
-    # Wo mache ich noch Fehler?
-    # Welche Fehler mache ich oft?
     # ======================================
 
     side_error_memory_answer = (
@@ -692,16 +713,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 4B. PYTANIA O PAMIĘĆ NAUKI
-    #
-    # np.
-    #
-    # Welche Wörter sind schwierig für mich?
-    # Welche Wörter habe ich geübt?
-    # Welche Wörter soll ich wiederholen?
-    # Was habe ich zuletzt geübt?
-    # Was soll ich heute lernen?
-    # Was soll ich heute üben?
-    # Was soll ich heute machen?
     # ======================================
 
     side_memory_answer = (
@@ -809,8 +820,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 9. STARA KONTYNUACJA AKTYWNOŚCI
-    #
-    # zostaje dla kompatybilności
     # ======================================
 
     continue_answer = (
@@ -926,10 +935,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 15. PAMIĘĆ BŁĘDÓW
-    #
-    # Zostaje również tutaj jako fallback.
-    # Zwykłe pytania o błędy zostały już
-    # obsłużone wcześniej w Teacher Mode.
     # ======================================
 
     error_memory_answer = handle_error_memory(
@@ -948,8 +953,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 16. PAMIĘĆ NAUKI
-    #
-    # również fallback
     # ======================================
 
     memory_answer = handle_memory(
@@ -1005,14 +1008,79 @@ def generate_conversation_reply(
 
     # ======================================
     # 19. SŁOWNICTWO
+    #
+    # WAŻNE:
+    #
+    # Zapamiętujemy, czy ćwiczenie było
+    # aktywne PRZED odpowiedzią.
+    #
+    # Następnie sprawdzamy, czy po
+    # odpowiedzi nadal jest aktywne.
+    #
+    # Jeśli:
+    #
+    # wcześniej = aktywne
+    # teraz = zakończone
+    #
+    # Teacher Mode natychmiast wybiera
+    # następny krok.
+    #
+    # Jeżeli słowo ma np. pytanie
+    # o przeciwieństwo, ćwiczenie nadal
+    # będzie aktywne i tutaj NIE przejdziemy
+    # jeszcze do lekcji.
     # ======================================
+
+    vocabulary_was_active = (
+        is_vocabulary_practice_active(
+            state
+        )
+    )
+
 
     vocabulary_answer = handle_vocabulary(
         processed_message,
         state
     )
 
+
     if vocabulary_answer:
+
+        vocabulary_is_still_active = (
+            is_vocabulary_practice_active(
+                state
+            )
+        )
+
+
+        # ==================================
+        # ĆWICZENIE WŁAŚNIE SIĘ ZAKOŃCZYŁO
+        # ==================================
+
+        if (
+            vocabulary_was_active
+            and
+            not vocabulary_is_still_active
+        ):
+
+            teacher_answer = (
+                continue_after_finished_training(
+                    vocabulary_answer,
+                    state
+                )
+            )
+
+
+            return return_with_feedback(
+                teacher_answer,
+                feedback_text,
+                session_id
+            )
+
+
+        # ==================================
+        # ĆWICZENIE NADAL TRWA
+        # ==================================
 
         return return_with_feedback(
             vocabulary_answer,
@@ -1102,4 +1170,4 @@ def generate_conversation_reply(
         fallback_answer,
         feedback_text,
         session_id
-    )
+        )
