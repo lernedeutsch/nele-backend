@@ -61,6 +61,10 @@ from brain.logic.learner_feedback import (
     prepare_message_with_feedback
 )
 
+from brain.logic.wellbeing_feedback import (
+    analyze_wellbeing_response
+)
+
 from brain.logic.activity_resume import (
     handle_continue_last_activity
 )
@@ -82,7 +86,8 @@ from brain.logic.context_router import (
 )
 
 from brain.logic.response_engine import (
-    find_response
+    find_response,
+    create_returning_user_follow_up
 )
 
 from brain.logic.intent_handler import (
@@ -168,6 +173,127 @@ def return_with_feedback(
 
     return return_with_memory(
         final_answer,
+        session_id
+    )
+
+
+# ==========================================
+# ODPOWIEDŹ NA SAMOPOCZUCIE
+# ==========================================
+
+def handle_wellbeing_reply(
+    user_message,
+    state,
+    session_id
+):
+
+    if state is None:
+        return None
+
+
+    # ======================================
+    # TYLKO GDY NELE WCZEŚNIEJ ZAPYTAŁA:
+    #
+    # WIE GEHT ES DIR?
+    # ======================================
+
+    if (
+        state.get(
+            "last_question"
+        )
+        !=
+        "wellbeing"
+    ):
+
+        return None
+
+
+    analysis = analyze_wellbeing_response(
+        user_message
+    )
+
+
+    if not analysis.get(
+        "recognized"
+    ):
+
+        return None
+
+
+    wellbeing_type = analysis.get(
+        "type"
+    )
+
+    reaction = analysis.get(
+        "reaction"
+    )
+
+    feedback = analysis.get(
+        "feedback"
+    )
+
+
+    # ======================================
+    # BRAK REAKCJI
+    # ======================================
+
+    if not reaction:
+        return None
+
+
+    # ======================================
+    # GORSZE SAMOPOCZUCIE
+    #
+    # Nie wciskamy wtedy użytkownikowi
+    # od razu normalnej lekcji.
+    #
+    # Ważne:
+    # "Ich bin müde"
+    # NIE może trafić do pamięci imienia.
+    # ======================================
+
+    difficult_wellbeing = {
+        "bad",
+        "tired",
+        "stressed",
+        "sad",
+        "sick"
+    }
+
+
+    if wellbeing_type in difficult_wellbeing:
+
+        state[
+            "last_question"
+        ] = None
+
+
+        return return_with_feedback(
+            reaction,
+            feedback,
+            session_id
+        )
+
+
+    # ======================================
+    # DOBRE / NEUTRALNE SAMOPOCZUCIE
+    #
+    # Krótka reakcja + automatyczna
+    # propozycja dalszej nauki.
+    # ======================================
+
+    continuation_answer = (
+        create_returning_user_follow_up(
+            state,
+            reaction,
+            ""
+        )
+    )
+
+
+    return return_with_feedback(
+        continuation_answer,
+        feedback,
         session_id
     )
 
@@ -315,10 +441,6 @@ def generate_conversation_reply(
     # ======================================
     # 2. AKTYWNE ĆWICZENIE BŁĘDÓW
     # STUDENT MEMORY 2.0
-    #
-    # Musi być przed innymi routerami,
-    # żeby odpowiedź użytkownika została
-    # oceniona przez aktywne ćwiczenie.
     # ======================================
 
     error_practice_answer = (
@@ -339,15 +461,6 @@ def generate_conversation_reply(
     # ======================================
     # 3. POSTĘP W BŁĘDACH
     # STUDENT MEMORY 2.0
-    #
-    # Musi być odpowiednio wcześnie,
-    # żeby np.:
-    #
-    # Wie gut kann ich die Wortstellung schon?
-    #
-    # nie zostało pomylone ze słowem:
-    #
-    # Gut
     # ======================================
 
     error_progress_answer = (
@@ -366,11 +479,35 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4. LEARNER FEEDBACK
+    # 4. ODPOWIEDŹ NA:
+    # WIE GEHT ES DIR?
     #
-    # Nele może poprawić błędne zdanie,
-    # dalej rozumie jego intencję
-    # i zapisuje błąd w Student Memory 2.0.
+    # BARDZO WAŻNE:
+    #
+    # Ten router musi działać PRZED
+    # pamięcią użytkownika.
+    #
+    # Dzięki temu:
+    #
+    # Ich bin müde.
+    #
+    # oznacza samopoczucie,
+    # a nie imię "Müde".
+    # ======================================
+
+    wellbeing_answer = handle_wellbeing_reply(
+        user_message,
+        state,
+        session_id
+    )
+
+    if wellbeing_answer:
+
+        return wellbeing_answer
+
+
+    # ======================================
+    # 5. LEARNER FEEDBACK
     # ======================================
 
     processed_message, feedback_text = (
@@ -382,7 +519,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. KONTYNUACJA NOWEJ NAUKI
+    # 6. KONTYNUACJA NOWEJ NAUKI
     # ======================================
 
     new_learning_answer = (
@@ -402,7 +539,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. AKTYWNA LEKCJA
+    # 7. AKTYWNA LEKCJA
     # ======================================
 
     lesson_teaching_answer = (
@@ -422,7 +559,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 7. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
+    # 8. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
     # ======================================
 
     continue_answer = (
@@ -442,7 +579,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. KOREKTA
+    # 9. KOREKTA
     # ======================================
 
     correction_answer = handle_correction(
@@ -460,7 +597,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 9. ALFABET
+    # 10. ALFABET
     # ======================================
 
     alphabet_answer = handle_alphabet(
@@ -479,7 +616,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. POSTĘP W LEKCJI
+    # 11. POSTĘP W LEKCJI
     # STUDENT MEMORY 2.0
     # ======================================
 
@@ -500,7 +637,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. PERSONALIZOWANE ĆWICZENIA
+    # 12. PERSONALIZOWANE ĆWICZENIA
     # ======================================
 
     personalization_answer = (
@@ -520,7 +657,9 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 12. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
+    # 13. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
+    #
+    # Jest teraz ZA obsługą samopoczucia.
     # ======================================
 
     user_memory_answer = handle_user_memory(
@@ -538,7 +677,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 13. PAMIĘĆ BŁĘDÓW
+    # 14. PAMIĘĆ BŁĘDÓW
     # STUDENT MEMORY 2.0
     # ======================================
 
@@ -557,7 +696,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 14. PAMIĘĆ NAUKI
+    # 15. PAMIĘĆ NAUKI
     # STUDENT MEMORY 2.0
     # ======================================
 
@@ -576,7 +715,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 15. KONTYNUACJA AKTUALNEGO TEMATU
+    # 16. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -594,7 +733,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 16. PORÓWNANIA
+    # 17. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -613,7 +752,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 17. SŁOWNICTWO
+    # 18. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -631,7 +770,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 18. INTENCJE
+    # 19. INTENCJE
     # ======================================
 
     intent_answer = handle_intent(
@@ -659,7 +798,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 19. ZNANE PYTANIA I ZWROTY
+    # 20. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -679,7 +818,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 20. KONTEKST
+    # 21. KONTEKST
     # ======================================
 
     context_answer = handle_context(
@@ -697,7 +836,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 21. BRAK ZNANEJ ODPOWIEDZI
+    # 22. BRAK ZNANEJ ODPOWIEDZI
     # ======================================
 
     fallback_answer = (
@@ -705,6 +844,7 @@ def generate_conversation_reply(
         "aber diese Antwort habe ich "
         "noch nicht gelernt."
     )
+
 
     return return_with_feedback(
         fallback_answer,
