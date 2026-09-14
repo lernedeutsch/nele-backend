@@ -21,7 +21,8 @@ from brain.memory.student_progress import (
 
 from brain.memory.next_learning_step import (
     get_next_learning_step,
-    get_next_new_learning_step
+    get_next_new_learning_step,
+    get_teacher_learning_plan
 )
 
 
@@ -164,10 +165,6 @@ def answer_last_learning(
         )
 
 
-        # ==================================
-        # "JA" → KONTYNUACJA
-        # ==================================
-
         state[
             "last_activity"
         ] = "vocabulary"
@@ -180,10 +177,6 @@ def answer_last_learning(
             "last_question"
         ] = "continue_last_activity"
 
-
-        # ==================================
-        # POPRZEDNIA AKTYWNOŚĆ
-        # ==================================
 
         previous_text = ""
 
@@ -458,17 +451,11 @@ def answer_next_new_learning_step(
 
     # ======================================
     # UŻYTKOWNIK WYBRAŁ NOWĄ NAUKĘ
-    #
-    # Czyścimy stary aktywny kontekst
-    # słownictwa.
-    #
-    # Nie usuwamy historii ani postępów.
     # ======================================
 
     state[
         "last_question"
     ] = None
-
 
     state[
         "vocabulary_practice_active"
@@ -484,7 +471,7 @@ def answer_next_new_learning_step(
 
 
     # ======================================
-    # WYBÓR NASTĘPNEGO NOWEGO MATERIAŁU
+    # WYBÓR NOWEGO MATERIAŁU
     # ======================================
 
     plan = get_next_new_learning_step(
@@ -514,10 +501,7 @@ def answer_next_new_learning_step(
 
 
     # ======================================
-    # KONKRETNA CZĘŚĆ LEKCJI
-    #
-    # Zapamiętujemy ją, aby późniejsze
-    # "Ja" dotyczyło właśnie tej części.
+    # ZAPAMIĘTANIE OFERTY
     # ======================================
 
     offer_saved = set_new_learning_offer(
@@ -538,10 +522,17 @@ def answer_next_new_learning_step(
 
 
 # ==========================================
-# ALLGEMEINE EMPFEHLUNG
+# PYTANIE DO "NAUCZYCIELA"
+#
+# Użytkownik nie wybiera sam:
+# - ćwiczenia,
+# - nowego materiału,
+# - błędu.
+#
+# Pyta Nele, co ONA poleca.
 # ==========================================
 
-def is_general_recommendation_request(
+def is_teacher_recommendation_request(
     user_message
 ):
 
@@ -551,71 +542,86 @@ def is_general_recommendation_request(
         " .?!"
     )
 
+
     questions = [
+
+        "was soll ich heute machen",
+
+        "was sollen wir heute machen",
+
+        "was machen wir heute",
+
+        "was empfiehlst du mir heute",
+
         "was empfiehlst du mir",
+
+        "was würdest du mir heute empfehlen",
+
+        "was würdest du mir empfehlen",
+
+        "womit sollen wir anfangen",
+
+        "womit fangen wir an",
+
+        "womit soll ich anfangen",
+
         "was machen wir als nächstes",
+
         "was machen wir jetzt",
+
         "wie soll ich weitermachen",
-        "was ist der nächste schritt"
+
+        "was ist der nächste schritt",
+
+        "was wäre heute sinnvoll",
+
+        "was soll ich als nächstes machen"
     ]
+
 
     return message in questions
 
 
 # ==========================================
-# ANTWORT – ALLGEMEINE EMPFEHLUNG
+# PLAN NAUCZYCIELA – PRZYGOTOWANIE
+# KONTYNUACJI
 # ==========================================
 
-def answer_general_recommendation(
-    user_message,
+def prepare_teacher_plan_follow_up(
+    plan,
     state
 ):
 
-    if not is_general_recommendation_request(
-        user_message
-    ):
-        return None
+    if not plan:
+
+        return False
+
+
+    plan_type = str(
+        plan.get(
+            "type",
+            ""
+        )
+        or
+        ""
+    ).strip().lower()
+
+
+    words = plan.get(
+        "words",
+        []
+    )
 
 
     # ======================================
-    # ZUERST PRÜFEN, OB ETWAS
-    # WIEDERHOLT WERDEN SOLLTE
+    # PLAN SŁOWNICTWA
     # ======================================
 
-    practice_plan = get_next_learning_step(
-        state
-    )
+    if words:
 
-    practice_type = practice_plan.get(
-        "type"
-    )
+        first_word = words[0]
 
-
-    if practice_type in {
-        "vocabulary_review",
-        "difficult_vocabulary"
-    }:
-
-        message = practice_plan.get(
-            "message"
-        )
-
-        words = practice_plan.get(
-            "words",
-            []
-        )
-
-
-        if words:
-
-            first_word = words[0]
-
-            first_word_display = (
-                display_memory_word(
-                    first_word
-                )
-            )
-
+        if first_word:
 
             state[
                 "last_activity"
@@ -629,42 +635,186 @@ def answer_general_recommendation(
                 "last_question"
             ] = "continue_last_activity"
 
+            return True
 
-            return (
-                f"{message} "
-                f"Möchtest du mit "
-                f"„{first_word_display}“ "
-                "anfangen?"
+
+    # ======================================
+    # NOWA CZĘŚĆ / NOWA LEKCJA
+    #
+    # Jeżeli plan nauczyciela wybrał
+    # nowy materiał, przygotowujemy
+    # normalne "Ja".
+    # ======================================
+
+    new_learning_types = {
+        "new_learning",
+        "new_section",
+        "new_lesson",
+        "continue_lesson"
+    }
+
+
+    if (
+        plan_type in new_learning_types
+        or
+        plan.get(
+            "section"
+        )
+    ):
+
+        return bool(
+            set_new_learning_offer(
+                state,
+                plan
             )
-
-
-        if message:
-            return message
-
-
-    # ======================================
-    # WENN KEINE WICHTIGE WIEDERHOLUNG
-    # ANSTEHT → NEUER STOFF
-    # ======================================
-
-    new_plan = get_next_new_learning_step(
-        state
-    )
-
-    message = new_plan.get(
-        "message"
-    )
-
-
-    if message:
-
-        offer_saved = set_new_learning_offer(
-            state,
-            new_plan
         )
 
 
-        if offer_saved:
+    return False
+
+
+# ==========================================
+# ODPOWIEDŹ NAUCZYCIELA
+# ==========================================
+
+def answer_teacher_recommendation(
+    user_message,
+    state
+):
+
+    if not is_teacher_recommendation_request(
+        user_message
+    ):
+        return None
+
+
+    # ======================================
+    # NELE SAMA WYBIERA PRIORYTET
+    #
+    # Student Memory 2.0:
+    #
+    # 1. ważny błąd
+    # 2. potrzebna powtórka
+    # 3. nowy materiał
+    # ======================================
+
+    plan = get_teacher_learning_plan(
+        state
+    )
+
+
+    if not plan:
+
+        return (
+            "Lass uns mit einer kleinen "
+            "Übung anfangen."
+        )
+
+
+    message = str(
+        plan.get(
+            "message",
+            ""
+        )
+        or
+        ""
+    ).strip()
+
+
+    if not message:
+
+        return (
+            "Lass uns mit einer kleinen "
+            "Übung anfangen."
+        )
+
+
+    plan_type = str(
+        plan.get(
+            "type",
+            ""
+        )
+        or
+        ""
+    ).strip().lower()
+
+
+    words = plan.get(
+        "words",
+        []
+    )
+
+
+    # ======================================
+    # SŁOWNICTWO
+    # ======================================
+
+    if words:
+
+        first_word = words[0]
+
+        first_word_display = (
+            display_memory_word(
+                first_word
+            )
+        )
+
+
+        prepare_teacher_plan_follow_up(
+            plan,
+            state
+        )
+
+
+        if message.endswith(
+            "?"
+        ):
+
+            return message
+
+
+        return (
+            f"{message} "
+            f"Möchtest du mit "
+            f"„{first_word_display}“ "
+            "anfangen?"
+        )
+
+
+    # ======================================
+    # NOWY MATERIAŁ
+    # ======================================
+
+    new_learning_types = {
+        "new_learning",
+        "new_section",
+        "new_lesson",
+        "continue_lesson"
+    }
+
+
+    if (
+        plan_type in new_learning_types
+        or
+        plan.get(
+            "section"
+        )
+    ):
+
+        offer_saved = (
+            prepare_teacher_plan_follow_up(
+                plan,
+                state
+            )
+        )
+
+
+        if (
+            offer_saved
+            and not message.endswith(
+                "?"
+            )
+        ):
 
             return (
                 f"{message} "
@@ -675,9 +825,48 @@ def answer_general_recommendation(
         return message
 
 
-    return (
-        "Lass uns mit dem nächsten "
-        "Lernschritt weitermachen."
+    # ======================================
+    # BŁĄD / POWTÓRKA BŁĘDU
+    #
+    # get_teacher_learning_plan()
+    # może wybrać błąd jako najważniejszy.
+    #
+    # Tutaj nie zmieniamy ręcznie stanu
+    # error_practice, ponieważ zarządza nim
+    # osobny moduł Student Memory 2.0.
+    # ======================================
+
+    return message
+
+
+# ==========================================
+# ALLGEMEINE EMPFEHLUNG
+#
+# Starsza nazwa zostaje dla zgodności.
+# Teraz korzysta z planu nauczyciela.
+# ==========================================
+
+def is_general_recommendation_request(
+    user_message
+):
+
+    return is_teacher_recommendation_request(
+        user_message
+    )
+
+
+# ==========================================
+# ANTWORT – ALLGEMEINE EMPFEHLUNG
+# ==========================================
+
+def answer_general_recommendation(
+    user_message,
+    state
+):
+
+    return answer_teacher_recommendation(
+        user_message,
+        state
     )
 
 
@@ -1196,10 +1385,13 @@ def handle_memory(
 
 
     # ======================================
-    # OGÓLNA REKOMENDACJA
+    # PLAN NAUCZYCIELA
+    #
+    # Nele sama decyduje, co jest
+    # najważniejsze dla ucznia.
     # ======================================
 
-    answer = answer_general_recommendation(
+    answer = answer_teacher_recommendation(
         user_message,
         state
     )
