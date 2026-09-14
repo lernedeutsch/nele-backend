@@ -213,19 +213,51 @@ def remember_nele_output(
     if not answer:
         return
 
+
+    # ======================================
+    # OSTATNIA PEŁNA WYPOWIEDŹ NELE
+    # ======================================
+
     state[
         "last_nele_message"
     ] = answer
 
+
+    # ======================================
+    # OSTATNIE PYTANIE Z TEJ WYPOWIEDZI
+    # ======================================
+
     question = extract_last_question(
         answer
     )
+
 
     if question:
 
         state[
             "last_nele_question"
         ] = question
+
+    else:
+
+        # ==================================
+        # JEŻELI NOWA WYPOWIEDŹ NELE
+        # NIE ZAWIERA PYTANIA,
+        # USUWAMY STARE PYTANIE.
+        #
+        # Dzięki temu:
+        #
+        # Kannst du die Frage bitte
+        # wiederholen?
+        #
+        # nie wyciągnie przypadkiem
+        # starego pytania z wcześniejszego
+        # treningu.
+        # ==================================
+
+        state[
+            "last_nele_question"
+        ] = None
 
 
 # ==========================================
@@ -704,7 +736,7 @@ def analyze_vocabulary_explanation_request(
 
 
     # ======================================
-    # HEISST ZAMIAST HEISST
+    # HEISST ZAMIAST HEIẞT
     # ======================================
 
     match = re.match(
@@ -1415,13 +1447,7 @@ def handle_repeat_request(
 
 
     # ======================================
-    # JEŚLI UŻYTKOWNIK PROSI O POWTÓRZENIE
-    # PYTANIA, NAJPIERW POWTARZAMY
-    # OSTATNIE PYTANIE.
-    #
-    # JEŻELI OSTATNIA WYPOWIEDŹ NELE
-    # NIE ZAWIERAŁA PYTANIA,
-    # POWTARZAMY CAŁĄ OSTATNIĄ WYPOWIEDŹ.
+    # PROŚBA O POWTÓRZENIE PYTANIA
     # ======================================
 
     if analysis.get(
@@ -2566,4 +2592,4 @@ def generate_conversation_reply(
         fallback_answer,
         feedback_text,
         session_id
-)
+    )
