@@ -29,6 +29,21 @@ def clean_answer(
 
 
 # ==========================================
+# NORMALISIERTE ANTWORT
+# ==========================================
+
+def clean_normalized_answer(
+    text
+):
+
+    return normalize(
+        clean_answer(
+            text
+        )
+    ).strip()
+
+
+# ==========================================
 # KONTEXT DER LEKTION FINDEN
 # ==========================================
 
@@ -38,12 +53,15 @@ def get_lesson_context_for_section(
 ):
 
     if state is None:
+
         return (
             None,
             None
         )
 
+
     if not section:
+
         return (
             None,
             None
@@ -54,6 +72,7 @@ def get_lesson_context_for_section(
         "lesson_progress",
         {}
     )
+
 
     if not isinstance(
         lesson_memory,
@@ -71,6 +90,7 @@ def get_lesson_context_for_section(
         {}
     )
 
+
     if not isinstance(
         lessons,
         dict
@@ -83,7 +103,7 @@ def get_lesson_context_for_section(
 
 
     # ======================================
-    # 1. ZUERST AKTUELLE SEKTION SUCHEN
+    # 1. AKTUELLE SEKTION
     # ======================================
 
     for lesson_data in lessons.values():
@@ -206,6 +226,69 @@ def finish_lesson_teaching(
 
 
 # ==========================================
+# AKTUELLE SEKTION ABSCHLIESSEN
+# ==========================================
+
+def complete_active_section(
+    state
+):
+
+    if state is None:
+        return None
+
+
+    section = state.get(
+        "lesson_teaching_section"
+    )
+
+
+    if not section:
+        return None
+
+
+    level, lesson = (
+        get_lesson_context_for_section(
+            state,
+            section
+        )
+    )
+
+
+    next_section = None
+
+
+    if (
+        level
+        and
+        lesson
+    ):
+
+        mark_section_completed(
+            state,
+            level,
+            lesson,
+            section
+        )
+
+
+        next_section = (
+            get_next_incomplete_section(
+                state,
+                level,
+                lesson
+            )
+        )
+
+
+    finish_lesson_teaching(
+        state
+    )
+
+
+    return next_section
+
+
+# ==========================================
 # UNTERRICHT STARTEN
 # ==========================================
 
@@ -217,6 +300,7 @@ def start_lesson_teaching(
     if state is None:
         return None
 
+
     if not section:
         return None
 
@@ -224,6 +308,47 @@ def start_lesson_teaching(
     section = str(
         section
     ).strip()
+
+
+    # ======================================
+    # TEIL:
+    # WIR BEGRÜSSEN UNS
+    # ======================================
+
+    if normalize(
+        section
+    ) == normalize(
+        "Wir begrüßen uns"
+    ):
+
+        state[
+            "lesson_teaching_active"
+        ] = True
+
+        state[
+            "lesson_teaching_section"
+        ] = "Wir begrüßen uns"
+
+        state[
+            "lesson_teaching_step"
+        ] = 1
+
+
+        state[
+            "last_activity"
+        ] = "lesson"
+
+        state[
+            "last_activity_detail"
+        ] = "Wir begrüßen uns"
+
+
+        return (
+            "Super, dann legen wir los! "
+            "Wir üben jetzt Begrüßungen. "
+            "Stell dir vor, es ist morgens. "
+            "Was sagst du?"
+        )
 
 
     # ======================================
@@ -289,6 +414,303 @@ def is_lesson_teaching_active(
             False
         )
     )
+
+
+# ==========================================
+# BEGRÜSSUNG:
+# GUTEN MORGEN
+# ==========================================
+
+def is_morning_greeting(
+    user_message
+):
+
+    message = clean_normalized_answer(
+        user_message
+    )
+
+
+    return message in {
+        "guten morgen",
+        "morgen"
+    }
+
+
+# ==========================================
+# BEGRÜSSUNG:
+# GUTEN TAG
+# ==========================================
+
+def is_day_greeting(
+    user_message
+):
+
+    message = clean_normalized_answer(
+        user_message
+    )
+
+
+    return message in {
+        "guten tag",
+        "tag"
+    }
+
+
+# ==========================================
+# BEGRÜSSUNG:
+# GUTEN ABEND
+# ==========================================
+
+def is_evening_greeting(
+    user_message
+):
+
+    message = clean_normalized_answer(
+        user_message
+    )
+
+
+    return message in {
+        "guten abend",
+        "abend"
+    }
+
+
+# ==========================================
+# INFORMELLE BEGRÜSSUNG
+# ==========================================
+
+def is_informal_greeting(
+    user_message
+):
+
+    message = clean_normalized_answer(
+        user_message
+    )
+
+
+    return message in {
+        "hallo",
+        "hi",
+        "hey"
+    }
+
+
+# ==========================================
+# INFORMELLE VERABSCHIEDUNG
+# ==========================================
+
+def is_informal_goodbye(
+    user_message
+):
+
+    message = clean_normalized_answer(
+        user_message
+    )
+
+
+    return message in {
+        "tschüss",
+        "tschuss",
+        "tschüs",
+        "bis bald",
+        "bis später"
+    }
+
+
+# ==========================================
+# TEIL:
+# WIR BEGRÜSSEN UNS
+# ==========================================
+
+def handle_greeting_section(
+    user_message,
+    state
+):
+
+    step = state.get(
+        "lesson_teaching_step",
+        1
+    )
+
+
+    # ======================================
+    # SCHRITT 1
+    # MORGEN
+    # ======================================
+
+    if step == 1:
+
+        if not is_morning_greeting(
+            user_message
+        ):
+
+            return (
+                "Fast. Am Morgen sagt man: "
+                "„Guten Morgen.“ "
+                "Sag es bitte noch einmal."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 2
+
+
+        return (
+            "Sehr gut! „Guten Morgen“ ist richtig. "
+            "Jetzt ist es tagsüber. "
+            "Was sagst du?"
+        )
+
+
+    # ======================================
+    # SCHRITT 2
+    # TAG
+    # ======================================
+
+    if step == 2:
+
+        if not is_day_greeting(
+            user_message
+        ):
+
+            return (
+                "Fast. Tagsüber kannst du sagen: "
+                "„Guten Tag.“ "
+                "Versuch es noch einmal."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 3
+
+
+        return (
+            "Genau! „Guten Tag“ ist richtig. "
+            "Jetzt ist es Abend. "
+            "Was sagst du?"
+        )
+
+
+    # ======================================
+    # SCHRITT 3
+    # ABEND
+    # ======================================
+
+    if step == 3:
+
+        if not is_evening_greeting(
+            user_message
+        ):
+
+            return (
+                "Fast. Am Abend sagt man: "
+                "„Guten Abend.“ "
+                "Sag es bitte noch einmal."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 4
+
+
+        return (
+            "Perfekt! „Guten Abend“ ist richtig. "
+            "Und wenn du jemanden ganz locker "
+            "begrüßt, was kannst du sagen?"
+        )
+
+
+    # ======================================
+    # SCHRITT 4
+    # HALLO
+    # ======================================
+
+    if step == 4:
+
+        if not is_informal_greeting(
+            user_message
+        ):
+
+            return (
+                "Fast. Ganz einfach kannst du sagen: "
+                "„Hallo.“ "
+                "Versuch es noch einmal."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 5
+
+
+        return (
+            "Sehr gut! „Hallo“ passt perfekt. "
+            "Und jetzt verabschiedest du dich "
+            "von einem Freund. "
+            "Was sagst du?"
+        )
+
+
+    # ======================================
+    # SCHRITT 5
+    # TSCHÜSS
+    # ======================================
+
+    if step == 5:
+
+        if not is_informal_goodbye(
+            user_message
+        ):
+
+            return (
+                "Fast. Zu einem Freund kannst du "
+                "zum Beispiel sagen: "
+                "„Tschüss.“ "
+                "Sag es bitte noch einmal."
+            )
+
+
+        # ==================================
+        # TEIL ABSCHLIESSEN
+        # ==================================
+
+        next_section = complete_active_section(
+            state
+        )
+
+
+        if next_section:
+
+            return (
+                "Sehr gut! Jetzt kennst du wichtige "
+                "Begrüßungen und kannst dich auch "
+                "verabschieden. "
+                f"Als Nächstes kommt "
+                f"„{next_section}“."
+            )
+
+
+        return (
+            "Sehr gut! Jetzt kennst du wichtige "
+            "Begrüßungen und kannst dich auch "
+            "verabschieden. "
+            "Diesen Teil hast du geschafft!"
+        )
+
+
+    # ======================================
+    # UNBEKANNTER SCHRITT
+    # ======================================
+
+    finish_lesson_teaching(
+        state
+    )
+
+    return None
 
 
 # ==========================================
@@ -468,66 +890,13 @@ def handle_introduction_section(
 
 
         # ==================================
-        # AKTUELLE LEKTION FINDEN
+        # TEIL ABSCHLIESSEN
         # ==================================
 
-        section = state.get(
-            "lesson_teaching_section"
-        )
-
-        level, lesson = (
-            get_lesson_context_for_section(
-                state,
-                section
-            )
-        )
-
-
-        # ==================================
-        # STUDENT MEMORY 2.0
-        # TEIL ALS ABGESCHLOSSEN SPEICHERN
-        # ==================================
-
-        next_section = None
-
-
-        if (
-            level
-            and
-            lesson
-            and
-            section
-        ):
-
-            mark_section_completed(
-                state,
-                level,
-                lesson,
-                section
-            )
-
-
-            next_section = (
-                get_next_incomplete_section(
-                    state,
-                    level,
-                    lesson
-                )
-            )
-
-
-        # ==================================
-        # AKTIVES TRAINING BEENDEN
-        # ==================================
-
-        finish_lesson_teaching(
+        next_section = complete_active_section(
             state
         )
 
-
-        # ==================================
-        # ES GIBT NOCH EINEN NÄCHSTEN TEIL
-        # ==================================
 
         if next_section:
 
@@ -539,10 +908,6 @@ def handle_introduction_section(
                 f"„{next_section}“."
             )
 
-
-        # ==================================
-        # KEIN WEITERER TEIL
-        # ==================================
 
         return (
             "Sehr gut! Jetzt kannst du dich "
@@ -597,6 +962,26 @@ def handle_lesson_teaching(
         return None
 
 
+    # ======================================
+    # WIR BEGRÜSSEN UNS
+    # ======================================
+
+    if normalize(
+        section
+    ) == normalize(
+        "Wir begrüßen uns"
+    ):
+
+        return handle_greeting_section(
+            user_message,
+            state
+        )
+
+
+    # ======================================
+    # ICH STELLE MICH VOR
+    # ======================================
+
     if normalize(
         section
     ) == normalize(
@@ -608,6 +993,10 @@ def handle_lesson_teaching(
             state
         )
 
+
+    # ======================================
+    # NIEZNANA SEKCJA
+    # ======================================
 
     finish_lesson_teaching(
         state
