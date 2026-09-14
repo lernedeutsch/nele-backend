@@ -311,6 +311,11 @@ def get_possible_practice_answers(
 
     possible_answers = []
 
+
+    # ======================================
+    # SPEZIELLE ÜBUNGSANTWORTEN
+    # ======================================
+
     practice_answers = vocabulary_entry.get(
         "practice_answers"
     )
@@ -332,6 +337,11 @@ def get_possible_practice_answers(
                 practice_answers
             )
 
+
+    # ======================================
+    # EINFACHE BEDEUTUNG
+    # ======================================
+
     simple_meaning = vocabulary_entry.get(
         "simple_meaning"
     )
@@ -342,7 +352,60 @@ def get_possible_practice_answers(
             simple_meaning
         )
 
-    return possible_answers
+
+    # ======================================
+    # PEŁNE ZNACZENIE
+    #
+    # WAŻNE:
+    # wcześniej tego brakowało.
+    # Nele potrafiła wyświetlić "meaning",
+    # ale nie uznawała go za poprawną
+    # odpowiedź użytkownika.
+    # ======================================
+
+    meaning = vocabulary_entry.get(
+        "meaning"
+    )
+
+    if meaning:
+
+        possible_answers.append(
+            meaning
+        )
+
+
+    # ======================================
+    # USUWANIE DUPLIKATÓW
+    # ======================================
+
+    result = []
+    seen = set()
+
+    for answer in possible_answers:
+
+        if not answer:
+            continue
+
+        cleaned = clean_practice_answer(
+            answer
+        )
+
+        if not cleaned:
+            continue
+
+        if cleaned in seen:
+            continue
+
+        seen.add(
+            cleaned
+        )
+
+        result.append(
+            answer
+        )
+
+
+    return result
 
 
 # ==========================================
@@ -365,8 +428,18 @@ def answers_match(
     if not answer or not possible_answer:
         return False
 
+
+    # ======================================
+    # DOKŁADNIE TA SAMA ODPOWIEDŹ
+    # ======================================
+
     if answer == possible_answer:
         return True
+
+
+    # ======================================
+    # NEGACJA MUSI SIĘ ZGADZAĆ
+    # ======================================
 
     answer_has_negation = has_negation(
         answer
@@ -381,6 +454,11 @@ def answers_match(
         != possible_has_negation
     ):
         return False
+
+
+    # ======================================
+    # SŁOWA ODPOWIEDZI
+    # ======================================
 
     answer_words = set(
         get_answer_words(
@@ -400,6 +478,11 @@ def answers_match(
     if not possible_words:
         return False
 
+
+    # ======================================
+    # ISTOTNE SŁOWA
+    # ======================================
+
     meaningful_answer_words = {
         word
         for word in answer_words
@@ -418,15 +501,27 @@ def answers_match(
     if not meaningful_possible_words:
         return False
 
-    if meaningful_answer_words.issubset(
-        meaningful_possible_words
-    ):
-        return True
+
+    # ======================================
+    # UŻYTKOWNIK MOŻE POWIEDZIEĆ WIĘCEJ
+    #
+    # Poprawna odpowiedź może być częścią
+    # dłuższego zdania użytkownika.
+    #
+    # Nie robimy już odwrotnego testu,
+    # ponieważ zbyt krótka odpowiedź typu:
+    #
+    # "Zimmer ist ein Raum"
+    #
+    # nie powinna automatycznie zaliczać
+    # pełnej definicji.
+    # ======================================
 
     if meaningful_possible_words.issubset(
         meaningful_answer_words
     ):
         return True
+
 
     return False
 
@@ -679,7 +774,6 @@ def answer_vocabulary_practice(
                 state
             )
 
-
             finish_vocabulary_practice(
                 state
             )
@@ -753,7 +847,6 @@ def answer_vocabulary_practice(
             remember_completed_exercise(
                 state
             )
-
 
             finish_vocabulary_practice(
                 state
