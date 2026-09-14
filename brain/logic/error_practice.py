@@ -6,6 +6,14 @@
 
 from brain.logic.matcher import normalize
 
+from brain.logic.new_learning_resume import (
+    set_new_learning_offer
+)
+
+from brain.memory.next_learning_step import (
+    get_next_new_learning_step
+)
+
 from brain.memory.error_memory import (
     get_error_summary,
     get_errors_for_practice,
@@ -108,21 +116,6 @@ def is_error_practice_active(
 # ==========================================
 # CZY ODPOWIEDŹ POCHODZIŁA Z MIKROFONU
 # ==========================================
-#
-# Obecnie backend może nie dostawać
-# tej informacji.
-#
-# Gdy frontend zacznie zapisywać:
-#
-# state["last_input_mode"] = "voice"
-#
-# albo:
-#
-# state["input_mode"] = "voice"
-#
-# wtedy spoken_successes będzie naliczane
-# automatycznie.
-# ==========================================
 
 def is_voice_input(
     state
@@ -199,23 +192,6 @@ def increase_error_practice_attempts(
 
 # ==========================================
 # ZMIANA TRUDNOŚCI
-# ==========================================
-#
-# quality 4
-# -> było łatwo
-# -> trudność lekko spada
-#
-# quality 3
-# -> dobra odpowiedź
-# -> trudność trochę spada
-#
-# quality 2
-# -> było trudno
-# -> trudność rośnie
-#
-# quality 1
-# -> potrzebna była pomoc
-# -> trudność rośnie mocniej
 # ==========================================
 
 def calculate_updated_difficulty(
@@ -294,6 +270,103 @@ def finish_error_practice(
     state[
         "error_practice_used_hint"
     ] = False
+
+
+# ==========================================
+# NASTĘPNY KROK PO ĆWICZENIU BŁĘDU
+# ==========================================
+#
+# Po zakończeniu powtórki błędu Nele
+# wraca do normalnego planu nauki.
+#
+# Przykład:
+#
+# Wortstellung
+#     ↓
+# ćwiczenie zakończone
+#     ↓
+# "Wir begrüßen uns"
+#     ↓
+# "Möchtest du damit anfangen?"
+#
+# Dzięki set_new_learning_offer()
+# późniejsze "Ja" zostanie poprawnie
+# obsłużone przez new_learning_resume.py.
+# ==========================================
+
+def prepare_learning_after_error(
+    state
+):
+
+    if state is None:
+        return None
+
+
+    try:
+
+        plan = get_next_new_learning_step(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Next learning after error: {error}"
+        )
+
+        return None
+
+
+    if not plan:
+        return None
+
+
+    message = str(
+        plan.get(
+            "message",
+            ""
+        )
+        or
+        ""
+    ).strip()
+
+
+    if not message:
+        return None
+
+
+    try:
+
+        offer_saved = set_new_learning_offer(
+            state,
+            plan
+        )
+
+    except Exception as error:
+
+        print(
+            f"New learning offer after error: {error}"
+        )
+
+        offer_saved = False
+
+
+    if offer_saved:
+
+        if message.endswith(
+            "?"
+        ):
+
+            return message
+
+
+        return (
+            f"{message} "
+            "Möchtest du damit anfangen?"
+        )
+
+
+    return message
 
 
 # ==========================================
@@ -543,16 +616,6 @@ def handle_error_practice_step_one(
         ] = 2
 
 
-        # ==================================
-        # UWAGA
-        #
-        # Nie zerujemy tutaj attempts.
-        #
-        # Jeżeli użytkownik wcześniej
-        # wybrał zły wariant, Adaptive Review
-        # powinien o tym pamiętać.
-        # ==================================
-
         return (
             "Richtig! Sehr gut. "
             f"„{correct_sentence}“ ist korrekt. "
@@ -745,14 +808,6 @@ def handle_error_practice_step_two(
 
             # ==================================
             # ADAPTIVE REVIEW 2.0
-            #
-            # Kalkulator wyznacza:
-            #
-            # - quality
-            # - result
-            # - nowy correct_streak
-            # - odstęp
-            # - next_review_at
             # ==================================
 
             review_plan = (
@@ -779,8 +834,7 @@ def handle_error_practice_step_two(
 
 
             # ==================================
-            # CZY MAMY PEWNĄ INFORMACJĘ,
-            # ŻE TO BYŁ MIKROFON?
+            # CZY ODPOWIEDŹ BYŁA GŁOSOWA
             # ==================================
 
             spoken = is_voice_input(
@@ -803,10 +857,43 @@ def handle_error_practice_step_two(
             )
 
 
+        # ======================================
+        # KONIEC ĆWICZENIA BŁĘDU
+        # ======================================
+
         finish_error_practice(
             state
         )
 
+
+        # ======================================
+        # POWRÓT DO NORMALNEGO PLANU NAUKI
+        # ======================================
+
+        next_learning = (
+            prepare_learning_after_error(
+                state
+            )
+        )
+
+
+        # ======================================
+        # MAMY NASTĘPNY MATERIAŁ
+        # ======================================
+
+        if next_learning:
+
+            return (
+                "Sehr gut! Genau richtig. "
+                f"„{correct_sentence}“ "
+                "Diesen Fehler hast du jetzt geübt.\n\n"
+                f"{next_learning}"
+            )
+
+
+        # ======================================
+        # BRAK NASTĘPNEGO MATERIAŁU
+        # ======================================
 
         return (
             "Sehr gut! Genau richtig. "
@@ -823,15 +910,6 @@ def handle_error_practice_step_two(
         state
     )
 
-
-    # ======================================
-    # TERAZ UŻYTKOWNIK OTRZYMUJE JUŻ
-    # PEŁNĄ POPRAWNĄ ODPOWIEDŹ.
-    #
-    # Adaptive Review musi wiedzieć,
-    # że następna poprawna odpowiedź
-    # nastąpi po podpowiedzi.
-    # ======================================
 
     state[
         "error_practice_used_hint"
