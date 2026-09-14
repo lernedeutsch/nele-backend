@@ -53,7 +53,12 @@ from brain.logic.lesson_teaching import (
 )
 
 from brain.logic.error_practice import (
-    handle_error_practice
+    handle_error_practice,
+    is_error_practice_active,
+    is_first_answer,
+    is_second_answer,
+    wants_to_stop_error_practice,
+    clean_error_practice_message
 )
 
 from brain.logic.error_progress import (
@@ -121,12 +126,12 @@ from brain.memory.error_review import (
 )
 
 from brain.memory.error_memory import (
-    remember_error
+    remember_error,
+    get_error_summary
 )
 
 
 # ==========================================
-# POMOCNICZE:
 # ŁĄCZENIE FEEDBACKU
 # ==========================================
 
@@ -214,18 +219,10 @@ def remember_nele_output(
         return
 
 
-    # ======================================
-    # OSTATNIA PEŁNA WYPOWIEDŹ NELE
-    # ======================================
-
     state[
         "last_nele_message"
     ] = answer
 
-
-    # ======================================
-    # OSTATNIE PYTANIE Z TEJ WYPOWIEDZI
-    # ======================================
 
     question = extract_last_question(
         answer
@@ -239,21 +236,6 @@ def remember_nele_output(
         ] = question
 
     else:
-
-        # ==================================
-        # JEŻELI NOWA WYPOWIEDŹ NELE
-        # NIE ZAWIERA PYTANIA,
-        # USUWAMY STARE PYTANIE.
-        #
-        # Dzięki temu:
-        #
-        # Kannst du die Frage bitte
-        # wiederholen?
-        #
-        # nie wyciągnie przypadkiem
-        # starego pytania z wcześniejszego
-        # treningu.
-        # ==================================
 
         state[
             "last_nele_question"
@@ -344,7 +326,7 @@ def return_with_feedback(
 
 
 # ==========================================
-# ZAPAMIĘTANIE SPECJALNEGO BŁĘDU JĘZYKOWEGO
+# ZAPAMIĘTANIE SPECJALNEGO BŁĘDU
 # ==========================================
 
 def remember_special_language_error(
@@ -462,7 +444,6 @@ def remove_old_teacher_choice_prompt(
 
 # ==========================================
 # WYCZYSZCZENIE STAREGO STANU
-# PYTANIA O KONTYNUACJĘ
 # ==========================================
 
 def clear_old_teacher_choice_state(
@@ -487,8 +468,8 @@ def clear_old_teacher_choice_state(
 
 
 # ==========================================
-# ODPOWIEDŹ NA PYTANIE POBOCZNE
-# + AUTOMATYCZNY POWRÓT DO TRENINGU
+# PYTANIE POBOCZNE
+# + POWRÓT DO TRENINGU
 # ==========================================
 
 def continue_after_side_answer(
@@ -574,6 +555,222 @@ def continue_after_finished_training(
         return answer
 
     return continuation
+
+
+# ==========================================
+# CZY WIADOMOŚĆ JEST ODPOWIEDZIĄ
+# NA AKTYWNE FEHLERTRAINING
+# ==========================================
+#
+# To jest kluczowa poprawka.
+#
+# Jeżeli Nele właśnie ćwiczy błąd:
+#
+# 1. Was bedeuten Zimmer?
+# 2. Was bedeutet Zimmer?
+#
+# i użytkownik wpisze:
+#
+# Was bedeutet Zimmer?
+#
+# zdanie MUSI trafić najpierw
+# do Fehlertraining.
+#
+# Nie może zostać potraktowane jako nowe:
+#
+# "Was bedeutet Zimmer?"
+# ==========================================
+
+def should_prioritize_error_practice(
+    user_message,
+    state
+):
+
+    if state is None:
+        return False
+
+
+    if not is_error_practice_active(
+        state
+    ):
+
+        return False
+
+
+    # ======================================
+    # STOP
+    # ======================================
+
+    if wants_to_stop_error_practice(
+        user_message
+    ):
+
+        return True
+
+
+    # ======================================
+    # ODPOWIEDZI 1 / 2
+    # ======================================
+
+    if (
+        is_first_answer(
+            user_message
+        )
+        or
+        is_second_answer(
+            user_message
+        )
+    ):
+
+        return True
+
+
+    error_type = state.get(
+        "error_practice_type"
+    )
+
+
+    if not error_type:
+        return False
+
+
+    try:
+
+        summary = get_error_summary(
+            state,
+            error_type
+        )
+
+    except Exception as error:
+
+        print(
+            f"Error practice priority: {error}"
+        )
+
+        return False
+
+
+    if not isinstance(
+        summary,
+        dict
+    ):
+
+        return False
+
+
+    wrong_sentence = summary.get(
+        "last_wrong"
+    )
+
+    correct_sentence = summary.get(
+        "last_correct"
+    )
+
+
+    user_clean = clean_error_practice_message(
+        user_message
+    )
+
+    wrong_clean = clean_error_practice_message(
+        wrong_sentence
+    )
+
+    correct_clean = clean_error_practice_message(
+        correct_sentence
+    )
+
+
+    # ======================================
+    # JEŻELI TO JEDNO Z DWÓCH ZDAŃ
+    # Z AKTUALNEGO ĆWICZENIA,
+    # Fehlertraining ma pierwszeństwo.
+    # ======================================
+
+    if (
+        user_clean
+        and
+        (
+            user_clean == correct_clean
+            or
+            user_clean == wrong_clean
+        )
+    ):
+
+        return True
+
+
+    return False
+
+
+# ==========================================
+# OBSŁUGA ODPOWIEDZI,
+# KTÓRA NALEŻY DO FEHLERTRAINING
+# ==========================================
+
+def handle_priority_error_practice(
+    user_message,
+    state
+):
+
+    if not should_prioritize_error_practice(
+        user_message,
+        state
+    ):
+
+        return (
+            False,
+            None
+        )
+
+
+    was_active = is_error_practice_active(
+        state
+    )
+
+
+    answer = handle_error_practice(
+        user_message,
+        state
+    )
+
+
+    if not answer:
+
+        return (
+            False,
+            None
+        )
+
+
+    is_still_active = (
+        is_error_practice_active(
+            state
+        )
+    )
+
+
+    # ======================================
+    # ĆWICZENIE WŁAŚNIE SIĘ ZAKOŃCZYŁO
+    # ======================================
+
+    if (
+        was_active
+        and
+        not is_still_active
+    ):
+
+        answer = (
+            continue_after_finished_training(
+                answer,
+                state
+            )
+        )
+
+
+    return (
+        True,
+        answer
+    )
 
 
 # ==========================================
@@ -694,7 +891,7 @@ def analyze_vocabulary_explanation_request(
 
 
     # ======================================
-    # WAS HEISST...
+    # WAS HEIẞT...
     # ======================================
 
     match = re.match(
@@ -979,7 +1176,7 @@ def analyze_vocabulary_explanation_request(
 
 
     # ======================================
-    # KANNST DU MIR DAS WORT ...
+    # KANNST DU MIR ...
     # BITTE ERKLÄREN?
     # ======================================
 
@@ -1171,6 +1368,7 @@ def handle_vocabulary_explanation_request(
             None
         )
 
+
     canonical = analysis.get(
         "canonical"
     )
@@ -1186,6 +1384,7 @@ def handle_vocabulary_explanation_request(
     error_type = analysis.get(
         "error_type"
     )
+
 
     if (
         corrected
@@ -1208,6 +1407,7 @@ def handle_vocabulary_explanation_request(
     )
 
     saved_vocabulary_state = None
+
 
     if vocabulary_active:
 
@@ -1238,6 +1438,7 @@ def handle_vocabulary_explanation_request(
                     "last_activity_detail"
                 )
         }
+
 
         state[
             "vocabulary_practice_active"
@@ -1279,7 +1480,7 @@ def handle_vocabulary_explanation_request(
 
 
 # ==========================================
-# CZY UŻYTKOWNIK PROSI O POWTÓRZENIE
+# PROŚBA O POWTÓRZENIE
 # ==========================================
 
 def analyze_repeat_request(
@@ -1446,10 +1647,6 @@ def handle_repeat_request(
         )
 
 
-    # ======================================
-    # PROŚBA O POWTÓRZENIE PYTANIA
-    # ======================================
-
     if analysis.get(
         "question_only",
         False
@@ -1471,11 +1668,6 @@ def handle_repeat_request(
             "last_nele_message"
         )
 
-
-    # ======================================
-    # FALLBACK:
-    # AKTYWNY TRENING
-    # ======================================
 
     if not repeated:
 
@@ -1857,7 +2049,7 @@ def generate_conversation_reply(
 ):
 
     # ======================================
-    # KILKA PYTAŃ W JEDNEJ WIADOMOŚCI
+    # KILKA PYTAŃ
     # ======================================
 
     multiple_questions = split_multiple_questions(
@@ -1898,7 +2090,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # PAMIĘĆ UŻYTKOWNIKA
+    # STAN
     # ======================================
 
     state = get_conversation_state(
@@ -1907,7 +2099,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 0. PIERWSZE SPOTKANIE / ONBOARDING
+    # 0. ONBOARDING
     # ======================================
 
     if not is_onboarding_completed(
@@ -1968,7 +2160,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 1. SPRAWDZENIE POWTÓREK BŁĘDÓW
+    # 1. POWTÓRKI BŁĘDÓW
     # ======================================
 
     try:
@@ -1985,8 +2177,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 2. ODPOWIEDŹ NA:
-    # WIE GEHT ES DIR?
+    # 2. SAMOPOCZUCIE
     # ======================================
 
     wellbeing_answer = handle_wellbeing_reply(
@@ -2011,11 +2202,6 @@ def generate_conversation_reply(
             state
         )
     )
-
-
-    # ======================================
-    # 4. SPECJALNE KOMENDY ROZMOWY
-    # ======================================
 
 
     # ======================================
@@ -2048,7 +2234,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4B. WRÓĆMY DO TRENINGU
+    # 4B. WRÓĆ DO TRENINGU
     # ======================================
 
     (
@@ -2077,7 +2263,35 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4C. PYTANIE O ZNACZENIE SŁOWA
+    # 4C. ODPOWIEDŹ NA AKTYWNE
+    # FEHLERTRAINING
+    #
+    # MUSI BYĆ PRZED:
+    #
+    # Was bedeutet...?
+    #
+    # ======================================
+
+    (
+        priority_error_handled,
+        priority_error_answer
+    ) = handle_priority_error_practice(
+        processed_message,
+        state
+    )
+
+
+    if priority_error_handled:
+
+        return return_with_feedback(
+            priority_error_answer,
+            feedback_text,
+            session_id
+        )
+
+
+    # ======================================
+    # 4D. PYTANIE O ZNACZENIE SŁOWA
     # ======================================
 
     (
@@ -2172,8 +2386,18 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. AKTYWNE ĆWICZENIE BŁĘDÓW
+    # 6. AKTYWNE FEHLERTRAINING
+    #
+    # Tutaj trafiają inne odpowiedzi,
+    # które nie były pytaniem pobocznym.
     # ======================================
+
+    error_practice_was_active = (
+        is_error_practice_active(
+            state
+        )
+    )
+
 
     error_practice_answer = (
         handle_error_practice(
@@ -2184,6 +2408,38 @@ def generate_conversation_reply(
 
 
     if error_practice_answer:
+
+        error_practice_is_still_active = (
+            is_error_practice_active(
+                state
+            )
+        )
+
+
+        # ==================================
+        # WŁAŚNIE ZAKOŃCZONO BŁĄD
+        # ==================================
+
+        if (
+            error_practice_was_active
+            and
+            not error_practice_is_still_active
+        ):
+
+            teacher_answer = (
+                continue_after_finished_training(
+                    error_practice_answer,
+                    state
+                )
+            )
+
+
+            return return_with_feedback(
+                teacher_answer,
+                feedback_text,
+                session_id
+            )
+
 
         return return_with_feedback(
             error_practice_answer,
@@ -2256,7 +2512,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. STARA KONTYNUACJA AKTYWNOŚCI
+    # 10. STARA KONTYNUACJA
     # ======================================
 
     continue_answer = (
@@ -2316,7 +2572,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 13. POSTĘP W LEKCJI
+    # 13. POSTĘP LEKCJI
     # ======================================
 
     lesson_progress_answer = (
@@ -2337,7 +2593,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 14. PERSONALIZOWANE ĆWICZENIA
+    # 14. PERSONALIZACJA
     # ======================================
 
     personalization_answer = (
@@ -2358,7 +2614,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 15. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
+    # 15. PAMIĘĆ UŻYTKOWNIKA
     # ======================================
 
     user_memory_answer = handle_user_memory(
@@ -2415,7 +2671,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 18. KONTYNUACJA AKTUALNEGO TEMATU
+    # 18. TEMAT
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -2538,7 +2794,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 22. ZNANE PYTANIA I ZWROTY
+    # 22. ZNANE PYTANIA
     # ======================================
 
     known_answer = find_response(
@@ -2578,7 +2834,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 24. BRAK ZNANEJ ODPOWIEDZI
+    # 24. FALLBACK
     # ======================================
 
     fallback_answer = (
