@@ -128,7 +128,7 @@ def analyze_repeat_request(
 
 
     # ======================================
-    # POPRAWNE FORMЫ
+    # POPRAWNE FORMY
     # ======================================
 
     correct_requests = {
@@ -318,8 +318,27 @@ def handle_repeat_request(
         )
 
 
+    repeated = None
+
+
     # ======================================
-    # POWTÓRZENIE TYLKO PYTANIA
+    # POWTÓRZENIE PYTANIA
+    #
+    # NAJWAŻNIEJSZA POPRAWKA:
+    #
+    # jeśli trwa aktywny trening,
+    # najpierw odtwarzamy jego aktualne
+    # pytanie w całości.
+    #
+    # Przykład:
+    #
+    # Welcher Satz ist richtig?
+    # 1. ...
+    # 2. ...
+    #
+    # Nie wolno tutaj brać tylko
+    # ostatniego zdania zakończonego ?,
+    # bo byłaby to np. sama opcja nr 2.
     # ======================================
 
     if analysis.get(
@@ -327,15 +346,27 @@ def handle_repeat_request(
         False
     ):
 
-        repeated = state.get(
-            "last_nele_question"
+        repeated = resume_current_training(
+            state
         )
 
 
         # ==================================
-        # JEŻELI OSTATNIA WYPOWIEDŹ
-        # NIE MIAŁA PYTANIA,
-        # POWTARZAMY CAŁĄ WYPOWIEDŹ
+        # JEŻELI ŻADEN TRENING NIE TRWA,
+        # BIERZEMY OSTATNIE PYTANIE NELE
+        # ==================================
+
+        if not repeated:
+
+            repeated = state.get(
+                "last_nele_question"
+            )
+
+
+        # ==================================
+        # JEŻELI NIE MA ZAPISANEGO PYTANIA,
+        # POWTARZAMY CAŁĄ OSTATNIĄ
+        # WYPOWIEDŹ NELE
         # ==================================
 
         if not repeated:
@@ -356,16 +387,17 @@ def handle_repeat_request(
         )
 
 
-    # ======================================
-    # FALLBACK:
-    # AKTYWNY TRENING
-    # ======================================
+        # ==================================
+        # JEŻELI NIE MA OSTATNIEJ
+        # WYPOWIEDZI, PRÓBUJEMY ODTWORZYĆ
+        # AKTYWNY TRENING
+        # ==================================
 
-    if not repeated:
+        if not repeated:
 
-        repeated = resume_current_training(
-            state
-        )
+            repeated = resume_current_training(
+                state
+            )
 
 
     # ======================================
@@ -402,7 +434,7 @@ def analyze_return_to_training_request(
 
 
     # ======================================
-    # POPRAWNE FORMЫ
+    # POPRAWNE FORMY
     # ======================================
 
     correct_requests = {
@@ -648,4 +680,4 @@ def handle_return_to_training_request(
         True,
         answer,
         feedback
-        )
+            )
