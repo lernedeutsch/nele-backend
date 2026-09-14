@@ -140,7 +140,9 @@ from brain.memory.error_memory import (
 # FEEDBACK
 # ==========================================
 
-def merge_feedback_texts(*feedbacks):
+def merge_feedback_texts(
+    *feedbacks
+):
 
     result = []
 
@@ -169,20 +171,26 @@ def merge_feedback_texts(*feedbacks):
 # OSTATNIE PYTANIE NELE
 # ==========================================
 
-def extract_last_question(answer):
+def extract_last_question(
+    answer
+):
 
     if not answer:
         return None
 
     questions = re.findall(
         r'[^.!?\n]*\?',
-        str(answer).strip()
+        str(
+            answer
+        ).strip()
     )
 
     if not questions:
         return None
 
-    question = questions[-1].strip()
+    question = questions[
+        -1
+    ].strip()
 
     return question or None
 
@@ -368,16 +376,22 @@ def remove_old_teacher_choice_prompt(
     ]
 
     positions = [
-        answer.find(prompt)
+        answer.find(
+            prompt
+        )
         for prompt in old_prompts
-        if answer.find(prompt) >= 0
+        if answer.find(
+            prompt
+        ) >= 0
     ]
 
     if not positions:
         return answer
 
     return answer[
-        :min(positions)
+        :min(
+            positions
+        )
     ].rstrip()
 
 
@@ -503,11 +517,19 @@ def should_prioritize_error_practice(
 
         return False
 
+    # ======================================
+    # STOP FEHLERTRAINING
+    # ======================================
+
     if wants_to_stop_error_practice(
         user_message
     ):
 
         return True
+
+    # ======================================
+    # ODPOWIEDŹ 1 LUB 2
+    # ======================================
 
     if (
         is_first_answer(
@@ -566,6 +588,22 @@ def should_prioritize_error_practice(
         )
     )
 
+    # ======================================
+    # JEŻELI UŻYTKOWNIK WPISAŁ DOKŁADNIE
+    # POPRAWNE LUB BŁĘDNE ZDANIE
+    # Z AKTUALNEGO FEHLERTRAINING,
+    # TO FEHLERTRAINING MA PIERWSZEŃSTWO.
+    #
+    # To jest ważne np. dla zdania:
+    #
+    # Kannst du die Frage bitte wiederholen?
+    #
+    # które może być jednocześnie:
+    #
+    # - komendą powtórzenia
+    # - odpowiedzią w Fehlertraining
+    # ======================================
+
     return bool(
         user_clean
         and
@@ -613,6 +651,11 @@ def handle_priority_error_practice(
         )
     )
 
+    # ======================================
+    # FEHLERTRAINING WŁAŚNIE SIĘ
+    # ZAKOŃCZYŁO
+    # ======================================
+
     if (
         was_active
         and
@@ -659,7 +702,9 @@ def clean_vocabulary_target(
     ):
 
         target = target[
-            len("das wort "):
+            len(
+                "das wort "
+            ):
         ].strip()
 
     return target
@@ -740,7 +785,9 @@ def analyze_vocabulary_explanation_request(
         }
 
 
+    # ======================================
     # Was bedeutet Zimmer?
+    # ======================================
 
     match = re.match(
         (
@@ -755,11 +802,15 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         return build_vocabulary_analysis(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
 
+    # ======================================
     # Was heißt Zimmer?
+    # ======================================
 
     match = re.match(
         (
@@ -774,11 +825,15 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         return build_vocabulary_analysis(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
 
+    # ======================================
     # Was heisst Zimmer?
+    # ======================================
 
     match = re.match(
         (
@@ -793,7 +848,9 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         target = clean_vocabulary_target(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
         corrected = (
@@ -812,7 +869,9 @@ def analyze_vocabulary_explanation_request(
         )
 
 
+    # ======================================
     # Was bedeuten Zimmer?
+    # ======================================
 
     match = re.match(
         (
@@ -827,7 +886,9 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         target = clean_vocabulary_target(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
         corrected = (
@@ -846,7 +907,9 @@ def analyze_vocabulary_explanation_request(
         )
 
 
+    # ======================================
     # Was ist bedeutet Zimmer?
+    # ======================================
 
     match = re.match(
         (
@@ -861,7 +924,9 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         target = clean_vocabulary_target(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
         corrected = (
@@ -880,7 +945,9 @@ def analyze_vocabulary_explanation_request(
         )
 
 
+    # ======================================
     # Kannst du mir Zimmer erklären?
+    # ======================================
 
     match = re.match(
         (
@@ -896,11 +963,15 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         return build_vocabulary_analysis(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
 
+    # ======================================
     # Kannst du bitte Zimmer erklären?
+    # ======================================
 
     match = re.match(
         (
@@ -916,11 +987,15 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         return build_vocabulary_analysis(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
 
+    # ======================================
     # Kannst du mir Zimmer bitte erklären?
+    # ======================================
 
     match = re.match(
         (
@@ -936,11 +1011,15 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         return build_vocabulary_analysis(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
 
+    # ======================================
     # Kannst du mir Zimmer erkläre?
+    # ======================================
 
     match = re.match(
         (
@@ -956,7 +1035,9 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         target = clean_vocabulary_target(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
         corrected = (
@@ -977,7 +1058,9 @@ def analyze_vocabulary_explanation_request(
         )
 
 
+    # ======================================
     # Kannst du mir erklären Zimmer?
+    # ======================================
 
     match = re.match(
         (
@@ -993,7 +1076,9 @@ def analyze_vocabulary_explanation_request(
     if match:
 
         target = clean_vocabulary_target(
-            match.group(1)
+            match.group(
+                1
+            )
         )
 
         corrected = (
@@ -1081,6 +1166,7 @@ def handle_vocabulary_explanation_request(
     if vocabulary_active:
 
         saved_vocabulary_state = {
+
             "vocabulary_practice_active":
                 state.get(
                     "vocabulary_practice_active"
@@ -1118,9 +1204,10 @@ def handle_vocabulary_explanation_request(
 
     if saved_vocabulary_state is not None:
 
-        for key, value in (
-            saved_vocabulary_state.items()
-        ):
+        for (
+            key,
+            value
+        ) in saved_vocabulary_state.items():
 
             state[
                 key
@@ -1391,7 +1478,40 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4A. POWTÓRZ
+    # 4A. AKTYWNE FEHLERTRAINING
+    #
+    # TO MUSI BYĆ PRZED KOMENDAMI:
+    #
+    # - wiederholen
+    # - zurück zum Training
+    #
+    # ponieważ poprawne zdanie ćwiczenia
+    # może samo wyglądać jak komenda.
+    #
+    # Przykład:
+    #
+    # Kannst du die Frage bitte wiederholen?
+    # ======================================
+
+    (
+        handled,
+        answer
+    ) = handle_priority_error_practice(
+        processed_message,
+        state
+    )
+
+    if handled:
+
+        return return_with_feedback(
+            answer,
+            feedback_text,
+            session_id
+        )
+
+
+    # ======================================
+    # 4B. POWTÓRZ
     # ======================================
 
     (
@@ -1416,7 +1536,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4B. WRÓĆ DO TRENINGU
+    # 4C. WRÓĆ DO TRENINGU
     # ======================================
 
     (
@@ -1436,27 +1556,6 @@ def generate_conversation_reply(
                 feedback_text,
                 command_feedback
             ),
-            session_id
-        )
-
-
-    # ======================================
-    # 4C. ODPOWIEDŹ NA FEHLERTRAINING
-    # ======================================
-
-    (
-        handled,
-        answer
-    ) = handle_priority_error_practice(
-        processed_message,
-        state
-    )
-
-    if handled:
-
-        return return_with_feedback(
-            answer,
-            feedback_text,
             session_id
         )
 
@@ -1921,4 +2020,4 @@ def generate_conversation_reply(
         ),
         feedback_text,
         session_id
-)
+    )
