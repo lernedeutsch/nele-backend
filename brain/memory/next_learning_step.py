@@ -250,15 +250,6 @@ def get_error_number(
 # ==========================================
 # CZY BŁĄD WYMAGA POWTÓRKI
 # ==========================================
-#
-# WAŻNE:
-#
-# Sam fakt, że błąd kiedyś wystąpił,
-# NIE oznacza już, że trzeba go
-# ćwiczyć natychmiast.
-#
-# O tym decyduje Adaptive Review 2.0.
-# ==========================================
 
 def error_needs_review(
     memory
@@ -271,10 +262,6 @@ def error_needs_review(
 
         return False
 
-
-    # ======================================
-    # BŁĄD OPANOWANY
-    # ======================================
 
     if memory.get(
         "mastered"
@@ -296,17 +283,6 @@ def error_needs_review(
 
         return False
 
-
-    # ======================================
-    # TYLKO AKTYWNA POWTÓRKA
-    #
-    # Nie patrzymy już na samo:
-    #
-    # count > 0
-    #
-    # ponieważ count oznacza jedynie,
-    # że błąd wydarzył się kiedyś.
-    # ======================================
 
     if memory.get(
         "needs_practice"
@@ -350,21 +326,6 @@ def error_needs_review(
 # BŁĘDY DO POWTÓRKI
 # ADAPTIVE REVIEW 2.0
 # ==========================================
-#
-# To jest kluczowa poprawka.
-#
-# Teacher Brain nie przegląda już
-# historycznych błędów.
-#
-# Najpierw Adaptive Review sprawdza:
-#
-# - needs_practice
-# - next_review_at
-# - mastered
-#
-# i dopiero potem zwracamy błędy,
-# które naprawdę są należne TERAZ.
-# ==========================================
 
 def get_errors_for_review(
     state,
@@ -374,14 +335,6 @@ def get_errors_for_review(
     if state is None:
         return []
 
-
-    # ======================================
-    # ODSWIEŻENIE HARMONOGRAMU
-    #
-    # Jeżeli next_review_at już nadszedł,
-    # refresh_error_reviews() ponownie
-    # ustawi needs_practice = True.
-    # ======================================
 
     try:
 
@@ -395,10 +348,6 @@ def get_errors_for_review(
             f"Teacher error review refresh: {error}"
         )
 
-
-    # ======================================
-    # TYLKO BŁĘDY NALEŻNE TERAZ
-    # ======================================
 
     try:
 
@@ -489,11 +438,6 @@ def get_errors_for_review(
         })
 
 
-    # ======================================
-    # NAJCZĘSTSZY / NAJWAŻNIEJSZY
-    # NA POCZĄTKU
-    # ======================================
-
     result.sort(
         key=lambda item:
             item.get(
@@ -573,8 +517,11 @@ def format_word_list(
     if not words:
         return ""
 
+
     if len(words) == 1:
+
         return words[0]
+
 
     if len(words) == 2:
 
@@ -583,6 +530,7 @@ def format_word_list(
             + " und "
             + words[1]
         )
+
 
     return (
         ", ".join(
@@ -595,6 +543,12 @@ def format_word_list(
 
 # ==========================================
 # TRUDNE SŁOWA
+#
+# Funkcja służy do INFORMACJI
+# o historii ucznia.
+#
+# Nie oznacza automatycznie,
+# że słowo trzeba powtarzać TERAZ.
 # ==========================================
 
 def get_difficult_words(
@@ -678,6 +632,7 @@ def get_recent_vocabulary_words(
         if not topic.startswith(
             "Wortschatz:"
         ):
+
             continue
 
 
@@ -706,6 +661,23 @@ def get_recent_vocabulary_words(
 
 # ==========================================
 # PLAN – SŁOWA DO POWTÓRKI
+# SPACED REPETITION
+# ==========================================
+#
+# WAŻNE:
+#
+# Do automatycznego treningu trafiają
+# WYŁĄCZNIE słowa, których termin
+# powtórki już nadszedł.
+#
+# get_words_for_review() sprawdza:
+#
+# - needs_review
+# - next_review_at
+#
+# Trudne słowo nie wraca więc
+# automatycznie tylko dlatego,
+# że wcześniej był przy nim błąd.
 # ==========================================
 
 def get_review_plan(
@@ -716,48 +688,13 @@ def get_review_plan(
         state
     )
 
+
     review_words = unique_items(
         review_words
     )
 
 
-    difficult_words = get_difficult_words(
-        state,
-        limit=5
-    )
-
-
-    extra_difficult = []
-
-
-    review_keys = {
-        word.lower()
-        for word in review_words
-    }
-
-
-    for word in difficult_words:
-
-        if word.lower() in review_keys:
-            continue
-
-        extra_difficult.append(
-            word
-        )
-
-
-    main_words = (
-        review_words
-        + extra_difficult
-    )
-
-
-    main_words = unique_items(
-        main_words
-    )
-
-
-    return main_words[
+    return review_words[
         :3
     ]
 
@@ -832,7 +769,7 @@ def get_next_learning_step(
 
 
     # ======================================
-    # 2. SŁOWA DO POWTÓRKI
+    # 2. SŁOWA NALEŻNE TERAZ
     # ======================================
 
     review_words = get_review_plan(
@@ -869,7 +806,14 @@ def get_next_learning_step(
 
 
     # ======================================
-    # 3. TRUDNE SŁOWA
+    # 3. TRUDNE SŁOWA – INFORMACYJNIE
+    #
+    # To NIE jest automatyczny harmonogram
+    # powtórki Teacher Mode.
+    #
+    # Funkcja pozostaje dla pytań typu:
+    #
+    # Welche Wörter sind schwierig für mich?
     # ======================================
 
     difficult_words = get_difficult_words(
@@ -906,14 +850,13 @@ def get_next_learning_step(
                 (
                     "Diese Wörter waren zuletzt "
                     "etwas schwieriger für dich: "
-                    f"{word_list}. "
-                    "Lass sie uns kurz üben."
+                    f"{word_list}."
                 )
         }
 
 
     # ======================================
-    # 4. OSTATNIE SŁOWO
+    # 4. OSTATNIE SŁOWO – INFORMACYJNIE
     # ======================================
 
     recent_words = (
@@ -949,9 +892,7 @@ def get_next_learning_step(
             "message":
                 (
                     "Zuletzt hast du das Wort "
-                    f"„{last_word}“ geübt. "
-                    "Möchtest du damit "
-                    "weitermachen?"
+                    f"„{last_word}“ geübt."
                 )
         }
 
@@ -991,11 +932,7 @@ def get_next_learning_step(
                 "message":
                     (
                         "Zuletzt hast du das Thema "
-                        f"„{topic}“ geübt. "
-                        "Heute können wir damit "
-                        "weitermachen und danach "
-                        "einen kurzen Hotel-Dialog "
-                        "machen."
+                        f"„{topic}“ geübt."
                     )
             }
 
@@ -1016,9 +953,7 @@ def get_next_learning_step(
             "message":
                 (
                     "Zuletzt hast du "
-                    f"„{topic}“ geübt. "
-                    "Möchtest du damit "
-                    "weitermachen?"
+                    f"„{topic}“ geübt."
                 )
         }
 
@@ -1039,9 +974,7 @@ def get_next_learning_step(
         "message":
             (
                 "Wir haben noch keinen "
-                "Lernschwerpunkt gespeichert. "
-                "Lass uns mit einer kleinen "
-                "Übung anfangen."
+                "Lernschwerpunkt gespeichert."
             )
     }
 
@@ -1552,7 +1485,7 @@ def get_teacher_learning_plan(
 
 
     # ======================================
-    # 2. SŁOWNICTWO
+    # 2. SŁOWNICTWO NALEŻNE TERAZ
     # ======================================
 
     review_words = get_review_plan(
@@ -1606,7 +1539,8 @@ def get_teacher_learning_plan(
 
 
     # ======================================
-    # 3. LEKCJA / NOWY MATERIAŁ
+    # 3. BRAK NALEŻNYCH POWTÓREK
+    # -> OD RAZU LEKCJA / NOWY MATERIAŁ
     # ======================================
 
     return new_learning_plan
@@ -1660,4 +1594,4 @@ def get_teacher_learning_message(
 
     return plan.get(
         "message"
-        )
+    )
