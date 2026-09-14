@@ -26,6 +26,10 @@ from brain.logic.new_learning_resume import (
     set_new_learning_offer
 )
 
+from brain.logic.wellbeing_feedback import (
+    analyze_wellbeing_response
+)
+
 from brain.memory.error_review import (
     refresh_error_reviews,
     get_due_error_reviews
@@ -82,6 +86,7 @@ def remember_follow_up(
         question
     )
 
+
     if (
         "wie heißt du"
         in question_normalized
@@ -90,6 +95,7 @@ def remember_follow_up(
         state[
             "last_question"
         ] = "name"
+
 
     elif (
         "wie heißen sie"
@@ -100,6 +106,7 @@ def remember_follow_up(
             "last_question"
         ] = "name"
 
+
     elif (
         "woher kommst du"
         in question_normalized
@@ -108,6 +115,7 @@ def remember_follow_up(
         state[
             "last_question"
         ] = "origin"
+
 
     elif (
         "wo wohnst du"
@@ -118,6 +126,7 @@ def remember_follow_up(
             "last_question"
         ] = "residence"
 
+
     elif (
         "wo wohnen sie"
         in question_normalized
@@ -127,6 +136,7 @@ def remember_follow_up(
             "last_question"
         ] = "residence"
 
+
     elif (
         "wie geht es dir"
         in question_normalized
@@ -135,6 +145,7 @@ def remember_follow_up(
         state[
             "last_question"
         ] = "wellbeing"
+
 
     else:
 
@@ -154,12 +165,15 @@ def display_activity_word(
     if not word:
         return ""
 
+
     word = str(
         word
     ).strip()
 
+
     if not word:
         return ""
+
 
     return (
         word[:1].upper()
@@ -178,12 +192,15 @@ def get_short_answer(
     if not answer:
         return ""
 
+
     answer = str(
         answer
     ).strip()
 
+
     if not answer:
         return ""
+
 
     endings = [
         "!",
@@ -191,7 +208,9 @@ def get_short_answer(
         "?"
     ]
 
+
     positions = []
+
 
     for ending in endings:
 
@@ -199,23 +218,66 @@ def get_short_answer(
             ending
         )
 
+
         if position >= 0:
 
             positions.append(
                 position
             )
 
+
     if not positions:
 
         return answer
+
 
     first_position = min(
         positions
     )
 
+
     return answer[
         :first_position + 1
     ].strip()
+
+
+# ==========================================
+# POŁĄCZENIE POPRAWKI
+# Z NORMALNĄ ODPOWIEDZIĄ NELE
+# ==========================================
+
+def combine_wellbeing_feedback(
+    feedback,
+    answer
+):
+
+    feedback = str(
+        feedback or ""
+    ).strip()
+
+    answer = str(
+        answer or ""
+    ).strip()
+
+
+    if (
+        feedback
+        and
+        answer
+    ):
+
+        return (
+            f"{feedback}\n\n"
+            f"{answer}"
+        )
+
+
+    if feedback:
+
+        return feedback
+
+
+    return answer
 
 
 # ==========================================
@@ -230,9 +292,11 @@ def clear_pending_error_review(
     if state is None:
         return
 
+
     state[
         "pending_error_review"
     ] = None
+
 
     if (
         state.get(
@@ -259,16 +323,20 @@ def set_pending_error_review(
     if state is None:
         return False
 
+
     if not error_type:
         return False
+
 
     state[
         "pending_error_review"
     ] = error_type
 
+
     state[
         "last_question"
     ] = "continue_error_review"
+
 
     return True
 
@@ -339,10 +407,12 @@ def handle_pending_error_review_reply(
             state
         )
 
+
         answer = start_error_practice(
             state,
             error_type
         )
+
 
         return (
             True,
@@ -359,6 +429,7 @@ def handle_pending_error_review_reply(
         clear_pending_error_review(
             state
         )
+
 
         return (
             True,
@@ -380,6 +451,7 @@ def handle_pending_error_review_reply(
         state
     )
 
+
     return (
         False,
         None
@@ -398,13 +470,19 @@ def get_due_error_review(
         return None
 
 
-    # ======================================
-    # SPRAWDZENIE TERMINÓW POWTÓREK
-    # ======================================
+    try:
 
-    refresh_error_reviews(
-        state
-    )
+        refresh_error_reviews(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Error review refresh error: {error}"
+        )
+
+        return None
 
 
     due_errors = get_due_error_reviews(
@@ -470,8 +548,8 @@ def create_lesson_continuation_offer(
 
 
     # ======================================
-    # POBIERAMY PRAWDZIWY NASTĘPNY KROK
-    # ZE STUDENT MEMORY 2.0
+    # PRAWDZIWY NASTĘPNY KROK
+    # STUDENT MEMORY 2.0
     # ======================================
 
     try:
@@ -516,6 +594,7 @@ def create_lesson_continuation_offer(
         "level"
     )
 
+
     lesson = plan.get(
         "lesson"
     )
@@ -538,6 +617,7 @@ def create_lesson_continuation_offer(
     last_activity = state.get(
         "last_activity"
     )
+
 
     last_detail = state.get(
         "last_activity_detail"
@@ -562,16 +642,6 @@ def create_lesson_continuation_offer(
         ).strip()
 
 
-        # ==================================
-        # ZAPISUJEMY PROPOZYCJĘ
-        #
-        # Dzięki temu odpowiedź:
-        #
-        # Ja
-        #
-        # naprawdę rozpocznie tę część.
-        # ==================================
-
         offer_saved = (
             set_new_learning_offer(
                 state,
@@ -584,7 +654,7 @@ def create_lesson_continuation_offer(
 
             # ==================================
             # OSTATNIA AKTYWNOŚĆ TO TA SAMA
-            # NIEDOKOŃCZONA CZĘŚĆ
+            # CZĘŚĆ
             # ==================================
 
             if (
@@ -631,7 +701,7 @@ def create_lesson_continuation_offer(
 
 
             # ==================================
-            # BRAK OSTATNIEJ LEKCJI
+            # BRAK OSTATNIEJ CZĘŚCI
             # ==================================
 
             return (
@@ -711,7 +781,7 @@ def create_lesson_continuation_offer(
 def create_returning_user_follow_up(
     state,
     normal_answer,
-    intent=""
+    wellbeing_type=""
 ):
 
     short_answer = get_short_answer(
@@ -722,31 +792,31 @@ def create_returning_user_follow_up(
     # ======================================
     # GORSZE SAMOPOCZUCIE
     #
-    # Nie naciskamy wtedy na naukę.
+    # Nie naciskamy wtedy na trudną naukę.
     # ======================================
 
-    if intent == "user_wellbeing_bad":
+    difficult_wellbeing_types = {
+        "bad",
+        "tired",
+        "stressed",
+        "sad",
+        "sick",
+        "user_wellbeing_bad"
+    }
+
+
+    if wellbeing_type in difficult_wellbeing_types:
 
         state[
             "last_question"
         ] = None
 
-        return (
-            f"{short_answer} "
-            f"Möchtest du heute lieber "
-            f"etwas Leichtes auf Deutsch üben?"
-        )
+
+        return short_answer
 
 
     # ======================================
     # 1. NALEŻNA POWTÓRKA BŁĘDU
-    #
-    # Tylko wtedy, kiedy termin
-    # powtórki naprawdę już nadszedł.
-    #
-    # Dzięki temu Nele nie będzie
-    # powtarzać tego samego błędu
-    # przy każdym ponownym otwarciu.
     # ======================================
 
     review_offer = (
@@ -769,6 +839,7 @@ def create_returning_user_follow_up(
     last_activity = state.get(
         "last_activity"
     )
+
 
     last_activity_detail = state.get(
         "last_activity_detail"
@@ -802,9 +873,6 @@ def create_returning_user_follow_up(
 
     # ======================================
     # 3. LEKCJA / KOLEJNY MATERIAŁ
-    #
-    # Nele sama sprawdza pamięć
-    # i proponuje następny krok.
     # ======================================
 
     lesson_offer = (
@@ -832,6 +900,72 @@ def create_returning_user_follow_up(
     return (
         f"{short_answer} "
         f"Womit möchtest du heute anfangen?"
+    )
+
+
+# ==========================================
+# OBSŁUGA ODPOWIEDZI:
+# "WIE GEHT ES DIR?"
+# ==========================================
+
+def handle_wellbeing_reply(
+    user_message,
+    state
+):
+
+    if state is None:
+        return None
+
+
+    if (
+        state.get(
+            "last_question"
+        )
+        !=
+        "wellbeing"
+    ):
+
+        return None
+
+
+    analysis = analyze_wellbeing_response(
+        user_message
+    )
+
+
+    if not analysis.get(
+        "recognized",
+        False
+    ):
+
+        return None
+
+
+    wellbeing_type = analysis.get(
+        "type"
+    )
+
+
+    reaction = analysis.get(
+        "reaction"
+    )
+
+
+    feedback = analysis.get(
+        "feedback"
+    )
+
+
+    answer = create_returning_user_follow_up(
+        state,
+        reaction,
+        wellbeing_type
+    )
+
+
+    return combine_wellbeing_feedback(
+        feedback,
+        answer
     )
 
 
@@ -869,14 +1003,6 @@ def find_response(
         return error_review_answer
 
 
-    responses = load_lesson(
-        level,
-        lesson
-    )
-
-    matches = []
-
-
     # ======================================
     # POPRZEDNIE PYTANIE NELE
     # ======================================
@@ -884,6 +1010,53 @@ def find_response(
     previous_question = state.get(
         "last_question"
     )
+
+
+    # ======================================
+    # SPECJALNA OBSŁUGA:
+    # WIE GEHT ES DIR?
+    #
+    # Dzięki temu działają również:
+    #
+    # gut
+    # sehr gut
+    # nicht schlecht
+    # müde
+    # gestresst
+    #
+    # oraz błędy:
+    #
+    # gutt
+    # mir geht gut
+    # ich bin mude
+    # ======================================
+
+    if previous_question == "wellbeing":
+
+        wellbeing_answer = (
+            handle_wellbeing_reply(
+                user_message,
+                state
+            )
+        )
+
+
+        if wellbeing_answer:
+
+            return wellbeing_answer
+
+
+    # ======================================
+    # NORMALNE ODPOWIEDZI Z LEKCJI
+    # ======================================
+
+    responses = load_lesson(
+        level,
+        lesson
+    )
+
+
+    matches = []
 
 
     # ======================================
@@ -897,6 +1070,7 @@ def find_response(
             []
         )
 
+
         for pattern in patterns:
 
             if pattern_matches(
@@ -907,6 +1081,7 @@ def find_response(
                 pattern_normalized = normalize(
                     pattern
                 )
+
 
                 matches.append(
                     {
@@ -934,7 +1109,9 @@ def find_response(
 
     matches.sort(
         key=lambda match:
-            match["length"],
+            match[
+                "length"
+            ],
         reverse=True
     )
 
@@ -979,8 +1156,10 @@ def find_response(
 
 
     # ======================================
-    # ODPOWIEDŹ NA:
-    # WIE GEHT ES DIR?
+    # STARY SYSTEM ODPOWIEDZI
+    # NA SAMOPOCZUCIE
+    #
+    # Zostawiamy jako fallback.
     # ======================================
 
     wellbeing_intents = {
