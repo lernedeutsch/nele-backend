@@ -601,16 +601,7 @@ def display_target_word(
 
 
 # ==========================================
-# ROZPOZNANIE:
-#
-# Was bedeutet Zimmer?
-# Was heißt Zimmer?
-# Was heißt das Wort Zimmer?
-# Kannst du mir Zimmer erklären?
-# Kannst du mir das Wort Zimmer erklären?
-# Kannst du bitte Zimmer erklären?
-#
-# + częste błędy
+# ROZPOZNANIE PYTANIA O SŁOWO
 # ==========================================
 
 def analyze_vocabulary_explanation_request(
@@ -629,7 +620,6 @@ def analyze_vocabulary_explanation_request(
 
 
     # ======================================
-    # POPRAWNE:
     # WAS BEDEUTET...
     # ======================================
 
@@ -672,7 +662,6 @@ def analyze_vocabulary_explanation_request(
 
 
     # ======================================
-    # POPRAWNE:
     # WAS HEISST...
     # ======================================
 
@@ -869,7 +858,6 @@ def analyze_vocabulary_explanation_request(
 
     # ======================================
     # KANNST DU MIR ... ERKLÄREN?
-    # KANNST DU MIR BITTE ... ERKLÄREN?
     # ======================================
 
     match = re.match(
@@ -1063,9 +1051,7 @@ def analyze_vocabulary_explanation_request(
 
 
     # ======================================
-    # FALSCHE WORTSTELLUNG:
-    #
-    # Kannst du mir erklären Zimmer?
+    # FALSCHE WORTSTELLUNG
     # ======================================
 
     match = re.match(
@@ -1129,7 +1115,6 @@ def analyze_vocabulary_explanation_request(
 
 # ==========================================
 # ODPOWIEDŹ NA PYTANIE O SŁOWO
-# BEZ NISZCZENIA AKTYWNEGO TRENINGU
 # ==========================================
 
 def handle_vocabulary_explanation_request(
@@ -1154,7 +1139,6 @@ def handle_vocabulary_explanation_request(
             None
         )
 
-
     canonical = analysis.get(
         "canonical"
     )
@@ -1171,7 +1155,6 @@ def handle_vocabulary_explanation_request(
         "error_type"
     )
 
-
     if (
         corrected
         and
@@ -1186,21 +1169,13 @@ def handle_vocabulary_explanation_request(
         )
 
 
-    # ======================================
-    # JEŻELI WŁAŚNIE TRWA TRENING SŁOWA,
-    # pytanie użytkownika nie może zostać
-    # potraktowane jako odpowiedź na test.
-    # ======================================
-
     vocabulary_active = (
         is_vocabulary_practice_active(
             state
         )
     )
 
-
     saved_vocabulary_state = None
-
 
     if vocabulary_active:
 
@@ -1232,7 +1207,6 @@ def handle_vocabulary_explanation_request(
                 )
         }
 
-
         state[
             "vocabulary_practice_active"
         ] = False
@@ -1243,10 +1217,6 @@ def handle_vocabulary_explanation_request(
         state
     )
 
-
-    # ======================================
-    # PRZYWRACAMY PRZERWANY TRENING
-    # ======================================
 
     if saved_vocabulary_state is not None:
 
@@ -1331,12 +1301,6 @@ def analyze_repeat_request(
                 None
         }
 
-
-    # ======================================
-    # KANNST DU ... WIEDERHOLE
-    # po czasowniku modalnym potrzebny
-    # jest bezokolicznik
-    # ======================================
 
     wrong_repeat_patterns = {
 
@@ -1451,9 +1415,13 @@ def handle_repeat_request(
 
 
     # ======================================
-    # JEŻELI PROSI O POWTÓRZENIE PYTANIA,
-    # powtarzamy ostatnie pytanie,
-    # a nie cały długi komunikat.
+    # JEŚLI UŻYTKOWNIK PROSI O POWTÓRZENIE
+    # PYTANIA, NAJPIERW POWTARZAMY
+    # OSTATNIE PYTANIE.
+    #
+    # JEŻELI OSTATNIA WYPOWIEDŹ NELE
+    # NIE ZAWIERAŁA PYTANIA,
+    # POWTARZAMY CAŁĄ OSTATNIĄ WYPOWIEDŹ.
     # ======================================
 
     if analysis.get(
@@ -1465,6 +1433,12 @@ def handle_repeat_request(
             "last_nele_question"
         )
 
+        if not repeated:
+
+            repeated = state.get(
+                "last_nele_message"
+            )
+
     else:
 
         repeated = state.get(
@@ -1474,7 +1448,7 @@ def handle_repeat_request(
 
     # ======================================
     # FALLBACK:
-    # aktywny trening sam odtworzy pytanie
+    # AKTYWNY TRENING
     # ======================================
 
     if not repeated:
@@ -2015,9 +1989,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 4. SPECJALNE KOMENDY ROZMOWY
-    #
-    # Mają pierwszeństwo przed aktywnym
-    # treningiem.
     # ======================================
 
 
@@ -2081,10 +2052,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 4C. PYTANIE O ZNACZENIE SŁOWA
-    #
-    # Was bedeutet...?
-    # Was heißt...?
-    # Kannst du mir ... erklären?
     # ======================================
 
     (
@@ -2118,11 +2085,6 @@ def generate_conversation_reply(
             final_feedback,
             session_id
         )
-
-
-    # ======================================
-    # 5. PYTANIA POBOCZNE PODCZAS TRENINGU
-    # ======================================
 
 
     # ======================================
@@ -2491,10 +2453,6 @@ def generate_conversation_reply(
         )
 
 
-        # ==================================
-        # ĆWICZENIE WŁAŚNIE SIĘ ZAKOŃCZYŁO
-        # ==================================
-
         if (
             vocabulary_was_active
             and
@@ -2515,10 +2473,6 @@ def generate_conversation_reply(
                 session_id
             )
 
-
-        # ==================================
-        # ĆWICZENIE NADAL TRWA
-        # ==================================
 
         return return_with_feedback(
             vocabulary_answer,
