@@ -22,9 +22,17 @@ from brain.logic.error_practice import (
     get_error_practice_label
 )
 
+from brain.logic.new_learning_resume import (
+    set_new_learning_offer
+)
+
 from brain.memory.error_review import (
     refresh_error_reviews,
     get_due_error_reviews
+)
+
+from brain.memory.next_learning_step import (
+    get_next_new_learning_step
 )
 
 
@@ -136,7 +144,7 @@ def remember_follow_up(
 
 
 # ==========================================
-# NAZWA SŁOWA DO WYŚWIETLENIA
+# NAZWA AKTYWNOŚCI DO WYŚWIETLENIA
 # ==========================================
 
 def display_activity_word(
@@ -356,17 +364,16 @@ def handle_pending_error_review_reply(
             True,
             (
                 "Okay. "
-                "Womit möchtest du heute anfangen?"
+                "Dann machen wir mit der "
+                "Lektion weiter."
             )
         )
 
 
     # ======================================
-    # UŻYTKOWNIK ZADAŁ INNE PYTANIE
+    # INNE PYTANIE
     #
     # Nie blokujemy rozmowy.
-    # Powtórka nadal pozostaje w pamięci
-    # jako needs_practice=True.
     # ======================================
 
     clear_pending_error_review(
@@ -392,12 +399,7 @@ def get_due_error_review(
 
 
     # ======================================
-    # Adaptive Review sprawdza,
-    # czy termin którejś powtórki nadszedł.
-    #
-    # Jeśli tak:
-    #
-    # needs_practice = True
+    # SPRAWDZENIE TERMINÓW POWTÓREK
     # ======================================
 
     refresh_error_reviews(
@@ -455,6 +457,254 @@ def create_due_error_review_offer(
 
 
 # ==========================================
+# PLAN DALSZEJ LEKCJI
+# ==========================================
+
+def create_lesson_continuation_offer(
+    state,
+    short_answer
+):
+
+    if state is None:
+        return None
+
+
+    # ======================================
+    # POBIERAMY PRAWDZIWY NASTĘPNY KROK
+    # ZE STUDENT MEMORY 2.0
+    # ======================================
+
+    try:
+
+        plan = get_next_new_learning_step(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Next learning step error: {error}"
+        )
+
+        return None
+
+
+    if not isinstance(
+        plan,
+        dict
+    ):
+
+        return None
+
+
+    plan_type = str(
+        plan.get(
+            "type",
+            ""
+        )
+        or
+        ""
+    ).strip().lower()
+
+
+    section = plan.get(
+        "section"
+    )
+
+
+    level = plan.get(
+        "level"
+    )
+
+    lesson = plan.get(
+        "lesson"
+    )
+
+
+    message = str(
+        plan.get(
+            "message",
+            ""
+        )
+        or
+        ""
+    ).strip()
+
+
+    # ======================================
+    # OSTATNIA AKTYWNOŚĆ
+    # ======================================
+
+    last_activity = state.get(
+        "last_activity"
+    )
+
+    last_detail = state.get(
+        "last_activity_detail"
+    )
+
+
+    if last_detail:
+
+        last_detail = str(
+            last_detail
+        ).strip()
+
+
+    # ======================================
+    # NASTĘPNA CZĘŚĆ LEKCJI
+    # ======================================
+
+    if section:
+
+        section = str(
+            section
+        ).strip()
+
+
+        # ==================================
+        # ZAPISUJEMY PROPOZYCJĘ
+        #
+        # Dzięki temu odpowiedź:
+        #
+        # Ja
+        #
+        # naprawdę rozpocznie tę część.
+        # ==================================
+
+        offer_saved = (
+            set_new_learning_offer(
+                state,
+                plan
+            )
+        )
+
+
+        if offer_saved:
+
+            # ==================================
+            # OSTATNIA AKTYWNOŚĆ TO TA SAMA
+            # NIEDOKOŃCZONA CZĘŚĆ
+            # ==================================
+
+            if (
+                last_activity == "lesson"
+                and
+                last_detail
+                and
+                normalize(
+                    last_detail
+                )
+                ==
+                normalize(
+                    section
+                )
+            ):
+
+                return (
+                    f"{short_answer} "
+                    f"Zuletzt waren wir bei "
+                    f"„{section}“. "
+                    f"Möchtest du dort "
+                    f"weitermachen?"
+                )
+
+
+            # ==================================
+            # OSTATNIO BYŁA INNA CZĘŚĆ
+            # ==================================
+
+            if (
+                last_activity == "lesson"
+                and
+                last_detail
+            ):
+
+                return (
+                    f"{short_answer} "
+                    f"Zuletzt haben wir "
+                    f"„{last_detail}“ gemacht. "
+                    f"Als Nächstes kommt "
+                    f"„{section}“. "
+                    f"Möchtest du weitermachen?"
+                )
+
+
+            # ==================================
+            # BRAK OSTATNIEJ LEKCJI
+            # ==================================
+
+            return (
+                f"{short_answer} "
+                f"Als Nächstes kommt "
+                f"„{section}“. "
+                f"Möchtest du weitermachen?"
+            )
+
+
+    # ======================================
+    # NOWA LEKCJA
+    # ======================================
+
+    if (
+        plan_type == "new_lesson"
+        and
+        level
+        and
+        lesson
+    ):
+
+        offer_saved = (
+            set_new_learning_offer(
+                state,
+                plan
+            )
+        )
+
+
+        if offer_saved:
+
+            if (
+                last_activity == "lesson"
+                and
+                last_detail
+            ):
+
+                return (
+                    f"{short_answer} "
+                    f"Zuletzt haben wir "
+                    f"„{last_detail}“ gemacht. "
+                    f"Jetzt geht es mit "
+                    f"{level}, Lektion {lesson} "
+                    f"weiter. "
+                    f"Möchtest du anfangen?"
+                )
+
+
+            return (
+                f"{short_answer} "
+                f"Als Nächstes kommt "
+                f"{level}, Lektion {lesson}. "
+                f"Möchtest du anfangen?"
+            )
+
+
+    # ======================================
+    # PLAN MA TYLKO GOTOWY TEKST
+    # ======================================
+
+    if message:
+
+        return (
+            f"{short_answer} "
+            f"{message}"
+        )
+
+
+    return None
+
+
+# ==========================================
 # ODPOWIEDŹ PO POWITANIU
 # ==========================================
 
@@ -472,8 +722,7 @@ def create_returning_user_follow_up(
     # ======================================
     # GORSZE SAMOPOCZUCIE
     #
-    # W takim momencie nie wciskamy
-    # użytkownikowi powtórki błędów.
+    # Nie naciskamy wtedy na naukę.
     # ======================================
 
     if intent == "user_wellbeing_bad":
@@ -490,10 +739,14 @@ def create_returning_user_follow_up(
 
 
     # ======================================
-    # NALEŻNA POWTÓRKA BŁĘDU
+    # 1. NALEŻNA POWTÓRKA BŁĘDU
     #
-    # Ma pierwszeństwo przed zwykłym
-    # pytaniem "od czego zaczynamy?".
+    # Tylko wtedy, kiedy termin
+    # powtórki naprawdę już nadszedł.
+    #
+    # Dzięki temu Nele nie będzie
+    # powtarzać tego samego błędu
+    # przy każdym ponownym otwarciu.
     # ======================================
 
     review_offer = (
@@ -510,7 +763,7 @@ def create_returning_user_follow_up(
 
 
     # ======================================
-    # OSTATNIA AKTYWNOŚĆ
+    # 2. OSTATNIO ĆWICZONE SŁOWO
     # ======================================
 
     last_activity = state.get(
@@ -522,37 +775,59 @@ def create_returning_user_follow_up(
     )
 
 
-    # ======================================
-    # OSTATNIO ĆWICZONE SŁOWO
-    # ======================================
-
     if (
         last_activity == "vocabulary"
-        and last_activity_detail
+        and
+        last_activity_detail
     ):
 
         word = display_activity_word(
             last_activity_detail
         )
 
+
         state[
             "last_question"
         ] = "continue_last_activity"
 
+
         return (
             f"{short_answer} "
-            f"Möchtest du mit dem Wort "
-            f"„{word}“ weitermachen?"
+            f"Zuletzt haben wir "
+            f"„{word}“ geübt. "
+            f"Möchtest du damit "
+            f"weitermachen?"
         )
 
 
     # ======================================
-    # BRAK ZAPISANEJ AKTYWNOŚCI
+    # 3. LEKCJA / KOLEJNY MATERIAŁ
+    #
+    # Nele sama sprawdza pamięć
+    # i proponuje następny krok.
+    # ======================================
+
+    lesson_offer = (
+        create_lesson_continuation_offer(
+            state,
+            short_answer
+        )
+    )
+
+
+    if lesson_offer:
+
+        return lesson_offer
+
+
+    # ======================================
+    # 4. BRAK PLANU
     # ======================================
 
     state[
         "last_question"
     ] = None
+
 
     return (
         f"{short_answer} "
@@ -578,9 +853,6 @@ def find_response(
 
     # ======================================
     # ODPOWIEDŹ NA PROPOZYCJĘ POWTÓRKI
-    #
-    # Sprawdzamy to przed zwykłymi
-    # odpowiedziami lekcji.
     # ======================================
 
     (
@@ -666,13 +938,16 @@ def find_response(
         reverse=True
     )
 
+
     best_match = matches[
         0
     ]
 
+
     item = best_match[
         "item"
     ]
+
 
     intent = item.get(
         "intent",
@@ -684,6 +959,7 @@ def find_response(
         "responses",
         []
     )
+
 
     follow_up = item.get(
         "follow_up",
@@ -704,7 +980,7 @@ def find_response(
 
     # ======================================
     # ODPOWIEDŹ NA:
-    # "WIE GEHT ES DIR?"
+    # WIE GEHT ES DIR?
     # ======================================
 
     wellbeing_intents = {
@@ -719,10 +995,12 @@ def find_response(
         intent in wellbeing_intents
     ):
 
-        return create_returning_user_follow_up(
-            state,
-            answer,
-            intent
+        return (
+            create_returning_user_follow_up(
+                state,
+                answer,
+                intent
+            )
         )
 
 
@@ -736,10 +1014,12 @@ def find_response(
             follow_up
         )
 
+
         remember_follow_up(
             question,
             session_id
         )
+
 
         if answer:
 
@@ -751,6 +1031,7 @@ def find_response(
         else:
 
             answer = question
+
 
     else:
 
