@@ -255,10 +255,6 @@ def error_needs_review(
         return False
 
 
-    # ======================================
-    # BŁĄD JUŻ OPANOWANY
-    # ======================================
-
     if memory.get(
         "mastered"
     ) is True:
@@ -280,10 +276,6 @@ def error_needs_review(
         return False
 
 
-    # ======================================
-    # JAWNE OZNACZENIE POWTÓRKI
-    # ======================================
-
     review_flags = (
         "needs_review",
         "review_due",
@@ -300,10 +292,6 @@ def error_needs_review(
 
             return True
 
-
-    # ======================================
-    # STATUS
-    # ======================================
 
     status = str(
         memory.get(
@@ -323,10 +311,6 @@ def error_needs_review(
 
         return True
 
-
-    # ======================================
-    # LICZBA BŁĘDÓW
-    # ======================================
 
     mistakes = get_error_number(
         memory,
@@ -362,10 +346,6 @@ def collect_error_records(
     result = []
 
 
-    # ======================================
-    # MOŻLIWE MIEJSCA W STUDENT MEMORY
-    # ======================================
-
     containers = [
 
         state.get(
@@ -389,10 +369,6 @@ def collect_error_records(
             continue
 
 
-        # ==================================
-        # LISTA REKORDÓW
-        # ==================================
-
         if isinstance(
             container,
             list
@@ -412,10 +388,6 @@ def collect_error_records(
             continue
 
 
-        # ==================================
-        # SŁOWNIK
-        # ==================================
-
         if not isinstance(
             container,
             dict
@@ -423,10 +395,6 @@ def collect_error_records(
 
             continue
 
-
-        # ==================================
-        # error_memory = {"errors": [...]}
-        # ==================================
 
         nested_errors = container.get(
             "errors"
@@ -479,14 +447,6 @@ def collect_error_records(
                     record
                 )
 
-
-        # ==================================
-        # error_memory =
-        # {
-        #   "word_order": {...},
-        #   "article": {...}
-        # }
-        # ==================================
 
         for key, value in (
             container.items()
@@ -593,10 +553,6 @@ def get_errors_for_review(
         })
 
 
-    # ======================================
-    # NAJTRUDNIEJSZE NA POCZĄTKU
-    # ======================================
-
     review_items.sort(
         key=lambda item:
             item.get(
@@ -606,10 +562,6 @@ def get_errors_for_review(
         reverse=True
     )
 
-
-    # ======================================
-    # USUWANIE DUPLIKATÓW
-    # ======================================
 
     result = []
     seen = set()
@@ -912,18 +864,6 @@ def get_review_plan(
 def get_next_learning_step(
     state
 ):
-    """
-    Decyduje, co uczeń powinien
-    POWTÓRZYĆ lub ĆWICZYĆ.
-
-    Priorytet:
-
-    1. błędy,
-    2. słownictwo do powtórki,
-    3. trudne słowa,
-    4. ostatnia aktywność.
-    """
-
 
     if state is None:
 
@@ -949,7 +889,7 @@ def get_next_learning_step(
 
 
     # ======================================
-    # 1. BŁĘDY DO POWTÓRKI
+    # 1. BŁĘDY
     # ======================================
 
     errors = get_errors_for_review(
@@ -1178,10 +1118,6 @@ def get_next_learning_step(
         }
 
 
-    # ======================================
-    # 6. JESZCZE BRAK HISTORII
-    # ======================================
-
     return {
         "type":
             "start",
@@ -1220,10 +1156,6 @@ def sync_lesson_structure(
     ).strip().upper()
 
 
-    # ======================================
-    # A1
-    # ======================================
-
     if level == "A1":
 
         if not a1_lesson_exists(
@@ -1252,10 +1184,6 @@ def sync_lesson_structure(
 
         return sections
 
-
-    # ======================================
-    # A2/B1 PÓŹNIEJ
-    # ======================================
 
     return []
 
@@ -1318,27 +1246,15 @@ def get_next_new_learning_step(
         }
 
 
-    # ======================================
-    # AKTUALNY POZIOM
-    # ======================================
-
     level = get_current_level(
         state
     )
 
 
-    # ======================================
-    # AKTUALNA LEKCJA
-    # ======================================
-
     current_lesson = get_current_lesson(
         state
     )
 
-
-    # ======================================
-    # SYNCHRONIZACJA STRUKTURY
-    # ======================================
 
     sync_lesson_structure(
         state,
@@ -1346,10 +1262,6 @@ def get_next_new_learning_step(
         current_lesson
     )
 
-
-    # ======================================
-    # POSTĘP LEKCJI
-    # ======================================
 
     lesson_progress = (
         get_lesson_progress(
@@ -1366,10 +1278,6 @@ def get_next_new_learning_step(
     )
 
 
-    # ======================================
-    # LEKCJA MA CZĘŚCI
-    # ======================================
-
     if sections:
 
         next_section = (
@@ -1380,10 +1288,6 @@ def get_next_new_learning_step(
             )
         )
 
-
-        # ==================================
-        # NIEDOKOŃCZONA CZĘŚĆ
-        # ==================================
 
         if next_section:
 
@@ -1424,10 +1328,6 @@ def get_next_new_learning_step(
                     )
             }
 
-
-        # ==================================
-        # CAŁA LEKCJA UKOŃCZONA
-        # ==================================
 
         if is_lesson_fully_completed(
             state,
@@ -1504,10 +1404,6 @@ def get_next_new_learning_step(
             }
 
 
-    # ======================================
-    # STARSZY SYSTEM
-    # ======================================
-
     if is_lesson_completed(
         state,
         current_lesson
@@ -1551,10 +1447,6 @@ def get_next_new_learning_step(
                     )
             }
 
-
-    # ======================================
-    # BRAK STRUKTURY LEKCJI
-    # ======================================
 
     return {
         "type":
@@ -1653,24 +1545,24 @@ def get_new_learning_short_description(
 def get_teacher_learning_plan(
     state
 ):
-    """
-    Decyduje, co Nele powinna zrobić
-    z uczniem TERAZ.
-
-    Priorytet:
-
-    1. błąd wymagający powtórki,
-    2. słowo wymagające powtórki,
-    3. niedokończona część lekcji,
-    4. nowy materiał.
-    """
-
 
     if state is None:
 
         return {
             "type":
-                "teacher_plan",
+                "new_learning",
+
+            "level":
+                "A1",
+
+            "lesson":
+                1,
+
+            "section":
+                None,
+
+            "topic":
+                None,
 
             "priority":
                 "start",
@@ -1682,10 +1574,6 @@ def get_teacher_learning_plan(
                 )
         }
 
-
-    # ======================================
-    # NOWY / NASTĘPNY MATERIAŁ
-    # ======================================
 
     new_learning_plan = (
         get_next_new_learning_step(
@@ -1759,7 +1647,7 @@ def get_teacher_learning_plan(
 
 
     # ======================================
-    # 2. SŁOWNICTWO DO POWTÓRKI
+    # 2. SŁOWNICTWO
     # ======================================
 
     review_words = get_review_plan(
@@ -1814,29 +1702,21 @@ def get_teacher_learning_plan(
 
     # ======================================
     # 3. LEKCJA / NOWY MATERIAŁ
+    #
+    # WAŻNE:
+    #
+    # Zwracamy prawdziwy plan nowej nauki,
+    # np.:
+    #
+    # type = new_section
+    # section = Wir begrüßen uns
+    #
+    # Dzięki temu review.py może zapisać
+    # pending_new_learning, a późniejsze
+    # "Ja" uruchomi lesson_teaching.py.
     # ======================================
 
-    return {
-        "type":
-            "teacher_plan",
-
-        "priority":
-            "lesson",
-
-        "errors":
-            [],
-
-        "words":
-            [],
-
-        "next":
-            new_learning_plan,
-
-        "message":
-            new_learning_plan.get(
-                "message"
-            )
-    }
+    return new_learning_plan
 
 
 # ==========================================
@@ -1887,4 +1767,4 @@ def get_teacher_learning_message(
 
     return plan.get(
         "message"
-    )
+        )
