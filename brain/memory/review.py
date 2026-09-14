@@ -9,6 +9,10 @@ from brain.logic.new_learning_resume import (
     set_new_learning_offer
 )
 
+from brain.logic.error_practice import (
+    start_error_practice
+)
+
 from brain.memory.vocabulary_memory import (
     get_vocabulary_memory,
     get_words_for_review
@@ -24,6 +28,37 @@ from brain.memory.next_learning_step import (
     get_next_new_learning_step,
     get_teacher_learning_plan
 )
+
+
+# ==========================================
+# JA / NEIN
+# ==========================================
+
+TEACHER_YES_ANSWERS = {
+    "ja",
+    "ja bitte",
+    "ja gerne",
+    "ja gern",
+    "gerne",
+    "gern",
+    "okay",
+    "ok",
+    "klar",
+    "gut",
+    "machen wir",
+    "ja machen wir",
+    "ja das machen wir"
+}
+
+
+TEACHER_NO_ANSWERS = {
+    "nein",
+    "nein danke",
+    "nicht jetzt",
+    "jetzt nicht",
+    "lieber nicht",
+    "später"
+}
 
 
 # ==========================================
@@ -79,6 +114,413 @@ def get_word_from_learning_topic(
         return None
 
     return word
+
+
+# ==========================================
+# JA / NEIN NORMALISIEREN
+# ==========================================
+
+def clean_teacher_answer(
+    user_message
+):
+
+    return normalize(
+        user_message
+    ).strip(
+        " .?!„“\"'"
+    )
+
+
+# ==========================================
+# TYP BŁĘDU Z PLANU NAUCZYCIELA
+# ==========================================
+
+def get_teacher_plan_error_type(
+    plan
+):
+
+    if not plan:
+        return None
+
+
+    candidates = [
+        plan.get(
+            "error_type"
+        ),
+
+        plan.get(
+            "error"
+        ),
+
+        plan.get(
+            "topic"
+        ),
+
+        plan.get(
+            "practice_type"
+        ),
+
+        plan.get(
+            "type"
+        ),
+
+        plan.get(
+            "message"
+        )
+    ]
+
+
+    aliases = {
+
+        "word_order": [
+            "word_order",
+            "word order",
+            "wortstellung"
+        ],
+
+        "article": [
+            "article",
+            "artikel"
+        ],
+
+        "grammar": [
+            "grammar",
+            "grammatik"
+        ],
+
+        "vocabulary": [
+            "vocabulary",
+            "wortschatz"
+        ],
+
+        "spelling": [
+            "spelling",
+            "rechtschreibung"
+        ],
+
+        "verb": [
+            "verb",
+            "verben"
+        ],
+
+        "preposition": [
+            "preposition",
+            "präposition",
+            "präpositionen"
+        ]
+    }
+
+
+    for candidate in candidates:
+
+        if not candidate:
+            continue
+
+
+        candidate_text = normalize(
+            str(
+                candidate
+            )
+        )
+
+
+        for (
+            error_type,
+            names
+        ) in aliases.items():
+
+            for name in names:
+
+                if name in candidate_text:
+
+                    return error_type
+
+
+    return None
+
+
+# ==========================================
+# CZY PLAN DOTYCZY BŁĘDU
+# ==========================================
+
+def is_teacher_error_plan(
+    plan
+):
+
+    if not plan:
+        return False
+
+
+    error_type = (
+        get_teacher_plan_error_type(
+            plan
+        )
+    )
+
+
+    if error_type:
+
+        return True
+
+
+    plan_type = normalize(
+        str(
+            plan.get(
+                "type",
+                ""
+            )
+            or
+            ""
+        )
+    )
+
+
+    if (
+        "error" in plan_type
+        or
+        "fehler" in plan_type
+    ):
+
+        return True
+
+
+    message = normalize(
+        str(
+            plan.get(
+                "message",
+                ""
+            )
+            or
+            ""
+        )
+    )
+
+
+    error_phrases = [
+        "probleme mit",
+        "fehler",
+        "wiederholen",
+        "wortstellung"
+    ]
+
+
+    for phrase in error_phrases:
+
+        if phrase in message:
+
+            return True
+
+
+    return False
+
+
+# ==========================================
+# OCZEKUJĄCY PLAN NAUCZYCIELA
+# ==========================================
+
+def get_pending_teacher_plan(
+    state
+):
+
+    if not state:
+        return None
+
+
+    pending = state.get(
+        "pending_teacher_plan"
+    )
+
+
+    if not isinstance(
+        pending,
+        dict
+    ):
+
+        return None
+
+
+    return pending
+
+
+# ==========================================
+# ZAPISANIE OCZEKUJĄCEGO PLANU
+# ==========================================
+
+def set_pending_teacher_error_plan(
+    state,
+    plan
+):
+
+    if state is None:
+        return False
+
+
+    error_type = (
+        get_teacher_plan_error_type(
+            plan
+        )
+    )
+
+
+    state[
+        "pending_teacher_plan"
+    ] = {
+
+        "action":
+            "error_practice",
+
+        "error_type":
+            error_type,
+
+        "type":
+            plan.get(
+                "type"
+            ),
+
+        "message":
+            plan.get(
+                "message"
+            )
+    }
+
+
+    state[
+        "last_question"
+    ] = "continue_teacher_plan"
+
+
+    return True
+
+
+# ==========================================
+# USUNIĘCIE OCZEKUJĄCEGO PLANU
+# ==========================================
+
+def clear_pending_teacher_plan(
+    state
+):
+
+    if state is None:
+        return
+
+
+    state[
+        "pending_teacher_plan"
+    ] = None
+
+
+    if (
+        state.get(
+            "last_question"
+        )
+        ==
+        "continue_teacher_plan"
+    ):
+
+        state[
+            "last_question"
+        ] = None
+
+
+# ==========================================
+# OBSŁUGA:
+#
+# NELE:
+# Möchtest du das zuerst machen?
+#
+# UŻYTKOWNIK:
+# Ja
+# ==========================================
+
+def handle_pending_teacher_plan(
+    user_message,
+    state
+):
+
+    if state is None:
+        return None
+
+
+    pending = get_pending_teacher_plan(
+        state
+    )
+
+
+    if not pending:
+        return None
+
+
+    message = clean_teacher_answer(
+        user_message
+    )
+
+
+    # ======================================
+    # JA
+    # ======================================
+
+    if message in TEACHER_YES_ANSWERS:
+
+        action = pending.get(
+            "action"
+        )
+
+        error_type = pending.get(
+            "error_type"
+        )
+
+
+        clear_pending_teacher_plan(
+            state
+        )
+
+
+        # ==================================
+        # ĆWICZENIE BŁĘDU
+        # ==================================
+
+        if action == "error_practice":
+
+            return start_error_practice(
+                state,
+                error_type=error_type
+            )
+
+
+        return None
+
+
+    # ======================================
+    # NEIN
+    # ======================================
+
+    if message in TEACHER_NO_ANSWERS:
+
+        clear_pending_teacher_plan(
+            state
+        )
+
+
+        return (
+            "Okay. Dann machen wir etwas "
+            "anderes. Was möchtest du "
+            "heute lernen oder üben?"
+        )
+
+
+    # ======================================
+    # UŻYTKOWNIK ZACZĄŁ INNY TEMAT
+    #
+    # Nie blokujemy rozmowy starym
+    # oczekującym pytaniem.
+    # ======================================
+
+    clear_pending_teacher_plan(
+        state
+    )
+
+
+    return None
 
 
 # ==========================================
@@ -523,13 +965,6 @@ def answer_next_new_learning_step(
 
 # ==========================================
 # PYTANIE DO "NAUCZYCIELA"
-#
-# Użytkownik nie wybiera sam:
-# - ćwiczenia,
-# - nowego materiału,
-# - błędu.
-#
-# Pyta Nele, co ONA poleca.
 # ==========================================
 
 def is_teacher_recommendation_request(
@@ -639,11 +1074,21 @@ def prepare_teacher_plan_follow_up(
 
 
     # ======================================
+    # PLAN BŁĘDU
+    # ======================================
+
+    if is_teacher_error_plan(
+        plan
+    ):
+
+        return set_pending_teacher_error_plan(
+            state,
+            plan
+        )
+
+
+    # ======================================
     # NOWA CZĘŚĆ / NOWA LEKCJA
-    #
-    # Jeżeli plan nauczyciela wybrał
-    # nowy materiał, przygotowujemy
-    # normalne "Ja".
     # ======================================
 
     new_learning_types = {
@@ -690,8 +1135,6 @@ def answer_teacher_recommendation(
 
     # ======================================
     # NELE SAMA WYBIERA PRIORYTET
-    #
-    # Student Memory 2.0:
     #
     # 1. ważny błąd
     # 2. potrzebna powtórka
@@ -782,6 +1225,43 @@ def answer_teacher_recommendation(
 
 
     # ======================================
+    # BŁĄD / POWTÓRKA BŁĘDU
+    #
+    # TERAZ ZAPISUJEMY:
+    #
+    # pending_teacher_plan
+    #
+    # Dzięki temu późniejsze:
+    #
+    # Ja
+    #
+    # uruchomi start_error_practice().
+    # ======================================
+
+    if is_teacher_error_plan(
+        plan
+    ):
+
+        prepare_teacher_plan_follow_up(
+            plan,
+            state
+        )
+
+
+        if message.endswith(
+            "?"
+        ):
+
+            return message
+
+
+        return (
+            f"{message} "
+            "Möchtest du das zuerst machen?"
+        )
+
+
+    # ======================================
     # NOWY MATERIAŁ
     # ======================================
 
@@ -825,25 +1305,11 @@ def answer_teacher_recommendation(
         return message
 
 
-    # ======================================
-    # BŁĄD / POWTÓRKA BŁĘDU
-    #
-    # get_teacher_learning_plan()
-    # może wybrać błąd jako najważniejszy.
-    #
-    # Tutaj nie zmieniamy ręcznie stanu
-    # error_practice, ponieważ zarządza nim
-    # osobny moduł Student Memory 2.0.
-    # ======================================
-
     return message
 
 
 # ==========================================
 # ALLGEMEINE EMPFEHLUNG
-#
-# Starsza nazwa zostaje dla zgodności.
-# Teraz korzysta z planu nauczyciela.
 # ==========================================
 
 def is_general_recommendation_request(
@@ -1346,6 +1812,31 @@ def handle_memory(
 ):
 
     # ======================================
+    # 0. KONTYNUACJA PLANU NAUCZYCIELA
+    #
+    # Najważniejsza nowa część.
+    #
+    # Przykład:
+    #
+    # Nele:
+    # Möchtest du die Wortstellung üben?
+    #
+    # User:
+    # Ja
+    #
+    # -> start_error_practice()
+    # ======================================
+
+    answer = handle_pending_teacher_plan(
+        user_message,
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
     # OSTATNIA AKTYWNOŚĆ
     # ======================================
 
@@ -1386,9 +1877,6 @@ def handle_memory(
 
     # ======================================
     # PLAN NAUCZYCIELA
-    #
-    # Nele sama decyduje, co jest
-    # najważniejsze dla ucznia.
     # ======================================
 
     answer = answer_teacher_recommendation(
