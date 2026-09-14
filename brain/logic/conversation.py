@@ -1,5 +1,6 @@
 # ==========================================
 # NELE – GŁÓWNY ROUTER ROZMOWY
+# TEACHER MODE
 # ==========================================
 
 from brain.logic.memory import (
@@ -66,7 +67,8 @@ from brain.logic.wellbeing_feedback import (
 )
 
 from brain.logic.activity_resume import (
-    handle_continue_last_activity
+    handle_continue_last_activity,
+    resume_current_training
 )
 
 from brain.logic.lesson_progress_router import (
@@ -88,6 +90,7 @@ from brain.logic.context_router import (
 from brain.logic.response_engine import (
     find_response,
     create_returning_user_follow_up,
+    create_teacher_directed_follow_up,
     get_short_answer
 )
 
@@ -179,6 +182,184 @@ def return_with_feedback(
 
 
 # ==========================================
+# USUNIĘCIE STARYCH PYTAŃ
+# O WYBÓR UŻYTKOWNIKA
+# ==========================================
+#
+# Teacher Mode sam prowadzi trening.
+#
+# Jeżeli starszy moduł pamięci zwróci np.:
+#
+# Möchtest du mit „Zimmer“ weitermachen?
+#
+# usuwamy tę część przed automatycznym
+# wznowieniem treningu.
+# ==========================================
+
+def remove_old_teacher_choice_prompt(
+    answer
+):
+
+    if not answer:
+        return answer
+
+
+    answer = str(
+        answer
+    ).strip()
+
+
+    old_prompts = [
+        "Möchtest du ",
+        "Was möchtest du heute üben?",
+        "Womit möchtest du heute anfangen?"
+    ]
+
+
+    positions = []
+
+
+    for prompt in old_prompts:
+
+        position = answer.find(
+            prompt
+        )
+
+
+        if position >= 0:
+
+            positions.append(
+                position
+            )
+
+
+    if not positions:
+        return answer
+
+
+    first_position = min(
+        positions
+    )
+
+
+    return answer[
+        :first_position
+    ].rstrip()
+
+
+# ==========================================
+# WYCZYSZCZENIE STAREGO STANU
+# PYTANIA O KONTYNUACJĘ
+# ==========================================
+
+def clear_old_teacher_choice_state(
+    state
+):
+
+    if state is None:
+        return
+
+
+    last_question = state.get(
+        "last_question"
+    )
+
+
+    if last_question in {
+        "continue_last_activity",
+        "continue_error_review"
+    }:
+
+        state[
+            "last_question"
+        ] = None
+
+
+# ==========================================
+# ODPOWIEDŹ NA PYTANIE POBOCZNE
+# + AUTOMATYCZNY POWRÓT DO TRENINGU
+# ==========================================
+#
+# Przykład:
+#
+# Was bedeutet „Zimmer“?
+#
+# Użytkownik:
+# Welche Wörter sind schwierig für mich?
+#
+# Nele:
+# Diese Wörter waren für dich schwierig: Zimmer.
+#
+# Jetzt machen wir weiter.
+# Was bedeutet „Zimmer“?
+#
+# Jeżeli nie ma aktywnego treningu,
+# Teacher Brain wybiera następny krok.
+# ==========================================
+
+def continue_after_side_answer(
+    answer,
+    state
+):
+
+    answer = remove_old_teacher_choice_prompt(
+        answer
+    )
+
+
+    clear_old_teacher_choice_state(
+        state
+    )
+
+
+    # ======================================
+    # 1. DOKŁADNIE PRZERWANY TRENING
+    # ======================================
+
+    continuation = resume_current_training(
+        state
+    )
+
+
+    # ======================================
+    # 2. NIC NIE JEST AKTYWNE
+    # -> TEACHER BRAIN WYBIERA CO DALEJ
+    # ======================================
+
+    if not continuation:
+
+        continuation = (
+            create_teacher_directed_follow_up(
+                state,
+                ""
+            )
+        )
+
+
+    # ======================================
+    # POŁĄCZENIE
+    # ======================================
+
+    if (
+        answer
+        and
+        continuation
+    ):
+
+        return (
+            f"{answer}\n\n"
+            f"{continuation}"
+        )
+
+
+    if answer:
+        return answer
+
+
+    return continuation
+
+
+# ==========================================
 # PEŁNA REAKCJA + DALSZA NAUKA
 # ==========================================
 
@@ -193,22 +374,6 @@ def combine_full_wellbeing_reaction(
     if not continuation_answer:
         return reaction
 
-
-    # ======================================
-    # response_engine używa krótkiej
-    # pierwszej części reakcji.
-    #
-    # Tutaj przywracamy PEŁNĄ reakcję.
-    #
-    # Przykład:
-    #
-    # Verstehe.
-    #
-    # zmieniamy na:
-    #
-    # Verstehe. Dann machen wir heute
-    # etwas Kurzes und Leichtes.
-    # ======================================
 
     short_reaction = get_short_answer(
         reaction
@@ -236,10 +401,6 @@ def combine_full_wellbeing_reaction(
         )
 
 
-    # ======================================
-    # FALLBACK
-    # ======================================
-
     return (
         f"{reaction} "
         f"{continuation_answer}"
@@ -259,12 +420,6 @@ def handle_wellbeing_reply(
     if state is None:
         return None
 
-
-    # ======================================
-    # TYLKO GDY NELE WCZEŚNIEJ ZAPYTAŁA:
-    #
-    # WIE GEHT ES DIR?
-    # ======================================
 
     if (
         state.get(
@@ -298,30 +453,15 @@ def handle_wellbeing_reply(
     )
 
 
-    # ======================================
-    # BRAK REAKCJI
-    # ======================================
-
     if not reaction:
         return None
 
 
     # ======================================
-    # KAŻDE SAMOPOCZUCIE
+    # TEACHER MODE
     #
-    # dobre,
-    # neutralne,
-    # zmęczenie,
-    # stres,
-    # smutek,
-    # choroba
-    #
-    # prowadzi dalej do treningu.
-    #
-    # Samopoczucie wpływa tylko
-    # na TON odpowiedzi Nele.
-    #
-    # Nie zatrzymuje nauki.
+    # każde samopoczucie prowadzi
+    # automatycznie do dalszego treningu
     # ======================================
 
     continuation_answer = (
@@ -332,18 +472,6 @@ def handle_wellbeing_reply(
         )
     )
 
-
-    # ======================================
-    # ZACHOWANIE PEŁNEJ REAKCJI
-    #
-    # np.
-    #
-    # Verstehe. Dann machen wir heute
-    # etwas Kurzes und Leichtes.
-    # Zuletzt waren wir bei
-    # „Das deutsche Alphabet“.
-    # Möchtest du dort weitermachen?
-    # ======================================
 
     final_answer = (
         combine_full_wellbeing_reaction(
@@ -430,10 +558,6 @@ def generate_conversation_reply(
         )
 
 
-        # ==================================
-        # ONBOARDING JUŻ TRWA
-        # ==================================
-
         if onboarding_step > 0:
 
             onboarding_answer = (
@@ -452,10 +576,6 @@ def generate_conversation_reply(
                 )
 
 
-        # ==================================
-        # NOWY UŻYTKOWNIK
-        # ==================================
-
         elif is_new_user(
             state
         ):
@@ -464,10 +584,6 @@ def generate_conversation_reply(
                 session_id
             )
 
-
-        # ==================================
-        # STARY UŻYTKOWNIK
-        # ==================================
 
         else:
 
@@ -483,8 +599,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 1. SPRAWDZENIE POWTÓREK BŁĘDÓW
-    # SPACED REPETITION
-    # STUDENT MEMORY 2.0
     # ======================================
 
     try:
@@ -501,55 +615,10 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 2. AKTYWNE ĆWICZENIE BŁĘDÓW
-    # ======================================
-
-    error_practice_answer = (
-        handle_error_practice(
-            user_message,
-            state
-        )
-    )
-
-    if error_practice_answer:
-
-        return return_with_memory(
-            error_practice_answer,
-            session_id
-        )
-
-
-    # ======================================
-    # 3. POSTĘP W BŁĘDACH
-    # ======================================
-
-    error_progress_answer = (
-        handle_error_progress(
-            user_message,
-            state
-        )
-    )
-
-    if error_progress_answer:
-
-        return return_with_memory(
-            error_progress_answer,
-            session_id
-        )
-
-
-    # ======================================
-    # 4. ODPOWIEDŹ NA:
+    # 2. ODPOWIEDŹ NA:
     # WIE GEHT ES DIR?
     #
-    # MUSI BYĆ PRZED PAMIĘCIĄ UŻYTKOWNIKA.
-    #
-    # Dzięki temu:
-    #
-    # Ich bin müde.
-    #
-    # oznacza samopoczucie,
-    # a nie imię "Müde".
+    # MUSI BYĆ PRZED PAMIĘCIĄ UŻYTKOWNIKA
     # ======================================
 
     wellbeing_answer = handle_wellbeing_reply(
@@ -564,7 +633,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5. LEARNER FEEDBACK
+    # 3. LEARNER FEEDBACK
     # ======================================
 
     processed_message, feedback_text = (
@@ -576,7 +645,130 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 6. KONTYNUACJA NOWEJ NAUKI
+    # 4. PYTANIA POBOCZNE PODCZAS TRENINGU
+    # TEACHER MODE
+    #
+    # Te pytania mają pierwszeństwo przed
+    # aktywnym ćwiczeniem, żeby Nele nie
+    # potraktowała ich jako błędnej
+    # odpowiedzi na aktualne zadanie.
+    #
+    # Po odpowiedzi wracamy dokładnie
+    # do przerwanego miejsca.
+    # ======================================
+
+
+    # ======================================
+    # 4A. PYTANIA O BŁĘDY
+    #
+    # np.
+    #
+    # Wo mache ich noch Fehler?
+    # Welche Fehler mache ich oft?
+    # ======================================
+
+    side_error_memory_answer = (
+        handle_error_memory(
+            processed_message,
+            state
+        )
+    )
+
+    if side_error_memory_answer:
+
+        teacher_answer = (
+            continue_after_side_answer(
+                side_error_memory_answer,
+                state
+            )
+        )
+
+        return return_with_feedback(
+            teacher_answer,
+            feedback_text,
+            session_id
+        )
+
+
+    # ======================================
+    # 4B. PYTANIA O PAMIĘĆ NAUKI
+    #
+    # np.
+    #
+    # Welche Wörter sind schwierig für mich?
+    # Welche Wörter habe ich geübt?
+    # Welche Wörter soll ich wiederholen?
+    # Was habe ich zuletzt geübt?
+    # Was soll ich heute lernen?
+    # Was soll ich heute üben?
+    # Was soll ich heute machen?
+    # ======================================
+
+    side_memory_answer = (
+        handle_memory(
+            processed_message,
+            state
+        )
+    )
+
+    if side_memory_answer:
+
+        teacher_answer = (
+            continue_after_side_answer(
+                side_memory_answer,
+                state
+            )
+        )
+
+        return return_with_feedback(
+            teacher_answer,
+            feedback_text,
+            session_id
+        )
+
+
+    # ======================================
+    # 5. AKTYWNE ĆWICZENIE BŁĘDÓW
+    # ======================================
+
+    error_practice_answer = (
+        handle_error_practice(
+            processed_message,
+            state
+        )
+    )
+
+    if error_practice_answer:
+
+        return return_with_feedback(
+            error_practice_answer,
+            feedback_text,
+            session_id
+        )
+
+
+    # ======================================
+    # 6. POSTĘP W BŁĘDACH
+    # ======================================
+
+    error_progress_answer = (
+        handle_error_progress(
+            processed_message,
+            state
+        )
+    )
+
+    if error_progress_answer:
+
+        return return_with_feedback(
+            error_progress_answer,
+            feedback_text,
+            session_id
+        )
+
+
+    # ======================================
+    # 7. KONTYNUACJA NOWEJ NAUKI
     # ======================================
 
     new_learning_answer = (
@@ -596,7 +788,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 7. AKTYWNA LEKCJA
+    # 8. AKTYWNA LEKCJA
     # ======================================
 
     lesson_teaching_answer = (
@@ -616,7 +808,9 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 8. KONTYNUACJA OSTATNIEJ AKTYWNOŚCI
+    # 9. STARA KONTYNUACJA AKTYWNOŚCI
+    #
+    # zostaje dla kompatybilności
     # ======================================
 
     continue_answer = (
@@ -636,7 +830,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 9. KOREKTA
+    # 10. KOREKTA
     # ======================================
 
     correction_answer = handle_correction(
@@ -654,7 +848,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 10. ALFABET
+    # 11. ALFABET
     # ======================================
 
     alphabet_answer = handle_alphabet(
@@ -673,7 +867,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 11. POSTĘP W LEKCJI
+    # 12. POSTĘP W LEKCJI
     # ======================================
 
     lesson_progress_answer = (
@@ -693,7 +887,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 12. PERSONALIZOWANE ĆWICZENIA
+    # 13. PERSONALIZOWANE ĆWICZENIA
     # ======================================
 
     personalization_answer = (
@@ -713,7 +907,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 13. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
+    # 14. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
     # ======================================
 
     user_memory_answer = handle_user_memory(
@@ -731,7 +925,11 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 14. PAMIĘĆ BŁĘDÓW
+    # 15. PAMIĘĆ BŁĘDÓW
+    #
+    # Zostaje również tutaj jako fallback.
+    # Zwykłe pytania o błędy zostały już
+    # obsłużone wcześniej w Teacher Mode.
     # ======================================
 
     error_memory_answer = handle_error_memory(
@@ -749,7 +947,9 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 15. PAMIĘĆ NAUKI
+    # 16. PAMIĘĆ NAUKI
+    #
+    # również fallback
     # ======================================
 
     memory_answer = handle_memory(
@@ -767,7 +967,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 16. KONTYNUACJA AKTUALNEGO TEMATU
+    # 17. KONTYNUACJA AKTUALNEGO TEMATU
     # ======================================
 
     topic_answer = handle_topic_follow_up(
@@ -785,7 +985,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 17. PORÓWNANIA
+    # 18. PORÓWNANIA
     # ======================================
 
     comparison_answer = handle_comparison(
@@ -804,7 +1004,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 18. SŁOWNICTWO
+    # 19. SŁOWNICTWO
     # ======================================
 
     vocabulary_answer = handle_vocabulary(
@@ -822,7 +1022,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 19. INTENCJE
+    # 20. INTENCJE
     # ======================================
 
     intent_answer = handle_intent(
@@ -850,7 +1050,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 20. ZNANE PYTANIA I ZWROTY
+    # 21. ZNANE PYTANIA I ZWROTY
     # ======================================
 
     known_answer = find_response(
@@ -870,7 +1070,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 21. KONTEKST
+    # 22. KONTEKST
     # ======================================
 
     context_answer = handle_context(
@@ -888,7 +1088,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 22. BRAK ZNANEJ ODPOWIEDZI
+    # 23. BRAK ZNANEJ ODPOWIEDZI
     # ======================================
 
     fallback_answer = (
