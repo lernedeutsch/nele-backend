@@ -87,7 +87,8 @@ from brain.logic.context_router import (
 
 from brain.logic.response_engine import (
     find_response,
-    create_returning_user_follow_up
+    create_returning_user_follow_up,
+    get_short_answer
 )
 
 from brain.logic.intent_handler import (
@@ -178,6 +179,74 @@ def return_with_feedback(
 
 
 # ==========================================
+# PEŁNA REAKCJA + DALSZA NAUKA
+# ==========================================
+
+def combine_full_wellbeing_reaction(
+    reaction,
+    continuation_answer
+):
+
+    if not reaction:
+        return continuation_answer
+
+    if not continuation_answer:
+        return reaction
+
+
+    # ======================================
+    # response_engine używa krótkiej
+    # pierwszej części reakcji.
+    #
+    # Tutaj przywracamy PEŁNĄ reakcję.
+    #
+    # Przykład:
+    #
+    # Verstehe.
+    #
+    # zmieniamy na:
+    #
+    # Verstehe. Dann machen wir heute
+    # etwas Kurzes und Leichtes.
+    # ======================================
+
+    short_reaction = get_short_answer(
+        reaction
+    )
+
+
+    if (
+        short_reaction
+        and
+        continuation_answer.startswith(
+            short_reaction
+        )
+    ):
+
+        rest = continuation_answer[
+            len(
+                short_reaction
+            ):
+        ]
+
+
+        return (
+            f"{reaction}"
+            f"{rest}"
+        )
+
+
+    # ======================================
+    # FALLBACK
+    # ======================================
+
+    return (
+        f"{reaction} "
+        f"{continuation_answer}"
+    )
+
+
+# ==========================================
 # ODPOWIEDŹ NA SAMOPOCZUCIE
 # ==========================================
 
@@ -220,10 +289,6 @@ def handle_wellbeing_reply(
         return None
 
 
-    wellbeing_type = analysis.get(
-        "type"
-    )
-
     reaction = analysis.get(
         "reaction"
     )
@@ -242,44 +307,21 @@ def handle_wellbeing_reply(
 
 
     # ======================================
-    # GORSZE SAMOPOCZUCIE
+    # KAŻDE SAMOPOCZUCIE
     #
-    # Nie wciskamy wtedy użytkownikowi
-    # od razu normalnej lekcji.
+    # dobre,
+    # neutralne,
+    # zmęczenie,
+    # stres,
+    # smutek,
+    # choroba
     #
-    # Ważne:
-    # "Ich bin müde"
-    # NIE może trafić do pamięci imienia.
-    # ======================================
-
-    difficult_wellbeing = {
-        "bad",
-        "tired",
-        "stressed",
-        "sad",
-        "sick"
-    }
-
-
-    if wellbeing_type in difficult_wellbeing:
-
-        state[
-            "last_question"
-        ] = None
-
-
-        return return_with_feedback(
-            reaction,
-            feedback,
-            session_id
-        )
-
-
-    # ======================================
-    # DOBRE / NEUTRALNE SAMOPOCZUCIE
+    # prowadzi dalej do treningu.
     #
-    # Krótka reakcja + automatyczna
-    # propozycja dalszej nauki.
+    # Samopoczucie wpływa tylko
+    # na TON odpowiedzi Nele.
+    #
+    # Nie zatrzymuje nauki.
     # ======================================
 
     continuation_answer = (
@@ -291,8 +333,28 @@ def handle_wellbeing_reply(
     )
 
 
+    # ======================================
+    # ZACHOWANIE PEŁNEJ REAKCJI
+    #
+    # np.
+    #
+    # Verstehe. Dann machen wir heute
+    # etwas Kurzes und Leichtes.
+    # Zuletzt waren wir bei
+    # „Das deutsche Alphabet“.
+    # Möchtest du dort weitermachen?
+    # ======================================
+
+    final_answer = (
+        combine_full_wellbeing_reaction(
+            reaction,
+            continuation_answer
+        )
+    )
+
+
     return return_with_feedback(
-        continuation_answer,
+        final_answer,
         feedback,
         session_id
     )
@@ -440,7 +502,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 2. AKTYWNE ĆWICZENIE BŁĘDÓW
-    # STUDENT MEMORY 2.0
     # ======================================
 
     error_practice_answer = (
@@ -460,7 +521,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 3. POSTĘP W BŁĘDACH
-    # STUDENT MEMORY 2.0
     # ======================================
 
     error_progress_answer = (
@@ -482,10 +542,7 @@ def generate_conversation_reply(
     # 4. ODPOWIEDŹ NA:
     # WIE GEHT ES DIR?
     #
-    # BARDZO WAŻNE:
-    #
-    # Ten router musi działać PRZED
-    # pamięcią użytkownika.
+    # MUSI BYĆ PRZED PAMIĘCIĄ UŻYTKOWNIKA.
     #
     # Dzięki temu:
     #
@@ -617,7 +674,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 11. POSTĘP W LEKCJI
-    # STUDENT MEMORY 2.0
     # ======================================
 
     lesson_progress_answer = (
@@ -658,8 +714,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 13. PAMIĘĆ INFORMACJI O UŻYTKOWNIKU
-    #
-    # Jest teraz ZA obsługą samopoczucia.
     # ======================================
 
     user_memory_answer = handle_user_memory(
@@ -678,7 +732,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 14. PAMIĘĆ BŁĘDÓW
-    # STUDENT MEMORY 2.0
     # ======================================
 
     error_memory_answer = handle_error_memory(
@@ -697,7 +750,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 15. PAMIĘĆ NAUKI
-    # STUDENT MEMORY 2.0
     # ======================================
 
     memory_answer = handle_memory(
@@ -850,4 +902,4 @@ def generate_conversation_reply(
         fallback_answer,
         feedback_text,
         session_id
-        )
+    )
