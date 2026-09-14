@@ -23,6 +23,15 @@ from brain.memory.lesson_progress import (
     is_lesson_fully_completed
 )
 
+from brain.memory.error_memory import (
+    get_error_summary
+)
+
+from brain.memory.error_review import (
+    refresh_error_reviews,
+    get_due_error_reviews
+)
+
 from brain.knowledge.A1.lessons import (
     lesson_exists as a1_lesson_exists,
     get_lesson_sections as get_a1_lesson_sections,
@@ -167,7 +176,6 @@ def display_error_type(
 
         "sentence_order":
             "Wortstellung"
-
     }
 
 
@@ -242,6 +250,15 @@ def get_error_number(
 # ==========================================
 # CZY BŁĄD WYMAGA POWTÓRKI
 # ==========================================
+#
+# WAŻNE:
+#
+# Sam fakt, że błąd kiedyś wystąpił,
+# NIE oznacza już, że trzeba go
+# ćwiczyć natychmiast.
+#
+# O tym decyduje Adaptive Review 2.0.
+# ==========================================
 
 def error_needs_review(
     memory
@@ -254,6 +271,10 @@ def error_needs_review(
 
         return False
 
+
+    # ======================================
+    # BŁĄD OPANOWANY
+    # ======================================
 
     if memory.get(
         "mastered"
@@ -276,210 +297,73 @@ def error_needs_review(
         return False
 
 
-    review_flags = (
-        "needs_review",
-        "review_due",
-        "due_for_review",
-        "should_review"
-    )
+    # ======================================
+    # TYLKO AKTYWNA POWTÓRKA
+    #
+    # Nie patrzymy już na samo:
+    #
+    # count > 0
+    #
+    # ponieważ count oznacza jedynie,
+    # że błąd wydarzył się kiedyś.
+    # ======================================
 
-
-    for flag in review_flags:
-
-        if memory.get(
-            flag
-        ) is True:
-
-            return True
-
-
-    status = str(
-        memory.get(
-            "status",
-            ""
-        )
-    ).strip().lower()
-
-
-    if status in {
-        "review",
-        "due",
-        "needs_review",
-        "open",
-        "active"
-    }:
+    if memory.get(
+        "needs_practice"
+    ) is True:
 
         return True
 
 
-    mistakes = get_error_number(
-        memory,
-        (
-            "mistakes",
-            "count",
-            "occurrences",
-            "wrong",
-            "errors"
-        )
-    )
+    if memory.get(
+        "needs_review"
+    ) is True:
+
+        return True
 
 
-    return mistakes > 0
+    if memory.get(
+        "review_due"
+    ) is True:
+
+        return True
 
 
-# ==========================================
-# POBRANIE REKORDÓW BŁĘDÓW
-# ==========================================
+    if memory.get(
+        "due_for_review"
+    ) is True:
 
-def collect_error_records(
-    state
-):
-
-    if not isinstance(
-        state,
-        dict
-    ):
-
-        return []
+        return True
 
 
-    result = []
+    if memory.get(
+        "should_review"
+    ) is True:
+
+        return True
 
 
-    containers = [
-
-        state.get(
-            "error_memory"
-        ),
-
-        state.get(
-            "student_errors"
-        ),
-
-        state.get(
-            "errors"
-        )
-
-    ]
-
-
-    for container in containers:
-
-        if not container:
-            continue
-
-
-        if isinstance(
-            container,
-            list
-        ):
-
-            for item in container:
-
-                if isinstance(
-                    item,
-                    dict
-                ):
-
-                    result.append(
-                        item
-                    )
-
-            continue
-
-
-        if not isinstance(
-            container,
-            dict
-        ):
-
-            continue
-
-
-        nested_errors = container.get(
-            "errors"
-        )
-
-
-        if isinstance(
-            nested_errors,
-            list
-        ):
-
-            for item in nested_errors:
-
-                if isinstance(
-                    item,
-                    dict
-                ):
-
-                    result.append(
-                        item
-                    )
-
-
-        elif isinstance(
-            nested_errors,
-            dict
-        ):
-
-            for key, value in (
-                nested_errors.items()
-            ):
-
-                if not isinstance(
-                    value,
-                    dict
-                ):
-
-                    continue
-
-                record = dict(
-                    value
-                )
-
-                record.setdefault(
-                    "error_type",
-                    key
-                )
-
-                result.append(
-                    record
-                )
-
-
-        for key, value in (
-            container.items()
-        ):
-
-            if key == "errors":
-                continue
-
-            if not isinstance(
-                value,
-                dict
-            ):
-                continue
-
-            record = dict(
-                value
-            )
-
-            record.setdefault(
-                "error_type",
-                key
-            )
-
-            result.append(
-                record
-            )
-
-
-    return result
+    return False
 
 
 # ==========================================
 # BŁĘDY DO POWTÓRKI
+# ADAPTIVE REVIEW 2.0
+# ==========================================
+#
+# To jest kluczowa poprawka.
+#
+# Teacher Brain nie przegląda już
+# historycznych błędów.
+#
+# Najpierw Adaptive Review sprawdza:
+#
+# - needs_practice
+# - next_review_at
+# - mastered
+#
+# i dopiero potem zwracamy błędy,
+# które naprawdę są należne TERAZ.
 # ==========================================
 
 def get_errors_for_review(
@@ -487,47 +371,101 @@ def get_errors_for_review(
     limit=3
 ):
 
-    records = collect_error_records(
-        state
-    )
-
-    review_items = []
+    if state is None:
+        return []
 
 
-    for record in records:
+    # ======================================
+    # ODSWIEŻENIE HARMONOGRAMU
+    #
+    # Jeżeli next_review_at już nadszedł,
+    # refresh_error_reviews() ponownie
+    # ustawi needs_practice = True.
+    # ======================================
 
-        if not error_needs_review(
-            record
-        ):
+    try:
 
-            continue
+        refresh_error_reviews(
+            state
+        )
 
+    except Exception as error:
 
-        error_type = (
-            record.get(
-                "error_type"
-            )
-            or
-            record.get(
-                "type"
-            )
-            or
-            record.get(
-                "category"
-            )
+        print(
+            f"Teacher error review refresh: {error}"
         )
 
 
-        if not error_type:
+    # ======================================
+    # TYLKO BŁĘDY NALEŻNE TERAZ
+    # ======================================
 
+    try:
+
+        due_error_types = get_due_error_reviews(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Teacher due error review: {error}"
+        )
+
+        due_error_types = []
+
+
+    if not due_error_types:
+
+        return []
+
+
+    result = []
+    seen = set()
+
+
+    for error_type in due_error_types:
+
+        error_type = str(
+            error_type or ""
+        ).strip()
+
+
+        if not error_type:
             continue
 
 
+        key = error_type.lower()
+
+
+        if key in seen:
+            continue
+
+
+        seen.add(
+            key
+        )
+
+
+        summary = get_error_summary(
+            state,
+            error_type
+        )
+
+
+        if not isinstance(
+            summary,
+            dict
+        ):
+
+            summary = {}
+
+
         mistakes = get_error_number(
-            record,
+            summary,
             (
-                "mistakes",
                 "count",
+                "mistakes",
                 "occurrences",
                 "wrong",
                 "errors"
@@ -535,12 +473,10 @@ def get_errors_for_review(
         )
 
 
-        review_items.append({
+        result.append({
 
             "error_type":
-                str(
-                    error_type
-                ).strip(),
+                error_type,
 
             "label":
                 display_error_type(
@@ -553,7 +489,12 @@ def get_errors_for_review(
         })
 
 
-    review_items.sort(
+    # ======================================
+    # NAJCZĘSTSZY / NAJWAŻNIEJSZY
+    # NA POCZĄTKU
+    # ======================================
+
+    result.sort(
         key=lambda item:
             item.get(
                 "mistakes",
@@ -563,45 +504,9 @@ def get_errors_for_review(
     )
 
 
-    result = []
-    seen = set()
-
-
-    for item in review_items:
-
-        key = str(
-            item.get(
-                "error_type",
-                ""
-            )
-        ).lower()
-
-
-        if not key:
-            continue
-
-
-        if key in seen:
-            continue
-
-
-        seen.add(
-            key
-        )
-
-        result.append(
-            item
-        )
-
-
-        if len(
-            result
-        ) >= limit:
-
-            break
-
-
-    return result
+    return result[
+        :limit
+    ]
 
 
 # ==========================================
@@ -889,7 +794,7 @@ def get_next_learning_step(
 
 
     # ======================================
-    # 1. BŁĘDY
+    # 1. BŁĘDY NALEŻNE TERAZ
     # ======================================
 
     errors = get_errors_for_review(
@@ -1590,7 +1495,7 @@ def get_teacher_learning_plan(
 
 
     # ======================================
-    # 1. BŁĘDY
+    # 1. BŁĘDY NALEŻNE TERAZ
     # ======================================
 
     errors = get_errors_for_review(
@@ -1702,18 +1607,6 @@ def get_teacher_learning_plan(
 
     # ======================================
     # 3. LEKCJA / NOWY MATERIAŁ
-    #
-    # WAŻNE:
-    #
-    # Zwracamy prawdziwy plan nowej nauki,
-    # np.:
-    #
-    # type = new_section
-    # section = Wir begrüßen uns
-    #
-    # Dzięki temu review.py może zapisać
-    # pending_new_learning, a późniejsze
-    # "Ja" uruchomi lesson_teaching.py.
     # ======================================
 
     return new_learning_plan
