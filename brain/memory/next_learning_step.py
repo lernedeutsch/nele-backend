@@ -23,6 +23,10 @@ from brain.memory.lesson_progress import (
     is_lesson_fully_completed
 )
 
+from brain.memory.lesson_review import (
+    get_due_lesson_reviews
+)
+
 from brain.memory.error_memory import (
     get_error_summary
 )
@@ -454,6 +458,169 @@ def get_errors_for_review(
 
 
 # ==========================================
+# LEKCJE DO POWTÓRKI
+# SPACED REPETITION
+# ==========================================
+
+def get_lessons_for_review(
+    state,
+    limit=1
+):
+
+    if state is None:
+        return []
+
+
+    try:
+
+        due_reviews = get_due_lesson_reviews(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Teacher lesson review error: {error}"
+        )
+
+        due_reviews = []
+
+
+    if not isinstance(
+        due_reviews,
+        list
+    ):
+
+        return []
+
+
+    result = []
+    seen = set()
+
+
+    for item in due_reviews:
+
+        if not isinstance(
+            item,
+            dict
+        ):
+
+            continue
+
+
+        level = str(
+            item.get(
+                "level",
+                "A1"
+            )
+            or
+            "A1"
+        ).strip().upper()
+
+
+        try:
+
+            lesson = int(
+                item.get(
+                    "lesson",
+                    1
+                )
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            lesson = 1
+
+
+        key = (
+            level,
+            lesson
+        )
+
+
+        if key in seen:
+            continue
+
+
+        seen.add(
+            key
+        )
+
+
+        result.append({
+
+            "level":
+                level,
+
+            "lesson":
+                lesson,
+
+            "review":
+                item.get(
+                    "review",
+                    {}
+                )
+
+        })
+
+
+    return result[
+        :limit
+    ]
+
+
+# ==========================================
+# OPIS LEKCJI DO POWTÓRKI
+# ==========================================
+
+def get_lesson_review_description(
+    lesson_review
+):
+
+    if not isinstance(
+        lesson_review,
+        dict
+    ):
+
+        return ""
+
+
+    level = str(
+        lesson_review.get(
+            "level",
+            "A1"
+        )
+        or
+        "A1"
+    ).strip().upper()
+
+
+    try:
+
+        lesson = int(
+            lesson_review.get(
+                "lesson",
+                1
+            )
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        lesson = 1
+
+
+    return (
+        f"{level}, Lektion {lesson}"
+    )
+
+
+# ==========================================
 # FORMATOWANIE BŁĘDÓW
 # ==========================================
 
@@ -513,6 +680,7 @@ def format_word_list(
         for word in words
         if word
     ]
+
 
     if not words:
         return ""
@@ -663,22 +831,6 @@ def get_recent_vocabulary_words(
 # PLAN – SŁOWA DO POWTÓRKI
 # SPACED REPETITION
 # ==========================================
-#
-# WAŻNE:
-#
-# Do automatycznego treningu trafiają
-# WYŁĄCZNIE słowa, których termin
-# powtórki już nadszedł.
-#
-# get_words_for_review() sprawdza:
-#
-# - needs_review
-# - next_review_at
-#
-# Trudne słowo nie wraca więc
-# automatycznie tylko dlatego,
-# że wcześniej był przy nim błąd.
-# ==========================================
 
 def get_review_plan(
     state
@@ -701,6 +853,15 @@ def get_review_plan(
 
 # ==========================================
 # NASTĘPNY KROK – POWTÓRKA / ĆWICZENIE
+#
+# PRIORYTET:
+#
+# 1. błędy należne
+# 2. słowa należne
+# 3. lekcja należna do powtórki
+# 4. trudne słowa informacyjnie
+# 5. ostatnie słowa
+# 6. ostatni temat
 # ==========================================
 
 def get_next_learning_step(
@@ -717,6 +878,9 @@ def get_next_learning_step(
                 [],
 
             "errors":
+                [],
+
+            "lesson_reviews":
                 [],
 
             "topic":
@@ -757,6 +921,9 @@ def get_next_learning_step(
             "errors":
                 errors,
 
+            "lesson_reviews":
+                [],
+
             "topic":
                 "Fehlertraining",
 
@@ -794,6 +961,9 @@ def get_next_learning_step(
             "errors":
                 [],
 
+            "lesson_reviews":
+                [],
+
             "topic":
                 "Wortschatz",
 
@@ -806,14 +976,63 @@ def get_next_learning_step(
 
 
     # ======================================
-    # 3. TRUDNE SŁOWA – INFORMACYJNIE
-    #
-    # To NIE jest automatyczny harmonogram
-    # powtórki Teacher Mode.
-    #
-    # Funkcja pozostaje dla pytań typu:
-    #
-    # Welche Wörter sind schwierig für mich?
+    # 3. LEKCJA NALEŻNA DO POWTÓRKI
+    # ======================================
+
+    lesson_reviews = get_lessons_for_review(
+        state,
+        limit=1
+    )
+
+
+    if lesson_reviews:
+
+        lesson_review = lesson_reviews[0]
+
+        lesson_description = (
+            get_lesson_review_description(
+                lesson_review
+            )
+        )
+
+
+        return {
+            "type":
+                "lesson_review",
+
+            "words":
+                [],
+
+            "errors":
+                [],
+
+            "lesson_reviews":
+                lesson_reviews,
+
+            "level":
+                lesson_review.get(
+                    "level"
+                ),
+
+            "lesson":
+                lesson_review.get(
+                    "lesson"
+                ),
+
+            "topic":
+                "Lektionswiederholung",
+
+            "message":
+                (
+                    "Heute sollten wir zuerst "
+                    f"{lesson_description} "
+                    "wiederholen."
+                )
+        }
+
+
+    # ======================================
+    # 4. TRUDNE SŁOWA – INFORMACYJNIE
     # ======================================
 
     difficult_words = get_difficult_words(
@@ -843,6 +1062,9 @@ def get_next_learning_step(
             "errors":
                 [],
 
+            "lesson_reviews":
+                [],
+
             "topic":
                 "Wortschatz",
 
@@ -856,7 +1078,7 @@ def get_next_learning_step(
 
 
     # ======================================
-    # 4. OSTATNIE SŁOWO – INFORMACYJNIE
+    # 5. OSTATNIE SŁOWO – INFORMACYJNIE
     # ======================================
 
     recent_words = (
@@ -886,6 +1108,9 @@ def get_next_learning_step(
             "errors":
                 [],
 
+            "lesson_reviews":
+                [],
+
             "topic":
                 "Wortschatz",
 
@@ -898,7 +1123,7 @@ def get_next_learning_step(
 
 
     # ======================================
-    # 5. OSTATNI TEMAT
+    # 6. OSTATNI TEMAT
     # ======================================
 
     recent_topics = (
@@ -926,6 +1151,9 @@ def get_next_learning_step(
                 "errors":
                     [],
 
+                "lesson_reviews":
+                    [],
+
                 "topic":
                     topic,
 
@@ -947,6 +1175,9 @@ def get_next_learning_step(
             "errors":
                 [],
 
+            "lesson_reviews":
+                [],
+
             "topic":
                 topic,
 
@@ -966,6 +1197,9 @@ def get_next_learning_step(
             [],
 
         "errors":
+            [],
+
+        "lesson_reviews":
             [],
 
         "topic":
@@ -1378,6 +1612,13 @@ def get_new_learning_short_description(
 
 # ==========================================
 # MÓZG NAUCZYCIELA
+#
+# PRIORYTET:
+#
+# 1. błędy
+# 2. słownictwo
+# 3. powtórka całej lekcji
+# 4. nowy materiał
 # ==========================================
 
 def get_teacher_learning_plan(
@@ -1476,6 +1717,9 @@ def get_teacher_learning_plan(
             "words":
                 [],
 
+            "lesson_reviews":
+                [],
+
             "next":
                 new_learning_plan,
 
@@ -1530,6 +1774,9 @@ def get_teacher_learning_plan(
             "words":
                 review_words,
 
+            "lesson_reviews":
+                [],
+
             "next":
                 new_learning_plan,
 
@@ -1539,7 +1786,79 @@ def get_teacher_learning_plan(
 
 
     # ======================================
-    # 3. BRAK NALEŻNYCH POWTÓREK
+    # 3. POWTÓRKA CAŁEJ LEKCJI
+    # ======================================
+
+    lesson_reviews = get_lessons_for_review(
+        state,
+        limit=1
+    )
+
+
+    if lesson_reviews:
+
+        lesson_review = lesson_reviews[0]
+
+        lesson_description = (
+            get_lesson_review_description(
+                lesson_review
+            )
+        )
+
+
+        if new_description:
+
+            message = (
+                "Heute wiederholen wir zuerst "
+                f"{lesson_description}. "
+                "Danach machen wir mit "
+                f"{new_description} weiter."
+            )
+
+        else:
+
+            message = (
+                "Heute wiederholen wir zuerst "
+                f"{lesson_description}."
+            )
+
+
+        return {
+            "type":
+                "teacher_plan",
+
+            "priority":
+                "lesson_review",
+
+            "errors":
+                [],
+
+            "words":
+                [],
+
+            "lesson_reviews":
+                lesson_reviews,
+
+            "level":
+                lesson_review.get(
+                    "level"
+                ),
+
+            "lesson":
+                lesson_review.get(
+                    "lesson"
+                ),
+
+            "next":
+                new_learning_plan,
+
+            "message":
+                message
+        }
+
+
+    # ======================================
+    # 4. BRAK NALEŻNYCH POWTÓREK
     # -> OD RAZU LEKCJA / NOWY MATERIAŁ
     # ======================================
 
@@ -1594,4 +1913,4 @@ def get_teacher_learning_message(
 
     return plan.get(
         "message"
-    )
+)
