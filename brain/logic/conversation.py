@@ -68,10 +68,6 @@ from brain.logic.lesson_progress_router import (
     handle_lesson_progress
 )
 
-from brain.logic.error_memory_router import (
-    handle_error_memory
-)
-
 from brain.logic.alphabet_router import (
     handle_alphabet
 )
@@ -123,8 +119,8 @@ from brain.logic.conversation_continuation import (
     continue_after_finished_training
 )
 
-from brain.memory.review import (
-    handle_memory
+from brain.logic.conversation_memory import (
+    handle_conversation_memory
 )
 
 from brain.memory.error_review import (
@@ -580,42 +576,37 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 5A. PAMIĘĆ BŁĘDÓW
+    # 5. PAMIĘĆ
+    #
+    # Logika:
+    #
+    # conversation_memory.py
+    #
+    # Obsługuje:
+    #
+    # - pamięć błędów
+    # - pamięć nauki
+    # - słowa ćwiczone
+    # - słowa do powtórki
+    # - trudne słowa
+    # - ostatnią aktywność
+    #
+    # Po odpowiedzi Nele wraca
+    # do aktualnego treningu.
     # ======================================
 
-    answer = handle_error_memory(
+    (
+        handled,
+        answer
+    ) = handle_conversation_memory(
         processed_message,
         state
     )
 
-    if answer:
+    if handled:
 
         return return_with_feedback(
-            continue_after_side_answer(
-                answer,
-                state
-            ),
-            feedback_text,
-            session_id
-        )
-
-
-    # ======================================
-    # 5B. PAMIĘĆ NAUKI
-    # ======================================
-
-    answer = handle_memory(
-        processed_message,
-        state
-    )
-
-    if answer:
-
-        return return_with_feedback(
-            continue_after_side_answer(
-                answer,
-                state
-            ),
+            answer,
             feedback_text,
             session_id
         )
@@ -807,43 +798,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 16. PAMIĘĆ BŁĘDÓW – FALLBACK
-    # ======================================
-
-    answer = handle_error_memory(
-        processed_message,
-        state
-    )
-
-    if answer:
-
-        return return_with_feedback(
-            answer,
-            feedback_text,
-            session_id
-        )
-
-
-    # ======================================
-    # 17. PAMIĘĆ NAUKI – FALLBACK
-    # ======================================
-
-    answer = handle_memory(
-        processed_message,
-        state
-    )
-
-    if answer:
-
-        return return_with_feedback(
-            answer,
-            feedback_text,
-            session_id
-        )
-
-
-    # ======================================
-    # 18. TEMAT
+    # 16. TEMAT
     # ======================================
 
     answer = handle_topic_follow_up(
@@ -861,7 +816,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 19. PORÓWNANIA
+    # 17. PORÓWNANIA
     # ======================================
 
     answer = handle_comparison(
@@ -880,7 +835,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 20. SŁOWNICTWO
+    # 18. SŁOWNICTWO
     # ======================================
 
     was_active = (
@@ -919,7 +874,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 21. INTENCJE
+    # 19. INTENCJE
     # ======================================
 
     answer = handle_intent(
@@ -947,7 +902,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 22. ZNANE PYTANIA
+    # 20. ZNANE PYTANIA
     # ======================================
 
     answer = find_response(
@@ -967,7 +922,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 23. KONTEKST
+    # 21. KONTEKST
     # ======================================
 
     answer = handle_context(
@@ -985,7 +940,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 24. FALLBACK
+    # 22. FALLBACK
     # ======================================
 
     return return_with_feedback(
@@ -996,4 +951,4 @@ def generate_conversation_reply(
         ),
         feedback_text,
         session_id
-                )
+    )
