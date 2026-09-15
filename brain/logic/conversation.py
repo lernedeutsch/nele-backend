@@ -3,11 +3,8 @@
 # TEACHER MODE
 # ==========================================
 
-import re
-
 from brain.logic.memory import (
-    get_conversation_state,
-    save_conversation_state
+    get_conversation_state
 )
 
 from brain.logic.message_parser import (
@@ -123,180 +120,15 @@ from brain.logic.conversation_memory import (
     handle_conversation_memory
 )
 
+from brain.logic.conversation_output import (
+    merge_feedback_texts,
+    return_with_memory,
+    return_with_feedback
+)
+
 from brain.memory.error_review import (
     refresh_error_reviews
 )
-
-
-# ==========================================
-# FEEDBACK
-# ==========================================
-
-def merge_feedback_texts(
-    *feedbacks
-):
-
-    result = []
-
-    for feedback in feedbacks:
-
-        feedback = str(
-            feedback or ""
-        ).strip()
-
-        if (
-            feedback
-            and
-            feedback not in result
-        ):
-
-            result.append(
-                feedback
-            )
-
-    return "\n\n".join(
-        result
-    )
-
-
-# ==========================================
-# OSTATNIE PYTANIE NELE
-# ==========================================
-
-def extract_last_question(
-    answer
-):
-
-    if not answer:
-        return None
-
-    questions = re.findall(
-        r'[^.!?\n]*\?',
-        str(
-            answer
-        ).strip()
-    )
-
-    if not questions:
-        return None
-
-    question = questions[
-        -1
-    ].strip()
-
-    return question or None
-
-
-# ==========================================
-# ZAPAMIĘTANIE WYPOWIEDZI NELE
-# ==========================================
-
-def remember_nele_output(
-    answer,
-    state
-):
-
-    if (
-        state is None
-        or
-        not answer
-    ):
-
-        return
-
-    answer = str(
-        answer
-    ).strip()
-
-    if not answer:
-        return
-
-    state[
-        "last_nele_message"
-    ] = answer
-
-    state[
-        "last_nele_question"
-    ] = extract_last_question(
-        answer
-    )
-
-
-# ==========================================
-# ZAPIS STANU
-# ==========================================
-
-def return_with_memory(
-    answer,
-    session_id
-):
-
-    try:
-
-        state = get_conversation_state(
-            session_id
-        )
-
-        remember_nele_output(
-            answer,
-            state
-        )
-
-        save_conversation_state(
-            session_id
-        )
-
-    except Exception as error:
-
-        print(
-            f"Conversation save error: {error}"
-        )
-
-    return answer
-
-
-# ==========================================
-# FEEDBACK + ODPOWIEDŹ
-# ==========================================
-
-def combine_learner_feedback(
-    feedback_text,
-    answer
-):
-
-    feedback_text = str(
-        feedback_text or ""
-    ).strip()
-
-    answer = str(
-        answer or ""
-    ).strip()
-
-    if not feedback_text:
-        return answer
-
-    if not answer:
-        return feedback_text
-
-    return (
-        f"{feedback_text}\n\n"
-        f"{answer}"
-    )
-
-
-def return_with_feedback(
-    answer,
-    feedback_text,
-    session_id
-):
-
-    return return_with_memory(
-        combine_learner_feedback(
-            feedback_text,
-            answer
-        ),
-        session_id
-    )
 
 
 # ==========================================
@@ -426,8 +258,6 @@ def generate_conversation_reply(
     # ======================================
     # 2. SAMOPOCZUCIE
     #
-    # Logika:
-    #
     # conversation_wellbeing.py
     #
     # Musi być przed pamięcią użytkownika,
@@ -467,8 +297,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 4A. AKTYWNE FEHLERTRAINING
-    #
-    # Logika:
     #
     # conversation_error_training.py
     #
@@ -546,8 +374,6 @@ def generate_conversation_reply(
     # ======================================
     # 4D. PYTANIE O ZNACZENIE SŁOWA
     #
-    # Logika:
-    #
     # conversation_vocabulary.py
     # ======================================
 
@@ -578,21 +404,7 @@ def generate_conversation_reply(
     # ======================================
     # 5. PAMIĘĆ
     #
-    # Logika:
-    #
     # conversation_memory.py
-    #
-    # Obsługuje:
-    #
-    # - pamięć błędów
-    # - pamięć nauki
-    # - słowa ćwiczone
-    # - słowa do powtórki
-    # - trudne słowa
-    # - ostatnią aktywność
-    #
-    # Po odpowiedzi Nele wraca
-    # do aktualnego treningu.
     # ======================================
 
     (
@@ -614,8 +426,6 @@ def generate_conversation_reply(
 
     # ======================================
     # 6. AKTYWNE FEHLERTRAINING
-    #
-    # Logika:
     #
     # conversation_error_training.py
     # ======================================
