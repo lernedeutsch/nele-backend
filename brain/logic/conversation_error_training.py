@@ -95,7 +95,7 @@ def clear_old_teacher_choice_state(
 # -> KOLEJNY KROK NAUKI
 # ==========================================
 
-def continue_after_finished_error_training(
+def continue_after_finished_training(
     answer,
     state
 ):
@@ -127,6 +127,22 @@ def continue_after_finished_error_training(
         )
 
     return answer or continuation
+
+
+# ==========================================
+# STARA NAZWA
+# DLA ZGODNOŚCI Z WCZEŚNIEJSZYM KODEM
+# ==========================================
+
+def continue_after_finished_error_training(
+    answer,
+    state
+):
+
+    return continue_after_finished_training(
+        answer,
+        state
+    )
 
 
 # ==========================================
@@ -332,7 +348,7 @@ def handle_priority_error_practice(
     ):
 
         answer = (
-            continue_after_finished_error_training(
+            continue_after_finished_training(
                 answer,
                 state
             )
@@ -395,7 +411,7 @@ def handle_active_error_practice(
     ):
 
         answer = (
-            continue_after_finished_error_training(
+            continue_after_finished_training(
                 answer,
                 state
             )
