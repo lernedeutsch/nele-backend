@@ -61,8 +61,7 @@ from brain.logic.learner_feedback import (
 )
 
 from brain.logic.activity_resume import (
-    handle_continue_last_activity,
-    resume_current_training
+    handle_continue_last_activity
 )
 
 from brain.logic.lesson_progress_router import (
@@ -82,8 +81,7 @@ from brain.logic.context_router import (
 )
 
 from brain.logic.response_engine import (
-    find_response,
-    create_teacher_directed_follow_up
+    find_response
 )
 
 from brain.logic.intent_handler import (
@@ -113,12 +111,16 @@ from brain.logic.conversation_vocabulary import (
 
 from brain.logic.conversation_error_training import (
     handle_priority_error_practice,
-    handle_active_error_practice,
-    continue_after_finished_training
+    handle_active_error_practice
 )
 
 from brain.logic.conversation_wellbeing import (
     handle_wellbeing_reply
+)
+
+from brain.logic.conversation_continuation import (
+    continue_after_side_answer,
+    continue_after_finished_training
 )
 
 from brain.memory.review import (
@@ -302,120 +304,6 @@ def return_with_feedback(
 
 
 # ==========================================
-# USUWANIE STAREGO PYTANIA O WYBÓR
-# ==========================================
-
-def remove_old_teacher_choice_prompt(
-    answer
-):
-
-    if not answer:
-        return answer
-
-    answer = str(
-        answer
-    ).strip()
-
-    old_prompts = [
-        "Möchtest du ",
-        "Was möchtest du heute üben?",
-        "Womit möchtest du heute anfangen?"
-    ]
-
-    positions = []
-
-    for prompt in old_prompts:
-
-        position = answer.find(
-            prompt
-        )
-
-        if position >= 0:
-
-            positions.append(
-                position
-            )
-
-    if not positions:
-        return answer
-
-    return answer[
-        :min(
-            positions
-        )
-    ].rstrip()
-
-
-# ==========================================
-# CZYSZCZENIE STAREGO PYTANIA
-# O KONTYNUACJĘ
-# ==========================================
-
-def clear_old_teacher_choice_state(
-    state
-):
-
-    if state is None:
-        return
-
-    if state.get(
-        "last_question"
-    ) in {
-        "continue_last_activity",
-        "continue_error_review"
-    }:
-
-        state[
-            "last_question"
-        ] = None
-
-
-# ==========================================
-# PYTANIE POBOCZNE
-# -> POWRÓT DO TRENINGU
-# ==========================================
-
-def continue_after_side_answer(
-    answer,
-    state
-):
-
-    answer = remove_old_teacher_choice_prompt(
-        answer
-    )
-
-    clear_old_teacher_choice_state(
-        state
-    )
-
-    continuation = resume_current_training(
-        state
-    )
-
-    if not continuation:
-
-        continuation = (
-            create_teacher_directed_follow_up(
-                state,
-                ""
-            )
-        )
-
-    if (
-        answer
-        and
-        continuation
-    ):
-
-        return (
-            f"{answer}\n\n"
-            f"{continuation}"
-        )
-
-    return answer or continuation
-
-
-# ==========================================
 # GŁÓWNY ROUTER
 # ==========================================
 
@@ -542,15 +430,12 @@ def generate_conversation_reply(
     # ======================================
     # 2. SAMOPOCZUCIE
     #
-    # Logika znajduje się teraz w:
+    # Logika:
     #
     # conversation_wellbeing.py
     #
     # Musi być przed pamięcią użytkownika,
-    # żeby np.:
-    #
-    # Ich bin müde.
-    #
+    # aby np. "Ich bin müde."
     # nie zostało potraktowane jako imię.
     # ======================================
 
@@ -592,7 +477,7 @@ def generate_conversation_reply(
     # conversation_error_training.py
     #
     # Fehlertraining ma pierwszeństwo
-    # przed komendami rozmowy.
+    # przed zwykłymi komendami.
     # ======================================
 
     (
@@ -739,7 +624,7 @@ def generate_conversation_reply(
     # ======================================
     # 6. AKTYWNE FEHLERTRAINING
     #
-    # Cała logika znajduje się już w:
+    # Logika:
     #
     # conversation_error_training.py
     # ======================================
@@ -1111,4 +996,4 @@ def generate_conversation_reply(
         ),
         feedback_text,
         session_id
-    )
+                )
