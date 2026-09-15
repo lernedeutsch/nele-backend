@@ -52,21 +52,12 @@ from brain.logic.lesson_teaching import (
     handle_lesson_teaching
 )
 
-from brain.logic.error_practice import (
-    handle_error_practice,
-    is_error_practice_active
-)
-
 from brain.logic.error_progress import (
     handle_error_progress
 )
 
 from brain.logic.learner_feedback import (
     prepare_message_with_feedback
-)
-
-from brain.logic.wellbeing_feedback import (
-    analyze_wellbeing_response
 )
 
 from brain.logic.activity_resume import (
@@ -92,9 +83,7 @@ from brain.logic.context_router import (
 
 from brain.logic.response_engine import (
     find_response,
-    create_returning_user_follow_up,
-    create_teacher_directed_follow_up,
-    get_short_answer
+    create_teacher_directed_follow_up
 )
 
 from brain.logic.intent_handler import (
@@ -124,7 +113,12 @@ from brain.logic.conversation_vocabulary import (
 
 from brain.logic.conversation_error_training import (
     handle_priority_error_practice,
+    handle_active_error_practice,
     continue_after_finished_training
+)
+
+from brain.logic.conversation_wellbeing import (
+    handle_wellbeing_reply
 )
 
 from brain.memory.review import (
@@ -422,116 +416,6 @@ def continue_after_side_answer(
 
 
 # ==========================================
-# SAMOPOCZUCIE
-# ==========================================
-
-def combine_full_wellbeing_reaction(
-    reaction,
-    continuation_answer
-):
-
-    if not reaction:
-        return continuation_answer
-
-    if not continuation_answer:
-        return reaction
-
-    short_reaction = get_short_answer(
-        reaction
-    )
-
-    if (
-        short_reaction
-        and
-        continuation_answer.startswith(
-            short_reaction
-        )
-    ):
-
-        rest = continuation_answer[
-            len(
-                short_reaction
-            ):
-        ]
-
-        return (
-            f"{reaction}"
-            f"{rest}"
-        )
-
-    return (
-        f"{reaction} "
-        f"{continuation_answer}"
-    )
-
-
-# ==========================================
-# ODPOWIEDŹ NA:
-# WIE GEHT ES DIR?
-# ==========================================
-
-def handle_wellbeing_reply(
-    user_message,
-    state,
-    session_id
-):
-
-    if (
-        state is None
-        or
-        state.get(
-            "last_question"
-        )
-        !=
-        "wellbeing"
-    ):
-
-        return None
-
-    analysis = analyze_wellbeing_response(
-        user_message
-    )
-
-    if not analysis.get(
-        "recognized"
-    ):
-
-        return None
-
-    reaction = analysis.get(
-        "reaction"
-    )
-
-    feedback = analysis.get(
-        "feedback"
-    )
-
-    if not reaction:
-        return None
-
-    continuation_answer = (
-        create_returning_user_follow_up(
-            state,
-            reaction,
-            ""
-        )
-    )
-
-    final_answer = (
-        combine_full_wellbeing_reaction(
-            reaction,
-            continuation_answer
-        )
-    )
-
-    return return_with_feedback(
-        final_answer,
-        feedback,
-        session_id
-    )
-
-
-# ==========================================
 # GŁÓWNY ROUTER
 # ==========================================
 
@@ -657,17 +541,35 @@ def generate_conversation_reply(
 
     # ======================================
     # 2. SAMOPOCZUCIE
+    #
+    # Logika znajduje się teraz w:
+    #
+    # conversation_wellbeing.py
+    #
+    # Musi być przed pamięcią użytkownika,
+    # żeby np.:
+    #
+    # Ich bin müde.
+    #
+    # nie zostało potraktowane jako imię.
     # ======================================
 
-    answer = handle_wellbeing_reply(
+    (
+        wellbeing_handled,
+        wellbeing_answer,
+        wellbeing_feedback
+    ) = handle_wellbeing_reply(
         user_message,
-        state,
-        session_id
+        state
     )
 
-    if answer:
+    if wellbeing_handled:
 
-        return answer
+        return return_with_feedback(
+            wellbeing_answer,
+            wellbeing_feedback,
+            session_id
+        )
 
 
     # ======================================
@@ -685,14 +587,12 @@ def generate_conversation_reply(
     # ======================================
     # 4A. AKTYWNE FEHLERTRAINING
     #
-    # Logika znajduje się teraz w:
+    # Logika:
     #
     # conversation_error_training.py
     #
-    # To musi pozostać przed komendami:
-    #
-    # - wiederholen
-    # - zurück zum Training
+    # Fehlertraining ma pierwszeństwo
+    # przed komendami rozmowy.
     # ======================================
 
     (
@@ -765,7 +665,7 @@ def generate_conversation_reply(
     # ======================================
     # 4D. PYTANIE O ZNACZENIE SŁOWA
     #
-    # Logika znajduje się w:
+    # Logika:
     #
     # conversation_vocabulary.py
     # ======================================
@@ -839,35 +739,17 @@ def generate_conversation_reply(
     # ======================================
     # 6. AKTYWNE FEHLERTRAINING
     #
-    # Zwykła odpowiedź użytkownika
-    # podczas aktywnego ćwiczenia.
+    # Cała logika znajduje się już w:
+    #
+    # conversation_error_training.py
     # ======================================
 
-    was_active = is_error_practice_active(
-        state
-    )
-
-    answer = handle_error_practice(
+    answer = handle_active_error_practice(
         processed_message,
         state
     )
 
     if answer:
-
-        if (
-            was_active
-            and
-            not is_error_practice_active(
-                state
-            )
-        ):
-
-            answer = (
-                continue_after_finished_training(
-                    answer,
-                    state
-                )
-            )
 
         return return_with_feedback(
             answer,
