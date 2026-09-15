@@ -54,11 +54,7 @@ from brain.logic.lesson_teaching import (
 
 from brain.logic.error_practice import (
     handle_error_practice,
-    is_error_practice_active,
-    is_first_answer,
-    is_second_answer,
-    wants_to_stop_error_practice,
-    clean_error_practice_message
+    is_error_practice_active
 )
 
 from brain.logic.error_progress import (
@@ -126,16 +122,17 @@ from brain.logic.conversation_vocabulary import (
     handle_vocabulary_explanation_request
 )
 
+from brain.logic.conversation_error_training import (
+    handle_priority_error_practice,
+    continue_after_finished_training
+)
+
 from brain.memory.review import (
     handle_memory
 )
 
 from brain.memory.error_review import (
     refresh_error_reviews
-)
-
-from brain.memory.error_memory import (
-    get_error_summary
 )
 
 
@@ -425,236 +422,6 @@ def continue_after_side_answer(
 
 
 # ==========================================
-# KONIEC ĆWICZENIA
-# -> NASTĘPNY KROK
-# ==========================================
-
-def continue_after_finished_training(
-    answer,
-    state
-):
-
-    answer = remove_old_teacher_choice_prompt(
-        answer
-    )
-
-    clear_old_teacher_choice_state(
-        state
-    )
-
-    continuation = (
-        create_teacher_directed_follow_up(
-            state,
-            ""
-        )
-    )
-
-    if (
-        answer
-        and
-        continuation
-    ):
-
-        return (
-            f"{answer}\n\n"
-            f"{continuation}"
-        )
-
-    return answer or continuation
-
-
-# ==========================================
-# PRIORYTET AKTYWNEGO FEHLERTRAINING
-# ==========================================
-
-def should_prioritize_error_practice(
-    user_message,
-    state
-):
-
-    if (
-        state is None
-        or
-        not is_error_practice_active(
-            state
-        )
-    ):
-
-        return False
-
-
-    # ======================================
-    # STOP FEHLERTRAINING
-    # ======================================
-
-    if wants_to_stop_error_practice(
-        user_message
-    ):
-
-        return True
-
-
-    # ======================================
-    # ODPOWIEDŹ 1 LUB 2
-    # ======================================
-
-    if (
-        is_first_answer(
-            user_message
-        )
-        or
-        is_second_answer(
-            user_message
-        )
-    ):
-
-        return True
-
-
-    error_type = state.get(
-        "error_practice_type"
-    )
-
-    if not error_type:
-        return False
-
-
-    try:
-
-        summary = get_error_summary(
-            state,
-            error_type
-        )
-
-    except Exception as error:
-
-        print(
-            f"Error practice priority: {error}"
-        )
-
-        return False
-
-
-    if not isinstance(
-        summary,
-        dict
-    ):
-
-        return False
-
-
-    user_clean = clean_error_practice_message(
-        user_message
-    )
-
-    wrong_clean = clean_error_practice_message(
-        summary.get(
-            "last_wrong"
-        )
-    )
-
-    correct_clean = clean_error_practice_message(
-        summary.get(
-            "last_correct"
-        )
-    )
-
-
-    # ======================================
-    # POPRAWNE LUB BŁĘDNE ZDANIE
-    # Z AKTUALNEGO FEHLERTRAINING
-    #
-    # Fehlertraining ma pierwszeństwo
-    # przed zwykłą komendą rozmowy.
-    #
-    # Przykład:
-    #
-    # Kannst du die Frage bitte wiederholen?
-    # ======================================
-
-    return bool(
-        user_clean
-        and
-        user_clean in {
-            wrong_clean,
-            correct_clean
-        }
-    )
-
-
-# ==========================================
-# OBSŁUGA ODPOWIEDZI
-# AKTYWNEGO FEHLERTRAINING
-# ==========================================
-
-def handle_priority_error_practice(
-    user_message,
-    state
-):
-
-    if not should_prioritize_error_practice(
-        user_message,
-        state
-    ):
-
-        return (
-            False,
-            None
-        )
-
-
-    was_active = is_error_practice_active(
-        state
-    )
-
-
-    answer = handle_error_practice(
-        user_message,
-        state
-    )
-
-
-    if not answer:
-
-        return (
-            False,
-            None
-        )
-
-
-    is_still_active = (
-        is_error_practice_active(
-            state
-        )
-    )
-
-
-    # ======================================
-    # FEHLERTRAINING WŁAŚNIE
-    # SIĘ ZAKOŃCZYŁO
-    # ======================================
-
-    if (
-        was_active
-        and
-        not is_still_active
-    ):
-
-        answer = (
-            continue_after_finished_training(
-                answer,
-                state
-            )
-        )
-
-
-    return (
-        True,
-        answer
-    )
-
-
-# ==========================================
 # SAMOPOCZUCIE
 # ==========================================
 
@@ -669,11 +436,9 @@ def combine_full_wellbeing_reaction(
     if not continuation_answer:
         return reaction
 
-
     short_reaction = get_short_answer(
         reaction
     )
-
 
     if (
         short_reaction
@@ -693,7 +458,6 @@ def combine_full_wellbeing_reaction(
             f"{reaction}"
             f"{rest}"
         )
-
 
     return (
         f"{reaction} "
@@ -724,18 +488,15 @@ def handle_wellbeing_reply(
 
         return None
 
-
     analysis = analyze_wellbeing_response(
         user_message
     )
-
 
     if not analysis.get(
         "recognized"
     ):
 
         return None
-
 
     reaction = analysis.get(
         "reaction"
@@ -745,10 +506,8 @@ def handle_wellbeing_reply(
         "feedback"
     )
 
-
     if not reaction:
         return None
-
 
     continuation_answer = (
         create_returning_user_follow_up(
@@ -758,14 +517,12 @@ def handle_wellbeing_reply(
         )
     )
 
-
     final_answer = (
         combine_full_wellbeing_reaction(
             reaction,
             continuation_answer
         )
     )
-
 
     return return_with_feedback(
         final_answer,
@@ -793,11 +550,9 @@ def generate_conversation_reply(
         user_message
     )
 
-
     if multiple_questions:
 
         answers = []
-
 
         for question in multiple_questions:
 
@@ -808,13 +563,11 @@ def generate_conversation_reply(
                 session_id
             )
 
-
             if answer:
 
                 answers.append(
                     answer
                 )
-
 
         if answers:
 
@@ -847,7 +600,6 @@ def generate_conversation_reply(
             state
         )
 
-
         if onboarding_step > 0:
 
             answer = handle_onboarding_answer(
@@ -856,14 +608,12 @@ def generate_conversation_reply(
                 session_id
             )
 
-
             if answer:
 
                 return return_with_memory(
                     answer,
                     session_id
                 )
-
 
         elif is_new_user(
             state
@@ -875,7 +625,6 @@ def generate_conversation_reply(
                 ),
                 session_id
             )
-
 
         else:
 
@@ -916,7 +665,6 @@ def generate_conversation_reply(
         session_id
     )
 
-
     if answer:
 
         return answer
@@ -937,14 +685,14 @@ def generate_conversation_reply(
     # ======================================
     # 4A. AKTYWNE FEHLERTRAINING
     #
-    # MUSI BYĆ PRZED KOMENDAMI:
+    # Logika znajduje się teraz w:
+    #
+    # conversation_error_training.py
+    #
+    # To musi pozostać przed komendami:
     #
     # - wiederholen
     # - zurück zum Training
-    #
-    # ponieważ poprawne zdanie
-    # z ćwiczenia może być jednocześnie
-    # komendą rozmowy.
     # ======================================
 
     (
@@ -954,7 +702,6 @@ def generate_conversation_reply(
         processed_message,
         state
     )
-
 
     if handled:
 
@@ -977,7 +724,6 @@ def generate_conversation_reply(
         processed_message,
         state
     )
-
 
     if handled:
 
@@ -1004,7 +750,6 @@ def generate_conversation_reply(
         state
     )
 
-
     if handled:
 
         return return_with_feedback(
@@ -1020,7 +765,7 @@ def generate_conversation_reply(
     # ======================================
     # 4D. PYTANIE O ZNACZENIE SŁOWA
     #
-    # Logika znajduje się teraz w:
+    # Logika znajduje się w:
     #
     # conversation_vocabulary.py
     # ======================================
@@ -1033,7 +778,6 @@ def generate_conversation_reply(
         processed_message,
         state
     )
-
 
     if handled:
 
@@ -1059,7 +803,6 @@ def generate_conversation_reply(
         state
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1081,7 +824,6 @@ def generate_conversation_reply(
         state
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1096,18 +838,19 @@ def generate_conversation_reply(
 
     # ======================================
     # 6. AKTYWNE FEHLERTRAINING
+    #
+    # Zwykła odpowiedź użytkownika
+    # podczas aktywnego ćwiczenia.
     # ======================================
 
     was_active = is_error_practice_active(
         state
     )
 
-
     answer = handle_error_practice(
         processed_message,
         state
     )
-
 
     if answer:
 
@@ -1126,7 +869,6 @@ def generate_conversation_reply(
                 )
             )
 
-
         return return_with_feedback(
             answer,
             feedback_text,
@@ -1142,7 +884,6 @@ def generate_conversation_reply(
         processed_message,
         state
     )
-
 
     if answer:
 
@@ -1162,7 +903,6 @@ def generate_conversation_reply(
         state
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1180,7 +920,6 @@ def generate_conversation_reply(
         processed_message,
         state
     )
-
 
     if answer:
 
@@ -1200,7 +939,6 @@ def generate_conversation_reply(
         state
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1218,7 +956,6 @@ def generate_conversation_reply(
         processed_message,
         session_id
     )
-
 
     if answer:
 
@@ -1239,7 +976,6 @@ def generate_conversation_reply(
         lesson
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1257,7 +993,6 @@ def generate_conversation_reply(
         processed_message,
         state
     )
-
 
     if answer:
 
@@ -1277,7 +1012,6 @@ def generate_conversation_reply(
         state
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1295,7 +1029,6 @@ def generate_conversation_reply(
         processed_message,
         session_id
     )
-
 
     if answer:
 
@@ -1315,7 +1048,6 @@ def generate_conversation_reply(
         state
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1334,7 +1066,6 @@ def generate_conversation_reply(
         state
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1352,7 +1083,6 @@ def generate_conversation_reply(
         processed_message,
         session_id
     )
-
 
     if answer:
 
@@ -1373,7 +1103,6 @@ def generate_conversation_reply(
         session_id
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1393,12 +1122,10 @@ def generate_conversation_reply(
         )
     )
 
-
     answer = handle_vocabulary(
         processed_message,
         state
     )
-
 
     if answer:
 
@@ -1417,7 +1144,6 @@ def generate_conversation_reply(
                 )
             )
 
-
         return return_with_feedback(
             answer,
             feedback_text,
@@ -1434,7 +1160,6 @@ def generate_conversation_reply(
         session_id
     )
 
-
     if answer:
 
         remember_current_topic(
@@ -1446,7 +1171,6 @@ def generate_conversation_reply(
             processed_message,
             session_id
         )
-
 
         return return_with_feedback(
             answer,
@@ -1466,7 +1190,6 @@ def generate_conversation_reply(
         session_id
     )
 
-
     if answer:
 
         return return_with_feedback(
@@ -1484,7 +1207,6 @@ def generate_conversation_reply(
         processed_message,
         session_id
     )
-
 
     if answer:
 
@@ -1507,4 +1229,4 @@ def generate_conversation_reply(
         ),
         feedback_text,
         session_id
-            )
+    )
