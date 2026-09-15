@@ -3,6 +3,22 @@
 # STUDENT MEMORY 2.0
 # ==========================================
 
+from datetime import (
+    datetime,
+    timezone
+)
+
+
+# ==========================================
+# AKTUALNY CZAS
+# ==========================================
+
+def get_current_time_iso():
+
+    return datetime.now(
+        timezone.utc
+    ).isoformat()
+
 
 # ==========================================
 # PUSTA PAMIĘĆ POSTĘPU LEKCJI
@@ -12,6 +28,31 @@ def create_empty_lesson_progress():
 
     return {
         "lessons": {}
+    }
+
+
+# ==========================================
+# PUSTA PAMIĘĆ POWTÓREK LEKCJI
+# ==========================================
+
+def create_empty_lesson_review():
+
+    return {
+        "review_count": 0,
+
+        "last_reviewed_at": None,
+
+        "next_review_at": None,
+
+        "correct_answers": 0,
+
+        "wrong_answers": 0,
+
+        "last_score": None,
+
+        "best_score": None,
+
+        "needs_review": False
     }
 
 
@@ -160,7 +201,10 @@ def get_lesson_progress(
 
             "current_section": None,
 
-            "completed": False
+            "completed": False,
+
+            "review":
+                create_empty_lesson_review()
         }
 
 
@@ -190,7 +234,10 @@ def get_lesson_progress(
 
         "current_section": None,
 
-        "completed": False
+        "completed": False,
+
+        "review":
+            create_empty_lesson_review()
     }
 
 
@@ -227,7 +274,71 @@ def get_lesson_progress(
         ] = []
 
 
+    # ======================================
+    # UZUPEŁNIENIE STARSZEJ PAMIĘCI
+    # POWTÓREK
+    # ======================================
+
+    if not isinstance(
+        lesson_progress.get(
+            "review"
+        ),
+        dict
+    ):
+
+        lesson_progress[
+            "review"
+        ] = (
+            create_empty_lesson_review()
+        )
+
+
+    review = lesson_progress[
+        "review"
+    ]
+
+
+    review_defaults = (
+        create_empty_lesson_review()
+    )
+
+
+    for key, value in review_defaults.items():
+
+        if key not in review:
+
+            review[
+                key
+            ] = value
+
+
     return lesson_progress
+
+
+# ==========================================
+# PAMIĘĆ POWTÓREK JEDNEJ LEKCJI
+# ==========================================
+
+def get_lesson_review(
+    state,
+    level="A1",
+    lesson=1
+):
+
+    lesson_progress = get_lesson_progress(
+        state,
+        level,
+        lesson
+    )
+
+
+    if not lesson_progress:
+        return {}
+
+
+    return lesson_progress[
+        "review"
+    ]
 
 
 # ==========================================
@@ -632,6 +743,286 @@ def is_lesson_fully_completed(
 
 
 # ==========================================
+# OZNACZENIE LEKCJI DO POWTÓRKI
+# ==========================================
+
+def mark_lesson_for_review(
+    state,
+    level,
+    lesson
+):
+
+    review = get_lesson_review(
+        state,
+        level,
+        lesson
+    )
+
+
+    if not review:
+        return
+
+
+    review[
+        "needs_review"
+    ] = True
+
+
+# ==========================================
+# USUNIĘCIE OZNACZENIA POWTÓRKI
+# ==========================================
+
+def clear_lesson_review_flag(
+    state,
+    level,
+    lesson
+):
+
+    review = get_lesson_review(
+        state,
+        level,
+        lesson
+    )
+
+
+    if not review:
+        return
+
+
+    review[
+        "needs_review"
+    ] = False
+
+
+# ==========================================
+# ZAPIS WYNIKU POWTÓRKI
+# ==========================================
+
+def remember_lesson_review_result(
+    state,
+    level,
+    lesson,
+    correct_answers=0,
+    wrong_answers=0,
+    score=None
+):
+
+    review = get_lesson_review(
+        state,
+        level,
+        lesson
+    )
+
+
+    if not review:
+        return
+
+
+    try:
+
+        correct_answers = int(
+            correct_answers
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        correct_answers = 0
+
+
+    try:
+
+        wrong_answers = int(
+            wrong_answers
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        wrong_answers = 0
+
+
+    if correct_answers < 0:
+        correct_answers = 0
+
+
+    if wrong_answers < 0:
+        wrong_answers = 0
+
+
+    review[
+        "review_count"
+    ] += 1
+
+
+    review[
+        "correct_answers"
+    ] += correct_answers
+
+
+    review[
+        "wrong_answers"
+    ] += wrong_answers
+
+
+    review[
+        "last_reviewed_at"
+    ] = get_current_time_iso()
+
+
+    review[
+        "needs_review"
+    ] = False
+
+
+    if score is not None:
+
+        try:
+
+            score = int(
+                score
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            score = None
+
+
+    if score is not None:
+
+        score = max(
+            0,
+            min(
+                100,
+                score
+            )
+        )
+
+
+        review[
+            "last_score"
+        ] = score
+
+
+        best_score = review.get(
+            "best_score"
+        )
+
+
+        if (
+            best_score is None
+            or
+            score > best_score
+        ):
+
+            review[
+                "best_score"
+            ] = score
+
+
+# ==========================================
+# USTAWIENIE TERMINU POWTÓRKI
+# ==========================================
+
+def set_next_lesson_review(
+    state,
+    level,
+    lesson,
+    next_review_at
+):
+
+    review = get_lesson_review(
+        state,
+        level,
+        lesson
+    )
+
+
+    if not review:
+        return
+
+
+    review[
+        "next_review_at"
+    ] = next_review_at
+
+
+# ==========================================
+# PODSUMOWANIE POWTÓREK LEKCJI
+# ==========================================
+
+def get_lesson_review_summary(
+    state,
+    level,
+    lesson
+):
+
+    review = get_lesson_review(
+        state,
+        level,
+        lesson
+    )
+
+
+    if not review:
+        return {}
+
+
+    return {
+        "review_count":
+            review.get(
+                "review_count",
+                0
+            ),
+
+        "last_reviewed_at":
+            review.get(
+                "last_reviewed_at"
+            ),
+
+        "next_review_at":
+            review.get(
+                "next_review_at"
+            ),
+
+        "correct_answers":
+            review.get(
+                "correct_answers",
+                0
+            ),
+
+        "wrong_answers":
+            review.get(
+                "wrong_answers",
+                0
+            ),
+
+        "last_score":
+            review.get(
+                "last_score"
+            ),
+
+        "best_score":
+            review.get(
+                "best_score"
+            ),
+
+        "needs_review":
+            review.get(
+                "needs_review",
+                False
+            )
+    }
+
+
+# ==========================================
 # PODSUMOWANIE LEKCJI
 # ==========================================
 
@@ -691,5 +1082,12 @@ def get_lesson_progress_summary(
                 state,
                 level,
                 lesson
+            ),
+
+        "review":
+            get_lesson_review_summary(
+                state,
+                level,
+                lesson
             )
-  }
+        }
