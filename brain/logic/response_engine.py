@@ -1,6 +1,7 @@
 # ==========================================
 # NELE – SILNIK ODPOWIEDZI
 # TEACHER MODE
+# SESSION COACH
 # ==========================================
 
 import random
@@ -51,6 +52,14 @@ from brain.memory.next_learning_step import (
     get_review_plan,
     get_errors_for_review,
     get_lessons_for_review
+)
+
+from brain.memory.daily_learning import (
+    get_daily_learning_summary,
+    was_word_reviewed_today,
+    was_error_reviewed_today,
+    mark_lesson_recap_today,
+    mark_daily_plan_completed
 )
 
 
@@ -193,6 +202,60 @@ def display_activity_word(
 
 
 # ==========================================
+# POŁĄCZENIE ELEMENTÓW PO NIEMIECKU
+# ==========================================
+
+def join_german_items(
+    items
+):
+
+    clean_items = []
+
+    for item in items:
+
+        item = str(
+            item or ""
+        ).strip()
+
+        if item:
+
+            clean_items.append(
+                item
+            )
+
+
+    if not clean_items:
+        return ""
+
+
+    if len(
+        clean_items
+    ) == 1:
+
+        return clean_items[0]
+
+
+    if len(
+        clean_items
+    ) == 2:
+
+        return (
+            clean_items[0]
+            + " und "
+            + clean_items[1]
+        )
+
+
+    return (
+        ", ".join(
+            clean_items[:-1]
+        )
+        + " und "
+        + clean_items[-1]
+    )
+
+
+# ==========================================
 # KRÓTKA CZĘŚĆ ODPOWIEDZI
 # ==========================================
 
@@ -230,13 +293,16 @@ def get_short_answer(
                 position
             )
 
+
     if not positions:
 
         return answer
 
+
     first_position = min(
         positions
     )
+
 
     return answer[
         :first_position + 1
@@ -294,9 +360,11 @@ def clear_pending_error_review(
     if state is None:
         return
 
+
     state[
         "pending_error_review"
     ] = None
+
 
     if (
         state.get(
@@ -326,6 +394,7 @@ def set_pending_error_review(
     if not error_type:
         return False
 
+
     state[
         "pending_error_review"
     ] = error_type
@@ -334,15 +403,13 @@ def set_pending_error_review(
         "last_question"
     ] = "continue_error_review"
 
+
     return True
 
 
 # ==========================================
 # CZY UŻYTKOWNIK ODPOWIADA
-# NA PROPOZYCJĘ POWTÓRKI?
-#
-# STARY TRYB
-# ZOSTAJE DLA KOMPATYBILNOŚCI
+# NA STARĄ PROPOZYCJĘ POWTÓRKI?
 # ==========================================
 
 def handle_pending_error_review_reply(
@@ -357,6 +424,7 @@ def handle_pending_error_review_reply(
             None
         )
 
+
     if (
         state.get(
             "last_question"
@@ -370,9 +438,11 @@ def handle_pending_error_review_reply(
             None
         )
 
+
     error_type = state.get(
         "pending_error_review"
     )
+
 
     if not error_type:
 
@@ -385,16 +455,13 @@ def handle_pending_error_review_reply(
             None
         )
 
+
     message = normalize(
         user_message
     ).strip(
         " .?!„“\"'"
     )
 
-
-    # ======================================
-    # TAK
-    # ======================================
 
     if message in YES_ANSWERS:
 
@@ -413,10 +480,6 @@ def handle_pending_error_review_reply(
         )
 
 
-    # ======================================
-    # NIE
-    # ======================================
-
     if message in NO_ANSWERS:
 
         clear_pending_error_review(
@@ -432,10 +495,6 @@ def handle_pending_error_review_reply(
             )
         )
 
-
-    # ======================================
-    # INNE PYTANIE
-    # ======================================
 
     clear_pending_error_review(
         state
@@ -458,6 +517,7 @@ def get_due_error_review(
     if state is None:
         return None
 
+
     try:
 
         refresh_error_reviews(
@@ -472,20 +532,21 @@ def get_due_error_review(
 
         return None
 
+
     due_errors = get_due_error_reviews(
         state
     )
 
+
     if not due_errors:
         return None
+
 
     return due_errors[0]
 
 
 # ==========================================
-# PROPOZYCJA NALEŻNEJ POWTÓRKI
-#
-# STARY TRYB
+# STARA PROPOZYCJA POWTÓRKI
 # ==========================================
 
 def create_due_error_review_offer(
@@ -497,17 +558,21 @@ def create_due_error_review_offer(
         state
     )
 
+
     if not error_type:
         return None
+
 
     label = get_error_practice_label(
         error_type
     )
 
+
     set_pending_error_review(
         state,
         error_type
     )
+
 
     return (
         f"{short_answer} "
@@ -518,9 +583,7 @@ def create_due_error_review_offer(
 
 
 # ==========================================
-# PLAN DALSZEJ LEKCJI
-#
-# STARY TRYB
+# STARY PLAN KONTYNUACJI LEKCJI
 # ==========================================
 
 def create_lesson_continuation_offer(
@@ -530,6 +593,7 @@ def create_lesson_continuation_offer(
 
     if state is None:
         return None
+
 
     try:
 
@@ -545,12 +609,14 @@ def create_lesson_continuation_offer(
 
         return None
 
+
     if not isinstance(
         plan,
         dict
     ):
 
         return None
+
 
     plan_type = str(
         plan.get(
@@ -560,6 +626,7 @@ def create_lesson_continuation_offer(
         or
         ""
     ).strip().lower()
+
 
     section = plan.get(
         "section"
@@ -583,10 +650,6 @@ def create_lesson_continuation_offer(
     ).strip()
 
 
-    # ======================================
-    # OSTATNIA AKTYWNOŚĆ
-    # ======================================
-
     last_activity = state.get(
         "last_activity"
     )
@@ -595,6 +658,7 @@ def create_lesson_continuation_offer(
         "last_activity_detail"
     )
 
+
     if last_detail:
 
         last_detail = str(
@@ -602,15 +666,12 @@ def create_lesson_continuation_offer(
         ).strip()
 
 
-    # ======================================
-    # NASTĘPNA CZĘŚĆ LEKCJI
-    # ======================================
-
     if section:
 
         section = str(
             section
         ).strip()
+
 
         offer_saved = (
             set_new_learning_offer(
@@ -618,6 +679,7 @@ def create_lesson_continuation_offer(
                 plan
             )
         )
+
 
         if offer_saved:
 
@@ -668,10 +730,6 @@ def create_lesson_continuation_offer(
             )
 
 
-    # ======================================
-    # NOWA LEKCJA
-    # ======================================
-
     if (
         plan_type == "new_lesson"
         and
@@ -686,6 +744,7 @@ def create_lesson_continuation_offer(
                 plan
             )
         )
+
 
         if offer_saved:
 
@@ -705,6 +764,7 @@ def create_lesson_continuation_offer(
                     f"Möchtest du anfangen?"
                 )
 
+
             return (
                 f"{short_answer} "
                 f"Als Nächstes kommt "
@@ -713,16 +773,13 @@ def create_lesson_continuation_offer(
             )
 
 
-    # ======================================
-    # PLAN MA TYLKO GOTOWY TEKST
-    # ======================================
-
     if message:
 
         return (
             f"{short_answer} "
             f"{message}"
         )
+
 
     return None
 
@@ -738,9 +795,11 @@ def get_session_start_flow(
     if state is None:
         return None
 
+
     flow = state.get(
         "session_start_flow"
     )
+
 
     if not isinstance(
         flow,
@@ -749,6 +808,7 @@ def get_session_start_flow(
 
         return None
 
+
     if not flow.get(
         "active",
         False
@@ -756,25 +816,453 @@ def get_session_start_flow(
 
         return None
 
+
     return flow
 
 
 # ==========================================
-# OSTATNIA LEKCJA – KRÓTKIE PRZYPOMNIENIE
-#
-# To NIE jest pełna powtórka
-# według harmonogramu 1/3/7/14/30.
-#
-# To tylko krótkie przypomnienie:
-# gdzie użytkownik ostatnio skończył.
+# KLUCZ LEKCJI DLA DAILY MEMORY
 # ==========================================
 
-def create_last_lesson_recap(
+def get_daily_lesson_key(
+    level,
+    lesson,
+    section=None
+):
+
+    level = str(
+        level or "A1"
+    ).strip().upper()
+
+
+    try:
+
+        lesson = int(
+            lesson
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        lesson = 1
+
+
+    key = (
+        f"{level}:{lesson}"
+    )
+
+
+    if section:
+
+        section = str(
+            section
+        ).strip()
+
+        if section:
+
+            key += (
+                ":"
+                + section
+            )
+
+
+    return key
+
+
+# ==========================================
+# CZY PEŁNA POWTÓRKA LEKCJI
+# BYŁA JUŻ DZISIAJ
+# ==========================================
+
+def was_lesson_reviewed_today(
+    state,
+    level,
+    lesson
+):
+
+    try:
+
+        summary = get_daily_learning_summary(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily lesson review check error: {error}"
+        )
+
+        return False
+
+
+    key = get_daily_lesson_key(
+        level,
+        lesson
+    ).lower()
+
+
+    reviews = summary.get(
+        "lesson_reviews",
+        []
+    )
+
+
+    return any(
+        str(
+            item or ""
+        ).strip().lower()
+        ==
+        key
+        for item in reviews
+    )
+
+
+# ==========================================
+# CZY KRÓTKIE PRZYPOMNIENIE
+# TEGO MIEJSCA LEKCJI
+# BYŁO JUŻ DZISIAJ
+# ==========================================
+
+def was_lesson_recap_done_today(
+    state,
+    level,
+    lesson,
+    section=None
+):
+
+    try:
+
+        summary = get_daily_learning_summary(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily lesson recap check error: {error}"
+        )
+
+        return False
+
+
+    key = get_daily_lesson_key(
+        level,
+        lesson,
+        section
+    ).lower()
+
+
+    recaps = summary.get(
+        "lesson_recaps",
+        []
+    )
+
+
+    return any(
+        str(
+            item or ""
+        ).strip().lower()
+        ==
+        key
+        for item in recaps
+    )
+
+
+# ==========================================
+# OPIS LEKCJI Z KLUCZA
+#
+# A1:1
+# ->
+# A1, Lektion 1
+# ==========================================
+
+def display_daily_lesson_key(
+    value
+):
+
+    value = str(
+        value or ""
+    ).strip()
+
+
+    if not value:
+        return ""
+
+
+    parts = value.split(
+        ":"
+    )
+
+
+    if len(
+        parts
+    ) < 2:
+
+        return value
+
+
+    level = parts[0].strip().upper()
+
+    lesson = parts[1].strip()
+
+
+    if not level or not lesson:
+        return value
+
+
+    return (
+        f"{level}, Lektion {lesson}"
+    )
+
+
+# ==========================================
+# CO UŻYTKOWNIK ZROBIŁ JUŻ DZISIAJ
+#
+# Pokazujemy przy kolejnym wejściu
+# tego samego dnia.
+# ==========================================
+
+def create_daily_progress_message(
     state
 ):
 
     if state is None:
         return ""
+
+
+    try:
+
+        summary = get_daily_learning_summary(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily learning summary error: {error}"
+        )
+
+        return ""
+
+
+    try:
+
+        session_count = int(
+            summary.get(
+                "session_count",
+                0
+            )
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        session_count = 0
+
+
+    # ======================================
+    # PIERWSZE WEJŚCIE DZISIAJ
+    # -> NIE MA POTRZEBY MÓWIĆ:
+    # "Heute hast du schon..."
+    # ======================================
+
+    if session_count <= 1:
+        return ""
+
+
+    practiced_items = []
+
+
+    # ======================================
+    # OSTATNIE SŁOWO DZISIAJ
+    # ======================================
+
+    reviewed_words = summary.get(
+        "reviewed_words",
+        []
+    )
+
+
+    if (
+        isinstance(
+            reviewed_words,
+            list
+        )
+        and
+        reviewed_words
+    ):
+
+        word = display_activity_word(
+            reviewed_words[-1]
+        )
+
+        if word:
+
+            practiced_items.append(
+                f"„{word}“"
+            )
+
+
+    # ======================================
+    # OSTATNI BŁĄD DZISIAJ
+    # ======================================
+
+    reviewed_errors = summary.get(
+        "reviewed_errors",
+        []
+    )
+
+
+    if (
+        isinstance(
+            reviewed_errors,
+            list
+        )
+        and
+        reviewed_errors
+    ):
+
+        error_type = str(
+            reviewed_errors[-1]
+            or
+            ""
+        ).strip()
+
+
+        if error_type:
+
+            label = get_error_practice_label(
+                error_type
+            )
+
+            if label:
+
+                practiced_items.append(
+                    label
+                )
+
+
+    messages = []
+
+
+    if practiced_items:
+
+        practiced_text = join_german_items(
+            practiced_items
+        )
+
+
+        if practiced_text:
+
+            messages.append(
+                "Heute hast du schon "
+                f"{practiced_text} geübt."
+            )
+
+
+    # ======================================
+    # PEŁNA POWTÓRKA LEKCJI
+    # ======================================
+
+    lesson_reviews = summary.get(
+        "lesson_reviews",
+        []
+    )
+
+
+    if (
+        isinstance(
+            lesson_reviews,
+            list
+        )
+        and
+        lesson_reviews
+    ):
+
+        lesson_description = (
+            display_daily_lesson_key(
+                lesson_reviews[-1]
+            )
+        )
+
+
+        if lesson_description:
+
+            messages.append(
+                f"{lesson_description} "
+                "hast du heute schon wiederholt."
+            )
+
+
+    # ======================================
+    # BYŁA NAUKA, ALE NIE MA JESZCZE
+    # KONKRETNEGO ELEMENTU DO WYŚWIETLENIA
+    # ======================================
+
+    if not messages:
+
+        try:
+
+            completed = int(
+                summary.get(
+                    "completed_exercises",
+                    0
+                )
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            completed = 0
+
+
+        if completed > 0:
+
+            messages.append(
+                "Heute hast du schon etwas geübt."
+            )
+
+
+    if not messages:
+        return ""
+
+
+    messages.append(
+        "Wir machen jetzt weiter."
+    )
+
+
+    return " ".join(
+        messages
+    )
+
+
+# ==========================================
+# DANE KRÓTKIEGO PRZYPOMNIENIA
+# OSTATNIEJ LEKCJI
+#
+# Ważne:
+# pobieramy je PRZED rozpoczęciem
+# słówka i błędu.
+#
+# Dzięki temu aktywność słownikowa
+# nie nadpisze informacji o miejscu,
+# w którym uczeń skończył lekcję.
+# ==========================================
+
+def get_last_lesson_recap_data(
+    state
+):
+
+    if state is None:
+        return None
+
 
     try:
 
@@ -788,14 +1276,16 @@ def create_last_lesson_recap(
             f"Last lesson recap error: {error}"
         )
 
-        return ""
+        return None
+
 
     if not isinstance(
         plan,
         dict
     ):
 
-        return ""
+        return None
+
 
     level = str(
         plan.get(
@@ -806,19 +1296,16 @@ def create_last_lesson_recap(
         ""
     ).strip().upper()
 
+
     lesson = plan.get(
         "lesson"
     )
+
 
     section = plan.get(
         "section"
     )
 
-
-    # ======================================
-    # JEŻELI OSTATNIA AKTYWNOŚĆ
-    # BYŁA LEKCJĄ, UŻYWAMY JEJ SZCZEGÓŁU
-    # ======================================
 
     last_activity = state.get(
         "last_activity"
@@ -829,98 +1316,422 @@ def create_last_lesson_recap(
     )
 
 
+    recap_section = None
+
+
+    # ======================================
+    # OSTATNIA AKTYWNOŚĆ BYŁA LEKCJĄ
+    # ======================================
+
     if (
         last_activity == "lesson"
         and
         last_detail
     ):
 
-        last_detail = str(
+        recap_section = str(
             last_detail
         ).strip()
 
 
-        if (
-            level
-            and
-            lesson
-        ):
-
-            return (
-                "Zur kurzen Erinnerung: "
-                f"Du bist bei {level}, "
-                f"Lektion {lesson}. "
-                "Zuletzt waren wir bei "
-                f"„{last_detail}“."
-            )
-
-
-        return (
-            "Zur kurzen Erinnerung: "
-            "Zuletzt waren wir bei "
-            f"„{last_detail}“."
-        )
-
-
     # ======================================
     # FALLBACK:
-    # AKTUALNA / NASTĘPNA SEKCJA LEKCJI
+    # AKTUALNA / NASTĘPNA SEKCJA
     # ======================================
 
-    if section:
+    if (
+        not recap_section
+        and
+        section
+    ):
 
-        section = str(
+        recap_section = str(
             section
         ).strip()
 
 
-        if (
-            level
-            and
-            lesson
-        ):
+    message = ""
 
-            return (
-                "Zur kurzen Erinnerung: "
-                f"Du bist bei {level}, "
-                f"Lektion {lesson}. "
-                "Zuletzt waren wir bei "
-                f"„{section}“."
-            )
-
-
-        return (
-            "Zur kurzen Erinnerung: "
-            "Zuletzt waren wir bei "
-            f"„{section}“."
-        )
-
-
-    # ======================================
-    # TYLKO LEKCJA
-    # ======================================
 
     if (
         level
         and
         lesson
+        and
+        recap_section
     ):
 
-        return (
+        message = (
+            "Zur kurzen Erinnerung: "
+            f"Du bist bei {level}, "
+            f"Lektion {lesson}. "
+            "Zuletzt waren wir bei "
+            f"„{recap_section}“."
+        )
+
+
+    elif recap_section:
+
+        message = (
+            "Zur kurzen Erinnerung: "
+            "Zuletzt waren wir bei "
+            f"„{recap_section}“."
+        )
+
+
+    elif (
+        level
+        and
+        lesson
+    ):
+
+        message = (
             "Zur kurzen Erinnerung: "
             f"Du bist bei {level}, "
             f"Lektion {lesson}."
         )
 
 
-    return ""
+    if not message:
+        return None
+
+
+    return {
+
+        "message":
+            message,
+
+        "level":
+            level or "A1",
+
+        "lesson":
+            lesson,
+
+        "section":
+            recap_section
+    }
+
+
+# ==========================================
+# OSTATNIA LEKCJA – KRÓTKIE PRZYPOMNIENIE
+# ==========================================
+
+def create_last_lesson_recap(
+    state
+):
+
+    data = get_last_lesson_recap_data(
+        state
+    )
+
+
+    if not isinstance(
+        data,
+        dict
+    ):
+
+        return ""
+
+
+    return str(
+        data.get(
+            "message",
+            ""
+        )
+        or
+        ""
+    ).strip()
+
+
+# ==========================================
+# SESSION COACH
+#
+# Tworzy plan JEDNEJ sesji.
+#
+# W jednej sesji maksymalnie:
+#
+# 1. jedno należne słowo
+# 2. jeden należny błąd
+# 3. krótkie przypomnienie lekcji
+# 4. jedna należna pełna powtórka lekcji
+# 5. dalsza nauka
+#
+# Wszystko, co wykonano już dzisiaj,
+# zostaje pominięte.
+# ==========================================
+
+def build_session_coach_plan(
+    state,
+    flow
+):
+
+    if state is None:
+        return flow
+
+
+    if not isinstance(
+        flow,
+        dict
+    ):
+
+        return flow
+
+
+    if flow.get(
+        "coach_plan_created",
+        False
+    ):
+
+        return flow
+
+
+    # ======================================
+    # 1. JEDNO SŁOWO NA TĘ SESJĘ
+    # ======================================
+
+    planned_word = None
+
+
+    try:
+
+        review_words = get_review_plan(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Session Coach vocabulary error: {error}"
+        )
+
+        review_words = []
+
+
+    for word in review_words:
+
+        word = str(
+            word or ""
+        ).strip()
+
+
+        if not word:
+            continue
+
+
+        if was_word_reviewed_today(
+            state,
+            word
+        ):
+
+            continue
+
+
+        planned_word = word
+
+        break
+
+
+    # ======================================
+    # 2. JEDEN BŁĄD NA TĘ SESJĘ
+    #
+    # get_errors_for_review()
+    # sortuje błędy według częstotliwości,
+    # więc pierwszy jest najważniejszy.
+    # ======================================
+
+    planned_error = None
+
+
+    try:
+
+        errors = get_errors_for_review(
+            state,
+            limit=10
+        )
+
+    except Exception as error:
+
+        print(
+            f"Session Coach error review error: {error}"
+        )
+
+        errors = []
+
+
+    for item in errors:
+
+        error_type = None
+
+
+        if isinstance(
+            item,
+            dict
+        ):
+
+            error_type = item.get(
+                "error_type"
+            )
+
+
+        elif isinstance(
+            item,
+            str
+        ):
+
+            error_type = item
+
+
+        error_type = str(
+            error_type or ""
+        ).strip()
+
+
+        if not error_type:
+            continue
+
+
+        if was_error_reviewed_today(
+            state,
+            error_type
+        ):
+
+            continue
+
+
+        planned_error = item
+
+        break
+
+
+    # ======================================
+    # 3. KRÓTKIE PRZYPOMNIENIE
+    # ======================================
+
+    planned_recap = (
+        get_last_lesson_recap_data(
+            state
+        )
+    )
+
+
+    if isinstance(
+        planned_recap,
+        dict
+    ):
+
+        recap_level = planned_recap.get(
+            "level",
+            "A1"
+        )
+
+        recap_lesson = planned_recap.get(
+            "lesson",
+            1
+        )
+
+        recap_section = planned_recap.get(
+            "section"
+        )
+
+
+        if was_lesson_recap_done_today(
+            state,
+            recap_level,
+            recap_lesson,
+            recap_section
+        ):
+
+            planned_recap = None
+
+
+    # ======================================
+    # 4. NALEŻNA PEŁNA POWTÓRKA LEKCJI
+    # ======================================
+
+    planned_lesson_review = None
+
+
+    try:
+
+        lesson_reviews = get_lessons_for_review(
+            state,
+            limit=10
+        )
+
+    except Exception as error:
+
+        print(
+            f"Session Coach lesson review error: {error}"
+        )
+
+        lesson_reviews = []
+
+
+    for item in lesson_reviews:
+
+        if not isinstance(
+            item,
+            dict
+        ):
+
+            continue
+
+
+        level = item.get(
+            "level",
+            "A1"
+        )
+
+        lesson = item.get(
+            "lesson",
+            1
+        )
+
+
+        if was_lesson_reviewed_today(
+            state,
+            level,
+            lesson
+        ):
+
+            continue
+
+
+        planned_lesson_review = item
+
+        break
+
+
+    # ======================================
+    # ZAPIS PLANU SESJI
+    # ======================================
+
+    flow[
+        "planned_word"
+    ] = planned_word
+
+    flow[
+        "planned_error"
+    ] = planned_error
+
+    flow[
+        "planned_recap"
+    ] = planned_recap
+
+    flow[
+        "planned_lesson_review"
+    ] = planned_lesson_review
+
+    flow[
+        "coach_plan_created"
+    ] = True
+
+
+    return flow
 
 
 # ==========================================
 # URUCHOMIENIE DALSZEGO MATERIAŁU
-#
-# Używane po krótkim przypomnieniu
-# i po ewentualnej pełnej powtórce.
 # ==========================================
 
 def start_next_new_learning(
@@ -929,6 +1740,7 @@ def start_next_new_learning(
 
     if state is None:
         return ""
+
 
     try:
 
@@ -944,12 +1756,14 @@ def start_next_new_learning(
 
         return ""
 
+
     if not isinstance(
         plan,
         dict
     ):
 
         return ""
+
 
     offer_saved = (
         set_new_learning_offer(
@@ -987,20 +1801,19 @@ def start_next_new_learning(
 # ==========================================
 # POCZĄTEK NOWEJ SESJI
 #
+# SESSION COACH
+#
 # KOLEJNOŚĆ:
 #
-# 1. należne słówka
-# 2. należne błędy
+# 1. jedno należne słowo
+# 2. jeden należny błąd
 # 3. krótkie przypomnienie ostatniej lekcji
 # 4. należna pełna powtórka lekcji
-# 5. dalsza lekcja / nowy materiał
+# 5. dalsza lekcja / materiał
 #
-# Funkcja jest wywoływana ponownie
-# po zakończeniu każdego ćwiczenia.
-#
-# Znaczniki z welcome.py pilnują,
-# aby żaden etap nie zapętlił się
-# w tej samej sesji.
+# Daily Learning Memory pilnuje,
+# aby tego samego elementu
+# nie powtarzać drugi raz tego samego dnia.
 # ==========================================
 
 def create_session_start_follow_up(
@@ -1012,12 +1825,50 @@ def create_session_start_follow_up(
         state
     )
 
+
     if not flow:
         return None
 
 
     # ======================================
-    # 1. NALEŻNE SŁÓWKA
+    # UTWORZENIE PLANU TEJ SESJI
+    # ======================================
+
+    build_session_coach_plan(
+        state,
+        flow
+    )
+
+
+    # ======================================
+    # INFORMACJA:
+    # CO JUŻ ZROBIONO DZISIAJ
+    #
+    # Pokazujemy tylko raz
+    # w tej sesji.
+    # ======================================
+
+    daily_progress = ""
+
+
+    if not flow.get(
+        "daily_progress_shown",
+        False
+    ):
+
+        daily_progress = (
+            create_daily_progress_message(
+                state
+            )
+        )
+
+        flow[
+            "daily_progress_shown"
+        ] = True
+
+
+    # ======================================
+    # 1. JEDNO NALEŻNE SŁOWO
     # ======================================
 
     if not flow.get(
@@ -1025,40 +1876,47 @@ def create_session_start_follow_up(
         False
     ):
 
-        try:
+        # ----------------------------------
+        # W TEJ SESJI ROBIMY MAKSYMALNIE
+        # JEDNO SŁOWO.
+        # ----------------------------------
 
-            words = get_review_plan(
-                state
+        flow[
+            "vocabulary_done"
+        ] = True
+
+
+        word = flow.get(
+            "planned_word"
+        )
+
+
+        word = str(
+            word or ""
+        ).strip()
+
+
+        if (
+            word
+            and
+            not was_word_reviewed_today(
+                state,
+                word
             )
+        ):
 
-        except Exception as error:
-
-            print(
-                f"Session vocabulary review error: {error}"
-            )
-
-            words = []
-
-
-        if words:
-
-            word = str(
-                words[0]
-            ).strip()
-
-
-            if word:
-
-                exercise = (
-                    start_vocabulary_practice(
-                        (
-                            "übe mit mir das wort "
-                            + word
-                        ),
-                        state
-                    )
+            exercise = (
+                start_vocabulary_practice(
+                    (
+                        "übe mit mir das wort "
+                        + word
+                    ),
+                    state
                 )
+            )
 
+
+            if exercise:
 
                 parts = []
 
@@ -1067,6 +1925,13 @@ def create_session_start_follow_up(
 
                     parts.append(
                         short_answer
+                    )
+
+
+                if daily_progress:
+
+                    parts.append(
+                        daily_progress
                     )
 
 
@@ -1076,11 +1941,9 @@ def create_session_start_follow_up(
                 )
 
 
-                if exercise:
-
-                    parts.append(
-                        exercise
-                    )
+                parts.append(
+                    exercise
+                )
 
 
                 return "\n\n".join(
@@ -1088,23 +1951,8 @@ def create_session_start_follow_up(
                 )
 
 
-        # ==================================
-        # BRAK DALSZYCH NALEŻNYCH SŁÓW
-        # ==================================
-
-        flow[
-            "vocabulary_done"
-        ] = True
-
-
     # ======================================
-    # 2. NALEŻNE BŁĘDY
-    #
-    # get_errors_for_review()
-    # sortuje je według liczby błędów.
-    #
-    # Najczęściej popełniany należny
-    # błąd ma więc pierwszeństwo.
+    # 2. JEDEN NALEŻNY BŁĄD
     # ======================================
 
     if not flow.get(
@@ -1112,74 +1960,83 @@ def create_session_start_follow_up(
         False
     ):
 
-        try:
+        # ----------------------------------
+        # MAKSYMALNIE JEDEN BŁĄD
+        # W TEJ SESJI.
+        # ----------------------------------
 
-            errors = get_errors_for_review(
-                state,
-                limit=3
+        flow[
+            "errors_done"
+        ] = True
+
+
+        first_error = flow.get(
+            "planned_error"
+        )
+
+
+        error_type = None
+
+        label = ""
+
+
+        if isinstance(
+            first_error,
+            dict
+        ):
+
+            error_type = first_error.get(
+                "error_type"
             )
 
-        except Exception as error:
-
-            print(
-                f"Session error review error: {error}"
-            )
-
-            errors = []
-
-
-        if errors:
-
-            first_error = errors[0]
-
-            error_type = None
-
-            label = ""
-
-
-            if isinstance(
-                first_error,
-                dict
-            ):
-
-                error_type = first_error.get(
-                    "error_type"
-                )
-
-                label = str(
-                    first_error.get(
-                        "label",
-                        ""
-                    )
-                    or
+            label = str(
+                first_error.get(
+                    "label",
                     ""
-                ).strip()
+                )
+                or
+                ""
+            ).strip()
 
 
-            elif isinstance(
-                first_error,
-                str
-            ):
+        elif isinstance(
+            first_error,
+            str
+        ):
 
-                error_type = first_error
+            error_type = first_error
 
 
-            if error_type:
+        error_type = str(
+            error_type or ""
+        ).strip()
 
-                if not label:
 
-                    label = (
-                        get_error_practice_label(
-                            error_type
-                        )
+        if (
+            error_type
+            and
+            not was_error_reviewed_today(
+                state,
+                error_type
+            )
+        ):
+
+            if not label:
+
+                label = (
+                    get_error_practice_label(
+                        error_type
                     )
-
-
-                exercise = start_error_practice(
-                    state,
-                    error_type
                 )
 
+
+            exercise = start_error_practice(
+                state,
+                error_type
+            )
+
+
+            if exercise:
 
                 parts = []
 
@@ -1188,6 +2045,13 @@ def create_session_start_follow_up(
 
                     parts.append(
                         short_answer
+                    )
+
+
+                if daily_progress:
+
+                    parts.append(
+                        daily_progress
                     )
 
 
@@ -1202,15 +2066,13 @@ def create_session_start_follow_up(
 
                     parts.append(
                         "Jetzt wiederholen wir kurz "
-                        "einen Fehler, der noch wichtig ist."
+                        "einen wichtigen Fehler."
                     )
 
 
-                if exercise:
-
-                    parts.append(
-                        exercise
-                    )
+                parts.append(
+                    exercise
+                )
 
 
                 return "\n\n".join(
@@ -1218,21 +2080,11 @@ def create_session_start_follow_up(
                 )
 
 
-        # ==================================
-        # BRAK DALSZYCH NALEŻNYCH BŁĘDÓW
-        # ==================================
-
-        flow[
-            "errors_done"
-        ] = True
-
-
     # ======================================
-    # 3. KRÓTKIE PRZYPOMNIENIE
-    # OSTATNIEJ LEKCJI
+    # 3. KRÓTKIE PRZYPOMNIENIE LEKCJI
     #
-    # Robimy je zawsze raz
-    # na początku nowej sesji.
+    # Nie powtarzamy drugi raz
+    # tego samego miejsca tego samego dnia.
     # ======================================
 
     recap = ""
@@ -1243,24 +2095,73 @@ def create_session_start_follow_up(
         False
     ):
 
-        recap = create_last_lesson_recap(
-            state
-        )
-
         flow[
             "last_lesson_recap_done"
         ] = True
 
 
+        recap_data = flow.get(
+            "planned_recap"
+        )
+
+
+        if isinstance(
+            recap_data,
+            dict
+        ):
+
+            recap_level = recap_data.get(
+                "level",
+                "A1"
+            )
+
+            recap_lesson = recap_data.get(
+                "lesson",
+                1
+            )
+
+            recap_section = recap_data.get(
+                "section"
+            )
+
+
+            if not was_lesson_recap_done_today(
+                state,
+                recap_level,
+                recap_lesson,
+                recap_section
+            ):
+
+                recap = str(
+                    recap_data.get(
+                        "message",
+                        ""
+                    )
+                    or
+                    ""
+                ).strip()
+
+
+                if recap:
+
+                    try:
+
+                        mark_lesson_recap_today(
+                            state,
+                            recap_level,
+                            recap_lesson,
+                            recap_section
+                        )
+
+                    except Exception as error:
+
+                        print(
+                            f"Daily lesson recap memory error: {error}"
+                        )
+
+
     # ======================================
-    # 4. PEŁNA POWTÓRKA LEKCJI
-    #
-    # Uruchamiamy ją tylko wtedy,
-    # gdy termin według harmonogramu:
-    #
-    # 1 -> 3 -> 7 -> 14 -> 30 dni
-    #
-    # jest już należny.
+    # 4. NALEŻNA PEŁNA POWTÓRKA LEKCJI
     # ======================================
 
     if not flow.get(
@@ -1268,30 +2169,25 @@ def create_session_start_follow_up(
         False
     ):
 
-        try:
+        # ----------------------------------
+        # MAKSYMALNIE JEDNA PEŁNA POWTÓRKA
+        # LEKCJI W TEJ SESJI.
+        # ----------------------------------
 
-            lesson_reviews = (
-                get_lessons_for_review(
-                    state,
-                    limit=1
-                )
-            )
-
-        except Exception as error:
-
-            print(
-                f"Session lesson review error: {error}"
-            )
-
-            lesson_reviews = []
+        flow[
+            "lesson_review_done"
+        ] = True
 
 
-        if lesson_reviews:
+        lesson_review = flow.get(
+            "planned_lesson_review"
+        )
 
-            lesson_review = (
-                lesson_reviews[0]
-            )
 
+        if isinstance(
+            lesson_review,
+            dict
+        ):
 
             level = lesson_review.get(
                 "level",
@@ -1304,80 +2200,101 @@ def create_session_start_follow_up(
             )
 
 
-            # ==================================
-            # OZNACZAMY ETAP JAKO URUCHOMIONY
-            #
-            # Dzięki temu po zakończeniu
-            # powtórki nie wystartuje ponownie
-            # w tej samej sesji.
-            # ==================================
+            if not was_lesson_reviewed_today(
+                state,
+                level,
+                lesson
+            ):
 
-            flow[
-                "lesson_review_done"
-            ] = True
-
-
-            review_answer = (
-                start_lesson_review_training(
-                    state,
-                    level,
-                    lesson
+                review_answer = (
+                    start_lesson_review_training(
+                        state,
+                        level,
+                        lesson
+                    )
                 )
-            )
 
 
-            if review_answer:
+                if review_answer:
 
-                parts = []
+                    parts = []
 
 
-                if short_answer:
+                    if short_answer:
+
+                        parts.append(
+                            short_answer
+                        )
+
+
+                    if daily_progress:
+
+                        parts.append(
+                            daily_progress
+                        )
+
+
+                    if recap:
+
+                        parts.append(
+                            recap
+                        )
+
 
                     parts.append(
-                        short_answer
+                        review_answer
                     )
 
 
-                if recap:
-
-                    parts.append(
-                        recap
+                    return "\n\n".join(
+                        parts
                     )
-
-
-                parts.append(
-                    review_answer
-                )
-
-
-                return "\n\n".join(
-                    parts
-                )
-
-
-        # ==================================
-        # NIE MA NALEŻNEJ POWTÓRKI
-        #
-        # LUB NIE MA JESZCZE TRENINGU
-        # OBSŁUGUJĄCEGO DANĄ LEKCJĘ.
-        # ==================================
-
-        flow[
-            "lesson_review_done"
-        ] = True
 
 
     # ======================================
-    # 5. DALSZA LEKCJA / NOWY MATERIAŁ
-    #
-    # Wszystkie etapy początku sesji
-    # zostały wykonane.
+    # 5. PLAN STARTOWY SESJI ZAKOŃCZONY
     # ======================================
 
     flow[
         "active"
     ] = False
 
+
+    # ======================================
+    # DAILY LEARNING MEMORY:
+    # DZISIEJSZY PLAN WYKONANY
+    #
+    # Zapisujemy tylko raz dziennie.
+    # ======================================
+
+    try:
+
+        daily_summary = (
+            get_daily_learning_summary(
+                state
+            )
+        )
+
+
+        if not daily_summary.get(
+            "daily_plan_completed",
+            False
+        ):
+
+            mark_daily_plan_completed(
+                state
+            )
+
+    except Exception as error:
+
+        print(
+            f"Daily plan completed error: {error}"
+        )
+
+
+    # ======================================
+    # DALSZA LEKCJA / MATERIAŁ
+    # ======================================
 
     next_learning = start_next_new_learning(
         state
@@ -1391,6 +2308,13 @@ def create_session_start_follow_up(
 
         parts.append(
             short_answer
+        )
+
+
+    if daily_progress:
+
+        parts.append(
+            daily_progress
         )
 
 
@@ -1420,24 +2344,6 @@ def create_session_start_follow_up(
 
 # ==========================================
 # TEACHER MODE
-# BEZ PYTANIA UŻYTKOWNIKA O WYBÓR
-# ==========================================
-#
-# NORMALNY TRYB:
-#
-# Student Memory ustala kolejny krok.
-#
-# NOWA SESJA:
-#
-# welcome.py tworzy session_start_flow.
-#
-# Kolejność:
-#
-# 1. słówka
-# 2. błędy
-# 3. krótkie przypomnienie lekcji
-# 4. należna pełna powtórka lekcji
-# 5. dalszy materiał
 # ==========================================
 
 def create_teacher_directed_follow_up(
@@ -1451,6 +2357,7 @@ def create_teacher_directed_follow_up(
 
     # ======================================
     # NOWA SESJA
+    # -> SESSION COACH
     # ======================================
 
     session_answer = (
@@ -1557,6 +2464,7 @@ def create_teacher_directed_follow_up(
                 error_type = first_error.get(
                     "error_type"
                 )
+
 
             elif isinstance(
                 first_error,
@@ -1679,10 +2587,6 @@ def create_teacher_directed_follow_up(
 
     # ======================================
     # 3. NALEŻNA POWTÓRKA LEKCJI
-    #
-    # Normalnie obsługuje ją początek
-    # sesji. Ten fragment jest dodatkowym
-    # zabezpieczeniem Teacher Mode.
     # ======================================
 
     if priority == "lesson_review":
@@ -1725,42 +2629,54 @@ def create_teacher_directed_follow_up(
             )
 
 
-            review_answer = (
-                start_lesson_review_training(
-                    state,
-                    level,
-                    lesson
+            # ==================================
+            # NIE POWTARZAMY TEJ SAMEJ
+            # PEŁNEJ POWTÓRKI DRUGI RAZ
+            # TEGO SAMEGO DNIA.
+            # ==================================
+
+            if not was_lesson_reviewed_today(
+                state,
+                level,
+                lesson
+            ):
+
+                review_answer = (
+                    start_lesson_review_training(
+                        state,
+                        level,
+                        lesson
+                    )
                 )
-            )
 
 
-            if review_answer:
+                if review_answer:
 
-                parts = []
+                    parts = []
 
 
-                if short_answer:
+                    if short_answer:
+
+                        parts.append(
+                            short_answer
+                        )
+
+
+                    if message:
+
+                        parts.append(
+                            message
+                        )
+
 
                     parts.append(
-                        short_answer
+                        review_answer
                     )
 
 
-                if message:
-
-                    parts.append(
-                        message
+                    return "\n\n".join(
+                        parts
                     )
-
-
-                parts.append(
-                    review_answer
-                )
-
-
-                return "\n\n".join(
-                    parts
-                )
 
 
     # ======================================
@@ -1769,11 +2685,6 @@ def create_teacher_directed_follow_up(
 
     new_learning_plan = plan
 
-
-    # ======================================
-    # teacher_plan może mieć następny
-    # materiał w polu "next"
-    # ======================================
 
     if plan_type == "teacher_plan":
 
@@ -1822,11 +2733,12 @@ def create_teacher_directed_follow_up(
                         f"{started_answer}"
                     )
 
+
                 return started_answer
 
 
     # ======================================
-    # FALLBACK – GOTOWY TEKST PLANU
+    # FALLBACK
     # ======================================
 
     if message:
@@ -1838,6 +2750,7 @@ def create_teacher_directed_follow_up(
                 f"{message}"
             )
 
+
         return message
 
 
@@ -1846,7 +2759,6 @@ def create_teacher_directed_follow_up(
 
 # ==========================================
 # ODPOWIEDŹ PO POWITANIU
-# TEACHER MODE
 # ==========================================
 
 def create_returning_user_follow_up(
@@ -1859,13 +2771,6 @@ def create_returning_user_follow_up(
         normal_answer
     )
 
-
-    # ======================================
-    # NELE NIE PYTA UŻYTKOWNIKA,
-    # CO CHCE ROBIĆ.
-    #
-    # Student Memory prowadzi naukę.
-    # ======================================
 
     teacher_answer = (
         create_teacher_directed_follow_up(
@@ -1880,10 +2785,6 @@ def create_returning_user_follow_up(
         return teacher_answer
 
 
-    # ======================================
-    # BRAK PLANU
-    # ======================================
-
     state[
         "last_question"
     ] = None
@@ -1893,7 +2794,7 @@ def create_returning_user_follow_up(
 
         return (
             f"{short_answer} "
-            f"Wir machen jetzt weiter."
+            "Wir machen jetzt weiter."
         )
 
 
@@ -1904,7 +2805,7 @@ def create_returning_user_follow_up(
 
 # ==========================================
 # OBSŁUGA ODPOWIEDZI:
-# "WIE GEHT ES DIR?"
+# WIE GEHT ES DIR?
 # ==========================================
 
 def handle_wellbeing_reply(
@@ -1914,6 +2815,7 @@ def handle_wellbeing_reply(
 
     if state is None:
         return None
+
 
     if (
         state.get(
@@ -1925,9 +2827,11 @@ def handle_wellbeing_reply(
 
         return None
 
+
     analysis = analyze_wellbeing_response(
         user_message
     )
+
 
     if not analysis.get(
         "recognized",
@@ -1935,6 +2839,7 @@ def handle_wellbeing_reply(
     ):
 
         return None
+
 
     wellbeing_type = analysis.get(
         "type"
@@ -1948,11 +2853,13 @@ def handle_wellbeing_reply(
         "feedback"
     )
 
+
     answer = create_returning_user_follow_up(
         state,
         reaction,
         wellbeing_type
     )
+
 
     return combine_wellbeing_feedback(
         feedback,
@@ -1976,11 +2883,6 @@ def find_response(
     )
 
 
-    # ======================================
-    # ODPOWIEDŹ NA STARĄ PROPOZYCJĘ
-    # POWTÓRKI
-    # ======================================
-
     (
         error_review_handled,
         error_review_answer
@@ -1995,17 +2897,12 @@ def find_response(
         return error_review_answer
 
 
-    # ======================================
-    # POPRZEDNIE PYTANIE NELE
-    # ======================================
-
     previous_question = state.get(
         "last_question"
     )
 
 
     # ======================================
-    # SPECJALNA OBSŁUGA:
     # WIE GEHT ES DIR?
     # ======================================
 
@@ -2035,10 +2932,6 @@ def find_response(
 
     matches = []
 
-
-    # ======================================
-    # SZUKAMY WSZYSTKICH DOPASOWAŃ
-    # ======================================
 
     for item in responses:
 
@@ -2079,10 +2972,6 @@ def find_response(
     if not matches:
         return None
 
-
-    # ======================================
-    # NAJDŁUŻSZY WZORZEC WYGRYWA
-    # ======================================
 
     matches.sort(
         key=lambda match:
@@ -2132,11 +3021,6 @@ def find_response(
         answer = ""
 
 
-    # ======================================
-    # STARY SYSTEM ODPOWIEDZI
-    # NA SAMOPOCZUCIE
-    # ======================================
-
     wellbeing_intents = {
         "user_wellbeing_good",
         "user_wellbeing_bad"
@@ -2157,10 +3041,6 @@ def find_response(
             )
         )
 
-
-    # ======================================
-    # STANDARDOWY FOLLOW-UP
-    # ======================================
 
     if follow_up:
 
