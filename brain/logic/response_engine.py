@@ -43,7 +43,9 @@ from brain.memory.error_review import (
 
 from brain.memory.next_learning_step import (
     get_next_new_learning_step,
-    get_teacher_learning_plan
+    get_teacher_learning_plan,
+    get_review_plan,
+    get_errors_for_review
 )
 
 
@@ -721,21 +723,605 @@ def create_lesson_continuation_offer(
 
 
 # ==========================================
+# STAN POCZĄTKU NOWEJ SESJI
+# ==========================================
+
+def get_session_start_flow(
+    state
+):
+
+    if state is None:
+        return None
+
+    flow = state.get(
+        "session_start_flow"
+    )
+
+    if not isinstance(
+        flow,
+        dict
+    ):
+
+        return None
+
+    if not flow.get(
+        "active",
+        False
+    ):
+
+        return None
+
+    return flow
+
+
+# ==========================================
+# OSTATNIA LEKCJA – KRÓTKIE PRZYPOMNIENIE
+#
+# To NIE jest jeszcze pełna powtórka
+# według harmonogramu 1/3/7/14/30.
+#
+# To tylko krótkie przypomnienie:
+# gdzie użytkownik ostatnio skończył.
+# ==========================================
+
+def create_last_lesson_recap(
+    state
+):
+
+    if state is None:
+        return ""
+
+    try:
+
+        plan = get_next_new_learning_step(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Last lesson recap error: {error}"
+        )
+
+        return ""
+
+    if not isinstance(
+        plan,
+        dict
+    ):
+
+        return ""
+
+    level = str(
+        plan.get(
+            "level",
+            ""
+        )
+        or
+        ""
+    ).strip().upper()
+
+    lesson = plan.get(
+        "lesson"
+    )
+
+    section = plan.get(
+        "section"
+    )
+
+
+    # ======================================
+    # JEŻELI OSTATNIA AKTYWNOŚĆ
+    # BYŁA LEKCJĄ, UŻYWAMY JEJ SZCZEGÓŁU
+    # ======================================
+
+    last_activity = state.get(
+        "last_activity"
+    )
+
+    last_detail = state.get(
+        "last_activity_detail"
+    )
+
+
+    if (
+        last_activity == "lesson"
+        and
+        last_detail
+    ):
+
+        last_detail = str(
+            last_detail
+        ).strip()
+
+
+        if (
+            level
+            and
+            lesson
+        ):
+
+            return (
+                "Zur kurzen Erinnerung: "
+                f"Du bist bei {level}, "
+                f"Lektion {lesson}. "
+                "Zuletzt waren wir bei "
+                f"„{last_detail}“."
+            )
+
+
+        return (
+            "Zur kurzen Erinnerung: "
+            "Zuletzt waren wir bei "
+            f"„{last_detail}“."
+        )
+
+
+    # ======================================
+    # FALLBACK:
+    # AKTUALNA / NASTĘPNA SEKCJA LEKCJI
+    # ======================================
+
+    if section:
+
+        section = str(
+            section
+        ).strip()
+
+
+        if (
+            level
+            and
+            lesson
+        ):
+
+            return (
+                "Zur kurzen Erinnerung: "
+                f"Du bist bei {level}, "
+                f"Lektion {lesson}. "
+                "Zuletzt waren wir bei "
+                f"„{section}“."
+            )
+
+
+        return (
+            "Zur kurzen Erinnerung: "
+            "Zuletzt waren wir bei "
+            f"„{section}“."
+        )
+
+
+    # ======================================
+    # TYLKO LEKCJA
+    # ======================================
+
+    if (
+        level
+        and
+        lesson
+    ):
+
+        return (
+            "Zur kurzen Erinnerung: "
+            f"Du bist bei {level}, "
+            f"Lektion {lesson}."
+        )
+
+
+    return ""
+
+
+# ==========================================
+# URUCHOMIENIE DALSZEGO MATERIAŁU
+#
+# Używane po krótkim przypomnieniu.
+# ==========================================
+
+def start_next_new_learning(
+    state
+):
+
+    if state is None:
+        return ""
+
+    try:
+
+        plan = get_next_new_learning_step(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Start next new learning error: {error}"
+        )
+
+        return ""
+
+    if not isinstance(
+        plan,
+        dict
+    ):
+
+        return ""
+
+    offer_saved = (
+        set_new_learning_offer(
+            state,
+            plan
+        )
+    )
+
+
+    if offer_saved:
+
+        started_answer = (
+            handle_new_learning_resume(
+                "ja",
+                state
+            )
+        )
+
+
+        if started_answer:
+
+            return started_answer
+
+
+    return str(
+        plan.get(
+            "message",
+            ""
+        )
+        or
+        ""
+    ).strip()
+
+
+# ==========================================
+# POCZĄTEK NOWEJ SESJI
+#
+# KOLEJNOŚĆ:
+#
+# 1. należne słówka
+# 2. należne błędy
+# 3. krótkie przypomnienie ostatniej lekcji
+# 4. pełna powtórka lekcji – później
+# 5. dalsza lekcja
+#
+# Funkcja jest wywoływana ponownie
+# po zakończeniu każdego ćwiczenia.
+# Dzięki znacznikom w welcome.py
+# nie zapętlamy poprzednich etapów.
+# ==========================================
+
+def create_session_start_follow_up(
+    state,
+    short_answer=""
+):
+
+    flow = get_session_start_flow(
+        state
+    )
+
+    if not flow:
+        return None
+
+
+    # ======================================
+    # 1. NALEŻNE SŁÓWKA
+    # ======================================
+
+    if not flow.get(
+        "vocabulary_done",
+        False
+    ):
+
+        try:
+
+            words = get_review_plan(
+                state
+            )
+
+        except Exception as error:
+
+            print(
+                f"Session vocabulary review error: {error}"
+            )
+
+            words = []
+
+
+        if words:
+
+            word = str(
+                words[0]
+            ).strip()
+
+
+            if word:
+
+                exercise = (
+                    start_vocabulary_practice(
+                        (
+                            "übe mit mir das wort "
+                            + word
+                        ),
+                        state
+                    )
+                )
+
+
+                parts = []
+
+
+                if short_answer:
+
+                    parts.append(
+                        short_answer
+                    )
+
+
+                parts.append(
+                    "Wir beginnen mit einem Wort, "
+                    "das heute wiederholt werden soll."
+                )
+
+
+                if exercise:
+
+                    parts.append(
+                        exercise
+                    )
+
+
+                return "\n\n".join(
+                    parts
+                )
+
+
+        # ----------------------------------
+        # BRAK DALSZYCH NALEŻNYCH SŁÓW
+        # ----------------------------------
+
+        flow[
+            "vocabulary_done"
+        ] = True
+
+
+    # ======================================
+    # 2. NALEŻNE BŁĘDY
+    #
+    # get_errors_for_review()
+    # sortuje je według liczby błędów,
+    # więc najczęstszy należny błąd
+    # jest pierwszy.
+    # ======================================
+
+    if not flow.get(
+        "errors_done",
+        False
+    ):
+
+        try:
+
+            errors = get_errors_for_review(
+                state,
+                limit=3
+            )
+
+        except Exception as error:
+
+            print(
+                f"Session error review error: {error}"
+            )
+
+            errors = []
+
+
+        if errors:
+
+            first_error = errors[0]
+
+            error_type = None
+
+            label = ""
+
+
+            if isinstance(
+                first_error,
+                dict
+            ):
+
+                error_type = first_error.get(
+                    "error_type"
+                )
+
+                label = str(
+                    first_error.get(
+                        "label",
+                        ""
+                    )
+                    or
+                    ""
+                ).strip()
+
+
+            elif isinstance(
+                first_error,
+                str
+            ):
+
+                error_type = first_error
+
+
+            if error_type:
+
+                if not label:
+
+                    label = (
+                        get_error_practice_label(
+                            error_type
+                        )
+                    )
+
+
+                exercise = start_error_practice(
+                    state,
+                    error_type
+                )
+
+
+                parts = []
+
+
+                if short_answer:
+
+                    parts.append(
+                        short_answer
+                    )
+
+
+                if label:
+
+                    parts.append(
+                        "Jetzt wiederholen wir kurz "
+                        f"{label}."
+                    )
+
+                else:
+
+                    parts.append(
+                        "Jetzt wiederholen wir kurz "
+                        "einen Fehler, der noch wichtig ist."
+                    )
+
+
+                if exercise:
+
+                    parts.append(
+                        exercise
+                    )
+
+
+                return "\n\n".join(
+                    parts
+                )
+
+
+        # ----------------------------------
+        # BRAK DALSZYCH NALEŻNYCH BŁĘDÓW
+        # ----------------------------------
+
+        flow[
+            "errors_done"
+        ] = True
+
+
+    # ======================================
+    # 3. KRÓTKIE PRZYPOMNIENIE
+    # OSTATNIEJ LEKCJI
+    #
+    # Robimy je ZAWSZE raz
+    # na początku nowej sesji.
+    # ======================================
+
+    recap = ""
+
+
+    if not flow.get(
+        "last_lesson_recap_done",
+        False
+    ):
+
+        recap = create_last_lesson_recap(
+            state
+        )
+
+        flow[
+            "last_lesson_recap_done"
+        ] = True
+
+
+    # ======================================
+    # 4. PEŁNA POWTÓRKA LEKCJI
+    #
+    # Jeszcze jej tutaj NIE oznaczamy
+    # jako wykonaną.
+    #
+    # Następny etap projektu:
+    # prawdziwy lesson_review_training.
+    # ======================================
+
+
+    # ======================================
+    # NA TEN MOMENT KOŃCZYMY
+    # SEKWENCJĘ STARTOWĄ
+    # I PRZECHODZIMY DO DALSZEJ LEKCJI.
+    # ======================================
+
+    flow[
+        "active"
+    ] = False
+
+
+    next_learning = start_next_new_learning(
+        state
+    )
+
+
+    parts = []
+
+
+    if short_answer:
+
+        parts.append(
+            short_answer
+        )
+
+
+    if recap:
+
+        parts.append(
+            recap
+        )
+
+
+    if next_learning:
+
+        parts.append(
+            next_learning
+        )
+
+
+    if parts:
+
+        return "\n\n".join(
+            parts
+        )
+
+
+    return None
+
+
+# ==========================================
 # TEACHER MODE
 # BEZ PYTANIA UŻYTKOWNIKA O WYBÓR
 # ==========================================
 #
-# Kolejność ustala Student Memory:
+# NORMALNY TRYB:
 #
-# 1. należny błąd
-# 2. słownictwo do powtórki
-# 3. kolejny materiał / lekcja
+# Student Memory ustala kolejny krok.
 #
-# Funkcja nie pyta:
+# NOWA SESJA:
 #
-# Möchtest du ...?
+# welcome.py tworzy session_start_flow,
+# a wtedy najpierw wykonujemy:
 #
-# tylko od razu rozpoczyna trening.
+# 1. słówka
+# 2. błędy
+# 3. krótkie przypomnienie lekcji
+#
 # ==========================================
 
 def create_teacher_directed_follow_up(
@@ -748,7 +1334,24 @@ def create_teacher_directed_follow_up(
 
 
     # ======================================
-    # PLAN NAUCZYCIELA
+    # NOWA SESJA
+    # ======================================
+
+    session_answer = (
+        create_session_start_follow_up(
+            state,
+            short_answer
+        )
+    )
+
+
+    if session_answer:
+
+        return session_answer
+
+
+    # ======================================
+    # NORMALNY PLAN NAUCZYCIELA
     # ======================================
 
     try:
@@ -961,14 +1564,6 @@ def create_teacher_directed_follow_up(
     # ======================================
     # 3. NOWY MATERIAŁ / LEKCJA
     # ======================================
-    #
-    # Plan po braku powtórek jest już
-    # planem następnej lekcji.
-    #
-    # Korzystamy z istniejącego
-    # new_learning_resume, żeby nie
-    # duplikować logiki lekcji.
-    # ======================================
 
     new_learning_plan = plan
 
@@ -1064,12 +1659,10 @@ def create_returning_user_follow_up(
 
 
     # ======================================
-    # NOWY TRYB:
+    # NELE NIE PYTA UŻYTKOWNIKA,
+    # CO CHCE ROBIĆ.
     #
-    # Nele NIE pyta użytkownika,
-    # co chce robić.
-    #
-    # Student Memory wybiera następny krok.
+    # Student Memory prowadzi naukę.
     # ======================================
 
     teacher_answer = (
