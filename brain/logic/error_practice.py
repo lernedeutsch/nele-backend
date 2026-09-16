@@ -274,24 +274,22 @@ def finish_error_practice(
 
 # ==========================================
 # NASTĘPNY KROK PO ĆWICZENIU BŁĘDU
-# ==========================================
 #
-# Po zakończeniu powtórki błędu Nele
-# wraca do normalnego planu nauki.
+# STARA FUNKCJA ZOSTAJE
+# DLA KOMPATYBILNOŚCI.
 #
-# Przykład:
+# W NOWYM TEACHER MODE NIE JEST JUŻ
+# WYWOŁYWANA AUTOMATYCZNIE PO ZAKOŃCZENIU
+# BŁĘDU.
 #
-# Wortstellung
-#     ↓
-# ćwiczenie zakończone
-#     ↓
-# "Wir begrüßen uns"
-#     ↓
-# "Möchtest du damit anfangen?"
+# DALSZYM KROKIEM STERUJE:
 #
-# Dzięki set_new_learning_offer()
-# późniejsze "Ja" zostanie poprawnie
-# obsłużone przez new_learning_resume.py.
+# conversation_error_training.py
+# ->
+# create_teacher_directed_follow_up()
+#
+# Dzięki temu nie uruchamiamy
+# następnej lekcji dwa razy.
 # ==========================================
 
 def prepare_learning_after_error(
@@ -867,32 +865,25 @@ def handle_error_practice_step_two(
 
 
         # ======================================
-        # POWRÓT DO NORMALNEGO PLANU NAUKI
-        # ======================================
-
-        next_learning = (
-            prepare_learning_after_error(
-                state
-            )
-        )
-
-
-        # ======================================
-        # MAMY NASTĘPNY MATERIAŁ
-        # ======================================
-
-        if next_learning:
-
-            return (
-                "Sehr gut! Genau richtig. "
-                f"„{correct_sentence}“ "
-                "Diesen Fehler hast du jetzt geübt.\n\n"
-                f"{next_learning}"
-            )
-
-
-        # ======================================
-        # BRAK NASTĘPNEGO MATERIAŁU
+        # WAŻNE:
+        #
+        # NIE URUCHAMIAMY TUTAJ
+        # NASTĘPNEJ LEKCJI.
+        #
+        # conversation_error_training.py
+        # wykryje zakończenie ćwiczenia
+        # i wywoła:
+        #
+        # create_teacher_directed_follow_up()
+        #
+        # Dzięki temu działa jedna kolejność:
+        #
+        # słówka
+        # -> błędy
+        # -> przypomnienie lekcji
+        # -> dalsza nauka
+        #
+        # bez podwójnego komunikatu.
         # ======================================
 
         return (
