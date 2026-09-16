@@ -20,6 +20,10 @@ from brain.memory.user_facts import (
     get_user_fact
 )
 
+from brain.memory.daily_learning import (
+    start_daily_session
+)
+
 
 # ==========================================
 # ZAPIS I ZWROT ODPOWIEDZI
@@ -48,7 +52,7 @@ def save_and_return(
 # ==========================================
 # NOWA SEKWENCJA STARTOWA SESJI
 #
-# Kolejność docelowa:
+# Kolejność:
 #
 # 1. należne słówka
 # 2. należne błędy
@@ -158,6 +162,31 @@ def clear_old_active_exercises(
     reset_session_start_flow(
         state
     )
+
+
+# ==========================================
+# ZAPIS NOWEJ SESJI W PAMIĘCI DNIA
+# ==========================================
+
+def remember_new_daily_session(
+    state
+):
+
+    if state is None:
+        return
+
+
+    try:
+
+        start_daily_session(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily session start error: {error}"
+        )
 
 
 # ==========================================
@@ -323,13 +352,31 @@ def generate_welcome_reply(
     # NOWE SPOTKANIE
     #
     # Czyścimy tylko stare aktywne tryby.
-    # Pamięć ucznia i postęp zostają.
     #
-    # Tworzymy też NOWĄ sekwencję
-    # początku sesji.
+    # Pamięć ucznia, postęp lekcji
+    # i Daily Learning Memory zostają.
     # ======================================
 
     clear_old_active_exercises(
+        state
+    )
+
+
+    # ======================================
+    # DAILY LEARNING MEMORY
+    #
+    # Każde ponowne wejście do Nele
+    # zapisujemy jako nową sesję.
+    #
+    # Jeżeli jest ten sam dzień:
+    # poprzednia nauka NIE jest kasowana.
+    #
+    # Jeżeli zaczął się nowy dzień:
+    # daily_learning.py automatycznie
+    # utworzy nową pamięć dnia.
+    # ======================================
+
+    remember_new_daily_session(
         state
     )
 
@@ -363,4 +410,4 @@ def generate_welcome_reply(
     return save_and_return(
         answer,
         session_id
-    )
+        )
