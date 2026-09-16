@@ -7,7 +7,12 @@ from brain.logic.matcher import normalize
 
 from brain.memory.lesson_progress import (
     mark_section_completed,
-    get_next_incomplete_section
+    get_next_incomplete_section,
+    is_lesson_fully_completed
+)
+
+from brain.memory.lesson_review import (
+    schedule_lesson_review
 )
 
 
@@ -263,6 +268,11 @@ def complete_active_section(
         lesson
     ):
 
+        # ==================================
+        # AKTUALNĄ CZĘŚĆ OZNACZAMY
+        # JAKO UKOŃCZONĄ
+        # ==================================
+
         mark_section_completed(
             state,
             level,
@@ -271,6 +281,10 @@ def complete_active_section(
         )
 
 
+        # ==================================
+        # SZUKAMY NASTĘPNEJ CZĘŚCI
+        # ==================================
+
         next_section = (
             get_next_incomplete_section(
                 state,
@@ -278,6 +292,39 @@ def complete_active_section(
                 lesson
             )
         )
+
+
+        # ==================================
+        # JEŻELI CAŁA LEKCJA
+        # ZOSTAŁA UKOŃCZONA,
+        # PLANUJEMY PIERWSZĄ POWTÓRKĘ.
+        #
+        # review_count = 0
+        # -> pierwsza powtórka za 1 dzień
+        #
+        # schedule_lesson_review()
+        # nie nadpisze istniejącego terminu.
+        # ==================================
+
+        if is_lesson_fully_completed(
+            state,
+            level,
+            lesson
+        ):
+
+            try:
+
+                schedule_lesson_review(
+                    state,
+                    level,
+                    lesson
+                )
+
+            except Exception as error:
+
+                print(
+                    f"Lesson review scheduling error: {error}"
+                )
 
 
     finish_lesson_teaching(
