@@ -1,6 +1,7 @@
 # ==========================================
 # NELE – AKTIVES UNTERRICHTEN EINER LEKTION
 # STUDENT MEMORY 2.0
+# DAILY LEARNING MEMORY
 # ==========================================
 
 from brain.logic.matcher import normalize
@@ -13,6 +14,11 @@ from brain.memory.lesson_progress import (
 
 from brain.memory.lesson_review import (
     schedule_lesson_review
+)
+
+from brain.memory.daily_learning import (
+    mark_lesson_section_today,
+    mark_daily_plan_completed
 )
 
 
@@ -206,6 +212,109 @@ def get_lesson_context_for_section(
 
 
 # ==========================================
+# DAILY LEARNING MEMORY:
+# ABSCHLUSS EINER LEKTIONSEKTION
+# ==========================================
+
+def remember_daily_lesson_section_completion(
+    state,
+    level,
+    lesson,
+    section
+):
+
+    if state is None:
+        return
+
+
+    if not (
+        level
+        and
+        lesson
+        and
+        section
+    ):
+
+        return
+
+
+    try:
+
+        mark_lesson_section_today(
+            state,
+            level,
+            lesson,
+            section
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily lesson section memory error: {error}"
+        )
+
+
+# ==========================================
+# SESSION COACH:
+# TAGESPLAN NACH LEKTIONSABSCHLUSS
+# ==========================================
+
+def complete_session_coach_daily_plan(
+    state
+):
+
+    if state is None:
+        return
+
+
+    flow = state.get(
+        "session_start_flow"
+    )
+
+
+    if not isinstance(
+        flow,
+        dict
+    ):
+
+        return
+
+
+    # ======================================
+    # NUR DANN ABSCHLIESSEN,
+    # WENN SESSION COACH AUF DEN
+    # ABSCHLUSS DES NEUEN LERNSTOFFS WARTET
+    # ======================================
+
+    if not flow.get(
+        "waiting_for_new_learning_completion",
+        False
+    ):
+
+        return
+
+
+    try:
+
+        mark_daily_plan_completed(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily plan completion error: {error}"
+        )
+
+        return
+
+
+    flow[
+        "waiting_for_new_learning_completion"
+    ] = False
+
+
+# ==========================================
 # UNTERRICHT BEENDEN
 # ==========================================
 
@@ -277,6 +386,35 @@ def complete_active_section(
             level,
             lesson,
             section
+        )
+
+
+        # ==================================
+        # DAILY LEARNING MEMORY
+        #
+        # MERKEN:
+        # DIESE SEKTION WURDE HEUTE
+        # TATSÄCHLICH ABGESCHLOSSEN.
+        # ==================================
+
+        remember_daily_lesson_section_completion(
+            state,
+            level,
+            lesson,
+            section
+        )
+
+
+        # ==================================
+        # SESSION COACH
+        #
+        # WENN DIES DIE GEPLANTE
+        # LERNAKTIVITÄT WAR,
+        # IST DER TAGESPLAN JETZT FERTIG.
+        # ==================================
+
+        complete_session_coach_daily_plan(
+            state
         )
 
 
@@ -1037,10 +1175,6 @@ def is_umlaut_answer(
     ).lower()
 
 
-    # ======================================
-    # DIREKTE SCHREIBWEISE
-    # ======================================
-
     if (
         "ä" in message
         and
@@ -1056,10 +1190,6 @@ def is_umlaut_answer(
         message
     )
 
-
-    # ======================================
-    # ALTERNATIVE SCHREIBWEISE
-    # ======================================
 
     has_a = (
         "a umlaut" in normalized
@@ -1276,10 +1406,6 @@ def handle_alphabet_section(
             )
 
 
-        # ==================================
-        # LETZTE SEKTION ABSCHLIESSEN
-        # ==================================
-
         next_section = complete_active_section(
             state
         )
@@ -1391,10 +1517,6 @@ def handle_lesson_teaching(
             state
         )
 
-
-    # ======================================
-    # NIEZNANA SEKTION
-    # ======================================
 
     finish_lesson_teaching(
         state
