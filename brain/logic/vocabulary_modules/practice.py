@@ -22,6 +22,67 @@ from brain.memory.student_progress import (
     remember_learning_topic
 )
 
+from brain.memory.daily_learning import (
+    mark_word_reviewed_today,
+    mark_exercise_completed_today
+)
+
+
+# ==========================================
+# DAILY LEARNING MEMORY
+# ZAKOŃCZONE ĆWICZENIE SŁOWA
+# ==========================================
+
+def remember_daily_vocabulary_completion(
+    state,
+    word
+):
+
+    if state is None:
+        return
+
+
+    # ======================================
+    # SŁOWO POWTÓRZONE DZISIAJ
+    #
+    # reviewed_words jest listą unikalną,
+    # więc to samo słowo nie zostanie
+    # zapisane drugi raz tego samego dnia.
+    # ======================================
+
+    try:
+
+        mark_word_reviewed_today(
+            state,
+            word
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily vocabulary memory error: {error}"
+        )
+
+
+    # ======================================
+    # LICZNIK UKOŃCZONYCH ĆWICZEŃ
+    #
+    # Każde faktycznie zakończone ćwiczenie
+    # zwiększa licznik dnia.
+    # ======================================
+
+    try:
+
+        mark_exercise_completed_today(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily exercise counter error: {error}"
+        )
+
 
 # ==========================================
 # ÜBUNG – WORT ERKENNEN
@@ -355,12 +416,6 @@ def get_possible_practice_answers(
 
     # ======================================
     # PEŁNE ZNACZENIE
-    #
-    # WAŻNE:
-    # wcześniej tego brakowało.
-    # Nele potrafiła wyświetlić "meaning",
-    # ale nie uznawała go za poprawną
-    # odpowiedź użytkownika.
     # ======================================
 
     meaning = vocabulary_entry.get(
@@ -504,17 +559,6 @@ def answers_match(
 
     # ======================================
     # UŻYTKOWNIK MOŻE POWIEDZIEĆ WIĘCEJ
-    #
-    # Poprawna odpowiedź może być częścią
-    # dłuższego zdania użytkownika.
-    #
-    # Nie robimy już odwrotnego testu,
-    # ponieważ zbyt krótka odpowiedź typu:
-    #
-    # "Zimmer ist ein Raum"
-    #
-    # nie powinna automatycznie zaliczać
-    # pełnej definicji.
     # ======================================
 
     if meaningful_possible_words.issubset(
@@ -774,6 +818,17 @@ def answer_vocabulary_practice(
                 state
             )
 
+
+            # ==================================
+            # DAILY LEARNING MEMORY
+            # ==================================
+
+            remember_daily_vocabulary_completion(
+                state,
+                word
+            )
+
+
             finish_vocabulary_practice(
                 state
             )
@@ -847,6 +902,17 @@ def answer_vocabulary_practice(
             remember_completed_exercise(
                 state
             )
+
+
+            # ==================================
+            # DAILY LEARNING MEMORY
+            # ==================================
+
+            remember_daily_vocabulary_completion(
+                state,
+                word
+            )
+
 
             finish_vocabulary_practice(
                 state
