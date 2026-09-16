@@ -1,10 +1,15 @@
 # ==========================================
 # NELE – PAMIĘĆ W ROZMOWIE
 # TEACHER MODE
+# STUDENT MEMORY 2.0
 # ==========================================
 
 from brain.logic.error_memory_router import (
     handle_error_memory
+)
+
+from brain.logic.daily_learning_router import (
+    handle_daily_learning
 )
 
 from brain.memory.review import (
@@ -14,6 +19,40 @@ from brain.memory.review import (
 from brain.logic.conversation_continuation import (
     continue_after_side_answer
 )
+
+
+# ==========================================
+# PAMIĘĆ DZISIEJSZEJ NAUKI
+# ==========================================
+
+def handle_daily_learning_request(
+    user_message,
+    state
+):
+
+    answer = handle_daily_learning(
+        user_message,
+        state
+    )
+
+    if not answer:
+
+        return (
+            False,
+            None
+        )
+
+
+    answer = continue_after_side_answer(
+        answer,
+        state
+    )
+
+
+    return (
+        True,
+        answer
+    )
 
 
 # ==========================================
@@ -37,10 +76,12 @@ def handle_error_memory_request(
             None
         )
 
+
     answer = continue_after_side_answer(
         answer,
         state
     )
+
 
     return (
         True,
@@ -49,7 +90,7 @@ def handle_error_memory_request(
 
 
 # ==========================================
-# PAMIĘĆ NAUKI
+# OGÓLNA PAMIĘĆ NAUKI
 # ==========================================
 
 def handle_learning_memory_request(
@@ -69,10 +110,12 @@ def handle_learning_memory_request(
             None
         )
 
+
     answer = continue_after_side_answer(
         answer,
         state
     )
+
 
     return (
         True,
@@ -90,7 +133,45 @@ def handle_conversation_memory(
 ):
 
     # ======================================
-    # 1. PAMIĘĆ BŁĘDÓW
+    # 1. DAILY LEARNING MEMORY
+    #
+    # Tylko informacje dotyczące
+    # DZISIEJSZEJ nauki.
+    #
+    # Przykłady:
+    #
+    # Was habe ich heute gemacht?
+    #
+    # Was habe ich heute geübt?
+    #
+    # Welche Wörter habe ich heute
+    # wiederholt?
+    #
+    # Welche Fehler habe ich heute geübt?
+    #
+    # Habe ich heute schon gelernt?
+    # ======================================
+
+    (
+        handled,
+        answer
+    ) = handle_daily_learning_request(
+        user_message,
+        state
+    )
+
+    if handled:
+
+        return (
+            True,
+            answer
+        )
+
+
+    # ======================================
+    # 2. PAMIĘĆ BŁĘDÓW
+    #
+    # Historia ogólna.
     #
     # Przykład:
     #
@@ -114,7 +195,9 @@ def handle_conversation_memory(
 
 
     # ======================================
-    # 2. PAMIĘĆ NAUKI
+    # 3. OGÓLNA PAMIĘĆ NAUKI
+    #
+    # Historia niezależna od dnia.
     #
     # Przykłady:
     #
