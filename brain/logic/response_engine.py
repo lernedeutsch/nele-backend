@@ -972,10 +972,6 @@ def was_lesson_recap_done_today(
 
 # ==========================================
 # OPIS LEKCJI Z KLUCZA
-#
-# A1:1
-# ->
-# A1, Lektion 1
 # ==========================================
 
 def display_daily_lesson_key(
@@ -1019,9 +1015,6 @@ def display_daily_lesson_key(
 
 # ==========================================
 # CO UŻYTKOWNIK ZROBIŁ JUŻ DZISIAJ
-#
-# Pokazujemy przy kolejnym wejściu
-# tego samego dnia.
 # ==========================================
 
 def create_daily_progress_message(
@@ -1064,22 +1057,12 @@ def create_daily_progress_message(
         session_count = 0
 
 
-    # ======================================
-    # PIERWSZE WEJŚCIE DZISIAJ
-    # -> NIE MA POTRZEBY MÓWIĆ:
-    # "Heute hast du schon..."
-    # ======================================
-
     if session_count <= 1:
         return ""
 
 
     practiced_items = []
 
-
-    # ======================================
-    # OSTATNIE SŁOWO DZISIAJ
-    # ======================================
 
     reviewed_words = summary.get(
         "reviewed_words",
@@ -1106,10 +1089,6 @@ def create_daily_progress_message(
                 f"„{word}“"
             )
 
-
-    # ======================================
-    # OSTATNI BŁĄD DZISIAJ
-    # ======================================
 
     reviewed_errors = summary.get(
         "reviewed_errors",
@@ -1164,10 +1143,6 @@ def create_daily_progress_message(
             )
 
 
-    # ======================================
-    # PEŁNA POWTÓRKA LEKCJI
-    # ======================================
-
     lesson_reviews = summary.get(
         "lesson_reviews",
         []
@@ -1197,11 +1172,6 @@ def create_daily_progress_message(
                 "hast du heute schon wiederholt."
             )
 
-
-    # ======================================
-    # BYŁA NAUKA, ALE NIE MA JESZCZE
-    # KONKRETNEGO ELEMENTU DO WYŚWIETLENIA
-    # ======================================
 
     if not messages:
 
@@ -1246,14 +1216,6 @@ def create_daily_progress_message(
 # ==========================================
 # DANE KRÓTKIEGO PRZYPOMNIENIA
 # OSTATNIEJ LEKCJI
-#
-# Ważne:
-# pobieramy je PRZED rozpoczęciem
-# słówka i błędu.
-#
-# Dzięki temu aktywność słownikowa
-# nie nadpisze informacji o miejscu,
-# w którym uczeń skończył lekcję.
 # ==========================================
 
 def get_last_lesson_recap_data(
@@ -1319,10 +1281,6 @@ def get_last_lesson_recap_data(
     recap_section = None
 
 
-    # ======================================
-    # OSTATNIA AKTYWNOŚĆ BYŁA LEKCJĄ
-    # ======================================
-
     if (
         last_activity == "lesson"
         and
@@ -1333,11 +1291,6 @@ def get_last_lesson_recap_data(
             last_detail
         ).strip()
 
-
-    # ======================================
-    # FALLBACK:
-    # AKTUALNA / NASTĘPNA SEKCJA
-    # ======================================
 
     if (
         not recap_section
@@ -1533,10 +1486,6 @@ def build_session_coach_plan(
 
     # ======================================
     # 2. JEDEN BŁĄD NA TĘ SESJĘ
-    #
-    # get_errors_for_review()
-    # sortuje błędy według częstotliwości,
-    # więc pierwszy jest najważniejszy.
     # ======================================
 
     planned_error = None
@@ -1843,9 +1792,6 @@ def create_session_start_follow_up(
     # ======================================
     # INFORMACJA:
     # CO JUŻ ZROBIONO DZISIAJ
-    #
-    # Pokazujemy tylko raz
-    # w tej sesji.
     # ======================================
 
     daily_progress = ""
@@ -1875,11 +1821,6 @@ def create_session_start_follow_up(
         "vocabulary_done",
         False
     ):
-
-        # ----------------------------------
-        # W TEJ SESJI ROBIMY MAKSYMALNIE
-        # JEDNO SŁOWO.
-        # ----------------------------------
 
         flow[
             "vocabulary_done"
@@ -1959,11 +1900,6 @@ def create_session_start_follow_up(
         "errors_done",
         False
     ):
-
-        # ----------------------------------
-        # MAKSYMALNIE JEDEN BŁĄD
-        # W TEJ SESJI.
-        # ----------------------------------
 
         flow[
             "errors_done"
@@ -2082,9 +2018,6 @@ def create_session_start_follow_up(
 
     # ======================================
     # 3. KRÓTKIE PRZYPOMNIENIE LEKCJI
-    #
-    # Nie powtarzamy drugi raz
-    # tego samego miejsca tego samego dnia.
     # ======================================
 
     recap = ""
@@ -2169,11 +2102,6 @@ def create_session_start_follow_up(
         False
     ):
 
-        # ----------------------------------
-        # MAKSYMALNIE JEDNA PEŁNA POWTÓRKA
-        # LEKCJI W TEJ SESJI.
-        # ----------------------------------
-
         flow[
             "lesson_review_done"
         ] = True
@@ -2252,7 +2180,14 @@ def create_session_start_follow_up(
 
 
     # ======================================
-    # 5. PLAN STARTOWY SESJI ZAKOŃCZONY
+    # 5. PLAN STARTOWY SESSION COACH
+    # ZOSTAŁ PRZEJŚCIANY
+    #
+    # Słówko, błąd, przypomnienie
+    # i ewentualna powtórka lekcji
+    # są już obsłużone.
+    #
+    # Została dalsza nauka.
     # ======================================
 
     flow[
@@ -2261,45 +2196,92 @@ def create_session_start_follow_up(
 
 
     # ======================================
-    # DAILY LEARNING MEMORY:
-    # DZISIEJSZY PLAN WYKONANY
+    # NA RAZIE NIE OZNACZAMY JESZCZE
+    # PLANU DNIA JAKO UKOŃCZONEGO.
     #
-    # Zapisujemy tylko raz dziennie.
+    # Najpierw uruchamiamy dalszą naukę.
     # ======================================
 
-    try:
+    flow[
+        "waiting_for_new_learning_completion"
+    ] = False
 
-        daily_summary = (
-            get_daily_learning_summary(
-                state
-            )
-        )
-
-
-        if not daily_summary.get(
-            "daily_plan_completed",
-            False
-        ):
-
-            mark_daily_plan_completed(
-                state
-            )
-
-    except Exception as error:
-
-        print(
-            f"Daily plan completed error: {error}"
-        )
-
-
-    # ======================================
-    # DALSZA LEKCJA / MATERIAŁ
-    # ======================================
 
     next_learning = start_next_new_learning(
         state
     )
 
+
+    # ======================================
+    # CZY RZECZYWIŚCIE URUCHOMIŁA SIĘ
+    # AKTYWNA CZĘŚĆ LEKCJI?
+    #
+    # Jeżeli TAK:
+    # czekamy aż użytkownik ją ukończy.
+    #
+    # lesson_teaching.py po ukończeniu
+    # części ustawi:
+    #
+    # daily_plan_completed = True
+    # ======================================
+
+    lesson_started = bool(
+        state.get(
+            "lesson_teaching_active",
+            False
+        )
+    )
+
+
+    if lesson_started:
+
+        flow[
+            "waiting_for_new_learning_completion"
+        ] = True
+
+
+    # ======================================
+    # JEŻELI NIE MA NOWEJ AKTYWNEJ
+    # CZĘŚCI LEKCJI,
+    # PLAN NA DZISIAJ MOŻEMY UZNAĆ
+    # ZA ZAKOŃCZONY JUŻ TERAZ.
+    #
+    # Przykład:
+    #
+    # A1 Lektion 1 jest ukończona
+    # i nie dodaliśmy jeszcze Lektion 2.
+    # ======================================
+
+    else:
+
+        try:
+
+            daily_summary = (
+                get_daily_learning_summary(
+                    state
+                )
+            )
+
+
+            if not daily_summary.get(
+                "daily_plan_completed",
+                False
+            ):
+
+                mark_daily_plan_completed(
+                    state
+                )
+
+        except Exception as error:
+
+            print(
+                f"Daily plan completed error: {error}"
+            )
+
+
+    # ======================================
+    # ODPOWIEDŹ SESSION COACH
+    # ======================================
 
     parts = []
 
@@ -2628,12 +2610,6 @@ def create_teacher_directed_follow_up(
                 1
             )
 
-
-            # ==================================
-            # NIE POWTARZAMY TEJ SAMEJ
-            # PEŁNEJ POWTÓRKI DRUGI RAZ
-            # TEGO SAMEGO DNIA.
-            # ==================================
 
             if not was_lesson_reviewed_today(
                 state,
