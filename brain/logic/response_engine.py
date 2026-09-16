@@ -36,6 +36,10 @@ from brain.logic.vocabulary_modules.practice import (
     start_vocabulary_practice
 )
 
+from brain.logic.lesson_review_training import (
+    start_lesson_review_training
+)
+
 from brain.memory.error_review import (
     refresh_error_reviews,
     get_due_error_reviews
@@ -45,7 +49,8 @@ from brain.memory.next_learning_step import (
     get_next_new_learning_step,
     get_teacher_learning_plan,
     get_review_plan,
-    get_errors_for_review
+    get_errors_for_review,
+    get_lessons_for_review
 )
 
 
@@ -757,7 +762,7 @@ def get_session_start_flow(
 # ==========================================
 # OSTATNIA LEKCJA – KRÓTKIE PRZYPOMNIENIE
 #
-# To NIE jest jeszcze pełna powtórka
+# To NIE jest pełna powtórka
 # według harmonogramu 1/3/7/14/30.
 #
 # To tylko krótkie przypomnienie:
@@ -914,7 +919,8 @@ def create_last_lesson_recap(
 # ==========================================
 # URUCHOMIENIE DALSZEGO MATERIAŁU
 #
-# Używane po krótkim przypomnieniu.
+# Używane po krótkim przypomnieniu
+# i po ewentualnej pełnej powtórce.
 # ==========================================
 
 def start_next_new_learning(
@@ -986,13 +992,15 @@ def start_next_new_learning(
 # 1. należne słówka
 # 2. należne błędy
 # 3. krótkie przypomnienie ostatniej lekcji
-# 4. pełna powtórka lekcji – później
-# 5. dalsza lekcja
+# 4. należna pełna powtórka lekcji
+# 5. dalsza lekcja / nowy materiał
 #
 # Funkcja jest wywoływana ponownie
 # po zakończeniu każdego ćwiczenia.
-# Dzięki znacznikom w welcome.py
-# nie zapętlamy poprzednich etapów.
+#
+# Znaczniki z welcome.py pilnują,
+# aby żaden etap nie zapętlił się
+# w tej samej sesji.
 # ==========================================
 
 def create_session_start_follow_up(
@@ -1080,9 +1088,9 @@ def create_session_start_follow_up(
                 )
 
 
-        # ----------------------------------
+        # ==================================
         # BRAK DALSZYCH NALEŻNYCH SŁÓW
-        # ----------------------------------
+        # ==================================
 
         flow[
             "vocabulary_done"
@@ -1093,9 +1101,10 @@ def create_session_start_follow_up(
     # 2. NALEŻNE BŁĘDY
     #
     # get_errors_for_review()
-    # sortuje je według liczby błędów,
-    # więc najczęstszy należny błąd
-    # jest pierwszy.
+    # sortuje je według liczby błędów.
+    #
+    # Najczęściej popełniany należny
+    # błąd ma więc pierwszeństwo.
     # ======================================
 
     if not flow.get(
@@ -1209,9 +1218,9 @@ def create_session_start_follow_up(
                 )
 
 
-        # ----------------------------------
+        # ==================================
         # BRAK DALSZYCH NALEŻNYCH BŁĘDÓW
-        # ----------------------------------
+        # ==================================
 
         flow[
             "errors_done"
@@ -1222,7 +1231,7 @@ def create_session_start_follow_up(
     # 3. KRÓTKIE PRZYPOMNIENIE
     # OSTATNIEJ LEKCJI
     #
-    # Robimy je ZAWSZE raz
+    # Robimy je zawsze raz
     # na początku nowej sesji.
     # ======================================
 
@@ -1246,18 +1255,123 @@ def create_session_start_follow_up(
     # ======================================
     # 4. PEŁNA POWTÓRKA LEKCJI
     #
-    # Jeszcze jej tutaj NIE oznaczamy
-    # jako wykonaną.
+    # Uruchamiamy ją tylko wtedy,
+    # gdy termin według harmonogramu:
     #
-    # Następny etap projektu:
-    # prawdziwy lesson_review_training.
+    # 1 -> 3 -> 7 -> 14 -> 30 dni
+    #
+    # jest już należny.
     # ======================================
+
+    if not flow.get(
+        "lesson_review_done",
+        False
+    ):
+
+        try:
+
+            lesson_reviews = (
+                get_lessons_for_review(
+                    state,
+                    limit=1
+                )
+            )
+
+        except Exception as error:
+
+            print(
+                f"Session lesson review error: {error}"
+            )
+
+            lesson_reviews = []
+
+
+        if lesson_reviews:
+
+            lesson_review = (
+                lesson_reviews[0]
+            )
+
+
+            level = lesson_review.get(
+                "level",
+                "A1"
+            )
+
+            lesson = lesson_review.get(
+                "lesson",
+                1
+            )
+
+
+            # ==================================
+            # OZNACZAMY ETAP JAKO URUCHOMIONY
+            #
+            # Dzięki temu po zakończeniu
+            # powtórki nie wystartuje ponownie
+            # w tej samej sesji.
+            # ==================================
+
+            flow[
+                "lesson_review_done"
+            ] = True
+
+
+            review_answer = (
+                start_lesson_review_training(
+                    state,
+                    level,
+                    lesson
+                )
+            )
+
+
+            if review_answer:
+
+                parts = []
+
+
+                if short_answer:
+
+                    parts.append(
+                        short_answer
+                    )
+
+
+                if recap:
+
+                    parts.append(
+                        recap
+                    )
+
+
+                parts.append(
+                    review_answer
+                )
+
+
+                return "\n\n".join(
+                    parts
+                )
+
+
+        # ==================================
+        # NIE MA NALEŻNEJ POWTÓRKI
+        #
+        # LUB NIE MA JESZCZE TRENINGU
+        # OBSŁUGUJĄCEGO DANĄ LEKCJĘ.
+        # ==================================
+
+        flow[
+            "lesson_review_done"
+        ] = True
 
 
     # ======================================
-    # NA TEN MOMENT KOŃCZYMY
-    # SEKWENCJĘ STARTOWĄ
-    # I PRZECHODZIMY DO DALSZEJ LEKCJI.
+    # 5. DALSZA LEKCJA / NOWY MATERIAŁ
+    #
+    # Wszystkie etapy początku sesji
+    # zostały wykonane.
     # ======================================
 
     flow[
@@ -1315,13 +1429,15 @@ def create_session_start_follow_up(
 #
 # NOWA SESJA:
 #
-# welcome.py tworzy session_start_flow,
-# a wtedy najpierw wykonujemy:
+# welcome.py tworzy session_start_flow.
+#
+# Kolejność:
 #
 # 1. słówka
 # 2. błędy
 # 3. krótkie przypomnienie lekcji
-#
+# 4. należna pełna powtórka lekcji
+# 5. dalszy materiał
 # ==========================================
 
 def create_teacher_directed_follow_up(
@@ -1562,7 +1678,93 @@ def create_teacher_directed_follow_up(
 
 
     # ======================================
-    # 3. NOWY MATERIAŁ / LEKCJA
+    # 3. NALEŻNA POWTÓRKA LEKCJI
+    #
+    # Normalnie obsługuje ją początek
+    # sesji. Ten fragment jest dodatkowym
+    # zabezpieczeniem Teacher Mode.
+    # ======================================
+
+    if priority == "lesson_review":
+
+        lesson_reviews = plan.get(
+            "lesson_reviews",
+            []
+        )
+
+        lesson_review = None
+
+
+        if (
+            isinstance(
+                lesson_reviews,
+                list
+            )
+            and
+            lesson_reviews
+        ):
+
+            lesson_review = (
+                lesson_reviews[0]
+            )
+
+
+        if isinstance(
+            lesson_review,
+            dict
+        ):
+
+            level = lesson_review.get(
+                "level",
+                "A1"
+            )
+
+            lesson = lesson_review.get(
+                "lesson",
+                1
+            )
+
+
+            review_answer = (
+                start_lesson_review_training(
+                    state,
+                    level,
+                    lesson
+                )
+            )
+
+
+            if review_answer:
+
+                parts = []
+
+
+                if short_answer:
+
+                    parts.append(
+                        short_answer
+                    )
+
+
+                if message:
+
+                    parts.append(
+                        message
+                    )
+
+
+                parts.append(
+                    review_answer
+                )
+
+
+                return "\n\n".join(
+                    parts
+                )
+
+
+    # ======================================
+    # 4. NOWY MATERIAŁ / LEKCJA
     # ======================================
 
     new_learning_plan = plan
