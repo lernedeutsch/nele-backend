@@ -49,6 +49,11 @@ from brain.logic.lesson_teaching import (
     handle_lesson_teaching
 )
 
+from brain.logic.lesson_review_training import (
+    handle_lesson_review_training,
+    is_lesson_review_training_active
+)
+
 from brain.logic.error_progress import (
     handle_error_progress
 )
@@ -296,7 +301,62 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4A. AKTYWNE FEHLERTRAINING
+    # 4A. AKTYWNA POWTÓRKA CAŁEJ LEKCJI
+    #
+    # lesson_review_training.py
+    #
+    # Jeżeli pełna powtórka lekcji
+    # jest już aktywna, odpowiedź ucznia
+    # musi trafić najpierw tutaj.
+    #
+    # Po zakończeniu powtórki przechodzimy
+    # automatycznie do kolejnego kroku
+    # Teacher Mode.
+    # ======================================
+
+    was_lesson_review_active = (
+        is_lesson_review_training_active(
+            state
+        )
+    )
+
+    if was_lesson_review_active:
+
+        answer = handle_lesson_review_training(
+            processed_message,
+            state
+        )
+
+        if answer:
+
+            is_still_lesson_review_active = (
+                is_lesson_review_training_active(
+                    state
+                )
+            )
+
+            if (
+                was_lesson_review_active
+                and
+                not is_still_lesson_review_active
+            ):
+
+                answer = (
+                    continue_after_finished_training(
+                        answer,
+                        state
+                    )
+                )
+
+            return return_with_feedback(
+                answer,
+                feedback_text,
+                session_id
+            )
+
+
+    # ======================================
+    # 4B. AKTYWNE FEHLERTRAINING
     #
     # conversation_error_training.py
     #
@@ -322,7 +382,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4B. POWTÓRZ
+    # 4C. POWTÓRZ
     # ======================================
 
     (
@@ -347,7 +407,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4C. WRÓĆ DO TRENINGU
+    # 4D. WRÓĆ DO TRENINGU
     # ======================================
 
     (
@@ -372,7 +432,7 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 4D. PYTANIE O ZNACZENIE SŁOWA
+    # 4E. PYTANIE O ZNACZENIE SŁOWA
     #
     # conversation_vocabulary.py
     # ======================================
@@ -761,4 +821,4 @@ def generate_conversation_reply(
         ),
         feedback_text,
         session_id
-    )
+                )
