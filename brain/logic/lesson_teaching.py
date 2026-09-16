@@ -269,8 +269,7 @@ def complete_active_section(
     ):
 
         # ==================================
-        # AKTUALNĄ CZĘŚĆ OZNACZAMY
-        # JAKO UKOŃCZONĄ
+        # AKTUELLE SEKTION ABSCHLIESSEN
         # ==================================
 
         mark_section_completed(
@@ -282,7 +281,7 @@ def complete_active_section(
 
 
         # ==================================
-        # SZUKAMY NASTĘPNEJ CZĘŚCI
+        # NÄCHSTE SEKTION
         # ==================================
 
         next_section = (
@@ -295,15 +294,10 @@ def complete_active_section(
 
 
         # ==================================
-        # JEŻELI CAŁA LEKCJA
-        # ZOSTAŁA UKOŃCZONA,
-        # PLANUJEMY PIERWSZĄ POWTÓRKĘ.
+        # GANZE LEKTION ABGESCHLOSSEN
         #
-        # review_count = 0
-        # -> pierwsza powtórka za 1 dzień
-        #
-        # schedule_lesson_review()
-        # nie nadpisze istniejącego terminu.
+        # Erste Wiederholung:
+        # nach 1 Tag.
         # ==================================
 
         if is_lesson_fully_completed(
@@ -437,6 +431,46 @@ def start_lesson_teaching(
             "auf Deutsch vorstellst. "
             "Zum Beispiel: „Ich heiße Anna.“ "
             "Und jetzt du: Wie heißt du?"
+        )
+
+
+    # ======================================
+    # TEIL:
+    # DAS DEUTSCHE ALPHABET
+    # ======================================
+
+    if normalize(
+        section
+    ) == normalize(
+        "Das deutsche Alphabet"
+    ):
+
+        state[
+            "lesson_teaching_active"
+        ] = True
+
+        state[
+            "lesson_teaching_section"
+        ] = "Das deutsche Alphabet"
+
+        state[
+            "lesson_teaching_step"
+        ] = 1
+
+
+        state[
+            "last_activity"
+        ] = "lesson"
+
+        state[
+            "last_activity_detail"
+        ] = "Das deutsche Alphabet"
+
+
+        return (
+            "Super, dann machen wir eine kurze "
+            "Übung zum deutschen Alphabet. "
+            "Welcher Buchstabe kommt nach A?"
         )
 
 
@@ -721,10 +755,6 @@ def handle_greeting_section(
             )
 
 
-        # ==================================
-        # TEIL ABSCHLIESSEN
-        # ==================================
-
         next_section = complete_active_section(
             state
         )
@@ -748,10 +778,6 @@ def handle_greeting_section(
             "Diesen Teil hast du geschafft!"
         )
 
-
-    # ======================================
-    # UNBEKANNTER SCHRITT
-    # ======================================
 
     finish_lesson_teaching(
         state
@@ -936,10 +962,6 @@ def handle_introduction_section(
             )
 
 
-        # ==================================
-        # TEIL ABSCHLIESSEN
-        # ==================================
-
         next_section = complete_active_section(
             state
         )
@@ -964,9 +986,322 @@ def handle_introduction_section(
         )
 
 
+    finish_lesson_teaching(
+        state
+    )
+
+    return None
+
+
+# ==========================================
+# ALPHABET:
+# EINZELNER BUCHSTABE
+# ==========================================
+
+def is_letter_answer(
+    user_message,
+    expected_letter
+):
+
+    message = clean_normalized_answer(
+        user_message
+    )
+
+    expected = normalize(
+        expected_letter
+    )
+
+
+    accepted = {
+        expected,
+        f"buchstabe {expected}",
+        f"der buchstabe {expected}",
+        f"es ist {expected}"
+    }
+
+
+    return message in accepted
+
+
+# ==========================================
+# ALPHABET:
+# UMLAUTE
+# ==========================================
+
+def is_umlaut_answer(
+    user_message
+):
+
+    message = str(
+        user_message or ""
+    ).lower()
+
+
     # ======================================
-    # UNBEKANNTER SCHRITT
+    # DIREKTE SCHREIBWEISE
     # ======================================
+
+    if (
+        "ä" in message
+        and
+        "ö" in message
+        and
+        "ü" in message
+    ):
+
+        return True
+
+
+    normalized = normalize(
+        message
+    )
+
+
+    # ======================================
+    # ALTERNATIVE SCHREIBWEISE
+    # ======================================
+
+    has_a = (
+        "a umlaut" in normalized
+        or
+        "ae" in normalized
+    )
+
+    has_o = (
+        "o umlaut" in normalized
+        or
+        "oe" in normalized
+    )
+
+    has_u = (
+        "u umlaut" in normalized
+        or
+        "ue" in normalized
+    )
+
+
+    return (
+        has_a
+        and
+        has_o
+        and
+        has_u
+    )
+
+
+# ==========================================
+# ALPHABET:
+# ESZETT
+# ==========================================
+
+def is_eszett_answer(
+    user_message
+):
+
+    message = str(
+        user_message or ""
+    ).lower().strip(
+        " .?!„“\"'"
+    )
+
+
+    if "ß" in message:
+        return True
+
+
+    normalized = normalize(
+        message
+    )
+
+
+    return normalized in {
+        "eszett",
+        "es zett",
+        "scharfes s",
+        "das eszett",
+        "das scharfe s"
+    }
+
+
+# ==========================================
+# TEIL:
+# DAS DEUTSCHE ALPHABET
+# ==========================================
+
+def handle_alphabet_section(
+    user_message,
+    state
+):
+
+    step = state.get(
+        "lesson_teaching_step",
+        1
+    )
+
+
+    # ======================================
+    # SCHRITT 1
+    # NACH A -> B
+    # ======================================
+
+    if step == 1:
+
+        if not is_letter_answer(
+            user_message,
+            "B"
+        ):
+
+            return (
+                "Fast. Nach A kommt B. "
+                "Sag bitte: „B“."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 2
+
+
+        return (
+            "Richtig! Nach A kommt B. "
+            "Welcher Buchstabe kommt nach M?"
+        )
+
+
+    # ======================================
+    # SCHRITT 2
+    # NACH M -> N
+    # ======================================
+
+    if step == 2:
+
+        if not is_letter_answer(
+            user_message,
+            "N"
+        ):
+
+            return (
+                "Fast. Nach M kommt N. "
+                "Sag bitte: „N“."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 3
+
+
+        return (
+            "Sehr gut! Nach M kommt N. "
+            "Welcher Buchstabe kommt vor Z?"
+        )
+
+
+    # ======================================
+    # SCHRITT 3
+    # VOR Z -> Y
+    # ======================================
+
+    if step == 3:
+
+        if not is_letter_answer(
+            user_message,
+            "Y"
+        ):
+
+            return (
+                "Fast. Vor Z kommt Y. "
+                "Sag bitte: „Y“."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 4
+
+
+        return (
+            "Genau! Vor Z kommt Y. "
+            "Im Deutschen gibt es auch drei Umlaute. "
+            "Welche sind das?"
+        )
+
+
+    # ======================================
+    # SCHRITT 4
+    # Ä Ö Ü
+    # ======================================
+
+    if step == 4:
+
+        if not is_umlaut_answer(
+            user_message
+        ):
+
+            return (
+                "Fast. Die drei Umlaute sind "
+                "Ä, Ö und Ü. "
+                "Sag sie bitte noch einmal."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 5
+
+
+        return (
+            "Perfekt! Ä, Ö und Ü sind die drei Umlaute. "
+            "Und welches besondere Zeichen "
+            "gibt es außerdem im Deutschen?"
+        )
+
+
+    # ======================================
+    # SCHRITT 5
+    # ß
+    # ======================================
+
+    if step == 5:
+
+        if not is_eszett_answer(
+            user_message
+        ):
+
+            return (
+                "Fast. Das besondere Zeichen ist ß. "
+                "Man nennt es „Eszett“ oder "
+                "„scharfes S“. "
+                "Sag bitte: „Eszett“."
+            )
+
+
+        # ==================================
+        # LETZTE SEKTION ABSCHLIESSEN
+        # ==================================
+
+        next_section = complete_active_section(
+            state
+        )
+
+
+        if next_section:
+
+            return (
+                "Sehr gut! Du kennst jetzt wichtige "
+                "Grundlagen des deutschen Alphabets. "
+                f"Als Nächstes kommt "
+                f"„{next_section}“."
+            )
+
+
+        return (
+            "Sehr gut! Du kennst jetzt wichtige "
+            "Grundlagen des deutschen Alphabets. "
+            "Damit hast du A1, Lektion 1 abgeschlossen. "
+            "Die erste Wiederholung ist für morgen geplant."
+        )
+
 
     finish_lesson_teaching(
         state
@@ -1042,7 +1377,23 @@ def handle_lesson_teaching(
 
 
     # ======================================
-    # NIEZNANA SEKCJA
+    # DAS DEUTSCHE ALPHABET
+    # ======================================
+
+    if normalize(
+        section
+    ) == normalize(
+        "Das deutsche Alphabet"
+    ):
+
+        return handle_alphabet_section(
+            user_message,
+            state
+        )
+
+
+    # ======================================
+    # NIEZNANA SEKTION
     # ======================================
 
     finish_lesson_teaching(
