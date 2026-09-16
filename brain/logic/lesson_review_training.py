@@ -10,6 +10,64 @@ from brain.memory.lesson_review import (
     mark_lesson_review_difficult
 )
 
+from brain.memory.daily_learning import (
+    mark_lesson_reviewed_today,
+    mark_exercise_completed_today
+)
+
+
+# ==========================================
+# DAILY LEARNING MEMORY
+# ZAKOŃCZONA POWTÓRKA LEKCJI
+# ==========================================
+
+def remember_daily_lesson_review_completion(
+    state,
+    level,
+    lesson,
+    result
+):
+
+    if state is None:
+        return
+
+
+    # ======================================
+    # LEKCJA POWTÓRZONA DZISIAJ
+    # ======================================
+
+    try:
+
+        mark_lesson_reviewed_today(
+            state,
+            level,
+            lesson,
+            result=result
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily lesson review memory error: {error}"
+        )
+
+
+    # ======================================
+    # LICZNIK UKOŃCZONYCH ĆWICZEŃ
+    # ======================================
+
+    try:
+
+        mark_exercise_completed_today(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily lesson review counter error: {error}"
+        )
+
 
 # ==========================================
 # CZYSZCZENIE ODPOWIEDZI
@@ -439,6 +497,19 @@ def complete_lesson_review_training(
             result="good"
         )
 
+
+        # ==================================
+        # DAILY LEARNING MEMORY
+        # ==================================
+
+        remember_daily_lesson_review_completion(
+            state,
+            level,
+            lesson,
+            result="good"
+        )
+
+
         finish_lesson_review_training(
             state
         )
@@ -461,6 +532,24 @@ def complete_lesson_review_training(
         level,
         lesson
     )
+
+
+    # ======================================
+    # DAILY LEARNING MEMORY
+    #
+    # Powtórka została dzisiaj wykonana,
+    # mimo że była trudna.
+    # Nie uruchamiamy jej ponownie
+    # tego samego dnia.
+    # ======================================
+
+    remember_daily_lesson_review_completion(
+        state,
+        level,
+        lesson,
+        result="difficult"
+    )
+
 
     finish_lesson_review_training(
         state
