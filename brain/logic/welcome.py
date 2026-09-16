@@ -46,6 +46,49 @@ def save_and_return(
 
 
 # ==========================================
+# NOWA SEKWENCJA STARTOWA SESJI
+#
+# Kolejność docelowa:
+#
+# 1. należne słówka
+# 2. należne błędy
+# 3. krótkie przypomnienie ostatniej lekcji
+# 4. należna powtórka lekcji
+# 5. dalsza nauka
+#
+# Te znaczniki dotyczą tylko jednego
+# otwarcia Nele.
+# ==========================================
+
+def reset_session_start_flow(
+    state
+):
+
+    if state is None:
+        return
+
+    state[
+        "session_start_flow"
+    ] = {
+
+        "active":
+            True,
+
+        "vocabulary_done":
+            False,
+
+        "errors_done":
+            False,
+
+        "last_lesson_recap_done":
+            False,
+
+        "lesson_review_done":
+            False
+    }
+
+
+# ==========================================
 # WYCZYSZCZENIE STAREJ AKTYWNEJ SESJI
 # ==========================================
 
@@ -100,6 +143,21 @@ def clear_old_active_exercises(
     state[
         "lesson_teaching_step"
     ] = 0
+
+
+    # ======================================
+    # NOWY START SESJI
+    #
+    # Resetujemy tylko informację o tym,
+    # które etapy początku NOWEJ sesji
+    # zostały już wykonane.
+    #
+    # Nie kasujemy historii nauki.
+    # ======================================
+
+    reset_session_start_flow(
+        state
+    )
 
 
 # ==========================================
@@ -266,6 +324,9 @@ def generate_welcome_reply(
     #
     # Czyścimy tylko stare aktywne tryby.
     # Pamięć ucznia i postęp zostają.
+    #
+    # Tworzymy też NOWĄ sekwencję
+    # początku sesji.
     # ======================================
 
     clear_old_active_exercises(
@@ -302,4 +363,4 @@ def generate_welcome_reply(
     return save_and_return(
         answer,
         session_id
-                    )
+    )
