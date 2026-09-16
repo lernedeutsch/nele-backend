@@ -30,6 +30,12 @@ from brain.memory.adaptive_review import (
     QUALITY_EASY
 )
 
+from brain.memory.daily_learning import (
+    mark_error_reviewed_today,
+    mark_exercise_completed_today,
+    record_mistake_today
+)
+
 
 # ==========================================
 # NAZWY RODZAJÓW BŁĘDÓW
@@ -58,6 +64,93 @@ ERROR_PRACTICE_LABELS = {
     "preposition":
         "die Präpositionen"
 }
+
+
+# ==========================================
+# DAILY LEARNING MEMORY
+# ZAKOŃCZONY TRENING BŁĘDU
+# ==========================================
+
+def remember_daily_error_completion(
+    state,
+    error_type
+):
+
+    if state is None:
+        return
+
+    if not error_type:
+        return
+
+
+    # ======================================
+    # TYP BŁĘDU PRZEĆWICZONY DZISIAJ
+    # ======================================
+
+    try:
+
+        mark_error_reviewed_today(
+            state,
+            error_type
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily error review memory error: {error}"
+        )
+
+
+    # ======================================
+    # LICZNIK UKOŃCZONYCH ĆWICZEŃ
+    # ======================================
+
+    try:
+
+        mark_exercise_completed_today(
+            state
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily error exercise counter error: {error}"
+        )
+
+
+# ==========================================
+# DAILY LEARNING MEMORY
+# BŁĘDNA PRÓBA PODCZAS TRENINGU
+# ==========================================
+
+def remember_daily_error_mistake(
+    state,
+    error_type,
+    wrong_sentence=None,
+    correct_sentence=None
+):
+
+    if state is None:
+        return
+
+    if not error_type:
+        return
+
+
+    try:
+
+        record_mistake_today(
+            state,
+            error_type,
+            wrong=wrong_sentence,
+            correct=correct_sentence
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily error mistake memory error: {error}"
+        )
 
 
 # ==========================================
@@ -639,6 +732,19 @@ def handle_error_practice_step_one(
         )
 
 
+        error_type = state.get(
+            "error_practice_type"
+        )
+
+
+        remember_daily_error_mistake(
+            state,
+            error_type,
+            wrong_sentence=wrong_sentence,
+            correct_sentence=correct_sentence
+        )
+
+
         return (
             "Noch nicht. "
             "Achte auf die Wortstellung. "
@@ -650,6 +756,10 @@ def handle_error_practice_step_one(
 
     # ======================================
     # NIEJASNA ODPOWIEDŹ
+    #
+    # Nie zapisujemy jej jako błąd,
+    # ponieważ może to być np. komenda,
+    # pytanie albo niezrozumiała odpowiedź.
     # ======================================
 
     return (
@@ -673,6 +783,10 @@ def handle_error_practice_step_two(
 
     correct_sentence = summary.get(
         "last_correct"
+    )
+
+    wrong_sentence = summary.get(
+        "last_wrong"
     )
 
 
@@ -841,7 +955,7 @@ def handle_error_practice_step_two(
 
 
             # ==================================
-            # ZAPIS DO STUDENT MEMORY 2.0
+            # STUDENT MEMORY 2.0
             # ==================================
 
             mark_error_practiced(
@@ -852,6 +966,19 @@ def handle_error_practice_step_two(
                 quality=quality,
                 next_review_at=next_review_at,
                 difficulty=new_difficulty
+            )
+
+
+            # ==================================
+            # DAILY LEARNING MEMORY
+            #
+            # Błąd został poprawnie
+            # przećwiczony i zakończony.
+            # ==================================
+
+            remember_daily_error_completion(
+                state,
+                error_type
             )
 
 
@@ -881,6 +1008,7 @@ def handle_error_practice_step_two(
         # słówka
         # -> błędy
         # -> przypomnienie lekcji
+        # -> ewentualna powtórka lekcji
         # -> dalsza nauka
         #
         # bez podwójnego komunikatu.
@@ -905,6 +1033,19 @@ def handle_error_practice_step_two(
     state[
         "error_practice_used_hint"
     ] = True
+
+
+    error_type = state.get(
+        "error_practice_type"
+    )
+
+
+    remember_daily_error_mistake(
+        state,
+        error_type,
+        wrong_sentence=user_message,
+        correct_sentence=correct_sentence
+    )
 
 
     return (
