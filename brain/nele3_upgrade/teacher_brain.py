@@ -13,22 +13,155 @@ UPGRADE_ACTIVITY_ORDER = [
 ]
 
 
+SKILL_LABELS = {
+    "listening": "Hören",
+    "writing": "Schreiben",
+    "dialogue": "Dialoge",
+    "work_german": "Arbeitsdeutsch",
+    "pronunciation": "Aussprache",
+    "speaking": "Sprechen",
+}
+
+
+def _attempts(data):
+    try:
+        return max(0, int(data.get("attempts", 0) or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _score(data):
+    try:
+        return max(0.0, min(100.0, float(data.get("score_avg", 0) or 0)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _weakest_upgrade_skill(state):
     skills = get_skills(state)
 
-    # First let every important extra skill get at least one result.
+    # Najpierw opieramy się na rzeczywistych wynikach.
+    # Jedna przypadkowa odpowiedź nie powinna od razu
+    # definiować "słabej strony".
+    reliable = [
+        name
+        for name in UPGRADE_ACTIVITY_ORDER
+        if _attempts(skills.get(name, {})) >= 2
+    ]
+
+    if reliable:
+        weakest = min(
+            reliable,
+            key=lambda name: _score(skills.get(name, {})),
+        )
+        if _score(skills.get(weakest, {})) < 85:
+            return weakest
+
+    # Jeżeli mamy tylko pojedyncze próby, reagujemy dopiero
+    # na wyraźnie słabszy wynik.
+    attempted = [
+        name
+        for name in UPGRADE_ACTIVITY_ORDER
+        if _attempts(skills.get(name, {})) > 0
+    ]
+
+    if attempted:
+        weakest = min(
+            attempted,
+            key=lambda name: _score(skills.get(name, {})),
+        )
+        if _score(skills.get(weakest, {})) < 70:
+            return weakest
+
+    # Gdy dotychczasowe wyniki są dobre, Nele rozwija obszar,
+    # którego uczeń jeszcze prawie nie ćwiczył.
     for name in UPGRADE_ACTIVITY_ORDER:
-        data = skills.get(name, {})
-        if int(data.get("attempts", 0) or 0) == 0:
+        if _attempts(skills.get(name, {})) == 0:
             return name
 
-    # Afterwards choose the lowest rolling average.
+    # Wszystko było już ćwiczone i nie ma wyraźnej słabości:
+    # wybieramy najmniej pewny obszar.
     return min(
         UPGRADE_ACTIVITY_ORDER,
-        key=lambda name: float(
-            skills.get(name, {}).get("score_avg", 0) or 0
-        ),
+        key=lambda name: _score(skills.get(name, {})),
     )
+
+
+def build_adaptive_recommendation(state):
+    """Zbuduj krótką, uzasadnioną propozycję następnego treningu."""
+    skills = get_skills(state)
+    activity = _weakest_upgrade_skill(state)
+    data = skills.get(activity, {})
+    attempts = _attempts(data)
+    score = _score(data)
+
+    attempted = [
+        name
+        for name in UPGRADE_ACTIVITY_ORDER
+        if _attempts(skills.get(name, {})) > 0
+    ]
+
+    strongest = None
+    if attempted:
+        strongest = max(
+            attempted,
+            key=lambda name: _score(skills.get(name, {})),
+        )
+
+    label = SKILL_LABELS.get(activity, activity)
+
+    if attempts >= 2 and score < 85:
+        reason = (
+            f"Beim {label} bist du im Moment noch etwas unsicherer "
+            f"({round(score, 1)} von 100)."
+        )
+    elif attempts > 0 and score < 70:
+        reason = (
+            f"Beim {label} war dein letzter Durchschnitt noch nicht ganz sicher "
+            f"({round(score, 1)} von 100)."
+        )
+    elif attempts == 0:
+        if strongest:
+            strong_label = SKILL_LABELS.get(strongest, strongest)
+            strong_score = _score(skills.get(strongest, {}))
+            reason = (
+                f"{strong_label} klappt schon gut "
+                f"({round(strong_score, 1)} von 100). "
+                f"{label} haben wir dagegen noch kaum trainiert."
+            )
+        else:
+            reason = (
+                f"{label} haben wir bisher noch kaum trainiert."
+            )
+    else:
+        reason = (
+            f"Deine Ergebnisse sind insgesamt schon gut. "
+            f"Beim {label} können wir sie noch weiter festigen."
+        )
+
+    activity_phrases = {
+        "listening": "eine kurze Hörübung",
+        "writing": "eine kurze Schreibübung",
+        "dialogue": "einen kurzen Alltagsdialog",
+        "work_german": "eine kurze Arbeitsdeutsch-Übung",
+        "pronunciation": "eine kurze Ausspracheübung",
+        "speaking": "eine kurze Sprechübung",
+    }
+
+    phrase = activity_phrases.get(activity, "eine kurze Übung")
+
+    return {
+        "type": "adaptive_recommendation",
+        "activity": activity,
+        "label": label,
+        "attempts": attempts,
+        "score": round(score, 1),
+        "reason": reason,
+        "message": (
+            f"{reason} Ich würde dir jetzt {phrase} empfehlen. "
+            "Möchtest du das machen?"
+        ),
+    }
 
 
 def _existing_plan_should_go_first(existing):
@@ -78,25 +211,15 @@ def select_next_action(state):
     # Once the current course step is completed, use Nele-3 activities
     # to strengthen the weakest / not-yet-practised skill.
     level = get_current_level(state) or "A1"
-    activity = _weakest_upgrade_skill(state)
-
-    messages = {
-        "listening": "Wir machen jetzt eine kurze Hörübung.",
-        "writing": "Wir machen jetzt eine kurze Schreibübung.",
-        "dialogue": "Wir üben jetzt einen kurzen Alltagsdialog.",
-        "work_german": "Wir üben jetzt kurz Deutsch für die Arbeit im Hotel.",
-        "pronunciation": "Wir trainieren jetzt kurz deine Aussprache.",
-        "speaking": "Wir machen jetzt eine kurze Sprechübung.",
-    }
+    recommendation = build_adaptive_recommendation(state)
+    activity = recommendation["activity"]
 
     action = {
         "type": "upgrade_activity",
         "activity": activity,
         "level": level,
-        "message": messages.get(
-            activity,
-            "Wir machen jetzt eine kurze Übung.",
-        ),
+        "message": recommendation.get("reason"),
+        "recommendation": recommendation,
         "existing_plan": existing,
     }
     set_last_action(state, action)
