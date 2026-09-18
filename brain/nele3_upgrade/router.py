@@ -37,6 +37,56 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
             record_event(state, "activity_cancelled", detail=active.get("type"))
             return True, "Okay. Wir beenden diese Übung.", {"activity_cancelled": True}
 
+        repeat_requests = {
+            "bitte wiederholen",
+            "wiederholen bitte",
+            "wiederhol bitte",
+            "wiederhole bitte",
+            "noch einmal",
+            "noch einmal bitte",
+            "nochmal",
+            "nochmal bitte",
+            "kannst du das bitte wiederholen",
+            "kannst du das noch einmal sagen",
+            "powtórz",
+            "powtorz",
+            "powtórz proszę",
+            "powtorz prosze",
+            "jeszcze raz",
+            "jeszcze raz proszę",
+            "jeszcze raz prosze",
+        }
+
+        if norm in repeat_requests:
+            activity_type = active.get("type", "")
+            prompt = str(active.get("prompt") or "").strip()
+            speak_text = str(active.get("speak_text") or "").strip()
+
+            if activity_type == "listening":
+                return True, (
+                    "Hör noch einmal gut zu.\n\n" + prompt
+                ).strip(), {
+                    "activity": "listening",
+                    "speak_text": speak_text,
+                    "repeat": True,
+                }
+
+            if activity_type == "pronunciation":
+                return True, (
+                    prompt or
+                    f"Sprich bitte nach: „{active.get('target', '')}“"
+                ), {
+                    "activity": "pronunciation",
+                    "speak_text": speak_text or str(active.get("target") or "").strip(),
+                    "repeat": True,
+                }
+
+            if prompt:
+                return True, prompt, {
+                    "activity": activity_type,
+                    "repeat": True,
+                }
+
         result = answer_active_task(state, message, transcript=transcript)
         if result:
             return True, result.get("reply", ""), result.get("meta", {}) | {
