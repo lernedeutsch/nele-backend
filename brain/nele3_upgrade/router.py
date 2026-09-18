@@ -7,6 +7,8 @@ from brain.nele3_upgrade.state import (
     set_active_task,
     register_turn,
     record_event,
+    get_pending_recommendation,
+    clear_pending_recommendation,
 )
 from brain.nele3_upgrade.teacher_brain import select_next_action
 
@@ -29,6 +31,43 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
 
     message = str(user_message or "").strip()
     norm = _n(message)
+
+    pending = get_pending_recommendation(state)
+
+    if pending:
+        yes_answers = {
+            "ja", "ja gern", "ja gerne", "gern", "gerne",
+            "okay", "ok", "klar", "natürlich", "ja bitte",
+            "machen wir", "ja machen wir", "tak",
+        }
+        no_answers = {
+            "nein", "nein danke", "nicht jetzt", "später",
+            "lieber nicht", "jetzt nicht", "nie", "nie teraz",
+        }
+
+        if norm in yes_answers:
+            activity = pending.get("activity")
+            clear_pending_recommendation(state)
+            started = start_activity(state, activity)
+            return True, started.get("reply", ""), {
+                **started.get("meta", {}),
+                "adaptive_recommendation": True,
+                **(
+                    {"speak_text": started.get("speak_text")}
+                    if started.get("speak_text")
+                    else {}
+                ),
+            }
+
+        if norm in no_answers:
+            clear_pending_recommendation(state)
+            return True, (
+                "Okay. Dann machen wir etwas anderes. "
+                "Du kannst mir zum Beispiel sagen: "
+                "Arbeitsdeutsch, Rollenspiel, Hörübung oder Schreibübung."
+            ), {
+                "adaptive_recommendation_declined": True
+            }
 
     active = get_active_task(state)
     if active:
@@ -131,6 +170,11 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
                     else {}
                 ),
             }
+
+    # Jeżeli uczeń zamiast "ja/nein" wybiera własną komendę,
+    # stara propozycja nie może pozostać aktywna.
+    if pending:
+        clear_pending_recommendation(state)
 
     if _contains_any(norm, {"wochenbericht", "wochen bericht", "bericht der woche"}):
         report = weekly_report(state)
