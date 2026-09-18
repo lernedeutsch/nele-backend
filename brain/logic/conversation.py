@@ -79,7 +79,8 @@ from brain.logic.context_router import (
 )
 
 from brain.logic.response_engine import (
-    find_response
+    find_response,
+    create_teacher_directed_follow_up
 )
 
 from brain.logic.intent_handler import (
