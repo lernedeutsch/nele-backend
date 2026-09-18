@@ -112,7 +112,7 @@ def start_activity(state, activity_type, level=None):
         }
         set_active_task(state, task)
         return {
-            "reply": f"Hör gut zu: {item['text']}\n\n{item['question']}",
+            "reply": f"Hör gut zu.\n\n{item['question']}",
             "speak_text": item["text"],
             "task": task,
             "meta": {"activity": "listening"},
