@@ -10,7 +10,10 @@ from brain.nele3_upgrade.state import ensure_upgrade_state, get_skills
 def _count_due_vocabulary(vocabulary):
     count = 0
     for item in (vocabulary or {}).values():
-        if isinstance(item, dict) and (item.get("needs_review") or item.get("next_review_at")):
+        if isinstance(item, dict) and (
+            item.get("needs_review")
+            or item.get("next_review_at")
+        ):
             count += 1
     return count
 
@@ -58,8 +61,12 @@ def build_dashboard(state):
             "vocabulary_items": len(vocabulary or {}),
             "vocabulary_due_or_scheduled": _count_due_vocabulary(vocabulary),
             "error_types": len(errors or {}),
-            "pronunciation_words": len((pronunciation or {}).get("words", {})),
-            "pronunciation_sounds": len((pronunciation or {}).get("sounds", {})),
+            "pronunciation_words": len(
+                (pronunciation or {}).get("words", {})
+            ),
+            "pronunciation_sounds": len(
+                (pronunciation or {}).get("sounds", {})
+            ),
         },
         "session": upgrade.get("session", {}),
         "version": upgrade.get("version"),
@@ -81,10 +88,30 @@ def dashboard_text(state):
         for name, item in skills.items()
         if int(item.get("attempts", 0) or 0) > 0
     ]
-    if attempted:
-        weakest_name, weakest = min(attempted, key=lambda x: float(x[1].get("score", 0) or 0))
-        weak_text = f" Am meisten lohnt sich jetzt: {weakest_name}."
-    else:
-        weak_text = " Heute sammeln wir zuerst ein paar Lernergebnisse."
 
-    return f"Du bist bei {level}, Lektion {lesson}. Heute hast du {exercises} Übungen abgeschlossen.{weak_text}"
+    if attempted:
+        weakest_name, weakest = min(
+            attempted,
+            key=lambda x: float(
+                x[1].get("score_avg", 0) or 0
+            ),
+        )
+        weakest_score = float(
+            weakest.get("score_avg", 0) or 0
+        )
+        weak_text = (
+            f" Deine aktuell schwächste Zusatzfertigkeit ist "
+            f"{weakest_name} mit durchschnittlich "
+            f"{round(weakest_score, 1)} von 100."
+        )
+    else:
+        weak_text = (
+            " Für die Zusatzfertigkeiten gibt es noch "
+            "keine Lernergebnisse."
+        )
+
+    return (
+        f"Du bist bei {level}, Lektion {lesson}. "
+        f"Heute hast du {exercises} Übungen abgeschlossen."
+        f"{weak_text}"
+    )
