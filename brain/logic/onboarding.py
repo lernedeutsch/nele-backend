@@ -971,22 +971,29 @@ def finish_onboarding(
         state
     )
 
+    # Po pierwszym poznaniu ucznia Nele czeka
+    # na naturalne "ja" / "nein" i dopiero wtedy
+    # uruchamia pierwszy krok nauki.
+    state[
+        "last_question"
+    ] = "start_after_onboarding"
+
     if name:
 
         return (
             f"Super, {name}! "
             "Jetzt kenne ich dich schon "
             "ein bisschen besser. "
-            "Wir können loslegen. "
-            "Ich passe die Übungen an dich an."
+            "Ich passe die Übungen an dich an. "
+            "Möchtest du gleich anfangen?"
         )
 
     return (
         "Super! "
         "Jetzt kenne ich dich schon "
         "ein bisschen besser. "
-        "Wir können loslegen. "
-        "Ich passe die Übungen an dich an."
+        "Ich passe die Übungen an dich an. "
+        "Möchtest du gleich anfangen?"
     )
 
 
