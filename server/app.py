@@ -17,6 +17,7 @@ from brain.logic.memory import (
 )
 from brain.logic.vocabulary_modules.practice import finish_vocabulary_practice
 from brain.logic.pronunciation_audio import transcribe_audio
+from brain.logic.conversation_output import remember_nele_output
 
 from brain.nele3_upgrade import UPGRADE_VERSION
 from brain.nele3_upgrade.api import nele3_api
@@ -160,6 +161,10 @@ def create_nele_reply(user_message: str, session_id: str, transcript: str | None
         )
 
         if handled:
+            remember_nele_output(
+                answer,
+                state,
+            )
             save_conversation_state(session_id)
             return answer, meta or {}
 
