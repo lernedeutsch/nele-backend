@@ -194,6 +194,34 @@ def generate_conversation_reply(
 
 
     # ======================================
+    # KOMENDA GLOBALNA: POWTÓRZ
+    #
+    # Musi działać także podczas aktywnej
+    # lekcji, powtórki błędów, onboardingu
+    # i innych ćwiczeń. Dlatego sprawdzamy
+    # ją zanim odpowiedź ucznia trafi do
+    # konkretnego treningu.
+    # ======================================
+
+    (
+        repeat_handled,
+        repeat_answer,
+        repeat_feedback
+    ) = handle_repeat_request(
+        user_message,
+        state
+    )
+
+    if repeat_handled:
+
+        return return_with_feedback(
+            repeat_answer,
+            repeat_feedback,
+            session_id
+        )
+
+
+    # ======================================
     # 0. ONBOARDING
     # ======================================
 
