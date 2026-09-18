@@ -8,9 +8,13 @@ from brain.nele3_upgrade.state import (
     register_turn,
     record_event,
     get_pending_recommendation,
+    set_pending_recommendation,
     clear_pending_recommendation,
 )
-from brain.nele3_upgrade.teacher_brain import select_next_action
+from brain.nele3_upgrade.teacher_brain import (
+    select_next_action,
+    build_adaptive_recommendation,
+)
 
 
 def _n(text):
@@ -60,11 +64,41 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
             }
 
         if norm in no_answers:
+            declined_activity = str(
+                pending.get("activity") or ""
+            ).strip()
+
+            excluded = list(
+                pending.get("excluded") or []
+            )
+
+            if declined_activity and declined_activity not in excluded:
+                excluded.append(declined_activity)
+
             clear_pending_recommendation(state)
+
+            alternative = build_adaptive_recommendation(
+                state,
+                excluded=excluded,
+            )
+
+            if isinstance(alternative, dict):
+                set_pending_recommendation(
+                    state,
+                    alternative,
+                )
+
+                return True, (
+                    "Okay. Dann nehmen wir etwas anderes. "
+                    + str(alternative.get("message") or "").strip()
+                ), {
+                    "adaptive_recommendation_declined": True,
+                    "alternative_recommendation": alternative.get("activity"),
+                }
+
             return True, (
-                "Okay. Dann machen wir etwas anderes. "
-                "Du kannst mir zum Beispiel sagen: "
-                "Arbeitsdeutsch, Rollenspiel, Hörübung oder Schreibübung."
+                "Okay. Dann entscheiden wir später, "
+                "was wir als Nächstes üben."
             ), {
                 "adaptive_recommendation_declined": True
             }
