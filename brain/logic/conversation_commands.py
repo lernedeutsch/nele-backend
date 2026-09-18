@@ -159,7 +159,24 @@ def analyze_repeat_request(
 
         "kannst du das noch einmal sagen",
 
-        "kannst du das noch mal sagen"
+        "kannst du das noch mal sagen",
+
+        "wiederholen bitte",
+        "wiederhol bitte",
+        "wiederhole das bitte",
+        "wiederhol das bitte",
+        "noch einmal",
+        "nochmal",
+        "sag das bitte noch einmal",
+        "sag das nochmal bitte",
+
+        "powtórz",
+        "powtorz",
+        "powtórz proszę",
+        "powtorz prosze",
+        "jeszcze raz",
+        "jeszcze raz proszę",
+        "jeszcze raz prosze"
     }
 
 
