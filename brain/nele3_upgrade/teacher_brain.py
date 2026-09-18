@@ -16,36 +16,67 @@ UPGRADE_ACTIVITY_ORDER = [
 def _weakest_upgrade_skill(state):
     skills = get_skills(state)
 
-    # First make sure every important skill has at least one attempt.
+    # First let every important extra skill get at least one result.
     for name in UPGRADE_ACTIVITY_ORDER:
         data = skills.get(name, {})
         if int(data.get("attempts", 0) or 0) == 0:
             return name
 
-    # Afterwards choose the lowest rolling score.
+    # Afterwards choose the lowest rolling average.
     return min(
         UPGRADE_ACTIVITY_ORDER,
-        key=lambda name: float(skills.get(name, {}).get("score", 0) or 0),
+        key=lambda name: float(
+            skills.get(name, {}).get("score_avg", 0) or 0
+        ),
     )
 
 
+def _existing_plan_should_go_first(existing):
+    if not isinstance(existing, dict):
+        return False
+
+    priority = str(existing.get("priority", "") or "").strip().lower()
+    if priority in {"error_review", "vocabulary_review", "lesson_review"}:
+        return True
+
+    plan_type = str(existing.get("type", "") or "").strip().lower()
+
+    # The normal course remains the main path.
+    # Nele-3 activities supplement it instead of interrupting it.
+    return plan_type in {
+        "start",
+        "new_learning",
+        "new_section",
+        "new_lesson",
+        "continue_lesson",
+    }
+
+
 def select_next_action(state):
-    """Select the next sensible action without replacing Nele 1's existing teacher brain."""
+    """Choose the next learning action while keeping Nele 1's course authoritative."""
 
     existing = get_teacher_learning_plan(state)
-    priority = str(existing.get("priority", "") or "").strip().lower() if isinstance(existing, dict) else ""
 
-    # Existing Nele 1 memories remain authoritative for due reviews.
-    if priority in {"error_review", "vocabulary_review", "lesson_review"}:
+    if _existing_plan_should_go_first(existing):
         action = {
             "type": "existing_teacher_plan",
-            "priority": priority,
-            "message": existing.get("message"),
+            "priority": (
+                str(existing.get("priority", "") or "").strip().lower()
+                if isinstance(existing, dict)
+                else ""
+            ),
+            "message": (
+                existing.get("message")
+                if isinstance(existing, dict)
+                else None
+            ),
             "plan": existing,
         }
         set_last_action(state, action)
         return action
 
+    # Once the current course step is completed, use Nele-3 activities
+    # to strengthen the weakest / not-yet-practised skill.
     level = get_current_level(state) or "A1"
     activity = _weakest_upgrade_skill(state)
 
@@ -62,7 +93,10 @@ def select_next_action(state):
         "type": "upgrade_activity",
         "activity": activity,
         "level": level,
-        "message": messages.get(activity, "Wir machen jetzt eine kurze Übung."),
+        "message": messages.get(
+            activity,
+            "Wir machen jetzt eine kurze Übung.",
+        ),
         "existing_plan": existing,
     }
     set_last_action(state, action)
