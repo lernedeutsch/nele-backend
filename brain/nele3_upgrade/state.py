@@ -45,6 +45,7 @@ def create_upgrade_state() -> Dict[str, Any]:
         "skills": {skill: _empty_skill() for skill in SKILLS},
         "events": [],
         "active_task": None,
+        "pending_recommendation": None,
         "activity_cursor": {},
         "course": {"A1": 0, "A2": 0},
         "preferences": {
@@ -127,6 +128,21 @@ def get_active_task(state: dict) -> Optional[dict]:
 
 def set_active_task(state: dict, task: Optional[dict]) -> None:
     ensure_upgrade_state(state)["active_task"] = task if isinstance(task, dict) else None
+
+
+def get_pending_recommendation(state: dict) -> Optional[dict]:
+    recommendation = ensure_upgrade_state(state).get("pending_recommendation")
+    return recommendation if isinstance(recommendation, dict) else None
+
+
+def set_pending_recommendation(state: dict, recommendation: Optional[dict]) -> None:
+    ensure_upgrade_state(state)["pending_recommendation"] = (
+        recommendation if isinstance(recommendation, dict) else None
+    )
+
+
+def clear_pending_recommendation(state: dict) -> None:
+    ensure_upgrade_state(state)["pending_recommendation"] = None
 
 
 def next_cursor(state: dict, key: str, size: int) -> int:
