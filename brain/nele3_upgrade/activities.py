@@ -107,7 +107,7 @@ def start_activity(state, activity_type, level=None):
             "type": "listening",
             "title": item["title"],
             "prompt": item["question"],
-            "speak_text": item["text"],
+            "speak_text": f"Hör gut zu. {item['text']} {item['question']}",
             "answers": item.get("answers", []),
         }
         set_active_task(state, task)
