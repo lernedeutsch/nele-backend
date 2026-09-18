@@ -24,7 +24,7 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
 
     Normal conversation remains in Nele 1's original router.
     """
-    ensure_upgrade_state(state)
+    upgrade = ensure_upgrade_state(state)
     register_turn(state)
 
     message = str(user_message or "").strip()
@@ -92,6 +92,44 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
             return True, result.get("reply", ""), result.get("meta", {}) | {
                 "score": result.get("score"),
                 "completed": result.get("completed", False),
+            }
+
+    continue_requests = {
+        "weiter",
+        "weiter bitte",
+        "bitte weiter",
+        "machen wir weiter",
+        "wir machen weiter",
+        "noch eine",
+        "noch eine bitte",
+        "następne",
+        "nastepne",
+        "dalej",
+    }
+
+    if norm in continue_requests:
+        session = upgrade.get("session") or {}
+        last_action = str(session.get("last_action") or "").strip()
+
+        repeatable_activities = {
+            "dialogue",
+            "work_german",
+            "listening",
+            "writing",
+            "pronunciation",
+            "speaking",
+        }
+
+        if last_action in repeatable_activities:
+            started = start_activity(state, last_action)
+            return True, started.get("reply", ""), {
+                **started.get("meta", {}),
+                "continued_activity": last_action,
+                **(
+                    {"speak_text": started.get("speak_text")}
+                    if started.get("speak_text")
+                    else {}
+                ),
             }
 
     if _contains_any(norm, {"wochenbericht", "wochen bericht", "bericht der woche"}):
