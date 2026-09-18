@@ -22,6 +22,19 @@ from brain.memory.daily_learning import (
 )
 
 
+from brain.memory.user_facts import (
+    get_user_fact
+)
+
+from brain.nele3_upgrade.teacher_brain import (
+    build_adaptive_recommendation
+)
+
+from brain.nele3_upgrade.state import (
+    set_pending_recommendation
+)
+
+
 # ==========================================
 # TEXT BEREINIGEN
 # ==========================================
@@ -52,6 +65,170 @@ def clean_normalized_answer(
             text
         )
     ).strip()
+
+
+# ==========================================
+# NAME DES LERNENDEN
+# ==========================================
+
+def get_student_name(
+    state
+):
+
+    if state is None:
+        return ""
+
+    name = get_user_fact(
+        state,
+        "name"
+    )
+
+    if not name:
+        name = state.get(
+            "name"
+        )
+
+    return str(
+        name or ""
+    ).strip()
+
+
+# ==========================================
+# NAME BUCHSTABIERT?
+# ==========================================
+
+def is_student_name_spelled(
+    user_message,
+    state
+):
+
+    name = get_student_name(
+        state
+    )
+
+    if not name:
+        return False
+
+    target = "".join(
+        char.lower()
+        for char in name
+        if char.isalnum()
+    )
+
+    raw = str(
+        user_message or ""
+    ).strip()
+
+    compact = "".join(
+        char.lower()
+        for char in raw
+        if char.isalnum()
+    )
+
+    if compact != target:
+        return False
+
+    # "Moni" allein ist noch kein Buchstabieren.
+    # Akzeptiert werden z.B.:
+    # M O N I / M-O-N-I / M, O, N, I
+    separators = sum(
+        1
+        for char in raw
+        if char in " -,_./"
+    )
+
+    return separators >= max(
+        1,
+        len(target) - 1
+    )
+
+
+# ==========================================
+# HILFE ZUM BUCHSTABIEREN
+# ==========================================
+
+def get_spelled_name_hint(
+    state
+):
+
+    name = get_student_name(
+        state
+    )
+
+    if not name:
+        return ""
+
+    letters = [
+        char.upper()
+        for char in name
+        if char.isalnum()
+    ]
+
+    return " – ".join(
+        letters
+    )
+
+
+# ==========================================
+# LEKTIONSENDE + ADAPTIVE EMPFEHLUNG
+# ==========================================
+
+def create_lesson_completion_answer(
+    state
+):
+
+    base = (
+        "Sehr gut! Du kennst jetzt wichtige "
+        "Grundlagen aus A1, Lektion 1. "
+        "Damit hast du die Lektion abgeschlossen. "
+        "Die erste Wiederholung ist für morgen geplant."
+    )
+
+    try:
+
+        recommendation = (
+            build_adaptive_recommendation(
+                state
+            )
+        )
+
+    except Exception as error:
+
+        print(
+            f"Adaptive lesson completion error: {error}"
+        )
+
+        recommendation = None
+
+
+    if isinstance(
+        recommendation,
+        dict
+    ):
+
+        set_pending_recommendation(
+            state,
+            recommendation
+        )
+
+        message = str(
+            recommendation.get(
+                "message",
+                ""
+            )
+            or
+            ""
+        ).strip()
+
+        if message:
+
+            return (
+                f"{base} "
+                f"{message}"
+            )
+
+
+    return base
 
 
 # ==========================================
@@ -590,11 +767,9 @@ def start_lesson_teaching(
 
 
         return (
-            "Super, dann legen wir los! "
-            "Wir üben jetzt, wie du dich "
-            "auf Deutsch vorstellst. "
-            "Zum Beispiel: „Ich heiße Anna.“ "
-            "Und jetzt du: Wie heißt du?"
+            "Jetzt machen wir einen kurzen Mini-Dialog. "
+            "Stell dir vor, wir treffen uns morgens "
+            "zum ersten Mal. Guten Morgen!"
         )
 
 
@@ -919,6 +1094,36 @@ def handle_greeting_section(
             )
 
 
+        state[
+            "lesson_teaching_step"
+        ] = 6
+
+
+        return (
+            "Sehr gut. Jetzt noch ein kurzer Mini-Dialog. "
+            "Du kommst morgens zur Arbeit. "
+            "Ich sage: „Guten Morgen!“ "
+            "Was antwortest du?"
+        )
+
+
+    # ======================================
+    # SCHRITT 6
+    # MINI-DIALOG
+    # ======================================
+
+    if step == 6:
+
+        if not is_morning_greeting(
+            user_message
+        ):
+
+            return (
+                "Fast. Wir treffen uns morgens. "
+                "Antworte einfach: „Guten Morgen.“"
+            )
+
+
         next_section = complete_active_section(
             state
         )
@@ -927,9 +1132,8 @@ def handle_greeting_section(
         if next_section:
 
             return (
-                "Sehr gut! Jetzt kennst du wichtige "
-                "Begrüßungen und kannst dich auch "
-                "verabschieden. "
+                "Perfekt. So klingt eine echte kurze "
+                "Begrüßung im Alltag. "
                 f"Als Nächstes kommt "
                 f"„{next_section}“. "
                 "Möchtest du weitermachen?"
@@ -937,10 +1141,8 @@ def handle_greeting_section(
 
 
         return (
-            "Sehr gut! Jetzt kennst du wichtige "
-            "Begrüßungen und kannst dich auch "
-            "verabschieden. "
-            "Diesen Teil hast du geschafft!"
+            "Perfekt. So klingt eine echte kurze "
+            "Begrüßung im Alltag."
         )
 
 
@@ -1047,19 +1249,18 @@ def handle_introduction_section(
 
     # ======================================
     # SCHRITT 1
-    # SICH VORSTELLEN
+    # MINI-DIALOG: BEGRÜSSUNG
     # ======================================
 
     if step == 1:
 
-        if not is_valid_name_answer(
+        if not is_morning_greeting(
             user_message
         ):
 
             return (
-                "Fast! Sag es bitte als "
-                "ganzen Satz, zum Beispiel: "
-                "„Ich heiße Moni.“"
+                "Wir treffen uns morgens. "
+                "Sag einfach: „Guten Morgen.“"
             )
 
 
@@ -1069,28 +1270,30 @@ def handle_introduction_section(
 
 
         return (
-            "Genau! Das klingt ganz natürlich. "
-            "Jetzt bist du dran: "
-            "Wie fragst du nach dem Namen?"
+            "Guten Morgen! Ich heiße Nele. "
+            "Wie heißt du?"
         )
 
 
     # ======================================
     # SCHRITT 2
-    # WIE HEISST DU?
+    # SICH VORSTELLEN
     # ======================================
 
     if step == 2:
 
-        if not is_informal_name_question(
+        if not is_valid_name_answer(
             user_message
         ):
 
+            name = get_student_name(
+                state
+            ) or "Moni"
+
             return (
-                "Fast. Wenn ihr euch duzt, "
-                "sagst du: "
-                "„Wie heißt du?“ "
-                "Versuch es noch einmal."
+                "Fast! Sag es bitte als "
+                "ganzen Satz, zum Beispiel: "
+                f"„Ich heiße {name}.“"
             )
 
 
@@ -1099,29 +1302,109 @@ def handle_introduction_section(
         ] = 3
 
 
+        name = get_student_name(
+            state
+        )
+
+        if name:
+
+            return (
+                f"Freut mich, {name}! "
+                "Und wie fragst du mich nach meinem Namen?"
+            )
+
+
         return (
-            "Perfekt! „Wie heißt du?“ "
-            "sagt man im Alltag sehr oft. "
-            "Jetzt noch die höfliche Form: "
-            "Wie fragst du zum Beispiel "
-            "einen Gast im Hotel nach dem Namen?"
+            "Freut mich! "
+            "Und wie fragst du mich nach meinem Namen?"
         )
 
 
     # ======================================
     # SCHRITT 3
-    # WIE HEISSEN SIE?
+    # WIE HEISST DU?
     # ======================================
 
     if step == 3:
+
+        if not is_informal_name_question(
+            user_message
+        ):
+
+            return (
+                "Wenn wir uns duzen, fragst du: "
+                "„Wie heißt du?“ "
+                "Versuch es noch einmal."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 4
+
+
+        return (
+            "Ich heiße Nele. "
+            "Kannst du deinen Namen bitte buchstabieren?"
+        )
+
+
+    # ======================================
+    # SCHRITT 4
+    # EIGENEN NAMEN BUCHSTABIEREN
+    # ======================================
+
+    if step == 4:
+
+        if not is_student_name_spelled(
+            user_message,
+            state
+        ):
+
+            hint = get_spelled_name_hint(
+                state
+            )
+
+            if hint:
+
+                return (
+                    "Fast. Buchstabiere deinen Namen "
+                    "Buchstabe für Buchstabe, zum Beispiel: "
+                    f"„{hint}“"
+                )
+
+
+            return (
+                "Buchstabiere deinen Namen bitte "
+                "Buchstabe für Buchstabe."
+            )
+
+
+        state[
+            "lesson_teaching_step"
+        ] = 5
+
+
+        return (
+            "Sehr gut. Jetzt wechseln wir in eine "
+            "höfliche Situation im Hotel. "
+            "Wie fragst du einen Gast nach dem Namen?"
+        )
+
+
+    # ======================================
+    # SCHRITT 5
+    # WIE HEISSEN SIE?
+    # ======================================
+
+    if step == 5:
 
         if not is_formal_name_question(
             user_message
         ):
 
             return (
-                "Fast. Wenn du jemanden siezt, "
-                "sagst du: "
+                "Wenn du den Gast siezt, fragst du: "
                 "„Wie heißen Sie?“ "
                 "Versuch es noch einmal."
             )
@@ -1135,9 +1418,9 @@ def handle_introduction_section(
         if next_section:
 
             return (
-                "Sehr gut! Jetzt kannst du dich "
-                "vorstellen und sowohl informell "
-                "als auch höflich nach dem Namen fragen. "
+                "Sehr gut! Du hast jetzt Begrüßung, "
+                "Vorstellung, Namensfrage und "
+                "Buchstabieren in einem kleinen Dialog benutzt. "
                 f"Als Nächstes kommt "
                 f"„{next_section}“. "
                 "Möchtest du weitermachen?"
@@ -1145,10 +1428,8 @@ def handle_introduction_section(
 
 
         return (
-            "Sehr gut! Jetzt kannst du dich "
-            "vorstellen und sowohl informell "
-            "als auch höflich nach dem Namen fragen. "
-            "Diesen Teil hast du geschafft!"
+            "Sehr gut! Das war ein kompletter "
+            "kleiner Vorstellungsdialog."
         )
 
 
@@ -1434,6 +1715,47 @@ def handle_alphabet_section(
             )
 
 
+        state[
+            "lesson_teaching_step"
+        ] = 6
+
+
+        return (
+            "Genau. Und jetzt wenden wir das Alphabet "
+            "direkt an: Buchstabiere bitte deinen Namen."
+        )
+
+
+    # ======================================
+    # SCHRITT 6
+    # NAME BUCHSTABIEREN
+    # ======================================
+
+    if step == 6:
+
+        if not is_student_name_spelled(
+            user_message,
+            state
+        ):
+
+            hint = get_spelled_name_hint(
+                state
+            )
+
+            if hint:
+
+                return (
+                    "Fast. Sag die Buchstaben einzeln, "
+                    f"zum Beispiel: „{hint}“"
+                )
+
+
+            return (
+                "Sag deinen Namen bitte "
+                "Buchstabe für Buchstabe."
+            )
+
+
         next_section = complete_active_section(
             state
         )
@@ -1442,18 +1764,15 @@ def handle_alphabet_section(
         if next_section:
 
             return (
-                "Sehr gut! Du kennst jetzt wichtige "
-                "Grundlagen des deutschen Alphabets. "
+                "Sehr gut! Du hast das Alphabet "
+                "direkt praktisch benutzt. "
                 f"Als Nächstes kommt "
                 f"„{next_section}“."
             )
 
 
-        return (
-            "Sehr gut! Du kennst jetzt wichtige "
-            "Grundlagen des deutschen Alphabets. "
-            "Damit hast du A1, Lektion 1 abgeschlossen. "
-            "Die erste Wiederholung ist für morgen geplant."
+        return create_lesson_completion_answer(
+            state
         )
 
 
