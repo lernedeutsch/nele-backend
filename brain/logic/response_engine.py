@@ -62,6 +62,14 @@ from brain.memory.daily_learning import (
     mark_daily_plan_completed
 )
 
+from brain.nele3_upgrade.teacher_brain import (
+    build_adaptive_recommendation
+)
+
+from brain.nele3_upgrade.state import (
+    set_pending_recommendation
+)
+
 
 # ==========================================
 # ODPOWIEDZI TAK / NIE
@@ -2711,6 +2719,78 @@ def create_teacher_directed_follow_up(
 
 
                 return started_answer
+
+
+    # ======================================
+    # 5. ADAPTACYJNA PROPOZYCJA TRENINGU
+    #
+    # Gdy bieżąca lekcja jest ukończona i
+    # nie ma pilnej powtórki, Nele nie kończy
+    # na komunikacie o zakończonej lekcji.
+    # Analizuje wyniki ucznia i proponuje
+    # konkretny trening.
+    # ======================================
+
+    if plan_type == "lesson_completed":
+
+        try:
+
+            recommendation = (
+                build_adaptive_recommendation(
+                    state
+                )
+            )
+
+        except Exception as error:
+
+            print(
+                f"Adaptive teacher recommendation error: {error}"
+            )
+
+            recommendation = None
+
+
+        if isinstance(
+            recommendation,
+            dict
+        ):
+
+            set_pending_recommendation(
+                state,
+                recommendation
+            )
+
+            recommendation_message = str(
+                recommendation.get(
+                    "message",
+                    ""
+                )
+                or
+                ""
+            ).strip()
+
+
+            if recommendation_message:
+
+                parts = []
+
+                if short_answer:
+                    parts.append(
+                        short_answer
+                    )
+
+                if message:
+                    parts.append(
+                        message
+                    )
+
+                parts.append(
+                    recommendation_message
+                )
+
+                return "\n\n".join(
+                    parts
+                )
 
 
     # ======================================
