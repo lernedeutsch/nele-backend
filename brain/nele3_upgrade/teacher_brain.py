@@ -37,15 +37,25 @@ def _score(data):
         return 0.0
 
 
-def _weakest_upgrade_skill(state):
+def _weakest_upgrade_skill(state, excluded=None):
     skills = get_skills(state)
+    excluded = set(excluded or [])
+
+    available = [
+        name
+        for name in UPGRADE_ACTIVITY_ORDER
+        if name not in excluded
+    ]
+
+    if not available:
+        return None
 
     # Najpierw opieramy się na rzeczywistych wynikach.
     # Jedna przypadkowa odpowiedź nie powinna od razu
     # definiować "słabej strony".
     reliable = [
         name
-        for name in UPGRADE_ACTIVITY_ORDER
+        for name in available
         if _attempts(skills.get(name, {})) >= 2
     ]
 
@@ -61,7 +71,7 @@ def _weakest_upgrade_skill(state):
     # na wyraźnie słabszy wynik.
     attempted = [
         name
-        for name in UPGRADE_ACTIVITY_ORDER
+        for name in available
         if _attempts(skills.get(name, {})) > 0
     ]
 
@@ -75,22 +85,26 @@ def _weakest_upgrade_skill(state):
 
     # Gdy dotychczasowe wyniki są dobre, Nele rozwija obszar,
     # którego uczeń jeszcze prawie nie ćwiczył.
-    for name in UPGRADE_ACTIVITY_ORDER:
+    for name in available:
         if _attempts(skills.get(name, {})) == 0:
             return name
 
     # Wszystko było już ćwiczone i nie ma wyraźnej słabości:
     # wybieramy najmniej pewny obszar.
     return min(
-        UPGRADE_ACTIVITY_ORDER,
+        available,
         key=lambda name: _score(skills.get(name, {})),
     )
 
 
-def build_adaptive_recommendation(state):
+def build_adaptive_recommendation(state, excluded=None):
     """Zbuduj krótką, uzasadnioną propozycję następnego treningu."""
     skills = get_skills(state)
-    activity = _weakest_upgrade_skill(state)
+    excluded = list(dict.fromkeys(excluded or []))
+    activity = _weakest_upgrade_skill(state, excluded=excluded)
+
+    if not activity:
+        return None
     data = skills.get(activity, {})
     attempts = _attempts(data)
     score = _score(data)
@@ -157,6 +171,7 @@ def build_adaptive_recommendation(state):
         "attempts": attempts,
         "score": round(score, 1),
         "reason": reason,
+        "excluded": excluded,
         "message": (
             f"{reason} Ich würde dir jetzt {phrase} empfehlen. "
             "Möchtest du das machen?"
