@@ -194,6 +194,97 @@ def generate_conversation_reply(
 
 
     # ======================================
+    # START PO ZAKOŃCZENIU ONBOARDINGU
+    #
+    # Po pytaniu "Möchtest du gleich anfangen?"
+    # odpowiedź "ja" ma naprawdę rozpocząć naukę,
+    # zamiast wpadać do fallbacku.
+    # ======================================
+
+    if (
+        is_onboarding_completed(
+            state
+        )
+        and
+        state.get(
+            "last_question"
+        )
+        ==
+        "start_after_onboarding"
+    ):
+
+        start_message = str(
+            user_message or ""
+        ).strip().lower()
+
+        start_message = start_message.strip(
+            " .?!„“\"'"
+        )
+
+        yes_answers = {
+            "ja",
+            "ja gern",
+            "ja gerne",
+            "gerne",
+            "gern",
+            "okay",
+            "ok",
+            "klar",
+            "natürlich",
+            "ja bitte",
+            "machen wir"
+        }
+
+        no_answers = {
+            "nein",
+            "nein danke",
+            "nicht jetzt",
+            "später",
+            "lieber nicht",
+            "jetzt nicht"
+        }
+
+        if start_message in yes_answers:
+
+            state[
+                "last_question"
+            ] = None
+
+            answer = (
+                create_teacher_directed_follow_up(
+                    state,
+                    ""
+                )
+            )
+
+            if not answer:
+
+                answer = (
+                    "Super. Dann legen wir los."
+                )
+
+            return return_with_memory(
+                answer,
+                session_id
+            )
+
+        if start_message in no_answers:
+
+            state[
+                "last_question"
+            ] = None
+
+            return return_with_memory(
+                (
+                    "Okay. Kein Problem. "
+                    "Sag einfach Bescheid, "
+                    "wenn du anfangen möchtest."
+                ),
+                session_id
+            )
+
+
+    # ======================================
     # KOMENDA GLOBALNA: POWTÓRZ
     #
     # Musi działać także podczas aktywnej
