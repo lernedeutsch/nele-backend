@@ -1722,6 +1722,76 @@ def start_next_new_learning(
         return ""
 
 
+    # ======================================
+    # LEKCJA UKOŃCZONA
+    # -> ADAPTACYJNA PROPOZYCJA TRENINGU
+    #
+    # To miejsce jest używane przez
+    # SESSION COACH na początku sesji.
+    # Wcześniej właśnie tutaj Nele zwracała
+    # tylko:
+    # "Du hast A1, Lektion 1 vollständig
+    # abgeschlossen."
+    #
+    # Teraz po zakończonej lekcji Teacher
+    # Brain analizuje wyniki i proponuje
+    # sensowny trening.
+    # ======================================
+
+    plan_type = str(
+        plan.get(
+            "type",
+            ""
+        )
+        or
+        ""
+    ).strip().lower()
+
+
+    if plan_type == "lesson_completed":
+
+        try:
+
+            recommendation = (
+                build_adaptive_recommendation(
+                    state
+                )
+            )
+
+        except Exception as error:
+
+            print(
+                f"Adaptive session recommendation error: {error}"
+            )
+
+            recommendation = None
+
+
+        if isinstance(
+            recommendation,
+            dict
+        ):
+
+            set_pending_recommendation(
+                state,
+                recommendation
+            )
+
+            recommendation_message = str(
+                recommendation.get(
+                    "message",
+                    ""
+                )
+                or
+                ""
+            ).strip()
+
+
+            if recommendation_message:
+
+                return recommendation_message
+
+
     offer_saved = (
         set_new_learning_offer(
             state,
