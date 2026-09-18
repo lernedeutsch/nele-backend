@@ -31,29 +31,50 @@ def _events_since(state, since):
 def _summarize_events(events):
     activities = {}
     scored = []
+    completed = 0
+
     for event in events:
         typ = str(event.get("type", "unknown"))
         activities[typ] = activities.get(typ, 0) + 1
+
+        if typ != "activity_completed":
+            continue
+
+        completed += 1
         result = event.get("result")
-        if isinstance(result, dict) and isinstance(result.get("score"), (int, float)):
+
+        if (
+            isinstance(result, dict)
+            and isinstance(result.get("score"), (int, float))
+        ):
             scored.append(float(result["score"]))
-    average = round(sum(scored) / len(scored), 1) if scored else None
-    return activities, average
+
+    average = (
+        round(sum(scored) / len(scored), 1)
+        if scored
+        else None
+    )
+
+    return activities, average, completed
 
 
 def daily_report(state):
     now = datetime.now(timezone.utc)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     events = _events_since(state, start)
-    activities, average = _summarize_events(events)
+    activities, average, completed_addon = _summarize_events(events)
     dash = build_dashboard(state)
+    today = dash.get("today", {})
+    completed_exercises = int(today.get("completed_exercises", 0) or 0)
     return {
         "ok": True,
         "period": "today",
         "events": len(events),
+        "completed_exercises": completed_exercises,
+        "completed_addon_exercises": completed_addon,
         "activities": activities,
         "average_score": average,
-        "today": dash.get("today", {}),
+        "today": today,
         "skills": dash.get("skills", {}),
         "teacher_plan": dash.get("teacher_plan", {}),
     }
@@ -63,12 +84,13 @@ def weekly_report(state):
     now = datetime.now(timezone.utc)
     start = now - timedelta(days=7)
     events = _events_since(state, start)
-    activities, average = _summarize_events(events)
+    activities, average, completed_addon = _summarize_events(events)
     dash = build_dashboard(state)
     return {
         "ok": True,
         "period": "last_7_days",
         "events": len(events),
+        "completed_addon_exercises": completed_addon,
         "activities": activities,
         "average_score": average,
         "progress": dash.get("progress", {}),
@@ -79,12 +101,30 @@ def weekly_report(state):
 
 def report_text(report):
     period = report.get("period")
-    events = report.get("events", 0)
     average = report.get("average_score")
+
     if period == "today":
-        intro = f"Heute habe ich {events} Lernaktivitäten gespeichert."
+        completed = int(
+            report.get("completed_exercises", 0)
+            or 0
+        )
+        intro = (
+            f"Heute hast du {completed} Übungen abgeschlossen."
+        )
     else:
-        intro = f"In den letzten sieben Tagen habe ich {events} Lernaktivitäten gespeichert."
+        completed = int(
+            report.get("completed_addon_exercises", 0)
+            or 0
+        )
+        intro = (
+            "In den letzten sieben Tagen habe ich "
+            f"{completed} abgeschlossene Zusatzübungen gespeichert."
+        )
+
     if average is not None:
-        intro += f" Dein Durchschnitt bei bewerteten Übungen liegt bei {average} von 100."
+        intro += (
+            " Dein Durchschnitt bei bewerteten Zusatzübungen "
+            f"liegt bei {average} von 100."
+        )
+
     return intro
