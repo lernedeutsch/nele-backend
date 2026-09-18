@@ -432,6 +432,32 @@ def complete_active_section(
 
 
         # ==================================
+        # NÄCHSTE SEKTION ZUM FORTSETZEN
+        #
+        # Wenn Nele sagt "Als Nächstes kommt ..."
+        # und der Nutzer danach "Ja" sagt,
+        # muss dieses "Ja" eindeutig zur nächsten
+        # Lektionssektion gehören.
+        # ==================================
+
+        if next_section:
+
+            state[
+                "pending_new_learning"
+            ] = {
+                "type": "new_section",
+                "level": level,
+                "lesson": lesson,
+                "section": next_section,
+                "topic": next_section
+            }
+
+            state[
+                "last_question"
+            ] = "continue_new_learning"
+
+
+        # ==================================
         # GANZE LEKTION ABGESCHLOSSEN
         #
         # Erste Wiederholung:
@@ -905,7 +931,8 @@ def handle_greeting_section(
                 "Begrüßungen und kannst dich auch "
                 "verabschieden. "
                 f"Als Nächstes kommt "
-                f"„{next_section}“."
+                f"„{next_section}“. "
+                "Möchtest du weitermachen?"
             )
 
 
@@ -1112,7 +1139,8 @@ def handle_introduction_section(
                 "vorstellen und sowohl informell "
                 "als auch höflich nach dem Namen fragen. "
                 f"Als Nächstes kommt "
-                f"„{next_section}“."
+                f"„{next_section}“. "
+                "Möchtest du weitermachen?"
             )
 
 
