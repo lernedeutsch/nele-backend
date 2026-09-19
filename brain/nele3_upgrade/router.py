@@ -36,6 +36,16 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
     message = str(user_message or "").strip()
     norm = _n(message)
 
+    # Po ponownym otwarciu strony Nele najpierw pyta
+    # "Wie geht es dir?". Odpowiedź na to pytanie nie może
+    # zostać potraktowana jako odpowiedź do zachowanego
+    # Schreibübung / Hörübung / Dialogu / Aussprache.
+    #
+    # Główny router obsłuży wellbeing, a następnie
+    # response_engine wznowi dokładnie aktywne ćwiczenie.
+    if state.get("last_question") == "wellbeing":
+        return False, None, {}
+
     pending = get_pending_recommendation(state)
 
     if pending:
