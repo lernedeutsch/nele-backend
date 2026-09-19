@@ -204,6 +204,18 @@ def create_empty_daily_learning(
             False,
 
         # ----------------------------------
+        # KRÓTKIE PODSUMOWANIE DNIA
+        #
+        # Pokazujemy je najwyżej raz dziennie,
+        # żeby przy każdym ponownym otwarciu
+        # Nele nie powtarzała:
+        # "Heute hast du schon ..."
+        # ----------------------------------
+
+        "progress_message_shown":
+            False,
+
+        # ----------------------------------
         # HISTORIA AKTYWNOŚCI
         # ----------------------------------
 
@@ -437,6 +449,56 @@ def start_daily_session(
 
 
     return memory
+
+
+# ==========================================
+# CZY PODSUMOWANIE DNIA BYŁO JUŻ POKAZANE
+# ==========================================
+
+def was_daily_progress_message_shown(
+    state
+):
+
+    memory = get_daily_learning_memory(
+        state
+    )
+
+
+    if not memory:
+        return False
+
+
+    return bool(
+        memory.get(
+            "progress_message_shown",
+            False
+        )
+    )
+
+
+# ==========================================
+# OZNACZ PODSUMOWANIE DNIA JAKO POKAZANE
+# ==========================================
+
+def mark_daily_progress_message_shown(
+    state
+):
+
+    memory = get_daily_learning_memory(
+        state
+    )
+
+
+    if not memory:
+        return False
+
+
+    memory[
+        "progress_message_shown"
+    ] = True
+
+
+    return True
 
 
 # ==========================================
