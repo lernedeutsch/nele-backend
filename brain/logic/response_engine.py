@@ -134,6 +134,42 @@ def should_review_error_in_session(
         return False
 
 
+    examples = summary.get(
+        "examples",
+        []
+    )
+
+
+    if isinstance(
+        examples,
+        list
+    ):
+
+        for example in examples:
+
+            if not isinstance(
+                example,
+                dict
+            ):
+
+                continue
+
+
+            if (
+                example.get(
+                    "needs_practice",
+                    False
+                )
+                and
+                not example.get(
+                    "mastered",
+                    False
+                )
+            ):
+
+                return True
+
+
     return bool(
         summary.get(
             "needs_practice",
