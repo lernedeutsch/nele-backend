@@ -425,13 +425,18 @@ def get_error_examples(
         return []
 
 
-    _backfill_examples_from_daily_memory(
-        state,
-        error_type,
-        error_item
-    )
-
-
+    # Ważne:
+    # konkretne błędy zapisuje bezpośrednio
+    # remember_error(). Nie tworzymy nowych
+    # przykładów z daily_learning, ponieważ
+    # daily_learning zawiera także nieudane
+    # próby podczas samego Fehlertraining.
+    #
+    # Gdyby je kopiować z powrotem do
+    # Error Memory, odpowiedź typu "weißt du"
+    # podczas powtórki "Wie heißt du?"
+    # stawałaby się nowym osobnym błędem.
+    # To powodowałoby sztuczne duplikaty.
     return list(
         _ensure_error_examples(
             error_item
