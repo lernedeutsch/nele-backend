@@ -32,7 +32,7 @@ def ensure_persistent_memory():
     global persistent_memory_initialized
 
     if persistent_memory_initialized:
-        return
+        return True
 
     try:
 
@@ -282,6 +282,62 @@ def get_conversation_state(
     conversation_sessions[
         session_id
     ] = state
+
+    return state
+
+
+# ==========================================
+# ODSWIEZENIE PAMIĘCI NA POCZATKU REQUESTU
+# ==========================================
+
+def refresh_conversation_state(
+    session_id
+):
+    """Refresh one learner from PostgreSQL before a top-level request.
+
+    This prevents a long-lived process from reusing a stale RAM copy after
+    another worker/process has already saved a newer version.
+    """
+
+    if not session_id:
+        return None
+
+    persistent_ready = ensure_persistent_memory()
+
+    if not persistent_ready:
+        if session_id in conversation_sessions:
+            state = complete_state(
+                conversation_sessions[session_id]
+            )
+            conversation_sessions[session_id] = state
+            return state
+
+        state = create_empty_state()
+        conversation_sessions[session_id] = state
+        return state
+
+    try:
+        persistent_state = load_persistent_memory(
+            session_id
+        )
+    except Exception as error:
+        print(
+            f"Persistent memory refresh error: {error}"
+        )
+        persistent_state = {}
+
+    if persistent_state:
+        state = complete_state(
+            persistent_state
+        )
+    elif session_id in conversation_sessions:
+        state = complete_state(
+            conversation_sessions[session_id]
+        )
+    else:
+        state = create_empty_state()
+
+    conversation_sessions[session_id] = state
 
     return state
 
