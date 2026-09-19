@@ -620,6 +620,45 @@ def extract_learning_goal_sentence(
         ]
     )
 
+    if not goal:
+        return ""
+
+    goal_normalized = normalize_answer(
+        goal
+    )
+
+    meaningful_goal_words = {
+        "deutsch",
+        "sprechen",
+        "verstehen",
+        "schreiben",
+        "lesen",
+        "grammatik",
+        "wortschatz",
+        "prüfung",
+        "prufung",
+        "arbeiten",
+        "arbeit",
+        "beruf",
+        "alltag",
+        "kommunizieren",
+        "kommunikation",
+        "besser",
+        "sicher",
+        "sicherer",
+        "fließend",
+        "fliessend",
+        "lernen",
+        "zertifikat",
+        "goethe",
+    }
+
+    if not any(
+        word in goal_normalized
+        for word in meaningful_goal_words
+    ):
+        return ""
+
     return goal
 
 
@@ -693,6 +732,24 @@ def get_short_answer_value(
 
 
     words = normalized.split()
+
+
+    # Przy miejscu zamieszkania nie budujemy zdania
+    # z przypadkowego fragmentu rozpoznanego przez ASR.
+    # "Heidelberg" / "Bad König" może być krótką odpowiedzią,
+    # ale "Yvonne in Heidelberg" nie jest nazwą miejsca,
+    # którą Nele powinna automatycznie wstawić do zdania.
+    if step == 3:
+
+        if " in " in normalized:
+            return ""
+
+        if len(words) > 2:
+            return ""
+
+        return clean_value(
+            normalized
+        )
 
 
     if len(words) > 4:
