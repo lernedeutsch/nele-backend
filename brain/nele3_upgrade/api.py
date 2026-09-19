@@ -112,7 +112,7 @@ def api_activity_answer():
     data = request.get_json(silent=True) or {}
     sid = _session_id(data)
     state = get_conversation_state(sid)
-    result = answer_active_task(state, data.get("message"), transcript=data.get("transcript"))
+    result = answer_active_task(state, data.get("message"), transcript=data.get("transcript"), input_mode=data.get("input_mode"))
     save_conversation_state(sid)
     if not result:
         return jsonify({"ok": False, "error": "no_active_task", "session_id": sid}), 409
