@@ -109,6 +109,7 @@ def verify_backend_http():
 
 def main():
     test_name = "Monika"
+    test_name_sentence = "Ich heiße Monika"
     session_id = None
 
     verify_backend_http()
@@ -210,7 +211,7 @@ def main():
 
             page.fill(
                 "#message-input",
-                test_name,
+                test_name_sentence,
             )
             page.click(
                 "#send-btn"
