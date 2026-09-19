@@ -226,6 +226,11 @@ def _ensure_error_examples(
             None
         )
 
+        example.setdefault(
+            "context",
+            None
+        )
+
         clean_examples.append(
             example
         )
@@ -653,7 +658,8 @@ def remember_error(
     state,
     error_type,
     wrong_text,
-    correct_text
+    correct_text,
+    context=None
 ):
 
     if state is None:
@@ -751,6 +757,10 @@ def remember_error(
         correct_text or ""
     ).strip()
 
+    context_value = str(
+        context or ""
+    ).strip()
+
 
     if wrong_value and correct_value:
 
@@ -789,7 +799,10 @@ def remember_error(
                     get_current_timestamp(),
 
                 "last_practiced":
-                    None
+                    None,
+
+                "context":
+                    context_value or None
             }
 
             error_item[
@@ -826,6 +839,12 @@ def remember_error(
             example[
                 "last_seen"
             ] = get_current_timestamp()
+
+            if context_value:
+
+                example[
+                    "context"
+                ] = context_value
 
             error_item[
                 "examples"
