@@ -126,31 +126,27 @@ def build_adaptive_recommendation(state, excluded=None):
 
     if attempts >= 2 and score < 85:
         reason = (
-            f"Beim {label} bist du im Moment noch etwas unsicherer "
-            f"({round(score, 1)} von 100)."
+            f"{label} können wir noch etwas üben."
         )
     elif attempts > 0 and score < 70:
         reason = (
-            f"Beim {label} war dein letzter Durchschnitt noch nicht ganz sicher "
-            f"({round(score, 1)} von 100)."
+            f"{label} haben wir schon ein bisschen geübt. "
+            "Das machen wir noch sicherer."
         )
     elif attempts == 0:
         if strongest:
             strong_label = SKILL_LABELS.get(strongest, strongest)
-            strong_score = _score(skills.get(strongest, {}))
             reason = (
-                f"{strong_label} klappt schon gut "
-                f"({round(strong_score, 1)} von 100). "
-                f"{label} haben wir dagegen noch kaum trainiert."
+                f"{strong_label} haben wir schon geübt. "
+                f"{label} noch kaum."
             )
         else:
             reason = (
-                f"{label} haben wir bisher noch kaum trainiert."
+                f"{label} haben wir noch kaum trainiert."
             )
     else:
         reason = (
-            f"Deine Ergebnisse sind insgesamt schon gut. "
-            f"Beim {label} können wir sie noch weiter festigen."
+            f"{label} können wir noch ein bisschen üben."
         )
 
     activity_phrases = {
@@ -173,8 +169,7 @@ def build_adaptive_recommendation(state, excluded=None):
         "reason": reason,
         "excluded": excluded,
         "message": (
-            f"{reason} Ich würde dir jetzt {phrase} empfehlen. "
-            "Möchtest du das machen?"
+            f"{reason} Machen wir jetzt {phrase}?"
         ),
     }
 
