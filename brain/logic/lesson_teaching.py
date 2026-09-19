@@ -410,10 +410,8 @@ def create_lesson_completion_answer(
 ):
 
     base = (
-        "Sehr gut! Du kennst jetzt wichtige "
-        "Grundlagen aus A1, Lektion 1. "
-        "Damit hast du die Lektion abgeschlossen. "
-        "Die erste Wiederholung ist für morgen geplant."
+        "Super! Lektion 1 ist fertig. "
+        "Morgen wiederholen wir sie kurz."
     )
 
     try:
