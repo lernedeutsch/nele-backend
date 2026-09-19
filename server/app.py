@@ -362,7 +362,15 @@ def welcome():
 
     data = request.get_json(silent=True) or {}
     session_id = normalize_session_id(data.get("session_id") or data.get("student_id") or "default")
-    answer = create_welcome_reply(session_id)
+
+    new_conversation = bool(
+        data.get("new_conversation", False)
+    )
+
+    answer = create_welcome_reply(
+        session_id,
+        preserve_active_task=not new_conversation,
+    )
     return jsonify({"reply": answer, "session_id": session_id})
 
 
