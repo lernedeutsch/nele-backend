@@ -399,6 +399,83 @@ def calculate_updated_difficulty(
 
 
 # ==========================================
+# CZY PRZYKŁAD BŁĘDU MA SENS DO POWTÓRKI?
+# ==========================================
+
+def is_relevant_error_example(
+    example
+):
+
+    if not isinstance(
+        example,
+        dict
+    ):
+
+        return False
+
+
+    wrong = clean_error_practice_message(
+        example.get(
+            "wrong"
+        )
+    )
+
+    correct = clean_error_practice_message(
+        example.get(
+            "correct"
+        )
+    )
+
+
+    if not (
+        wrong
+        and
+        correct
+    ):
+
+        return False
+
+
+    # Stare przypadkowe odpowiedzi niezwiązane z zadaniem
+    # nie powinny wracać w treningu błędów.
+    if correct in {
+        "guten morgen",
+        "guten tag",
+        "guten abend",
+        "hallo",
+        "tschüss",
+        "tschuss",
+    }:
+
+        greeting_tokens = {
+            "guten",
+            "morgen",
+            "tag",
+            "abend",
+            "hallo",
+            "hi",
+            "hey",
+            "tschüss",
+            "tschuss",
+            "tschüs",
+            "wiedersehen",
+        }
+
+        if not (
+            set(
+                wrong.split()
+            )
+            &
+            greeting_tokens
+        ):
+
+            return False
+
+
+    return True
+
+
+# ==========================================
 # KOLEJNY KONKRETNY BŁĄD W TEJ KATEGORII
 # ==========================================
 
@@ -448,6 +525,10 @@ def get_next_pending_error_example(
             not example.get(
                 "mastered",
                 False
+            )
+            and
+            is_relevant_error_example(
+                example
             )
         )
     ]
@@ -918,7 +999,7 @@ def start_error_practice(
 
 
     return (
-        f"Dann üben wir kurz {label}. "
+        "Lass uns kurz etwas von letztem Mal wiederholen. "
         f"{choice_prompt}"
     )
 
@@ -1484,11 +1565,7 @@ def handle_error_practice_step_two(
 
 
                     return (
-                        "Sehr gut! Genau richtig: "
-                        f"„{correct_sentence}“ "
-                        "In diesem Bereich ist noch ein "
-                        "anderer Fehler offen. "
-                        "Schauen wir ihn uns gleich an. "
+                        "Sehr gut. Jetzt noch eine. "
                         f"{next_choice_prompt}"
                     )
 
