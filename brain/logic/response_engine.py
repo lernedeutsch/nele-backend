@@ -80,7 +80,12 @@ from brain.nele3_upgrade.teacher_brain import (
 )
 
 from brain.nele3_upgrade.state import (
-    set_pending_recommendation
+    set_pending_recommendation,
+    get_active_task
+)
+
+from brain.nele3_upgrade.activities import (
+    resume_active_task
 )
 
 
@@ -3160,6 +3165,46 @@ def create_returning_user_follow_up(
     short_answer = get_short_answer(
         normal_answer
     )
+
+
+    # Jeżeli uczeń zamknął stronę w połowie
+    # dodatkowego ćwiczenia, po powrocie wracamy
+    # najpierw dokładnie do tego ćwiczenia.
+    if get_active_task(
+        state
+    ):
+
+        resumed = resume_active_task(
+            state
+        )
+
+
+        if isinstance(
+            resumed,
+            dict
+        ):
+
+            resumed_reply = str(
+                resumed.get(
+                    "reply",
+                    ""
+                )
+                or
+                ""
+            ).strip()
+
+
+            if resumed_reply:
+
+                if short_answer:
+
+                    return (
+                        f"{short_answer} "
+                        f"{resumed_reply}"
+                    )
+
+
+                return resumed_reply
 
 
     teacher_answer = (
