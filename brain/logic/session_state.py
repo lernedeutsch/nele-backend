@@ -59,6 +59,7 @@ def _clear_common_transient_state(state):
 
     # Old offers must be recalculated for the new session.
     state["pending_new_learning"] = None
+    state["pending_error_review"] = None
     clear_pending_recommendation(state)
 
     # Short-lived conversation references.
