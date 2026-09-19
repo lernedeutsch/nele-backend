@@ -21,6 +21,7 @@ from brain.nele3_upgrade.content import (
     PRONUNCIATION_TARGETS,
 )
 from brain.logic.welcome import generate_welcome_reply
+from brain.nele3_upgrade.state import get_active_task
 from brain.logic.lesson_loader import (
     get_available_lesson_numbers,
 )
@@ -207,6 +208,55 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "writing",
         )
 
+
+
+    def test_fresh_conversation_clears_only_active_task(self):
+        state = {
+            "onboarding_completed": True,
+            "user_facts": {
+                "name": "Moni",
+            },
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "listening",
+                    "prompt": "Um wie viel Uhr fährt der Zug?",
+                },
+                "skills": {
+                    "listening": {
+                        "attempts": 3,
+                        "correct": 2,
+                        "score_avg": 80.0,
+                        "last_score": 100,
+                        "last_practiced": "2026-09-19T00:00:00+00:00",
+                    }
+                },
+            },
+        }
+
+        with patch(
+            "server.app.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "server.app.save_conversation_state"
+        ), patch(
+            "server.app.generate_welcome_reply",
+            return_value="Hallo Moni!",
+        ):
+            from server.app import create_welcome_reply
+
+            reply = create_welcome_reply(
+                "test-user",
+                preserve_active_task=False,
+            )
+
+        self.assertEqual(reply, "Hallo Moni!")
+        self.assertIsNone(
+            get_active_task(state)
+        )
+        self.assertEqual(
+            state["nele3_upgrade"]["skills"]["listening"]["attempts"],
+            3,
+        )
 
 
     def test_interrupted_onboarding_step_two_has_no_double_greeting(self):
