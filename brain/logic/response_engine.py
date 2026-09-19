@@ -2184,8 +2184,7 @@ def create_session_start_follow_up(
 
 
                 parts.append(
-                    "Wir beginnen mit einem Wort, "
-                    "das heute wiederholt werden soll."
+                    "Wir wiederholen zuerst ein Wort."
                 )
 
 
@@ -2308,8 +2307,7 @@ def create_session_start_follow_up(
                 else:
 
                     parts.append(
-                        "Jetzt wiederholen wir kurz "
-                        "einen wichtigen Fehler."
+                        "Das üben wir noch einmal kurz."
                     )
 
 
