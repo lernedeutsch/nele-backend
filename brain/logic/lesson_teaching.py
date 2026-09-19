@@ -40,6 +40,14 @@ from brain.nele3_upgrade.state import (
 )
 
 
+from brain.logic.generic_lesson_engine import (
+    start_generic_lesson_teaching,
+    handle_generic_lesson_teaching,
+    get_generic_current_prompt,
+    is_generic_lesson_active
+)
+
+
 # ==========================================
 # TEXT BEREINIGEN
 # ==========================================
@@ -887,6 +895,15 @@ def start_lesson_teaching(
         )
 
 
+    generic_answer = start_generic_lesson_teaching(
+        section,
+        state
+    )
+
+    if generic_answer:
+        return generic_answer
+
+
     return None
 
 
@@ -906,6 +923,18 @@ def get_current_lesson_prompt(
         False
     ):
         return ""
+
+
+    if is_generic_lesson_active(
+        state
+    ):
+
+        generic_prompt = get_generic_current_prompt(
+            state
+        )
+
+        if generic_prompt:
+            return generic_prompt
 
     section = str(
         state.get(
@@ -2200,6 +2229,19 @@ def handle_lesson_teaching(
     ):
 
         return None
+
+
+    if is_generic_lesson_active(
+        state
+    ):
+
+        generic_answer = handle_generic_lesson_teaching(
+            user_message,
+            state
+        )
+
+        if generic_answer is not None:
+            return generic_answer
 
 
     section = state.get(
