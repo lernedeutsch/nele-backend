@@ -188,11 +188,14 @@ def create_nele_reply(user_message: str, session_id: str, transcript: str | None
         )
 
 
-def create_welcome_reply(session_id):
+def create_welcome_reply(session_id, preserve_active_task=True):
     try:
         state = get_conversation_state(session_id)
         ensure_upgrade_state(state)
-        set_active_task(state, None)
+
+        if not preserve_active_task:
+            set_active_task(state, None)
+
         start_upgrade_session(state)
         finish_vocabulary_practice(state)
         save_conversation_state(session_id)
@@ -366,7 +369,10 @@ def reset():
             "session_id": session_id,
         }), 500
 
-    answer = create_welcome_reply(session_id)
+    answer = create_welcome_reply(
+        session_id,
+        preserve_active_task=False
+    )
     return jsonify({
         "ok": True,
         "reply": answer,
