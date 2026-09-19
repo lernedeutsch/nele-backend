@@ -1444,7 +1444,8 @@ def handle_greeting_section(
 # ==========================================
 
 def is_valid_name_answer(
-    user_message
+    user_message,
+    state=None
 ):
 
     message = normalize(
@@ -1462,17 +1463,44 @@ def is_valid_name_answer(
     ]
 
 
-    return any(
-        message.startswith(
+    spoken_name = ""
+
+
+    for start in valid_starts:
+
+        if not message.startswith(
             start
-        )
-        and len(
-            message[
-                len(start):
-            ].strip()
-        ) > 0
-        for start in valid_starts
+        ):
+            continue
+
+        spoken_name = message[
+            len(start):
+        ].strip()
+
+        break
+
+
+    if not spoken_name:
+        return False
+
+
+    expected_name = get_student_name(
+        state
     )
+
+
+    if not expected_name:
+        return True
+
+
+    expected_name = normalize(
+        expected_name
+    ).strip(
+        " .?!„“\"'"
+    )
+
+
+    return spoken_name == expected_name
 
 
 # ==========================================
@@ -1576,7 +1604,8 @@ def handle_introduction_section(
     if step == 2:
 
         if not is_valid_name_answer(
-            user_message
+            user_message,
+            state
         ):
 
             name = get_student_name(
