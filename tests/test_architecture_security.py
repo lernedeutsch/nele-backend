@@ -37,6 +37,7 @@ class NeleArchitectureSecurityTests(unittest.TestCase):
             "lesson_teaching_section": "Das deutsche Alphabet",
             "lesson_teaching_step": 4,
             "pending_new_learning": {"type": "new_section"},
+            "pending_error_review": "vocabulary",
             "last_question": "some_old_question",
             "nele3_upgrade": {
                 "active_task": {
@@ -66,6 +67,7 @@ class NeleArchitectureSecurityTests(unittest.TestCase):
         self.assertFalse(state["vocabulary_practice_active"])
         self.assertFalse(state["error_practice_active"])
         self.assertIsNone(state["pending_new_learning"])
+        self.assertIsNone(state["pending_error_review"])
         self.assertIsNone(state["current_topic"])
         self.assertIsNone(state["last_question"])
 
@@ -114,10 +116,15 @@ class NeleArchitectureSecurityTests(unittest.TestCase):
         client = app.test_client()
 
         with patch(
-            "server.app.get_conversation_state",
+            "server.app.acquire_session_lock",
+            return_value=None,
+        ), patch(
+            "server.app.refresh_conversation_state"
+        ), patch(
+            "brain.logic.session_service.get_conversation_state",
             return_value=state,
         ), patch(
-            "server.app.save_conversation_state"
+            "brain.logic.session_service.save_conversation_state"
         ), patch(
             "brain.logic.welcome.get_conversation_state",
             return_value=state,
@@ -219,6 +226,85 @@ class NeleArchitectureSecurityTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
         reset_mock.assert_not_called()
+
+    def test_public_endpoints_reject_missing_or_reserved_default_id(self):
+        client = app.test_client()
+
+        missing = client.post(
+            "/welcome",
+            json={},
+        )
+        reserved = client.post(
+            "/chat",
+            json={
+                "session_id": "default",
+                "message": "Hallo",
+            },
+        )
+        activity_missing = client.post(
+            "/api/activity/start",
+            json={"type": "pronunciation"},
+        )
+
+        self.assertEqual(missing.status_code, 400)
+        self.assertEqual(
+            missing.get_json()["error"],
+            "session_id_required",
+        )
+        self.assertEqual(reserved.status_code, 400)
+        self.assertEqual(
+            reserved.get_json()["error"],
+            "session_id_required",
+        )
+        self.assertEqual(activity_missing.status_code, 400)
+
+    def test_compatibility_session_start_uses_canonical_service(self):
+        client = app.test_client()
+
+        with patch(
+            "server.app.acquire_session_lock",
+            return_value=None,
+        ), patch(
+            "server.app.refresh_conversation_state"
+        ), patch(
+            "brain.nele3_upgrade.api.start_conversation_session",
+            return_value="Hallo Moni!",
+        ) as start_mock:
+            response = client.post(
+                "/api/session/start",
+                json={
+                    "session_id": "stable-moni-id",
+                    "new_conversation": True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get_json()["reply"],
+            "Hallo Moni!",
+        )
+        start_mock.assert_called_once_with(
+            "stable-moni-id",
+            new_conversation=True,
+        )
+
+    def test_persistent_memory_returns_true_after_successful_init(self):
+        original = memory_module.persistent_memory_initialized
+        memory_module.persistent_memory_initialized = True
+
+        try:
+            self.assertTrue(
+                memory_module.ensure_persistent_memory()
+            )
+        finally:
+            memory_module.persistent_memory_initialized = original
+
+    def test_gunicorn_defaults_to_one_worker(self):
+        import gunicorn_conf
+
+        self.assertEqual(gunicorn_conf.workers, 1)
+        self.assertEqual(gunicorn_conf.worker_class, "gthread")
+        self.assertGreaterEqual(gunicorn_conf.threads, 2)
 
     def test_persistent_memory_is_not_marked_initialized_after_failed_init(self):
         original = memory_module.persistent_memory_initialized
