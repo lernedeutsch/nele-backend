@@ -1338,6 +1338,13 @@ def handle_greeting_section(
         if not spoken_greeting:
             spoken_greeting = "Hallo"
 
+        else:
+
+            spoken_greeting = (
+                spoken_greeting[:1].upper()
+                + spoken_greeting[1:]
+            )
+
 
         return (
             f"Sehr gut! „{spoken_greeting}“ passt perfekt. "
