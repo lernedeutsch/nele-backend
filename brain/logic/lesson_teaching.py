@@ -891,6 +891,168 @@ def start_lesson_teaching(
 
 
 # ==========================================
+# AKTUELLE LEKTION GENAU FORTSETZEN
+# ==========================================
+
+def get_current_lesson_prompt(
+    state
+):
+
+    if state is None:
+        return ""
+
+    if not state.get(
+        "lesson_teaching_active",
+        False
+    ):
+        return ""
+
+    section = str(
+        state.get(
+            "lesson_teaching_section"
+        )
+        or
+        ""
+    ).strip()
+
+    try:
+        step = int(
+            state.get(
+                "lesson_teaching_step",
+                1
+            )
+            or
+            1
+        )
+    except (TypeError, ValueError):
+        step = 1
+
+
+    if normalize(section) == normalize(
+        "Wir begrüßen uns"
+    ):
+
+        prompts = {
+            1: (
+                "Wir machen genau dort weiter. "
+                "Stell dir vor, es ist morgens. "
+                "Was sagst du?"
+            ),
+            2: (
+                "Wir machen genau dort weiter. "
+                "Jetzt ist es tagsüber. "
+                "Was sagst du?"
+            ),
+            3: (
+                "Wir machen genau dort weiter. "
+                "Jetzt ist es Abend. "
+                "Was sagst du?"
+            ),
+            4: (
+                "Wir machen genau dort weiter. "
+                "Wenn du jemanden ganz locker begrüßt, "
+                "was kannst du sagen?"
+            ),
+            5: (
+                "Wir machen genau dort weiter. "
+                "Du verabschiedest dich von einem Freund. "
+                "Was sagst du?"
+            ),
+            6: (
+                "Wir machen mit dem Mini-Dialog weiter. "
+                "Du kommst morgens zur Arbeit. "
+                "Ich sage: „Guten Morgen!“ "
+                "Was antwortest du?"
+            ),
+        }
+
+        return prompts.get(
+            step,
+            prompts[1]
+        )
+
+
+    if normalize(section) == normalize(
+        "Ich stelle mich vor"
+    ):
+
+        name = get_student_name(
+            state
+        ) or "Moni"
+
+        prompts = {
+            1: (
+                "Wir machen mit dem Mini-Dialog weiter. "
+                "Wir treffen uns morgens zum ersten Mal. "
+                "Guten Morgen!"
+            ),
+            2: (
+                "Guten Morgen! Ich heiße Nele. "
+                "Wie heißt du?"
+            ),
+            3: (
+                f"Freut mich, {name}! "
+                "Wie fragst du mich nach meinem Namen?"
+            ),
+            4: (
+                "Ich heiße Nele. "
+                "Kannst du deinen Namen bitte buchstabieren?"
+            ),
+            5: (
+                "Jetzt sind wir in einer höflichen Situation "
+                "im Hotel. Wie fragst du einen Gast "
+                "nach dem Namen?"
+            ),
+        }
+
+        return prompts.get(
+            step,
+            prompts[1]
+        )
+
+
+    if normalize(section) == normalize(
+        "Das deutsche Alphabet"
+    ):
+
+        prompts = {
+            1: (
+                "Wir machen genau dort weiter. "
+                "Welcher Buchstabe kommt nach A?"
+            ),
+            2: (
+                "Wir machen genau dort weiter. "
+                "Welcher Buchstabe kommt nach M?"
+            ),
+            3: (
+                "Wir machen genau dort weiter. "
+                "Welcher Buchstabe kommt vor Z?"
+            ),
+            4: (
+                "Wir machen genau dort weiter. "
+                "Welche drei Umlaute gibt es im Deutschen?"
+            ),
+            5: (
+                "Wir machen genau dort weiter. "
+                "Welches besondere Zeichen gibt es "
+                "außerdem im Deutschen?"
+            ),
+            6: (
+                "Wir machen genau dort weiter. "
+                "Buchstabiere bitte deinen Namen."
+            ),
+        }
+
+        return prompts.get(
+            step,
+            prompts[1]
+        )
+
+
+    return ""
+
+
+# ==========================================
 # CZY AKTYWNA JEST LEKCJA
 # ==========================================
 
