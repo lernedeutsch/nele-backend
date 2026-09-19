@@ -70,6 +70,9 @@ from brain.memory.error_memory_migration import (
 from brain.memory.error_memory_progress import (
     add_practice_history,
     remember_error,
+    get_error_examples,
+    get_next_error_example,
+    mark_error_example_practiced,
     mark_error_practiced,
     mark_error_for_review,
     get_error_count,
