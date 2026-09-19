@@ -1132,6 +1132,66 @@ def mark_error_for_review(
         return False
 
 
+    # Adaptive Review działa na kategorii błędu,
+    # ale ćwiczymy zawsze konkretny przykład.
+    # Kiedy nadejdzie termin powtórki, oznaczamy
+    # jeden sensowny, nieopanowany przykład jako
+    # oczekujący. Dzięki temu stan kategorii i
+    # stan examples[] nie rozjeżdżają się.
+    candidates = [
+        example
+        for example in _ensure_error_examples(
+            error_item
+        )
+        if (
+            not example.get(
+                "mastered",
+                False
+            )
+            and
+            not example.get(
+                "ignored",
+                False
+            )
+        )
+    ]
+
+
+    if not candidates:
+
+        error_item[
+            "needs_practice"
+        ] = False
+
+        return False
+
+
+    candidates.sort(
+        key=lambda example: (
+            int(
+                example.get(
+                    "practice_count",
+                    0
+                )
+                or
+                0
+            ),
+            -int(
+                example.get(
+                    "count",
+                    0
+                )
+                or
+                0
+            )
+        )
+    )
+
+
+    candidates[0][
+        "needs_practice"
+    ] = True
+
     error_item[
         "needs_practice"
     ] = True
