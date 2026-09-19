@@ -29,6 +29,12 @@ from brain.knowledge.A1.lessons import (
 )
 
 
+from brain.logic.lesson_loader import (
+    lesson_module_exists,
+    get_lesson_sections_from_module
+)
+
+
 # ==========================================
 # STRUKTURA LEKCJI
 # ==========================================
@@ -49,15 +55,31 @@ def get_course_lesson_sections(
 
     if level == "A1":
 
-        if not a1_lesson_exists(
+        if a1_lesson_exists(
             lesson
         ):
 
-            return []
+            sections = get_a1_lesson_sections(
+                lesson
+            )
 
-        return get_a1_lesson_sections(
+
+            if sections:
+                return sections
+
+
+        if lesson_module_exists(
+            level,
             lesson
-        )
+        ):
+
+            return get_lesson_sections_from_module(
+                level,
+                lesson
+            )
+
+
+        return []
 
 
     # ======================================
