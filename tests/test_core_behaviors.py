@@ -22,6 +22,19 @@ from brain.nele3_upgrade.content import (
 from brain.logic.lesson_loader import (
     get_available_lesson_numbers,
 )
+from brain.logic.onboarding import (
+    extract_learning_goal_sentence,
+    get_short_answer_value,
+)
+from brain.logic.lesson_teaching import (
+    is_morning_greeting,
+    is_day_greeting,
+    is_evening_greeting,
+    is_relevant_greeting_mistake,
+)
+from brain.logic.error_practice import (
+    is_relevant_error_example,
+)
 
 
 class NeleCoreBehaviorTests(unittest.TestCase):
@@ -181,6 +194,63 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "writing",
         )
 
+
+
+    def test_onboarding_rejects_unrelated_learning_goal(self):
+        self.assertEqual(
+            extract_learning_goal_sentence("ich will spielen"),
+            "",
+        )
+        self.assertEqual(
+            extract_learning_goal_sentence("ich möchte A1 erreichen"),
+            "Deutsch A1",
+        )
+
+    def test_residence_retry_does_not_invent_place_from_asr_fragment(self):
+        self.assertEqual(
+            get_short_answer_value("Yvonne in Heidelberg", 3),
+            "",
+        )
+        self.assertEqual(
+            get_short_answer_value("Heidelberg", 3),
+            "Heidelberg",
+        )
+
+    def test_greeting_steps_require_full_expression(self):
+        self.assertFalse(is_morning_greeting("morgen"))
+        self.assertFalse(is_day_greeting("tag"))
+        self.assertFalse(is_evening_greeting("abend"))
+        self.assertTrue(is_morning_greeting("Guten Morgen"))
+        self.assertTrue(is_day_greeting("Guten Tag"))
+        self.assertTrue(is_evening_greeting("Guten Abend"))
+
+    def test_unrelated_sentence_is_not_saved_as_greeting_mistake(self):
+        self.assertFalse(
+            is_relevant_greeting_mistake("ich will spielen")
+        )
+        self.assertTrue(
+            is_relevant_greeting_mistake("guten Morgen")
+        )
+
+    def test_old_unrelated_greeting_error_is_skipped(self):
+        self.assertFalse(
+            is_relevant_error_example(
+                {
+                    "wrong": "ich will spielen",
+                    "correct": "Guten Tag",
+                    "needs_practice": True,
+                }
+            )
+        )
+        self.assertTrue(
+            is_relevant_error_example(
+                {
+                    "wrong": "Guten Morgen",
+                    "correct": "Guten Tag",
+                    "needs_practice": True,
+                }
+            )
+        )
 
     def test_teacher_brain_does_not_repeat_just_completed_skill(self):
         state = {}
