@@ -706,8 +706,7 @@ def create_today_plan_answer(
 
     return (
         "Noch nicht ganz. "
-        "Dein Lernplan für heute ist "
-        "noch nicht vollständig abgeschlossen."
+        "Für heute ist noch etwas offen."
     )
 
 
