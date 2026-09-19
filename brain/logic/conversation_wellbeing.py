@@ -182,6 +182,15 @@ def handle_wellbeing_reply(
     )
 
 
+    # Odpowiedź na "Wie geht es dir?" została
+    # rozpoznana. Od tej chwili kolejne słowo
+    # użytkownika należy już do ćwiczenia,
+    # a nie do starego pytania o samopoczucie.
+    state[
+        "last_question"
+    ] = None
+
+
     if not reaction:
 
         return (
