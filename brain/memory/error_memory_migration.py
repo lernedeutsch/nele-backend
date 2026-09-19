@@ -224,6 +224,142 @@ def migrate_missing_last_result(
 
 
 # ==========================================
+# MIGRACJA KONKRETNYCH PRZYKŁADÓW
+# ==========================================
+
+def migrate_error_examples(
+    error_item
+):
+
+    if not isinstance(
+        error_item,
+        dict
+    ):
+
+        return error_item
+
+
+    error_item = ensure_error_item_structure(
+        error_item
+    )
+
+
+    examples = error_item.get(
+        "examples",
+        []
+    )
+
+
+    if not isinstance(
+        examples,
+        list
+    ):
+
+        examples = []
+
+
+    # Starsza pamięć przechowywała tylko
+    # last_wrong / last_correct. Zachowujemy
+    # ten przykład jako pierwszy konkretny
+    # wpis, aby nic z dotychczasowej nauki
+    # nie zginęło.
+    if (
+        not examples
+        and
+        error_item.get(
+            "last_wrong"
+        )
+        and
+        error_item.get(
+            "last_correct"
+        )
+    ):
+
+        examples = [
+            {
+                "wrong":
+                    str(
+                        error_item.get(
+                            "last_wrong"
+                        )
+                    ).strip(),
+
+                "correct":
+                    str(
+                        error_item.get(
+                            "last_correct"
+                        )
+                    ).strip(),
+
+                "count":
+                    max(
+                        1,
+                        int(
+                            error_item.get(
+                                "count",
+                                1
+                            )
+                            or
+                            1
+                        )
+                    ),
+
+                "practice_count":
+                    int(
+                        error_item.get(
+                            "practice_count",
+                            0
+                        )
+                        or
+                        0
+                    ),
+
+                "correct_streak":
+                    int(
+                        error_item.get(
+                            "correct_streak",
+                            0
+                        )
+                        or
+                        0
+                    ),
+
+                "mastered":
+                    bool(
+                        error_item.get(
+                            "mastered",
+                            False
+                        )
+                    ),
+
+                "needs_practice":
+                    bool(
+                        error_item.get(
+                            "needs_practice",
+                            False
+                        )
+                    ),
+
+                "last_seen":
+                    None,
+
+                "last_practiced":
+                    error_item.get(
+                        "last_practiced"
+                    )
+            }
+        ]
+
+
+    error_item[
+        "examples"
+    ] = examples
+
+
+    return error_item
+
+
+# ==========================================
 # MIGRACJA JEDNEGO WPISU
 # ==========================================
 
@@ -242,6 +378,11 @@ def migrate_error_item(
 
 
     error_item = migrate_missing_last_result(
+        error_item
+    )
+
+
+    error_item = migrate_error_examples(
         error_item
     )
 
