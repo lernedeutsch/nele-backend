@@ -188,6 +188,75 @@ def get_error_practice_label(
 
 
 # ==========================================
+# RÓWNOWAŻNE POPRAWNE ODPOWIEDZI
+# ==========================================
+
+def is_equivalent_correct_answer(
+    user_message,
+    correct_sentence,
+    error_type=None
+):
+
+    user_clean = clean_error_practice_message(
+        user_message
+    )
+
+    correct_clean = clean_error_practice_message(
+        correct_sentence
+    )
+
+
+    if (
+        user_clean
+        and
+        is_equivalent_correct_answer(
+            user_message,
+            correct_sentence,
+            state.get(
+                "error_practice_type"
+            )
+        )
+    ):
+
+        return True
+
+
+    error_type = str(
+        error_type or ""
+    ).strip().lower()
+
+
+    # Przy umlautach kolejność nie ma znaczenia:
+    # "Ö Ä Ü" jest tak samo poprawne jak
+    # "Ä, Ö und Ü".
+    if error_type == "spelling":
+
+        target_umlauts = {
+            char
+            for char in "äöü"
+            if char in correct_clean
+        }
+
+        if target_umlauts == {
+            "ä",
+            "ö",
+            "ü"
+        }:
+
+            user_umlauts = {
+                char
+                for char in "äöü"
+                if char in user_clean
+            }
+
+            if user_umlauts == target_umlauts:
+                return True
+
+
+    return False
+
+
+# ==========================================
 # CZY ĆWICZENIE JEST AKTYWNE
 # ==========================================
 
@@ -818,7 +887,13 @@ def handle_error_practice_step_two(
     # DOBRA ODPOWIEDŹ
     # ======================================
 
-    if user_clean == correct_clean:
+    if is_equivalent_correct_answer(
+        user_message,
+        correct_sentence,
+        state.get(
+            "error_practice_type"
+        )
+    ):
 
         error_type = state.get(
             "error_practice_type"
@@ -1030,8 +1105,8 @@ def handle_error_practice_step_two(
         # ======================================
 
         return (
-            "Sehr gut! Genau richtig. "
-            f"„{correct_sentence}“. "
+            "Sehr gut! Genau richtig: "
+            f"„{correct_sentence}“ "
             "Diesen Fehler hast du jetzt geübt."
         )
 
@@ -1066,7 +1141,7 @@ def handle_error_practice_step_two(
     return (
         "Fast. "
         f"Richtig ist: „{correct_sentence}“ "
-        "Sag den Satz bitte noch einmal."
+        "Sag die richtige Antwort bitte noch einmal."
     )
 
 
