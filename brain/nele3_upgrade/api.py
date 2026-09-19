@@ -58,7 +58,6 @@ def api_session_start():
     sid = _session_id(data)
     state = get_conversation_state(sid)
     ensure_upgrade_state(state)
-    set_active_task(state, None)
     start_upgrade_session(state)
     reply = generate_welcome_reply(sid)
     save_conversation_state(sid)
