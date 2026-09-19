@@ -127,6 +127,46 @@ def clear_old_active_exercises(
 
 
     # ======================================
+    # AKTYWNY TRENING BŁĘDU
+    #
+    # Po ponownym otwarciu strony Nele
+    # najpierw pyta "Wie geht es dir?".
+    # Stary krok Fehlertraining nie może
+    # przechwycić tej odpowiedzi. Sam błąd
+    # zostaje w Error Memory i Session Coach
+    # uruchomi go ponownie po powitaniu.
+    # ======================================
+
+    state[
+        "error_practice_active"
+    ] = False
+
+    state[
+        "error_practice_type"
+    ] = None
+
+    state[
+        "error_practice_step"
+    ] = 0
+
+    state[
+        "error_practice_attempts"
+    ] = 0
+
+    state[
+        "error_practice_used_hint"
+    ] = False
+
+    state[
+        "error_practice_example_wrong"
+    ] = None
+
+    state[
+        "error_practice_example_correct"
+    ] = None
+
+
+    # ======================================
     # AKTYWNE PROWADZENIE LEKCJI
     #
     # Zachowujemy dokładny punkt przerwania:
