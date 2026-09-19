@@ -76,6 +76,10 @@ def create_empty_error_item():
         "last_wrong": None,
         "last_correct": None,
 
+        # Konkretnie zapamiętane przykłady
+        # w obrębie jednej kategorii błędu.
+        "examples": [],
+
         "needs_practice": False,
 
 
@@ -226,6 +230,18 @@ def ensure_error_item_structure(
 
         error_item[
             "practice_history"
+        ] = []
+
+
+    if not isinstance(
+        error_item.get(
+            "examples"
+        ),
+        list
+    ):
+
+        error_item[
+            "examples"
         ] = []
 
 
