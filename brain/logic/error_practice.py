@@ -16,6 +16,7 @@ from brain.memory.next_learning_step import (
 
 from brain.memory.error_memory import (
     get_error_summary,
+    get_error_item,
     get_errors_for_practice,
     get_error_difficulty,
     get_error_examples,
@@ -508,6 +509,31 @@ def get_next_pending_error_example(
         return None
 
 
+    # Stare błędnie zaklasyfikowane odpowiedzi
+    # oznaczamy trwale jako ignored. Ponieważ
+    # get_error_examples() zwraca te same dict-y,
+    # zmiana zapisuje się w stanie ucznia.
+    for example in examples:
+
+        if not isinstance(
+            example,
+            dict
+        ):
+            continue
+
+        if not is_relevant_error_example(
+            example
+        ):
+
+            example[
+                "ignored"
+            ] = True
+
+            example[
+                "needs_practice"
+            ] = False
+
+
     candidates = [
         example
         for example in examples
@@ -527,14 +553,33 @@ def get_next_pending_error_example(
                 False
             )
             and
-            is_relevant_error_example(
-                example
+            not example.get(
+                "ignored",
+                False
             )
         )
     ]
 
 
     if not candidates:
+
+        # Jeżeli po oczyszczeniu nie ma żadnego
+        # realnego przykładu oczekującego, kategoria
+        # również nie może pozostać aktywna.
+        error_item = get_error_item(
+            error_type,
+            state
+        )
+
+        if isinstance(
+            error_item,
+            dict
+        ):
+
+            error_item[
+                "needs_practice"
+            ] = False
+
         return None
 
 
