@@ -46,6 +46,7 @@ def create_upgrade_state() -> Dict[str, Any]:
         "events": [],
         "active_task": None,
         "pending_recommendation": None,
+        "last_completed_activity": None,
         "activity_cursor": {},
         "course": {"A1": 0, "A2": 0},
         "preferences": {
@@ -232,12 +233,26 @@ def mark_activity_completed(
         count = 0
     session["completed_activities"] = count + 1
     session["last_action"] = activity_type
+
+    # To pole jest trwałe między kolejnymi otwarciami strony.
+    # Dzięki temu Teacher Brain nie proponuje natychmiast
+    # ponownie ćwiczenia, które uczeń właśnie poprawnie skończył.
+    upgrade["last_completed_activity"] = str(
+        activity_type or ""
+    ).strip().lower() or None
+
     record_event(
         state,
         "activity_completed",
         detail={"activity_type": activity_type, "detail": detail},
         result={"score": round(float(score), 2)},
     )
+
+
+def get_last_completed_activity(state: dict) -> Optional[str]:
+    value = ensure_upgrade_state(state).get("last_completed_activity")
+    value = str(value or "").strip().lower()
+    return value or None
 
 
 def get_skills(state: dict) -> Dict[str, dict]:
