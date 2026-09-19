@@ -5,6 +5,7 @@ from brain.memory.daily_learning import mark_exercise_completed_today
 from brain.memory.student_progress import (
     remember_completed_exercise,
     remember_learning_topic,
+    get_current_level,
 )
 from brain.nele3_upgrade.content import (
     DIALOGUES,
@@ -131,14 +132,99 @@ def _pick(items, state, cursor_key):
     return items[idx]
 
 
-def start_activity(state, activity_type, level=None):
-    activity_type = str(activity_type or "").strip().lower()
+def _resolve_level(state, level=None):
+    value = str(
+        level
+        or get_current_level(state)
+        or "A1"
+    ).strip().upper()
+
+    if value not in {"A1", "A2"}:
+        return "A1"
+
+    return value
+
+
+def _items_for_level(items, level):
     level = str(level or "A1").strip().upper()
 
+    matched = [
+        item
+        for item in (items or [])
+        if isinstance(item, dict)
+        and str(item.get("level") or "A1").strip().upper() == level
+    ]
+
+    if matched:
+        return matched
+
+    # Bezpieczny fallback: jeżeli dla danego poziomu
+    # nie ma jeszcze treści, użyj prostszego A1 zamiast
+    # przypadkowo podawać trudniejsze zadanie.
+    return [
+        item
+        for item in (items or [])
+        if isinstance(item, dict)
+        and str(item.get("level") or "A1").strip().upper() == "A1"
+    ]
+
+
+def resume_active_task(state):
+    task = get_active_task(state)
+
+    if not isinstance(task, dict):
+        return None
+
+    activity_type = str(task.get("type") or "").strip().lower()
+    prompt = str(task.get("prompt") or "").strip()
+
+    if activity_type == "listening":
+        return {
+            "reply": (
+                "Wir machen mit der Hörübung weiter.\n\n"
+                + prompt
+            ).strip(),
+            "speak_text": str(task.get("speak_text") or "").strip(),
+            "meta": {
+                "activity": "listening",
+                "resumed": True,
+            },
+        }
+
+    if activity_type == "pronunciation":
+        target = str(task.get("target") or "").strip()
+        return {
+            "reply": prompt or f"Sprich bitte nach: „{target}“",
+            "speak_text": str(task.get("speak_text") or target).strip(),
+            "meta": {
+                "activity": "pronunciation",
+                "expects_audio": True,
+                "resumed": True,
+            },
+        }
+
+    return {
+        "reply": (
+            ("Wir machen hier weiter. " + prompt)
+            if prompt
+            else "Wir machen hier weiter."
+        ),
+        "meta": {
+            "activity": activity_type,
+            "resumed": True,
+        },
+    }
+
+
+def start_activity(state, activity_type, level=None):
+    activity_type = str(activity_type or "").strip().lower()
+    level = _resolve_level(state, level)
+
     if activity_type in {"dialog", "dialogue", "rollenspiel"}:
-        item = _pick(DIALOGUES, state, "dialogue")
+        item = _pick(_items_for_level(DIALOGUES, level), state, f"dialogue_{level}")
         task = {
             "type": "dialogue",
+            "level": level,
             "title": item["title"],
             "prompt": item["prompt"],
             "keywords": item.get("keywords", []),
@@ -152,12 +238,13 @@ def start_activity(state, activity_type, level=None):
         }
 
     if activity_type in {"listening", "hoeren", "hören", "hörübung"}:
-        item = _pick(LISTENING_TASKS, state, "listening")
+        item = _pick(_items_for_level(LISTENING_TASKS, level), state, f"listening_{level}")
         task = {
             "type": "listening",
+            "level": level,
             "title": item["title"],
             "prompt": item["question"],
-            "speak_text": f"Hör gut zu. {item['text']} {item['question']}",
+            "speak_text": item["text"],
             "answers": item.get("answers", []),
         }
         set_active_task(state, task)
@@ -169,9 +256,10 @@ def start_activity(state, activity_type, level=None):
         }
 
     if activity_type in {"writing", "schreiben", "schreibübung"}:
-        item = _pick(WRITING_TASKS, state, "writing")
+        item = _pick(_items_for_level(WRITING_TASKS, level), state, f"writing_{level}")
         task = {
             "type": "writing",
+            "level": level,
             "title": item["title"],
             "prompt": item["prompt"],
             "keywords": item.get("keywords", []),
@@ -188,9 +276,10 @@ def start_activity(state, activity_type, level=None):
         }
 
     if activity_type in {"work", "work_german", "arbeitsdeutsch", "hotel", "housekeeping"}:
-        item = _pick(WORK_GERMAN, state, "work_german")
+        item = _pick(_items_for_level(WORK_GERMAN, level), state, f"work_german_{level}")
         task = {
             "type": "work_german",
+            "level": level,
             "title": item["title"],
             "prompt": item["prompt"],
             "keywords": item.get("keywords", []),
@@ -204,9 +293,10 @@ def start_activity(state, activity_type, level=None):
         }
 
     if activity_type in {"pronunciation", "aussprache"}:
-        item = _pick(PRONUNCIATION_TARGETS, state, "pronunciation")
+        item = _pick(_items_for_level(PRONUNCIATION_TARGETS, level), state, f"pronunciation_{level}")
         task = {
             "type": "pronunciation",
+            "level": level,
             "title": item["title"],
             "target": item["target"],
             "prompt": f"Sprich bitte nach: „{item['target']}“",
@@ -379,8 +469,25 @@ def answer_active_task(state, message, transcript=None):
         completed = score >= 60
         reply = "Gut gemacht." if completed else "Sag bitte noch einen vollständigen Satz."
 
+    # Teacher Brain powinien widzieć również nieudane próby,
+    # a nie tylko ćwiczenia zakończone sukcesem.
+    update_skill(
+        state,
+        activity_type if activity_type in {
+            "speaking", "listening", "writing", "vocabulary", "grammar",
+            "dialogue", "work_german"
+        } else "speaking",
+        score
+    )
+
     if completed:
-        _finish(state, activity_type, task.get("title", activity_type), score)
+        _finish(
+            state,
+            activity_type,
+            task.get("title", activity_type),
+            score,
+            update_skill_score=False
+        )
         set_active_task(state, None)
         record_event(state, "activity_answer", detail=activity_type, result={"score": score})
 
