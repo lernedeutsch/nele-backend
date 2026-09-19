@@ -2010,6 +2010,22 @@ def start_next_new_learning(
 
     if offer_saved:
 
+        # Nową LEKCJĘ zaczynamy dopiero po
+        # odpowiedzi ucznia "Ja". Sekcję
+        # trwającej lekcji możemy nadal
+        # wznowić automatycznie.
+        if plan_type == "new_lesson":
+
+            return str(
+                plan.get(
+                    "message",
+                    ""
+                )
+                or
+                ""
+            ).strip()
+
+
         started_answer = (
             handle_new_learning_resume(
                 "ja",
@@ -2977,6 +2993,46 @@ def create_teacher_directed_follow_up(
 
 
         if offer_saved:
+
+            new_learning_type = str(
+                new_learning_plan.get(
+                    "type",
+                    ""
+                )
+                or
+                ""
+            ).strip().lower()
+
+
+            # Przy przejściu do zupełnie nowej
+            # lekcji zatrzymujemy się na prostym
+            # pytaniu "Bist du bereit?".
+            if new_learning_type == "new_lesson":
+
+                new_lesson_message = str(
+                    new_learning_plan.get(
+                        "message",
+                        ""
+                    )
+                    or
+                    ""
+                ).strip()
+
+
+                if short_answer and new_lesson_message:
+
+                    return (
+                        f"{short_answer}\n\n"
+                        f"{new_lesson_message}"
+                    )
+
+
+                return (
+                    new_lesson_message
+                    or
+                    short_answer
+                )
+
 
             started_answer = (
                 handle_new_learning_resume(
