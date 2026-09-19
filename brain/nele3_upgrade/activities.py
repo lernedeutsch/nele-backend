@@ -331,7 +331,7 @@ def start_activity(state, activity_type, level=None):
     }
 
 
-def answer_active_task(state, message, transcript=None):
+def answer_active_task(state, message, transcript=None, input_mode=None):
     task = get_active_task(state)
     if not task:
         return None
@@ -342,7 +342,8 @@ def answer_active_task(state, message, transcript=None):
 
     if activity_type == "pronunciation":
         input_mode = str(
-            state.get("last_input_mode")
+            input_mode
+            or state.get("last_input_mode")
             or state.get("input_mode")
             or ""
         ).strip().lower()
