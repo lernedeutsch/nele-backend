@@ -26,7 +26,8 @@ from brain.memory.error_memory import (
 )
 
 from brain.logic.lesson_teaching import (
-    is_lesson_teaching_active
+    is_lesson_teaching_active,
+    get_current_lesson_prompt
 )
 
 
@@ -326,6 +327,22 @@ def resume_lesson_training(
         return None
 
 
+    # Główny, wspólny mechanizm wznowienia.
+    # Działa zarówno dla starej Lektion 1,
+    # jak i dla przyszłych lekcji opartych
+    # na Generic Lesson Engine.
+    current_prompt = get_current_lesson_prompt(
+        state
+    )
+
+
+    if current_prompt:
+
+        return current_prompt
+
+
+    # Poniżej zostaje tylko kompatybilność
+    # ze starszymi zapisami stanu.
     section = state.get(
         "lesson_teaching_section"
     )
