@@ -18,6 +18,8 @@ from brain.memory.error_memory import (
     get_error_summary,
     get_errors_for_practice,
     get_error_difficulty,
+    get_next_error_example,
+    mark_error_example_practiced,
     mark_error_practiced
 )
 
@@ -428,6 +430,15 @@ def finish_error_practice(
     ] = False
 
 
+    state[
+        "error_practice_example_wrong"
+    ] = None
+
+    state[
+        "error_practice_example_correct"
+    ] = None
+
+
 # ==========================================
 # NASTĘPNY KROK PO ĆWICZENIU BŁĘDU
 #
@@ -582,13 +593,34 @@ def start_error_practice(
         )
 
 
-    wrong_sentence = summary.get(
-        "last_wrong"
+    example = get_next_error_example(
+        state,
+        error_type
     )
 
-    correct_sentence = summary.get(
-        "last_correct"
-    )
+
+    if isinstance(
+        example,
+        dict
+    ):
+
+        wrong_sentence = example.get(
+            "wrong"
+        )
+
+        correct_sentence = example.get(
+            "correct"
+        )
+
+    else:
+
+        wrong_sentence = summary.get(
+            "last_wrong"
+        )
+
+        correct_sentence = summary.get(
+            "last_correct"
+        )
 
 
     if not wrong_sentence or not correct_sentence:
@@ -610,6 +642,18 @@ def start_error_practice(
     state[
         "error_practice_type"
     ] = error_type
+
+    state[
+        "error_practice_example_wrong"
+    ] = str(
+        wrong_sentence
+    ).strip()
+
+    state[
+        "error_practice_example_correct"
+    ] = str(
+        correct_sentence
+    ).strip()
 
     state[
         "error_practice_step"
@@ -1059,6 +1103,15 @@ def handle_error_practice_step_two(
             )
 
 
+            mark_error_example_practiced(
+                state,
+                error_type,
+                wrong_sentence,
+                correct_sentence,
+                result="correct"
+            )
+
+
             # ==================================
             # DAILY LEARNING MEMORY
             #
@@ -1214,6 +1267,38 @@ def handle_error_practice(
         )
 
         return None
+
+
+    active_wrong = str(
+        state.get(
+            "error_practice_example_wrong"
+        )
+        or
+        ""
+    ).strip()
+
+    active_correct = str(
+        state.get(
+            "error_practice_example_correct"
+        )
+        or
+        ""
+    ).strip()
+
+
+    if active_wrong and active_correct:
+
+        summary = dict(
+            summary
+        )
+
+        summary[
+            "last_wrong"
+        ] = active_wrong
+
+        summary[
+            "last_correct"
+        ] = active_correct
 
 
     step = state.get(
