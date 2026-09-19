@@ -282,6 +282,134 @@ def _find_error_example(
     return None, None
 
 
+def _backfill_examples_from_daily_memory(
+    state,
+    error_type,
+    error_item
+):
+
+    daily = state.get(
+        "daily_learning"
+    )
+
+
+    if not isinstance(
+        daily,
+        dict
+    ):
+
+        return
+
+
+    mistakes = daily.get(
+        "mistakes",
+        []
+    )
+
+
+    if not isinstance(
+        mistakes,
+        list
+    ):
+
+        return
+
+
+    normalized_type = str(
+        error_type or ""
+    ).strip().lower()
+
+
+    for item in mistakes:
+
+        if not isinstance(
+            item,
+            dict
+        ):
+
+            continue
+
+
+        if (
+            str(
+                item.get(
+                    "type"
+                )
+                or
+                ""
+            ).strip().lower()
+            != normalized_type
+        ):
+
+            continue
+
+
+        wrong = str(
+            item.get(
+                "wrong"
+            )
+            or
+            ""
+        ).strip()
+
+        correct = str(
+            item.get(
+                "correct"
+            )
+            or
+            ""
+        ).strip()
+
+
+        if not wrong or not correct:
+            continue
+
+
+        index, example = _find_error_example(
+            error_item,
+            wrong,
+            correct
+        )
+
+
+        if example is None:
+
+            error_item[
+                "examples"
+            ].append(
+                {
+                    "wrong":
+                        wrong,
+
+                    "correct":
+                        correct,
+
+                    "count":
+                        1,
+
+                    "practice_count":
+                        0,
+
+                    "correct_streak":
+                        0,
+
+                    "mastered":
+                        False,
+
+                    "needs_practice":
+                        True,
+
+                    "last_seen":
+                        item.get(
+                            "at"
+                        ),
+
+                    "last_practiced":
+                        None
+                }
+            )
+
+
 def get_error_examples(
     state,
     error_type
@@ -295,6 +423,13 @@ def get_error_examples(
 
     if error_item is None:
         return []
+
+
+    _backfill_examples_from_daily_memory(
+        state,
+        error_type,
+        error_item
+    )
 
 
     return list(
