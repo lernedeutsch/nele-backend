@@ -18,6 +18,7 @@ from brain.memory.error_memory import (
     get_error_summary,
     get_errors_for_practice,
     get_error_difficulty,
+    get_error_examples,
     get_next_error_example,
     mark_error_example_practiced,
     mark_error_practiced
@@ -395,6 +396,91 @@ def calculate_updated_difficulty(
             difficulty
         )
     )
+
+
+# ==========================================
+# KOLEJNY KONKRETNY BŁĄD W TEJ KATEGORII
+# ==========================================
+
+def get_next_pending_error_example(
+    state,
+    error_type
+):
+
+    try:
+
+        examples = get_error_examples(
+            state,
+            error_type
+        )
+
+    except Exception as error:
+
+        print(
+            f"Pending error example error: {error}"
+        )
+
+        return None
+
+
+    if not isinstance(
+        examples,
+        list
+    ):
+
+        return None
+
+
+    candidates = [
+        example
+        for example in examples
+        if (
+            isinstance(
+                example,
+                dict
+            )
+            and
+            example.get(
+                "needs_practice",
+                False
+            )
+            and
+            not example.get(
+                "mastered",
+                False
+            )
+        )
+    ]
+
+
+    if not candidates:
+        return None
+
+
+    candidates.sort(
+        key=lambda example: (
+            int(
+                example.get(
+                    "count",
+                    0
+                )
+                or
+                0
+            ),
+            -int(
+                example.get(
+                    "practice_count",
+                    0
+                )
+                or
+                0
+            )
+        ),
+        reverse=True
+    )
+
+
+    return candidates[0]
 
 
 # ==========================================
@@ -1123,6 +1209,92 @@ def handle_error_practice_step_two(
                 state,
                 error_type
             )
+
+
+            # ==================================
+            # CZY W TEJ SAMEJ KATEGORII
+            # ZOSTAŁ JESZCZE INNY BŁĄD?
+            #
+            # Jeżeli tak, ćwiczymy go od razu.
+            # Użytkownik nie musi zamykać
+            # i ponownie otwierać Nele.
+            # ==================================
+
+            next_example = (
+                get_next_pending_error_example(
+                    state,
+                    error_type
+                )
+            )
+
+
+            if isinstance(
+                next_example,
+                dict
+            ):
+
+                next_wrong = str(
+                    next_example.get(
+                        "wrong"
+                    )
+                    or
+                    ""
+                ).strip()
+
+                next_correct = str(
+                    next_example.get(
+                        "correct"
+                    )
+                    or
+                    ""
+                ).strip()
+
+
+                if (
+                    next_wrong
+                    and
+                    next_correct
+                ):
+
+                    state[
+                        "error_practice_active"
+                    ] = True
+
+                    state[
+                        "error_practice_type"
+                    ] = error_type
+
+                    state[
+                        "error_practice_example_wrong"
+                    ] = next_wrong
+
+                    state[
+                        "error_practice_example_correct"
+                    ] = next_correct
+
+                    state[
+                        "error_practice_step"
+                    ] = 1
+
+                    state[
+                        "error_practice_attempts"
+                    ] = 0
+
+                    state[
+                        "error_practice_used_hint"
+                    ] = False
+
+
+                    return (
+                        "Sehr gut! Genau richtig: "
+                        f"„{correct_sentence}“ "
+                        "In diesem Bereich ist noch ein "
+                        "anderer Fehler offen. "
+                        "Schauen wir ihn uns gleich an. "
+                        "Welche Antwort ist richtig?\n\n"
+                        f"1. {next_wrong}\n"
+                        f"2. {next_correct}"
+                    )
 
 
         # ======================================
