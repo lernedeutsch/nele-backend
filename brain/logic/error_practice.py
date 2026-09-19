@@ -525,6 +525,11 @@ def finish_error_practice(
     ] = None
 
 
+    state[
+        "error_practice_example_context"
+    ] = None
+
+
 # ==========================================
 # NASTĘPNY KROK PO ĆWICZENIU BŁĘDU
 #
@@ -621,6 +626,136 @@ def prepare_learning_after_error(
 
 
 # ==========================================
+# KONTEKST KONKRETNEGO BŁĘDU
+# ==========================================
+
+def get_error_example_context(
+    example,
+    wrong_sentence=None,
+    correct_sentence=None
+):
+
+    if isinstance(
+        example,
+        dict
+    ):
+
+        context = str(
+            example.get(
+                "context"
+            )
+            or
+            ""
+        ).strip()
+
+
+        if context:
+            return context
+
+
+    # Kompatybilność ze starszą pamięcią:
+    # wcześniej zapisywaliśmy tylko parę
+    # wrong/correct. Dla najczęstszych zadań
+    # Lektion 1 potrafimy odtworzyć sytuację.
+    correct = clean_error_practice_message(
+        correct_sentence
+    )
+
+
+    fallback_contexts = {
+        "guten morgen":
+            (
+                "Stell dir vor, es ist morgens. "
+                "Was sagst du zur Begrüßung?"
+            ),
+
+        "guten tag":
+            (
+                "Es ist tagsüber. "
+                "Was sagst du zur Begrüßung?"
+            ),
+
+        "guten abend":
+            (
+                "Es ist Abend. "
+                "Was sagst du zur Begrüßung?"
+            ),
+
+        "tschüss":
+            (
+                "Du verabschiedest dich von einem Freund. "
+                "Was sagst du?"
+            ),
+
+        "wie heißt du":
+            (
+                "Du möchtest jemanden informell "
+                "nach dem Namen fragen. Was sagst du?"
+            ),
+
+        "wie heißen sie":
+            (
+                "Du bist in einer höflichen Situation "
+                "im Hotel. Wie fragst du einen Gast "
+                "nach dem Namen?"
+            ),
+
+        "b":
+            "Welcher Buchstabe kommt nach A?",
+
+        "n":
+            "Welcher Buchstabe kommt nach M?",
+
+        "y":
+            "Welcher Buchstabe kommt vor Z?",
+
+        "ä, ö und ü":
+            "Welche drei Umlaute gibt es im Deutschen?",
+
+        "eszett":
+            (
+                "Welches besondere Zeichen gibt es "
+                "außerdem im Deutschen?"
+            )
+    }
+
+
+    return fallback_contexts.get(
+        correct,
+        ""
+    )
+
+
+def build_error_choice_prompt(
+    context,
+    wrong_sentence,
+    correct_sentence
+):
+
+    context = str(
+        context or ""
+    ).strip()
+
+
+    if context:
+
+        return (
+            f"Erinnerst du dich an die Situation? "
+            f"{context}\n\n"
+            "Welche Antwort passt hier?\n\n"
+            f"1. {wrong_sentence}\n"
+            f"2. {correct_sentence}"
+        )
+
+
+    return (
+        "Welche Antwort ist richtig?\n\n"
+        f"1. {wrong_sentence}\n"
+        f"2. {correct_sentence}"
+    )
+
+
+# ==========================================
 # ROZPOCZĘCIE ĆWICZENIA
 # ==========================================
 
@@ -709,6 +844,13 @@ def start_error_practice(
         )
 
 
+    context = get_error_example_context(
+        example,
+        wrong_sentence,
+        correct_sentence
+    )
+
+
     if not wrong_sentence or not correct_sentence:
 
         return (
@@ -742,6 +884,10 @@ def start_error_practice(
     ).strip()
 
     state[
+        "error_practice_example_context"
+    ] = context or None
+
+    state[
         "error_practice_step"
     ] = 1
 
@@ -764,11 +910,16 @@ def start_error_practice(
     )
 
 
+    choice_prompt = build_error_choice_prompt(
+        context,
+        wrong_sentence,
+        correct_sentence
+    )
+
+
     return (
         f"Dann üben wir kurz {label}. "
-        f"Welche Antwort ist richtig?\n\n"
-        f"1. {wrong_sentence}\n"
-        f"2. {correct_sentence}"
+        f"{choice_prompt}"
     )
 
 
@@ -1249,6 +1400,12 @@ def handle_error_practice_step_two(
                     ""
                 ).strip()
 
+                next_context = get_error_example_context(
+                    next_example,
+                    next_wrong,
+                    next_correct
+                )
+
 
                 if (
                     next_wrong
@@ -1273,6 +1430,10 @@ def handle_error_practice_step_two(
                     ] = next_correct
 
                     state[
+                        "error_practice_example_context"
+                    ] = next_context or None
+
+                    state[
                         "error_practice_step"
                     ] = 1
 
@@ -1285,15 +1446,22 @@ def handle_error_practice_step_two(
                     ] = False
 
 
+                    next_choice_prompt = (
+                        build_error_choice_prompt(
+                            next_context,
+                            next_wrong,
+                            next_correct
+                        )
+                    )
+
+
                     return (
                         "Sehr gut! Genau richtig: "
                         f"„{correct_sentence}“ "
                         "In diesem Bereich ist noch ein "
                         "anderer Fehler offen. "
                         "Schauen wir ihn uns gleich an. "
-                        "Welche Antwort ist richtig?\n\n"
-                        f"1. {next_wrong}\n"
-                        f"2. {next_correct}"
+                        f"{next_choice_prompt}"
                     )
 
 
