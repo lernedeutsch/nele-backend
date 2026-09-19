@@ -25,7 +25,7 @@ def _contains_any(text, needles):
     return any(n in text for n in needles)
 
 
-def handle_upgrade_message(user_message, state, session_id="default", transcript=None):
+def handle_upgrade_message(user_message, state, session_id="default", transcript=None, input_mode=None):
     """Handle only explicit Nele-3 features and active tasks.
 
     Normal conversation remains in Nele 1's original router.
@@ -170,7 +170,7 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
                     "repeat": True,
                 }
 
-        result = answer_active_task(state, message, transcript=transcript)
+        result = answer_active_task(state, message, transcript=transcript, input_mode=input_mode)
         if result:
             return True, result.get("reply", ""), result.get("meta", {}) | {
                 "score": result.get("score"),
