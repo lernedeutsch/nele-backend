@@ -1519,12 +1519,8 @@ def get_next_new_learning_step(
 
                     "message":
                         (
-                            f"Du hast {level}, "
-                            f"Lektion {current_lesson} "
-                            "abgeschlossen. "
-                            "Als Nächstes können wir "
-                            f"mit {level}, Lektion "
-                            f"{next_lesson} anfangen."
+                            f"Lektion {current_lesson} ist fertig. "
+                            f"Jetzt kommt Lektion {next_lesson}."
                         )
                 }
 
@@ -1590,13 +1586,8 @@ def get_next_new_learning_step(
 
                 "message":
                     (
-                        f"Du hast {level}, "
-                        f"Lektion {current_lesson} "
-                        "schon abgeschlossen. "
-                        "Als Nächstes können wir mit "
-                        f"{level}, Lektion "
-                        f"{next_lesson} "
-                        "weitermachen."
+                        f"Lektion {current_lesson} ist fertig. "
+                        f"Jetzt kommt Lektion {next_lesson}."
                     )
             }
 
