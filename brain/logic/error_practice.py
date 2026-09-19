@@ -1719,7 +1719,7 @@ def handle_error_practice_step_two(
 
         return (
             "Sehr gut! Genau richtig: "
-            f"„{correct_sentence}“ "
+            f"„{correct_sentence}“. "
             "Diesen Fehler hast du jetzt geübt."
         )
 
