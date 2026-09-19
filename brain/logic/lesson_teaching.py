@@ -775,6 +775,30 @@ def start_lesson_teaching(
 
 
     # ======================================
+    # NOWY WSPÓLNY SILNIK LEKCJI
+    #
+    # Najpierw próbujemy LESSON_FLOW z pliku
+    # konkretnej lekcji. Dzięki temu nowa
+    # Lektion 2/3 może nawet mieć nazwę
+    # sekcji podobną do Lektion 1 i nie
+    # wpadnie do starego hard-coded flow.
+    # ======================================
+
+    generic_answer = start_generic_lesson_teaching(
+        section,
+        state
+    )
+
+    if generic_answer:
+        return generic_answer
+
+
+    # ======================================
+    # LEGACY: A1 LEKTION 1
+    # ======================================
+
+
+    # ======================================
     # TEIL:
     # WIR BEGRÜSSEN UNS
     # ======================================
@@ -893,15 +917,6 @@ def start_lesson_teaching(
             "Übung zum deutschen Alphabet. "
             "Welcher Buchstabe kommt nach A?"
         )
-
-
-    generic_answer = start_generic_lesson_teaching(
-        section,
-        state
-    )
-
-    if generic_answer:
-        return generic_answer
 
 
     return None
