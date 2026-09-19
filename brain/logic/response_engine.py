@@ -70,7 +70,9 @@ from brain.memory.daily_learning import (
     was_word_reviewed_today,
     was_error_reviewed_today,
     mark_lesson_recap_today,
-    mark_daily_plan_completed
+    mark_daily_plan_completed,
+    was_daily_progress_message_shown,
+    mark_daily_progress_message_shown
 )
 
 from brain.nele3_upgrade.teacher_brain import (
@@ -1145,6 +1147,15 @@ def create_daily_progress_message(
         return ""
 
 
+    # Nie powtarzamy tego samego podsumowania
+    # przy każdym kolejnym otwarciu tego samego
+    # dnia. Raz wystarczy.
+    if was_daily_progress_message_shown(
+        state
+    ):
+        return ""
+
+
     try:
 
         summary = get_daily_learning_summary(
@@ -1348,9 +1359,19 @@ def create_daily_progress_message(
     # "Wir machen genau dort weiter ...").
     # Deshalb hier kein zweites allgemeines
     # "Wir machen jetzt weiter." anhängen.
-    return " ".join(
+    message = " ".join(
         messages
     )
+
+
+    if message:
+
+        mark_daily_progress_message_shown(
+            state
+        )
+
+
+    return message
 
 
 # ==========================================
