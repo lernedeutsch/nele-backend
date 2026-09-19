@@ -209,13 +209,7 @@ def is_equivalent_correct_answer(
     if (
         user_clean
         and
-        is_equivalent_correct_answer(
-            user_message,
-            correct_sentence,
-            state.get(
-                "error_practice_type"
-            )
-        )
+        user_clean == correct_clean
     ):
 
         return True
@@ -768,7 +762,13 @@ def handle_error_practice_step_one(
             user_message
         )
         or
-        user_clean == correct_clean
+        is_equivalent_correct_answer(
+            user_message,
+            correct_sentence,
+            state.get(
+                "error_practice_type"
+            )
+        )
     ):
 
         state[
