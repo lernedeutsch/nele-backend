@@ -52,6 +52,11 @@ from brain.memory.error_review import (
     get_due_error_reviews
 )
 
+
+from brain.memory.error_memory import (
+    get_error_summary
+)
+
 from brain.memory.next_learning_step import (
     get_next_new_learning_step,
     get_teacher_learning_plan,
@@ -75,6 +80,71 @@ from brain.nele3_upgrade.teacher_brain import (
 from brain.nele3_upgrade.state import (
     set_pending_recommendation
 )
+
+
+# ==========================================
+# CZY BŁĄD MA BYĆ ĆWICZONY W TEJ SESJI
+# ==========================================
+
+def should_review_error_in_session(
+    state,
+    error_type
+):
+
+    if not error_type:
+        return False
+
+
+    # Jeśli tego typu błędu jeszcze dziś
+    # nie ćwiczyliśmy, normalnie go bierzemy.
+    if not was_error_reviewed_today(
+        state,
+        error_type
+    ):
+
+        return True
+
+
+    # Ważne: po wcześniejszej powtórce tego
+    # samego dnia uczeń może popełnić NOWY
+    # błąd z tej samej kategorii. Wtedy nie
+    # wolno go blokować tylko dlatego, że np.
+    # "Wortschatz" był już dziś ćwiczony.
+    try:
+
+        summary = get_error_summary(
+            state,
+            error_type
+        )
+
+    except Exception as error:
+
+        print(
+            f"Session error summary error: {error}"
+        )
+
+        return False
+
+
+    if not isinstance(
+        summary,
+        dict
+    ):
+
+        return False
+
+
+    return bool(
+        summary.get(
+            "needs_practice",
+            False
+        )
+        and
+        summary.get(
+            "last_result"
+        )
+        == "wrong"
+    )
 
 
 # ==========================================
@@ -1553,7 +1623,7 @@ def build_session_coach_plan(
             continue
 
 
-        if was_error_reviewed_today(
+        if not should_review_error_in_session(
             state,
             error_type
         ):
@@ -2050,7 +2120,7 @@ def create_session_start_follow_up(
         if (
             error_type
             and
-            not was_error_reviewed_today(
+            should_review_error_in_session(
                 state,
                 error_type
             )
