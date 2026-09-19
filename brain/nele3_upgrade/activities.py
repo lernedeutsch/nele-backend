@@ -348,21 +348,12 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
             or ""
         ).strip().lower()
 
-        if input_mode not in {"voice", "speech", "microphone", "mic"}:
-            return {
-                "completed": False,
-                "reply": (
-                    "Für diese Übung benutze bitte das Mikrofon "
-                    "und sprich das Wort nach."
-                ),
-                "meta": {
-                    "activity": "pronunciation",
-                    "expects_audio": True,
-                    "retry": True,
-                    "keyboard_not_accepted": True,
-                },
-            }
+        voice_input = input_mode in {"voice", "speech", "microphone", "mic"}
 
+        # Niektóre starsze wersje frontendu używają Web Speech API:
+        # mikrofon rozpoznaje słowo poprawnie, ale do /chat trafia tylko tekst
+        # bez zachowanego znacznika input_mode="voice".
+        # Nie blokujemy wtedy ćwiczenia — oceniamy rozpoznany tekst.
         heard = transcript or message
         if not heard:
             return {
@@ -389,7 +380,13 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
             "reply": result["feedback"],
             "score": score,
             "result": result,
-            "meta": {"activity": "pronunciation", "retry": not completed},
+            "meta": {
+                "activity": "pronunciation",
+                "retry": not completed,
+                "expects_audio": True,
+                "voice_input": voice_input,
+                "input_mode": input_mode or None,
+            },
         }
 
     if not message:
