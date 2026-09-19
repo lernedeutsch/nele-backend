@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from brain.nele3_upgrade.activities import (
     _items_for_level,
@@ -19,6 +20,7 @@ from brain.nele3_upgrade.content import (
     WORK_GERMAN,
     PRONUNCIATION_TARGETS,
 )
+from brain.logic.welcome import generate_welcome_reply
 from brain.logic.lesson_loader import (
     get_available_lesson_numbers,
 )
@@ -205,6 +207,39 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "writing",
         )
 
+
+
+    def test_interrupted_onboarding_step_two_has_no_double_greeting(self):
+        state = {
+            "onboarding_completed": False,
+            "onboarding_step": 2,
+            "user_facts": {
+                "name": "Moni",
+            },
+        }
+
+        with patch(
+            "brain.logic.welcome.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "brain.logic.welcome.save_conversation_state"
+        ):
+            reply = generate_welcome_reply(
+                "test-user"
+            )
+
+        self.assertEqual(
+            reply,
+            (
+                "Hallo Moni! "
+                "Schön, dass du wieder da bist. "
+                "Woher kommst du?"
+            ),
+        )
+        self.assertNotIn(
+            "Schön, dich kennenzulernen",
+            reply,
+        )
 
 
     def test_onboarding_rejects_unrelated_learning_goal(self):
