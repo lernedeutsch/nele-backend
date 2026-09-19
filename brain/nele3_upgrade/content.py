@@ -146,12 +146,12 @@ WORK_GERMAN = [
 ]
 
 PRONUNCIATION_TARGETS = [
-    {"title": "Handtuch", "target": "Handtuch"},
-    {"title": "Duschgel", "target": "Duschgel"},
-    {"title": "Natürlich", "target": "Natürlich, sehr gerne."},
-    {"title": "Ich kümmere mich darum", "target": "Ich kümmere mich sofort darum."},
-    {"title": "Einen Moment bitte", "target": "Einen Moment bitte. Ich frage kurz nach."},
-    {"title": "Termin vereinbaren", "target": "Ich möchte gern einen Termin vereinbaren."},
+    {"title": "Handtuch", "target": "Handtuch", "level": "A1"},
+    {"title": "Duschgel", "target": "Duschgel", "level": "A1"},
+    {"title": "Natürlich", "target": "Natürlich, sehr gerne.", "level": "A1"},
+    {"title": "Ich kümmere mich darum", "target": "Ich kümmere mich sofort darum.", "level": "A2"},
+    {"title": "Einen Moment bitte", "target": "Einen Moment bitte. Ich frage kurz nach.", "level": "A2"},
+    {"title": "Termin vereinbaren", "target": "Ich möchte gern einen Termin vereinbaren.", "level": "A2"},
 ]
 
 COURSE_TASKS = {
