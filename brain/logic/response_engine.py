@@ -172,6 +172,11 @@ def should_review_error_in_session(
                     "mastered",
                     False
                 )
+                and
+                not example.get(
+                    "ignored",
+                    False
+                )
             ):
 
                 return True
@@ -2766,6 +2771,17 @@ def create_teacher_directed_follow_up(
                 state,
                 error_type
             )
+
+            if not exercise:
+
+                # start_error_practice może podczas odczytu
+                # oczyścić stary, nieprawidłowy wpis pamięci.
+                # Wtedy od razu przeliczamy plan, zamiast
+                # pokazywać nieaktualny komunikat o błędzie.
+                return create_teacher_directed_follow_up(
+                    state,
+                    short_answer
+                )
 
 
             parts = []
