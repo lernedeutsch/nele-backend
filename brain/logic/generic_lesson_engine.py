@@ -1439,9 +1439,8 @@ def complete_generic_section(
 
 
     completion = (
-        f"{base} Damit hast du {level}, "
-        f"Lektion {lesson} abgeschlossen. "
-        "Die erste Wiederholung ist für morgen geplant."
+        f"{base} Lektion {lesson} ist fertig. "
+        "Morgen wiederholen wir sie kurz."
     )
 
 
