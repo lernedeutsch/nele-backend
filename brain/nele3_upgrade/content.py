@@ -77,7 +77,9 @@ WRITING_TASKS = [
         "level": "A1",
         "prompt": "Schreib zwei kurze Sätze: Du kommst heute zehn Minuten später zur Arbeit.",
         "keywords": ["komme", "später"],
+        "required": ["ich"],
         "min_words": 6,
+        "min_sentences": 2,
         "model_answer": "Guten Morgen. Ich komme heute etwa zehn Minuten später. Entschuldigung.",
     },
     {
