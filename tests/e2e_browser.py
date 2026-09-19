@@ -4,6 +4,7 @@ import os
 import time
 
 import psycopg2
+import requests
 from playwright.sync_api import sync_playwright
 
 
@@ -76,15 +77,56 @@ def cleanup(session_id):
         connection.close()
 
 
+def verify_backend_http():
+    session_id = "e2e-http-backend-check"
+
+    cleanup(session_id)
+
+    response = requests.post(
+        f"{BACKEND_URL}/welcome",
+        json={"session_id": session_id},
+        timeout=10,
+    )
+
+    assert response.status_code == 200, (
+        response.status_code,
+        response.text,
+    )
+
+    memory = load_memory(session_id)
+    assert isinstance(memory, dict)
+
+    cleanup(session_id)
+
+
 def main():
     test_name = "E2E-Moni-Test"
     session_id = None
+
+    verify_backend_http()
 
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch()
             context = browser.new_context()
             page = context.new_page()
+
+            page.on(
+                "console",
+                lambda msg: print(
+                    "BROWSER CONSOLE:",
+                    msg.type,
+                    msg.text,
+                ),
+            )
+            page.on(
+                "requestfailed",
+                lambda req: print(
+                    "BROWSER REQUEST FAILED:",
+                    req.url,
+                    req.failure,
+                ),
+            )
 
             page.add_init_script(
                 f"window.NELE_BACKEND_URL = {BACKEND_URL!r};"
@@ -95,14 +137,61 @@ def main():
                 wait_until="domcontentloaded",
             )
 
-            page.wait_for_function(
-                """() => {
-                    const text =
-                        document.querySelector('#messages')?.innerText || '';
-                    return text.includes('Wie heißt du?');
+            browser_health = page.evaluate(
+                """async backendUrl => {
+                    try {
+                        const response = await fetch(
+                            backendUrl + '/health'
+                        );
+                        return {
+                            status: response.status,
+                            text: await response.text()
+                        };
+                    } catch (error) {
+                        return {
+                            status: 0,
+                            text: String(error)
+                        };
+                    }
                 }""",
-                timeout=15000,
+                BACKEND_URL,
             )
+
+            print(
+                "BROWSER HEALTH:",
+                browser_health,
+            )
+
+            assert browser_health["status"] == 200
+
+            try:
+                page.wait_for_function(
+                    """() => {
+                        const text =
+                            document.querySelector('#messages')?.innerText || '';
+                        return text.includes('Wie heißt du?');
+                    }""",
+                    timeout=10000,
+                )
+            except Exception:
+                print(
+                    "BROWSER DEBUG:",
+                    {
+                        "messages": page.locator(
+                            "#messages"
+                        ).inner_text(),
+                        "session_id": page.evaluate(
+                            "() => localStorage.getItem('nele_session_id')"
+                        ),
+                        "nele_type": page.evaluate(
+                            "() => typeof Nele"
+                        ),
+                        "backend_override": page.evaluate(
+                            "() => window.NELE_BACKEND_URL"
+                        ),
+                    },
+                )
+                raise
 
             session_id = page.evaluate(
                 "() => localStorage.getItem('nele_session_id')"
