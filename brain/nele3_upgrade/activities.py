@@ -341,11 +341,32 @@ def answer_active_task(state, message, transcript=None):
     transcript = str(transcript or "").strip()
 
     if activity_type == "pronunciation":
+        input_mode = str(
+            state.get("last_input_mode")
+            or state.get("input_mode")
+            or ""
+        ).strip().lower()
+
+        if input_mode not in {"voice", "speech", "microphone", "mic"}:
+            return {
+                "completed": False,
+                "reply": (
+                    "Für diese Übung benutze bitte das Mikrofon "
+                    "und sprich das Wort nach."
+                ),
+                "meta": {
+                    "activity": "pronunciation",
+                    "expects_audio": True,
+                    "retry": True,
+                    "keyboard_not_accepted": True,
+                },
+            }
+
         heard = transcript or message
         if not heard:
             return {
                 "completed": False,
-                "reply": "Ich brauche deine Aufnahme oder den erkannten Text. Sprich den Satz bitte noch einmal.",
+                "reply": "Ich habe nichts erkannt. Sprich das Wort bitte noch einmal.",
                 "meta": {"activity": "pronunciation", "expects_audio": True},
             }
         result = evaluate_pronunciation(state, task.get("target", ""), heard)
