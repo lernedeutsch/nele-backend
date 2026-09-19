@@ -64,14 +64,22 @@ def cleanup(session_id):
     connection = psycopg2.connect(DATABASE_URL)
     try:
         cursor = connection.cursor()
+
         cursor.execute(
-            """
-            DELETE FROM student_memory
-            WHERE session_id = %s
-            """,
-            (session_id,),
+            "SELECT to_regclass('public.student_memory')"
         )
-        connection.commit()
+        table_name = cursor.fetchone()[0]
+
+        if table_name:
+            cursor.execute(
+                """
+                DELETE FROM student_memory
+                WHERE session_id = %s
+                """,
+                (session_id,),
+            )
+            connection.commit()
+
         cursor.close()
     finally:
         connection.close()
