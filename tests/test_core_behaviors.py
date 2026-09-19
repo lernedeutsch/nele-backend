@@ -44,6 +44,7 @@ from brain.memory.error_memory import (
 from brain.memory.error_review import (
     refresh_error_reviews,
     get_due_error_reviews,
+    is_error_due_for_review,
 )
 
 
@@ -357,6 +358,46 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
         self.assertIsNone(
             reopened
+        )
+
+
+    def test_stale_category_flag_with_only_ignored_pending_example_is_not_due(self):
+        state = {
+            "error_memory": {
+                "vocabulary": {
+                    "count": 1,
+                    "needs_practice": True,
+                    "mastered": False,
+                    "examples": [
+                        {
+                            "wrong": "ich will spielen",
+                            "correct": "Guten Tag",
+                            "needs_practice": True,
+                            "mastered": False,
+                            "ignored": True,
+                        }
+                    ],
+                }
+            }
+        }
+
+        self.assertFalse(
+            is_error_due_for_review(
+                state,
+                "vocabulary",
+            )
+        )
+
+        item = get_error_item(
+            "vocabulary",
+            state,
+        )
+
+        self.assertFalse(
+            item.get(
+                "needs_practice",
+                True,
+            )
         )
 
     def test_teacher_brain_does_not_repeat_just_completed_skill(self):
