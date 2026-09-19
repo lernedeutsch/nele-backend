@@ -43,6 +43,13 @@ from brain.knowledge.A1.lessons import (
 )
 
 
+from brain.logic.lesson_loader import (
+    lesson_module_exists,
+    get_lesson_sections_from_module,
+    get_next_lesson_number_from_modules
+)
+
+
 # ==========================================
 # ŁADNE WYŚWIETLANIE SŁOWA
 # ==========================================
@@ -1242,18 +1249,35 @@ def sync_lesson_structure(
 
     if level == "A1":
 
-        if not a1_lesson_exists(
+        sections = []
+
+
+        if a1_lesson_exists(
             lesson
         ):
 
-            return []
+            sections = (
+                get_a1_lesson_sections(
+                    lesson
+                )
+            )
 
 
-        sections = (
-            get_a1_lesson_sections(
+        if (
+            not sections
+            and
+            lesson_module_exists(
+                level,
                 lesson
             )
-        )
+        ):
+
+            sections = (
+                get_lesson_sections_from_module(
+                    level,
+                    lesson
+                )
+            )
 
 
         if sections:
@@ -1288,12 +1312,43 @@ def get_next_course_lesson(
 
     if level == "A1":
 
-        return get_next_a1_lesson_number(
+        static_next = get_next_a1_lesson_number(
             lesson
         )
 
 
-    return None
+        dynamic_next = (
+            get_next_lesson_number_from_modules(
+                level,
+                lesson
+            )
+        )
+
+
+        candidates = [
+            value
+            for value in (
+                static_next,
+                dynamic_next
+            )
+            if value is not None
+        ]
+
+
+        if candidates:
+
+            return min(
+                candidates
+            )
+
+
+        return None
+
+
+    return get_next_lesson_number_from_modules(
+        level,
+        lesson
+    )
 
 
 # ==========================================
@@ -1429,6 +1484,20 @@ def get_next_new_learning_step(
 
             if next_lesson is not None:
 
+                next_sections = sync_lesson_structure(
+                    state,
+                    level,
+                    next_lesson
+                )
+
+
+                first_section = (
+                    next_sections[0]
+                    if next_sections
+                    else None
+                )
+
+
                 return {
                     "type":
                         "new_lesson",
@@ -1440,10 +1509,10 @@ def get_next_new_learning_step(
                         next_lesson,
 
                     "section":
-                        None,
+                        first_section,
 
                     "topic":
-                        None,
+                        first_section,
 
                     "completion_percent":
                         100,
