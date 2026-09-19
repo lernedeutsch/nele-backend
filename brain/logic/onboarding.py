@@ -457,44 +457,33 @@ def extract_hobby_sentence(
 
     # ======================================
     # INNA NATURALNA ODPOWIEDŹ Z "GERN"
+    #
+    # Akceptujemy prosty szyk A1:
+    # "Ich spiele gern Tennis."
+    # "Ich lese sehr gerne."
+    #
+    # Nie akceptujemy przypadkowych ciągów typu:
+    # "Ich schreibe gerade gerne fahre."
     # ======================================
 
-    if (
-        normalized.startswith(
-            "ich "
-        )
-        and
-        (
-            " gern " in
-            f" {normalized} "
-            or
-            " gerne " in
-            f" {normalized} "
-        )
-    ):
-
-        return clean_value(
-            user_message
-        )
+    natural_hobby_patterns = [
+        r"^ich\s+[a-zäöüß]+\s+(?:sehr\s+)?gern(?:e)?(?:\s+.+)?$",
+        r"^in\s+meiner\s+freizeit\s+[a-zäöüß]+\s+ich\s+(?:sehr\s+)?gern(?:e)?(?:\s+.+)?$",
+        r"^in\s+meiner\s+freizeit\s+[a-zäöüß]+\s+(?:sehr\s+)?gern(?:e)?(?:\s+.+)?$"
+    ]
 
 
-    if (
-        normalized.startswith(
-            "in meiner freizeit "
-        )
-        and
-        (
-            " gern " in
-            f" {normalized} "
-            or
-            " gerne " in
-            f" {normalized} "
-        )
-    ):
+    for pattern in natural_hobby_patterns:
 
-        return clean_value(
-            user_message
-        )
+        if re.match(
+            pattern,
+            normalized,
+            flags=re.IGNORECASE
+        ):
+
+            return clean_value(
+                user_message
+            )
 
 
     return ""
