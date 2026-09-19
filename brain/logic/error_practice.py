@@ -745,9 +745,24 @@ def handle_error_practice_step_one(
         )
 
 
+        hints = {
+            "word_order": "Achte auf die Wortstellung.",
+            "grammar": "Achte auf die richtige Formulierung.",
+            "vocabulary": "Achte auf den passenden Ausdruck.",
+            "spelling": "Achte auf die richtige Schreibweise.",
+            "verb": "Achte auf die richtige Verbform.",
+            "article": "Achte auf den richtigen Artikel.",
+            "preposition": "Achte auf die richtige Präposition.",
+        }
+
+        hint = hints.get(
+            str(error_type or "").strip().lower(),
+            "Achte auf die richtige Form."
+        )
+
         return (
             "Noch nicht. "
-            "Achte auf die Wortstellung. "
+            f"{hint} "
             "Welcher Satz ist richtig?\n\n"
             f"1. {wrong_sentence}\n"
             f"2. {correct_sentence}"
