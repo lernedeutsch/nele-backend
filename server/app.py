@@ -147,11 +147,23 @@ def normalize_session_id(session_id):
     return session_id[:100]
 
 
-def create_nele_reply(user_message: str, session_id: str, transcript: str | None = None):
+def create_nele_reply(
+    user_message: str,
+    session_id: str,
+    transcript: str | None = None,
+    input_mode: str | None = None,
+):
     """Run Nele 3 feature commands first, otherwise use Nele 1's original router."""
     try:
         state = get_conversation_state(session_id)
         ensure_upgrade_state(state)
+
+        mode = str(input_mode or "").strip().lower()
+        if mode not in {"voice", "keyboard"}:
+            mode = "voice" if transcript else "keyboard"
+
+        state["last_input_mode"] = mode
+        state["input_mode"] = mode
 
         handled, answer, meta = handle_upgrade_message(
             user_message,
@@ -216,12 +228,21 @@ def get_chat_request_data():
         user_message = str(request.form.get("message", "")).strip()
         session_id = normalize_session_id(request.form.get("session_id", "default"))
         audio_file = request.files.get("audio")
-        return user_message, session_id, audio_file
+        input_mode = str(
+            request.form.get("input_mode")
+            or ("voice" if audio_file else "keyboard")
+        ).strip().lower()
+        return user_message, session_id, audio_file, input_mode
 
     data = request.get_json(silent=True) or {}
     user_message = str(data.get("message", "")).strip()
-    session_id = normalize_session_id(data.get("session_id") or data.get("student_id") or "default")
-    return user_message, session_id, None
+    session_id = normalize_session_id(
+        data.get("session_id")
+        or data.get("student_id")
+        or "default"
+    )
+    input_mode = str(data.get("input_mode") or "keyboard").strip().lower()
+    return user_message, session_id, None, input_mode
 
 
 def get_audio_info(audio_file):
@@ -390,7 +411,7 @@ def chat():
     if request.method == "OPTIONS":
         return jsonify({"ok": True})
 
-    user_message, session_id, audio_file = get_chat_request_data()
+    user_message, session_id, audio_file, input_mode = get_chat_request_data()
     audio_info = get_audio_info(audio_file)
 
     if audio_info and audio_info.get("error") == "audio_too_large":
@@ -439,6 +460,7 @@ def chat():
         user_message,
         session_id,
         transcript=(transcription or {}).get("text") if transcription else None,
+        input_mode=input_mode,
     )
 
     response_data = {
