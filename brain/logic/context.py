@@ -642,11 +642,6 @@ def handle_context_answer(
 
     if last_question == "wellbeing":
 
-        state[
-            "last_question"
-        ] = None
-
-
         if normalized_answer in {
             "gut",
             "sehr gut",
@@ -658,6 +653,10 @@ def handle_context_answer(
             "mir geht es sehr gut",
             "mir gehts sehr gut"
         }:
+
+            state[
+                "last_question"
+            ] = None
 
             return (
                 "Schön zu hören! "
@@ -673,6 +672,10 @@ def handle_context_answer(
             "na ja"
         }:
 
+            state[
+                "last_question"
+            ] = None
+
             return (
                 "Verstehe. "
                 "Möchtest du ein bisschen "
@@ -687,6 +690,10 @@ def handle_context_answer(
             "mir gehts nicht gut"
         }:
 
+            state[
+                "last_question"
+            ] = None
+
             return (
                 "Das tut mir leid. "
                 "Möchtest du trotzdem "
@@ -699,6 +706,10 @@ def handle_context_answer(
             "ich bin müde"
         }:
 
+            state[
+                "last_question"
+            ] = None
+
             return (
                 "Oh, du bist müde. "
                 "Dann können wir heute "
@@ -707,7 +718,10 @@ def handle_context_answer(
 
 
         return (
-            "Danke, dass du mir das sagst."
+            "Ich habe dich noch nicht ganz verstanden. "
+            "Wie geht es dir? Du kannst zum Beispiel sagen: "
+            "„Gut“, „Es geht“, „Ich bin müde“ "
+            "oder „Mir geht es nicht gut“."
         )
 
 
