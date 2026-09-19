@@ -3127,6 +3127,11 @@ def handle_wellbeing_reply(
     )
 
 
+    state[
+        "last_question"
+    ] = None
+
+
     answer = create_returning_user_follow_up(
         state,
         reaction,
