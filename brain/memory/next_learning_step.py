@@ -163,6 +163,18 @@ def display_error_type(
         "grammatik":
             "Grammatik",
 
+        "vocabulary":
+            "Wortschatz",
+
+        "wortschatz":
+            "Wortschatz",
+
+        "spelling":
+            "Rechtschreibung",
+
+        "rechtschreibung":
+            "Rechtschreibung",
+
         "preposition":
             "Präpositionen",
 
