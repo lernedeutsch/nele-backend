@@ -108,7 +108,7 @@ def verify_backend_http():
 
 
 def main():
-    test_name = "E2E-Moni-Test"
+    test_name = "Monika"
     session_id = None
 
     verify_backend_http()
