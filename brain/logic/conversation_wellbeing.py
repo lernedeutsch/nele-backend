@@ -166,9 +166,26 @@ def handle_wellbeing_reply(
         False
     ):
 
+        # Nele hat gerade ausdrücklich
+        # "Wie geht es dir?" gefragt.
+        #
+        # Eine unklare Antwort darf deshalb
+        # NICHT an die aktive Lektion
+        # weitergereicht werden. Sonst würde
+        # z.B. "Gu" beim Alphabet plötzlich
+        # als Antwort auf "Was kommt nach M?"
+        # behandelt und als Fehler "Gu -> N"
+        # gespeichert.
+        #
+        # Wir lassen last_question bewusst
+        # auf "wellbeing", bis eine sinnvolle
+        # Antwort kommt.
         return (
-            False,
-            None,
+            True,
+            (
+                "Ich habe dich noch nicht ganz verstanden. "
+                "Wie geht es dir? Zum Beispiel: „Gut.“"
+            ),
             None
         )
 
