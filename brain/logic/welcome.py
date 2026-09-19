@@ -318,6 +318,41 @@ def generate_welcome_reply(
 
             if question:
 
+                # --------------------------
+                # ETAP 2 – POWRÓT PO IMIENIU
+                #
+                # get_onboarding_question()
+                # dla kroku 2 zawiera tekst
+                # "Schön, dich kennenzulernen".
+                # Przy ponownym wejściu nie
+                # dokładamy go do
+                # "Schön, dass du wieder da bist",
+                # bo brzmiałoby to sprzecznie.
+                # --------------------------
+
+                if onboarding_step == 2:
+
+                    if name:
+
+                        answer = (
+                            f"Hallo {name}! "
+                            "Schön, dass du wieder da bist. "
+                            "Woher kommst du?"
+                        )
+
+                    else:
+
+                        answer = (
+                            "Hallo! "
+                            "Schön, dass du wieder da bist. "
+                            "Woher kommst du?"
+                        )
+
+                    return save_and_return(
+                        answer,
+                        session_id
+                    )
+
                 if name:
 
                     answer = (
