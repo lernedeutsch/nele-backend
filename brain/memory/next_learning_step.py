@@ -1226,8 +1226,8 @@ def get_next_learning_step(
 
         "message":
             (
-                "Wir haben noch keinen "
-                "Lernschwerpunkt gespeichert."
+                "Wir haben noch kein "
+                "Thema gespeichert."
             )
     }
 
@@ -1547,9 +1547,8 @@ def get_next_new_learning_step(
 
                 "message":
                     (
-                        f"Du hast {level}, "
                         f"Lektion {current_lesson} "
-                        "vollständig abgeschlossen."
+                        "ist fertig."
                     )
             }
 
@@ -1611,11 +1610,8 @@ def get_next_new_learning_step(
 
         "message":
             (
-                "Du bist gerade bei "
-                f"{level}, Lektion "
-                f"{current_lesson}. "
-                "Als Nächstes können wir dort "
-                "mit neuem Stoff weitermachen."
+                f"Wir machen mit Lektion "
+                f"{current_lesson} weiter."
             )
     }
 
@@ -1761,19 +1757,17 @@ def get_teacher_learning_plan(
         if new_description:
 
             message = (
-                "Du hattest zuletzt noch "
-                f"Probleme mit {error_list}. "
-                "Wir üben das kurz und machen "
-                "danach mit "
+                f"Wir üben {error_list} "
+                "noch einmal kurz. "
+                "Danach machen wir mit "
                 f"{new_description} weiter."
             )
 
         else:
 
             message = (
-                "Du hattest zuletzt noch "
-                f"Probleme mit {error_list}. "
-                "Wir üben das zuerst kurz."
+                f"Wir üben {error_list} "
+                "noch einmal kurz."
             )
 
 
