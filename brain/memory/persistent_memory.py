@@ -266,3 +266,77 @@ def delete_persistent_memory(
     finally:
 
         connection.close()
+
+
+
+# ==========================================
+# BLOKADA SESJI MIEDZY PROCESAMI GUNICORN
+# ==========================================
+
+def acquire_session_lock(
+    session_id
+):
+    """Acquire a PostgreSQL advisory lock for one learner request."""
+
+    if not session_id:
+        return None
+
+    connection = get_database_connection()
+
+    if connection is None:
+        return None
+
+    try:
+        connection.autocommit = True
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT pg_advisory_lock(
+                hashtext('nele-session'),
+                hashtext(%s)
+            )
+            """,
+            (session_id,),
+        )
+        cursor.close()
+        return connection
+
+    except Exception as error:
+        print(
+            f"Session lock acquire error: {error}"
+        )
+        connection.close()
+        return None
+
+
+def release_session_lock(
+    connection,
+    session_id
+):
+    """Release a learner advisory lock and close its PostgreSQL connection."""
+
+    if connection is None:
+        return False
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            SELECT pg_advisory_unlock(
+                hashtext('nele-session'),
+                hashtext(%s)
+            )
+            """,
+            (session_id,),
+        )
+        cursor.close()
+        return True
+
+    except Exception as error:
+        print(
+            f"Session lock release error: {error}"
+        )
+        return False
+
+    finally:
+        connection.close()
