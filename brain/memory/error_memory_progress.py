@@ -120,6 +120,392 @@ def add_practice_history(
 
 
 # ==========================================
+# KONKRETNE PRZYKŁADY BŁĘDÓW
+# ==========================================
+
+def _normalize_example_text(
+    value
+):
+
+    return " ".join(
+        str(
+            value or ""
+        )
+        .strip()
+        .lower()
+        .split()
+    )
+
+
+def _ensure_error_examples(
+    error_item
+):
+
+    examples = error_item.get(
+        "examples"
+    )
+
+    if not isinstance(
+        examples,
+        list
+    ):
+
+        examples = []
+
+        error_item[
+            "examples"
+        ] = examples
+
+
+    clean_examples = []
+
+
+    for example in examples:
+
+        if not isinstance(
+            example,
+            dict
+        ):
+
+            continue
+
+
+        wrong = str(
+            example.get(
+                "wrong"
+            )
+            or
+            ""
+        ).strip()
+
+        correct = str(
+            example.get(
+                "correct"
+            )
+            or
+            ""
+        ).strip()
+
+
+        if not wrong or not correct:
+            continue
+
+
+        example.setdefault(
+            "count",
+            1
+        )
+
+        example.setdefault(
+            "practice_count",
+            0
+        )
+
+        example.setdefault(
+            "correct_streak",
+            0
+        )
+
+        example.setdefault(
+            "mastered",
+            False
+        )
+
+        example.setdefault(
+            "needs_practice",
+            True
+        )
+
+        example.setdefault(
+            "last_seen",
+            None
+        )
+
+        example.setdefault(
+            "last_practiced",
+            None
+        )
+
+        clean_examples.append(
+            example
+        )
+
+
+    error_item[
+        "examples"
+    ] = clean_examples
+
+
+    return clean_examples
+
+
+def _find_error_example(
+    error_item,
+    wrong_text,
+    correct_text
+):
+
+    wrong_key = _normalize_example_text(
+        wrong_text
+    )
+
+    correct_key = _normalize_example_text(
+        correct_text
+    )
+
+
+    for index, example in enumerate(
+        _ensure_error_examples(
+            error_item
+        )
+    ):
+
+        if (
+            _normalize_example_text(
+                example.get(
+                    "wrong"
+                )
+            )
+            == wrong_key
+            and
+            _normalize_example_text(
+                example.get(
+                    "correct"
+                )
+            )
+            == correct_key
+        ):
+
+            return index, example
+
+
+    return None, None
+
+
+def get_error_examples(
+    state,
+    error_type
+):
+
+    error_item = get_progress_error_item(
+        state,
+        error_type
+    )
+
+
+    if error_item is None:
+        return []
+
+
+    return list(
+        _ensure_error_examples(
+            error_item
+        )
+    )
+
+
+def get_next_error_example(
+    state,
+    error_type
+):
+
+    examples = get_error_examples(
+        state,
+        error_type
+    )
+
+
+    if not examples:
+        return None
+
+
+    candidates = [
+        example
+        for example in examples
+        if (
+            example.get(
+                "needs_practice",
+                False
+            )
+            and
+            not example.get(
+                "mastered",
+                False
+            )
+        )
+    ]
+
+
+    if not candidates:
+
+        candidates = [
+            example
+            for example in examples
+            if not example.get(
+                "mastered",
+                False
+            )
+        ]
+
+
+    if not candidates:
+        return None
+
+
+    candidates.sort(
+        key=lambda example: (
+            int(
+                example.get(
+                    "count",
+                    0
+                )
+                or
+                0
+            ),
+            -int(
+                example.get(
+                    "practice_count",
+                    0
+                )
+                or
+                0
+            )
+        ),
+        reverse=True
+    )
+
+
+    return candidates[0]
+
+
+def mark_error_example_practiced(
+    state,
+    error_type,
+    wrong_text,
+    correct_text,
+    result="correct"
+):
+
+    error_item = get_progress_error_item(
+        state,
+        error_type
+    )
+
+
+    if error_item is None:
+        return False
+
+
+    index, example = _find_error_example(
+        error_item,
+        wrong_text,
+        correct_text
+    )
+
+
+    if example is None:
+        return False
+
+
+    example[
+        "practice_count"
+    ] = int(
+        example.get(
+            "practice_count",
+            0
+        )
+        or
+        0
+    ) + 1
+
+
+    if result == "correct":
+
+        example[
+            "correct_streak"
+        ] = int(
+            example.get(
+                "correct_streak",
+                0
+            )
+            or
+            0
+        ) + 1
+
+        example[
+            "needs_practice"
+        ] = False
+
+        example[
+            "mastered"
+        ] = (
+            example[
+                "correct_streak"
+            ]
+            >= 2
+        )
+
+    else:
+
+        example[
+            "correct_streak"
+        ] = 0
+
+        example[
+            "needs_practice"
+        ] = True
+
+        example[
+            "mastered"
+        ] = False
+
+
+    example[
+        "last_practiced"
+    ] = get_current_timestamp()
+
+
+    error_item[
+        "examples"
+    ][
+        index
+    ] = example
+
+
+    pending_examples = [
+        item
+        for item in _ensure_error_examples(
+            error_item
+        )
+        if (
+            item.get(
+                "needs_practice",
+                False
+            )
+            and
+            not item.get(
+                "mastered",
+                False
+            )
+        )
+    ]
+
+
+    if pending_examples:
+
+        error_item[
+            "needs_practice"
+        ] = True
+
+        error_item[
+            "mastered"
+        ] = False
+
+
+    return True
+
+
+# ==========================================
 # ZAPISANIE BŁĘDU
 # ==========================================
 
@@ -211,6 +597,101 @@ def remember_error(
         ] = str(
             correct_text
         ).strip()
+
+
+    # ======================================
+    # KONKRETNY PRZYKŁAD BŁĘDU
+    # ======================================
+
+    wrong_value = str(
+        wrong_text or ""
+    ).strip()
+
+    correct_value = str(
+        correct_text or ""
+    ).strip()
+
+
+    if wrong_value and correct_value:
+
+        index, example = _find_error_example(
+            error_item,
+            wrong_value,
+            correct_value
+        )
+
+
+        if example is None:
+
+            example = {
+                "wrong":
+                    wrong_value,
+
+                "correct":
+                    correct_value,
+
+                "count":
+                    1,
+
+                "practice_count":
+                    0,
+
+                "correct_streak":
+                    0,
+
+                "mastered":
+                    False,
+
+                "needs_practice":
+                    True,
+
+                "last_seen":
+                    get_current_timestamp(),
+
+                "last_practiced":
+                    None
+            }
+
+            error_item[
+                "examples"
+            ].append(
+                example
+            )
+
+        else:
+
+            example[
+                "count"
+            ] = int(
+                example.get(
+                    "count",
+                    0
+                )
+                or
+                0
+            ) + 1
+
+            example[
+                "correct_streak"
+            ] = 0
+
+            example[
+                "mastered"
+            ] = False
+
+            example[
+                "needs_practice"
+            ] = True
+
+            example[
+                "last_seen"
+            ] = get_current_timestamp()
+
+            error_item[
+                "examples"
+            ][
+                index
+            ] = example
 
 
     # ======================================
@@ -870,6 +1351,13 @@ def get_error_summary(
         "last_correct":
             error_item.get(
                 "last_correct"
+            ),
+
+        "examples":
+            list(
+                _ensure_error_examples(
+                    error_item
+                )
             ),
 
         "needs_practice":
