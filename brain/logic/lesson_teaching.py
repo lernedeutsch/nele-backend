@@ -411,7 +411,7 @@ def create_lesson_completion_answer(
 
     base = (
         "Super! Lektion 1 ist fertig. "
-        "Morgen wiederholen wir sie kurz."
+        "Beim nächsten Mal wiederholen wir sie kurz."
     )
 
     try:
@@ -1278,10 +1278,7 @@ def is_morning_greeting(
     )
 
 
-    return message in {
-        "guten morgen",
-        "morgen"
-    }
+    return message == "guten morgen"
 
 
 # ==========================================
@@ -1298,10 +1295,7 @@ def is_day_greeting(
     )
 
 
-    return message in {
-        "guten tag",
-        "tag"
-    }
+    return message == "guten tag"
 
 
 # ==========================================
@@ -1318,10 +1312,7 @@ def is_evening_greeting(
     )
 
 
-    return message in {
-        "guten abend",
-        "abend"
-    }
+    return message == "guten abend"
 
 
 # ==========================================
@@ -1367,6 +1358,47 @@ def is_informal_goodbye(
 
 
 # ==========================================
+# CZY BŁĘDNA ODPOWIEDŹ JEST ZWIĄZANA
+# Z ĆWICZONYM POWITANIEM?
+# ==========================================
+
+def is_relevant_greeting_mistake(
+    user_message
+):
+
+    message = clean_normalized_answer(
+        user_message
+    )
+
+    if not message:
+        return False
+
+    greeting_words = {
+        "guten",
+        "morgen",
+        "tag",
+        "abend",
+        "hallo",
+        "hi",
+        "hey",
+        "tschüss",
+        "tschuss",
+        "tschüs",
+        "wiedersehen",
+    }
+
+    tokens = set(
+        message.split()
+    )
+
+    return bool(
+        tokens
+        &
+        greeting_words
+    )
+
+
+# ==========================================
 # TEIL:
 # WIR BEGRÜSSEN UNS
 # ==========================================
@@ -1393,12 +1425,16 @@ def handle_greeting_section(
             user_message
         ):
 
-            remember_lesson_mistake(
-                state,
-                "vocabulary",
-                user_message,
-                "Guten Morgen"
-            )
+            if is_relevant_greeting_mistake(
+                user_message
+            ):
+
+                remember_lesson_mistake(
+                    state,
+                    "vocabulary",
+                    user_message,
+                    "Guten Morgen"
+                )
 
             return (
                 "Fast. Am Morgen sagt man: "
@@ -1430,12 +1466,16 @@ def handle_greeting_section(
             user_message
         ):
 
-            remember_lesson_mistake(
-                state,
-                "vocabulary",
-                user_message,
-                "Guten Tag"
-            )
+            if is_relevant_greeting_mistake(
+                user_message
+            ):
+
+                remember_lesson_mistake(
+                    state,
+                    "vocabulary",
+                    user_message,
+                    "Guten Tag"
+                )
 
             return (
                 "Fast. Tagsüber kannst du sagen: "
@@ -1467,12 +1507,16 @@ def handle_greeting_section(
             user_message
         ):
 
-            remember_lesson_mistake(
-                state,
-                "vocabulary",
-                user_message,
-                "Guten Abend"
-            )
+            if is_relevant_greeting_mistake(
+                user_message
+            ):
+
+                remember_lesson_mistake(
+                    state,
+                    "vocabulary",
+                    user_message,
+                    "Guten Abend"
+                )
 
             return (
                 "Fast. Am Abend sagt man: "
@@ -1504,12 +1548,16 @@ def handle_greeting_section(
             user_message
         ):
 
-            remember_lesson_mistake(
-                state,
-                "vocabulary",
-                user_message,
-                "Hallo"
-            )
+            if is_relevant_greeting_mistake(
+                user_message
+            ):
+
+                remember_lesson_mistake(
+                    state,
+                    "vocabulary",
+                    user_message,
+                    "Hallo"
+                )
 
             return (
                 "Fast. Ganz einfach kannst du sagen: "
@@ -1557,12 +1605,16 @@ def handle_greeting_section(
             user_message
         ):
 
-            remember_lesson_mistake(
-                state,
-                "vocabulary",
-                user_message,
-                "Tschüss"
-            )
+            if is_relevant_greeting_mistake(
+                user_message
+            ):
+
+                remember_lesson_mistake(
+                    state,
+                    "vocabulary",
+                    user_message,
+                    "Tschüss"
+                )
 
             return (
                 "Fast. Zu einem Freund kannst du "
