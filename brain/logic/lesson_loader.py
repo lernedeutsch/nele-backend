@@ -288,7 +288,24 @@ def get_available_lesson_numbers(
             continue
 
 
-        if number > 0:
+        if number <= 0:
+            continue
+
+
+        # Pusty plik, np. A1/2.py bez
+        # LESSON_FLOW, nie jest jeszcze
+        # gotową lekcją. Dzięki temu Nele
+        # nie mówi uczniowi, że "Lektion 2"
+        # już czeka, zanim naprawdę dodamy
+        # jej treść.
+        sections = get_lesson_sections_from_module(
+            level,
+            number
+        )
+
+
+        if sections:
+
             result.append(
                 number
             )
