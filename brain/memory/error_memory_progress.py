@@ -231,6 +231,11 @@ def _ensure_error_examples(
             None
         )
 
+        example.setdefault(
+            "ignored",
+            False
+        )
+
         clean_examples.append(
             example
         )
@@ -477,6 +482,11 @@ def get_next_error_example(
                 "mastered",
                 False
             )
+            and
+            not example.get(
+                "ignored",
+                False
+            )
         )
     ]
 
@@ -486,9 +496,16 @@ def get_next_error_example(
         candidates = [
             example
             for example in examples
-            if not example.get(
-                "mastered",
-                False
+            if (
+                not example.get(
+                    "mastered",
+                    False
+                )
+                and
+                not example.get(
+                    "ignored",
+                    False
+                )
             )
         ]
 
@@ -644,6 +661,16 @@ def mark_error_example_practiced(
 
         error_item[
             "mastered"
+        ] = False
+
+    else:
+
+        # Po poprawnym przećwiczeniu ostatniego
+        # oczekującego przykładu kategoria nie może
+        # pozostać aktywna tylko dlatego, że istnieją
+        # inne przykłady odłożone do późniejszej powtórki.
+        error_item[
+            "needs_practice"
         ] = False
 
 
@@ -839,6 +866,10 @@ def remember_error(
             example[
                 "last_seen"
             ] = get_current_timestamp()
+
+            example[
+                "ignored"
+            ] = False
 
             if context_value:
 
