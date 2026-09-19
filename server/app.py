@@ -5,7 +5,7 @@ import tempfile
 from io import BytesIO
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, g, jsonify, request, send_file
 
 from speech.speaker import Speaker
 
@@ -13,20 +13,24 @@ from brain.logic.conversation import generate_conversation_reply
 from brain.logic.welcome import generate_welcome_reply
 from brain.logic.memory import (
     get_conversation_state,
+    refresh_conversation_state,
     save_conversation_state,
     reset_conversation_state,
 )
+from brain.logic.learner_identity import normalize_learner_id
+from brain.logic.session_service import start_conversation_session
 from brain.logic.pronunciation_audio import transcribe_audio
 from brain.logic.conversation_output import remember_nele_output
-from brain.logic.session_state import prepare_new_conversation
-
 from brain.nele3_upgrade import UPGRADE_VERSION
 from brain.nele3_upgrade.api import nele3_api
 from brain.nele3_upgrade.router import handle_upgrade_message
 from brain.nele3_upgrade.state import (
     ensure_upgrade_state,
     record_event,
-    start_upgrade_session,
+)
+from brain.memory.persistent_memory import (
+    acquire_session_lock,
+    release_session_lock,
 )
 
 
@@ -226,10 +230,130 @@ def nod():
 # =========================================================
 
 def normalize_session_id(session_id):
-    session_id = str(session_id or "default").strip()
+    """Compatibility wrapper around the one production learner-id rule."""
+
+    return normalize_learner_id(session_id)
+
+
+STATEFUL_BODY_PATHS = {
+    "/welcome",
+    "/reset",
+    "/chat",
+    "/api/chat",
+    "/api/students",
+    "/api/session/start",
+    "/api/activity/start",
+    "/api/activity/answer",
+    "/api/pronunciation/evaluate",
+}
+
+STATEFUL_PATH_PREFIXES = (
+    "/api/reset/",
+    "/api/dashboard/",
+    "/api/daily/",
+    "/api/weekly/",
+    "/api/next/",
+)
+
+
+def _is_stateful_session_request():
+    path = str(request.path or "")
+    return (
+        path in STATEFUL_BODY_PATHS
+        or any(
+            path.startswith(prefix)
+            for prefix in STATEFUL_PATH_PREFIXES
+        )
+    )
+
+
+def _request_learner_id():
+    view_args = request.view_args or {}
+
+    explicit = (
+        view_args.get("session_id")
+        or view_args.get("student_id")
+    )
+    if explicit:
+        return normalize_learner_id(explicit)
+
+    content_type = str(
+        request.content_type
+        or ""
+    ).lower()
+
+    if "multipart/form-data" in content_type:
+        value = (
+            request.form.get("session_id")
+            or request.form.get("student_id")
+        )
+        return normalize_learner_id(value)
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    value = (
+        data.get("session_id")
+        or data.get("student_id")
+    )
+
+    return normalize_learner_id(value)
+
+
+def session_id_required_response():
+    return jsonify({
+        "ok": False,
+        "error": "session_id_required",
+        "message": "Eine gültige session_id ist erforderlich.",
+    }), 400
+
+
+@app.before_request
+def prepare_learner_request():
+    """Serialize and refresh stateful learner requests."""
+
+    if request.method == "OPTIONS":
+        return None
+
+    if not _is_stateful_session_request():
+        return None
+
+    session_id = _request_learner_id()
+
     if not session_id:
-        session_id = "default"
-    return session_id[:100]
+        return session_id_required_response()
+
+    g.nele_session_id = session_id
+    g.nele_session_lock = acquire_session_lock(
+        session_id
+    )
+
+    refresh_conversation_state(
+        session_id
+    )
+
+    return None
+
+
+@app.teardown_request
+def release_learner_request_lock(_error=None):
+    connection = getattr(
+        g,
+        "nele_session_lock",
+        None,
+    )
+    session_id = getattr(
+        g,
+        "nele_session_id",
+        None,
+    )
+
+    if connection is not None and session_id:
+        release_session_lock(
+            connection,
+            session_id,
+        )
 
 
 def create_nele_reply(
@@ -288,15 +412,10 @@ def create_nele_reply(
 
 def create_welcome_reply(session_id, preserve_active_task=True):
     try:
-        state = get_conversation_state(session_id)
-        ensure_upgrade_state(state)
-
-        if not preserve_active_task:
-            prepare_new_conversation(state)
-
-        start_upgrade_session(state)
-        save_conversation_state(session_id)
-        return generate_welcome_reply(session_id)
+        return start_conversation_session(
+            session_id,
+            new_conversation=not preserve_active_task,
+        )
     except Exception as error:
         print(f"Nele welcome error: {error}")
         return "Hallo! Ich bin Nele, deine persönliche Deutschtrainerin."
@@ -311,7 +430,7 @@ def get_chat_request_data():
 
     if "multipart/form-data" in content_type:
         user_message = str(request.form.get("message", "")).strip()
-        session_id = normalize_session_id(request.form.get("session_id", "default"))
+        session_id = getattr(g, "nele_session_id", None)
         audio_file = request.files.get("audio")
         input_mode = str(
             request.form.get("input_mode")
@@ -321,11 +440,7 @@ def get_chat_request_data():
 
     data = request.get_json(silent=True) or {}
     user_message = str(data.get("message", "")).strip()
-    session_id = normalize_session_id(
-        data.get("session_id")
-        or data.get("student_id")
-        or "default"
-    )
+    session_id = getattr(g, "nele_session_id", None)
     input_mode = str(data.get("input_mode") or "keyboard").strip().lower()
     return user_message, session_id, None, input_mode
 
@@ -445,7 +560,7 @@ def welcome():
         return jsonify({"ok": True})
 
     data = request.get_json(silent=True) or {}
-    session_id = normalize_session_id(data.get("session_id") or data.get("student_id") or "default")
+    session_id = getattr(g, "nele_session_id", None)
 
     new_conversation = bool(
         data.get("new_conversation", False)
@@ -471,7 +586,7 @@ def reset():
         return destructive_reset_blocked_response()
 
     data = request.get_json(silent=True) or {}
-    session_id = normalize_session_id(data.get("session_id") or data.get("student_id") or "default")
+    session_id = getattr(g, "nele_session_id", None)
 
     try:
         reset_success = reset_conversation_state(session_id)
@@ -589,11 +704,7 @@ def api_students():
         return jsonify({"ok": True})
 
     data = request.get_json(silent=True) or {}
-    session_id = normalize_session_id(
-        data.get("student_id")
-        or data.get("session_id")
-        or "default"
-    )
+    session_id = getattr(g, "nele_session_id", None)
     state = get_conversation_state(session_id)
     ensure_upgrade_state(state)
 
@@ -619,7 +730,7 @@ def api_reset_student(student_id):
     if not destructive_reset_is_authorized():
         return destructive_reset_blocked_response()
 
-    session_id = normalize_session_id(student_id)
+    session_id = getattr(g, "nele_session_id", None)
     try:
         ok = reset_conversation_state(session_id)
     except Exception as error:
