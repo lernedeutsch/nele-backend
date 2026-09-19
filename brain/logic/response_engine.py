@@ -1389,6 +1389,25 @@ def get_last_lesson_recap_data(
         return None
 
 
+    plan_type = str(
+        plan.get(
+            "type",
+            ""
+        )
+        or
+        ""
+    ).strip().lower()
+
+
+    # Przy przejściu do nowej lekcji nie
+    # mieszamy numeru NOWEJ lekcji z nazwą
+    # ostatniej sekcji starej lekcji.
+    # Wystarczy prosty komunikat z planu:
+    # "Lektion 1 ist fertig. Jetzt kommt Lektion 2."
+    if plan_type == "new_lesson":
+        return None
+
+
     level = str(
         plan.get(
             "level",
