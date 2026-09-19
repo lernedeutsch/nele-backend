@@ -36,15 +36,24 @@ def ensure_persistent_memory():
 
     try:
 
-        initialize_persistent_memory()
+        initialized = (
+            initialize_persistent_memory()
+        )
 
-        persistent_memory_initialized = True
+        if initialized:
+            persistent_memory_initialized = True
+
+        return bool(
+            initialized
+        )
 
     except Exception as error:
 
         print(
             f"Persistent memory initialization error: {error}"
         )
+
+        return False
 
 
 # ==========================================

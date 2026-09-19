@@ -1,3 +1,9 @@
+"""LEGACY local CLI orchestration.
+
+Not used by the production Flask application. Production lives in server/app.py.
+Kept only for historical/local experiments.
+"""
+
 from brain.personality import Personality
 from brain.rules import Rules
 from brain.brain import Brain
@@ -5,6 +11,7 @@ from brain.teacher import Teacher
 from memory.student_memory import StudentMemory
 from speech.speaker import Speaker
 from speech.listener import Listener
+
 
 def start():
     print("=" * 50)

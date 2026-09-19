@@ -1,3 +1,9 @@
+"""LEGACY optional local Ollama adapter.
+
+Not used by the production Flask conversation flow. It is kept only for local
+experiments and must not be treated as the production Nele brain.
+"""
+
 import os
 import requests
 

@@ -1,3 +1,10 @@
+"""LEGACY local microphone listener.
+
+This module uses the external speech_recognition/Google path and is not used by
+production Flask. Production voice input uses browser SpeechRecognition or
+MediaRecorder + faster-whisper.
+"""
+
 import speech_recognition as sr
 
 

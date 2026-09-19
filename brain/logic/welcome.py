@@ -24,6 +24,10 @@ from brain.memory.daily_learning import (
     start_daily_session
 )
 
+from brain.logic.session_state import (
+    prepare_page_reopen
+)
+
 
 # ==========================================
 # ZAPIS I ZWROT ODPOWIEDZI
@@ -67,126 +71,19 @@ def save_and_return(
 def reset_session_start_flow(
     state
 ):
+    """Compatibility wrapper. Session state now has one central owner."""
 
-    if state is None:
-        return
+    prepare_page_reopen(
+        state
+    )
 
-    state[
-        "session_start_flow"
-    ] = {
-
-        "active":
-            True,
-
-        "vocabulary_done":
-            False,
-
-        "errors_done":
-            False,
-
-        "last_lesson_recap_done":
-            False,
-
-        "lesson_review_done":
-            False
-    }
-
-
-# ==========================================
-# WYCZYSZCZENIE STAREJ AKTYWNEJ SESJI
-# ==========================================
 
 def clear_old_active_exercises(
     state
 ):
+    """Prepare a normal page reopen without deleting learning memory."""
 
-    # ======================================
-    # PERSONALIZOWANE ĆWICZENIE
-    # ======================================
-
-    state[
-        "personalization_exercise"
-    ] = None
-
-
-    # ======================================
-    # AKTYWNE ĆWICZENIE SŁOWNICTWA
-    # ======================================
-
-    state[
-        "vocabulary_practice_active"
-    ] = False
-
-    state[
-        "vocabulary_practice_word"
-    ] = None
-
-    state[
-        "vocabulary_practice_type"
-    ] = None
-
-
-    # ======================================
-    # AKTYWNY TRENING BŁĘDU
-    #
-    # Po ponownym otwarciu strony Nele
-    # najpierw pyta "Wie geht es dir?".
-    # Stary krok Fehlertraining nie może
-    # przechwycić tej odpowiedzi. Sam błąd
-    # zostaje w Error Memory i Session Coach
-    # uruchomi go ponownie po powitaniu.
-    # ======================================
-
-    state[
-        "error_practice_active"
-    ] = False
-
-    state[
-        "error_practice_type"
-    ] = None
-
-    state[
-        "error_practice_step"
-    ] = 0
-
-    state[
-        "error_practice_attempts"
-    ] = 0
-
-    state[
-        "error_practice_used_hint"
-    ] = False
-
-    state[
-        "error_practice_example_wrong"
-    ] = None
-
-    state[
-        "error_practice_example_correct"
-    ] = None
-
-
-    # ======================================
-    # AKTYWNE PROWADZENIE LEKCJI
-    #
-    # Zachowujemy dokładny punkt przerwania:
-    # sekcję i krok. Dzięki temu po ponownym
-    # otwarciu Nele wróci np. do "Guten Tag",
-    # a nie do początku "Guten Morgen".
-    # ======================================
-
-
-    # ======================================
-    # NOWY START SESJI
-    #
-    # Resetujemy tylko informację o tym,
-    # które etapy początku NOWEJ sesji
-    # zostały już wykonane.
-    #
-    # Nie kasujemy historii nauki.
-    # ======================================
-
-    reset_session_start_flow(
+    prepare_page_reopen(
         state
     )
 

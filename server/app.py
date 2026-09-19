@@ -1,4 +1,5 @@
 import os
+import secrets
 import tempfile
 
 from io import BytesIO
@@ -15,9 +16,9 @@ from brain.logic.memory import (
     save_conversation_state,
     reset_conversation_state,
 )
-from brain.logic.vocabulary_modules.practice import finish_vocabulary_practice
 from brain.logic.pronunciation_audio import transcribe_audio
 from brain.logic.conversation_output import remember_nele_output
+from brain.logic.session_state import prepare_new_conversation
 
 from brain.nele3_upgrade import UPGRADE_VERSION
 from brain.nele3_upgrade.api import nele3_api
@@ -25,7 +26,6 @@ from brain.nele3_upgrade.router import handle_upgrade_message
 from brain.nele3_upgrade.state import (
     ensure_upgrade_state,
     record_event,
-    set_active_task,
     start_upgrade_session,
 )
 
@@ -48,12 +48,97 @@ avatar_state = {
 # CORS
 # =========================================================
 
+DEFAULT_CORS_ORIGINS = (
+    "https://lernedeutsch.github.io",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+)
+
+
+def get_allowed_origins():
+    configured = str(
+        os.environ.get("CORS_ORIGINS", "")
+        or ""
+    ).strip()
+
+    if not configured:
+        return set(DEFAULT_CORS_ORIGINS)
+
+    return {
+        item.strip().rstrip("/")
+        for item in configured.split(",")
+        if item.strip()
+    }
+
+
 @app.after_request
 def after_request(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    origin = str(
+        request.headers.get("Origin", "")
+        or ""
+    ).strip().rstrip("/")
+
+    if origin and origin in get_allowed_origins():
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
+
+    response.headers["Access-Control-Allow-Headers"] = (
+        "Content-Type, X-Nele-Reset-Token"
+    )
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
+
+
+# =========================================================
+# DESTRUCTIVE RESET PROTECTION
+# =========================================================
+
+def destructive_reset_is_authorized():
+    enabled = str(
+        os.environ.get(
+            "NELE_ENABLE_DESTRUCTIVE_RESET",
+            "false",
+        )
+    ).strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+    secret = str(
+        os.environ.get(
+            "NELE_RESET_SECRET",
+            "",
+        )
+        or ""
+    ).strip()
+
+    provided = str(
+        request.headers.get(
+            "X-Nele-Reset-Token",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if not enabled or not secret or not provided:
+        return False
+
+    return secrets.compare_digest(
+        provided,
+        secret,
+    )
+
+
+def destructive_reset_blocked_response():
+    return jsonify({
+        "ok": False,
+        "error": "destructive_reset_disabled",
+        "message": (
+            "Der vollständige Lernreset ist nicht öffentlich verfügbar."
+        ),
+    }), 403
 
 
 # =========================================================
@@ -207,10 +292,9 @@ def create_welcome_reply(session_id, preserve_active_task=True):
         ensure_upgrade_state(state)
 
         if not preserve_active_task:
-            set_active_task(state, None)
+            prepare_new_conversation(state)
 
         start_upgrade_session(state)
-        finish_vocabulary_practice(state)
         save_conversation_state(session_id)
         return generate_welcome_reply(session_id)
     except Exception as error:
@@ -383,6 +467,9 @@ def reset():
     if request.method == "OPTIONS":
         return jsonify({"ok": True})
 
+    if not destructive_reset_is_authorized():
+        return destructive_reset_blocked_response()
+
     data = request.get_json(silent=True) or {}
     session_id = normalize_session_id(data.get("session_id") or data.get("student_id") or "default")
 
@@ -528,6 +615,9 @@ def api_students():
 def api_reset_student(student_id):
     if request.method == "OPTIONS":
         return jsonify({"ok": True})
+
+    if not destructive_reset_is_authorized():
+        return destructive_reset_blocked_response()
 
     session_id = normalize_session_id(student_id)
     try:
