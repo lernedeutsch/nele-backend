@@ -1,6 +1,10 @@
 from brain.memory.next_learning_step import get_teacher_learning_plan
 from brain.memory.student_progress import get_current_level
-from brain.nele3_upgrade.state import get_skills, set_last_action
+from brain.nele3_upgrade.state import (
+    get_skills,
+    get_last_completed_activity,
+    set_last_action,
+)
 
 
 UPGRADE_ACTIVITY_ORDER = [
@@ -40,6 +44,13 @@ def _score(data):
 def _weakest_upgrade_skill(state, excluded=None):
     skills = get_skills(state)
     excluded = set(excluded or [])
+
+    # Nie powtarzamy od razu umiejętności, którą uczeń
+    # właśnie poprawnie zakończył. Może wrócić po innym
+    # ukończonym ćwiczeniu.
+    last_completed = get_last_completed_activity(state)
+    if last_completed in UPGRADE_ACTIVITY_ORDER:
+        excluded.add(last_completed)
 
     available = [
         name
@@ -101,6 +112,14 @@ def build_adaptive_recommendation(state, excluded=None):
     """Zbuduj krótką, uzasadnioną propozycję następnego treningu."""
     skills = get_skills(state)
     excluded = list(dict.fromkeys(excluded or []))
+
+    last_completed = get_last_completed_activity(state)
+    if (
+        last_completed in UPGRADE_ACTIVITY_ORDER
+        and last_completed not in excluded
+    ):
+        excluded.append(last_completed)
+
     activity = _weakest_upgrade_skill(state, excluded=excluded)
 
     if not activity:
