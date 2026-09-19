@@ -5,6 +5,7 @@ from brain.nele3_upgrade.activities import (
     _looks_like_prompt_echo,
     resume_active_task,
 )
+from brain.nele3_upgrade.router import handle_upgrade_message
 from brain.nele3_upgrade.content import (
     DIALOGUES,
     LISTENING_TASKS,
@@ -116,6 +117,34 @@ class NeleCoreBehaviorTests(unittest.TestCase):
     def test_empty_a1_lesson_2_is_not_treated_as_ready(self):
         available = get_available_lesson_numbers("A1")
         self.assertNotIn(2, available)
+
+    def test_wellbeing_reply_is_not_consumed_by_interrupted_addon_task(self):
+        state = {
+            "last_question": "wellbeing",
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "writing",
+                    "prompt": "Schreib zwei kurze Sätze.",
+                    "keywords": ["komme", "später"],
+                    "required": ["ich"],
+                    "min_words": 6,
+                    "min_sentences": 2,
+                }
+            }
+        }
+
+        handled, answer, meta = handle_upgrade_message(
+            "Gut",
+            state,
+        )
+
+        self.assertFalse(handled)
+        self.assertIsNone(answer)
+        self.assertEqual(meta, {})
+        self.assertEqual(
+            state["nele3_upgrade"]["active_task"]["type"],
+            "writing",
+        )
 
 
 if __name__ == "__main__":
