@@ -84,6 +84,153 @@ def clean_normalized_answer(
 # FEHLER AUS LEKTIONEN MERKEN
 # ==========================================
 
+def get_lesson_mistake_context(
+    state
+):
+
+    if state is None:
+        return ""
+
+
+    section = str(
+        state.get(
+            "lesson_teaching_section"
+        )
+        or
+        ""
+    ).strip()
+
+
+    try:
+
+        step = int(
+            state.get(
+                "lesson_teaching_step",
+                1
+            )
+            or
+            1
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        step = 1
+
+
+    normalized_section = normalize(
+        section
+    )
+
+
+    contexts = {
+        normalize(
+            "Wir begrüßen uns"
+        ): {
+            1:
+                (
+                    "Stell dir vor, es ist morgens. "
+                    "Was sagst du zur Begrüßung?"
+                ),
+            2:
+                (
+                    "Es ist tagsüber. "
+                    "Was sagst du zur Begrüßung?"
+                ),
+            3:
+                (
+                    "Es ist Abend. "
+                    "Was sagst du zur Begrüßung?"
+                ),
+            4:
+                (
+                    "Du begrüßt jemanden ganz locker. "
+                    "Was sagst du?"
+                ),
+            5:
+                (
+                    "Du verabschiedest dich von einem Freund. "
+                    "Was sagst du?"
+                ),
+            6:
+                (
+                    "Du kommst morgens zur Arbeit. "
+                    "Jemand sagt: „Guten Morgen!“. "
+                    "Was antwortest du?"
+                )
+        },
+
+        normalize(
+            "Ich stelle mich vor"
+        ): {
+            1:
+                (
+                    "Wir treffen uns morgens zum ersten Mal. "
+                    "Ich sage: „Guten Morgen!“. "
+                    "Was antwortest du?"
+                ),
+            2:
+                (
+                    "Ich sage: „Ich heiße Nele. Wie heißt du?“. "
+                    "Wie stellst du dich vor?"
+                ),
+            3:
+                (
+                    "Du möchtest mich nach meinem Namen fragen. "
+                    "Wie fragst du informell?"
+                ),
+            4:
+                (
+                    "Du sollst deinen Namen buchstabieren. "
+                    "Wie sagst du ihn Buchstabe für Buchstabe?"
+                ),
+            5:
+                (
+                    "Du bist in einer höflichen Situation im Hotel. "
+                    "Wie fragst du einen Gast nach dem Namen?"
+                )
+        },
+
+        normalize(
+            "Das deutsche Alphabet"
+        ): {
+            1:
+                "Welcher Buchstabe kommt nach A?",
+            2:
+                "Welcher Buchstabe kommt nach M?",
+            3:
+                "Welcher Buchstabe kommt vor Z?",
+            4:
+                "Welche drei Umlaute gibt es im Deutschen?",
+            5:
+                (
+                    "Welches besondere Zeichen gibt es "
+                    "außerdem im Deutschen?"
+                ),
+            6:
+                "Buchstabiere bitte deinen Namen."
+        }
+    }
+
+
+    section_contexts = contexts.get(
+        normalized_section,
+        {}
+    )
+
+
+    return str(
+        section_contexts.get(
+            step,
+            ""
+        )
+        or
+        ""
+    ).strip()
+
+
 def remember_lesson_mistake(
     state,
     error_type,
@@ -118,7 +265,10 @@ def remember_lesson_mistake(
             state,
             error_type,
             wrong_text,
-            correct_text
+            correct_text,
+            context=get_lesson_mistake_context(
+                state
+            )
         )
 
     except Exception as error:
