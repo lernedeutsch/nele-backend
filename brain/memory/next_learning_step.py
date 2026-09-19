@@ -1520,7 +1520,8 @@ def get_next_new_learning_step(
                     "message":
                         (
                             f"Lektion {current_lesson} ist fertig. "
-                            f"Jetzt kommt Lektion {next_lesson}."
+                            f"Jetzt kommt Lektion {next_lesson}. "
+                            "Bist du bereit?"
                         )
                 }
 
