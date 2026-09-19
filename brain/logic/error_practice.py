@@ -1110,12 +1110,26 @@ def handle_error_practice_step_one(
             "Achte auf die richtige Form."
         )
 
+        context = str(
+            state.get(
+                "error_practice_example_context"
+            )
+            or
+            ""
+        ).strip()
+
+
+        choice_prompt = build_error_choice_prompt(
+            context,
+            wrong_sentence,
+            correct_sentence
+        )
+
+
         return (
             "Noch nicht. "
             f"{hint} "
-            "Welche Antwort ist richtig?\n\n"
-            f"1. {wrong_sentence}\n"
-            f"2. {correct_sentence}"
+            f"{choice_prompt}"
         )
 
 
@@ -1127,11 +1141,25 @@ def handle_error_practice_step_one(
     # pytanie albo niezrozumiała odpowiedź.
     # ======================================
 
+    context = str(
+        state.get(
+            "error_practice_example_context"
+        )
+        or
+        ""
+    ).strip()
+
+
+    choice_prompt = build_error_choice_prompt(
+        context,
+        wrong_sentence,
+        correct_sentence
+    )
+
+
     return (
         "Antworte bitte mit 1 oder 2. "
-        "Welche Antwort ist richtig?\n\n"
-        f"1. {wrong_sentence}\n"
-        f"2. {correct_sentence}"
+        f"{choice_prompt}"
     )
 
 
