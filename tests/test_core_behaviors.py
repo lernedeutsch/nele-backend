@@ -34,6 +34,16 @@ from brain.logic.lesson_teaching import (
 )
 from brain.logic.error_practice import (
     is_relevant_error_example,
+    start_error_practice,
+    handle_error_practice,
+)
+from brain.memory.error_memory import (
+    remember_error,
+    get_error_item,
+)
+from brain.memory.error_review import (
+    refresh_error_reviews,
+    get_due_error_reviews,
 )
 
 
@@ -250,6 +260,103 @@ class NeleCoreBehaviorTests(unittest.TestCase):
                     "needs_practice": True,
                 }
             )
+        )
+
+
+    def test_completed_greeting_error_does_not_repeat_on_reopen(self):
+        state = {}
+
+        remember_error(
+            state,
+            "vocabulary",
+            "ich will spielen",
+            "Guten Tag",
+            context=(
+                "Es ist tagsüber. "
+                "Was sagst du zur Begrüßung?"
+            ),
+        )
+
+        remember_error(
+            state,
+            "vocabulary",
+            "Guten Morgen",
+            "Guten Abend",
+            context=(
+                "Es ist Abend. "
+                "Was sagst du zur Begrüßung?"
+            ),
+        )
+
+        first = start_error_practice(
+            state,
+            "vocabulary",
+        )
+
+        self.assertIsInstance(first, str)
+        self.assertIn("Guten Abend", first)
+        self.assertNotIn("ich will spielen", first)
+
+        step_one = handle_error_practice(
+            "2",
+            state,
+        )
+        self.assertIn(
+            "Sag die richtige Antwort",
+            step_one,
+        )
+
+        finished = handle_error_practice(
+            "Guten Abend",
+            state,
+        )
+        self.assertIn(
+            "Diesen Fehler hast du jetzt geübt",
+            finished,
+        )
+
+        item = get_error_item(
+            "vocabulary",
+            state,
+        )
+
+        self.assertFalse(
+            item.get(
+                "needs_practice",
+                True,
+            )
+        )
+
+        bad_example = next(
+            example
+            for example in item.get("examples", [])
+            if example.get("wrong") == "ich will spielen"
+        )
+        self.assertTrue(
+            bad_example.get(
+                "ignored",
+                False,
+            )
+        )
+
+        refresh_error_reviews(
+            state,
+        )
+
+        self.assertNotIn(
+            "vocabulary",
+            get_due_error_reviews(
+                state,
+            ),
+        )
+
+        reopened = start_error_practice(
+            state,
+            "vocabulary",
+        )
+
+        self.assertIsNone(
+            reopened
         )
 
     def test_teacher_brain_does_not_repeat_just_completed_skill(self):
