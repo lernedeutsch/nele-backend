@@ -129,24 +129,11 @@ def clear_old_active_exercises(
     # ======================================
     # AKTYWNE PROWADZENIE LEKCJI
     #
-    # Przy nowym otwarciu strony
-    # nie kontynuujemy automatycznie
-    # niedokończonego pytania z lekcji.
-    #
-    # Nie usuwamy postępu lekcji.
+    # Zachowujemy dokładny punkt przerwania:
+    # sekcję i krok. Dzięki temu po ponownym
+    # otwarciu Nele wróci np. do "Guten Tag",
+    # a nie do początku "Guten Morgen".
     # ======================================
-
-    state[
-        "lesson_teaching_active"
-    ] = False
-
-    state[
-        "lesson_teaching_section"
-    ] = None
-
-    state[
-        "lesson_teaching_step"
-    ] = 0
 
 
     # ======================================
