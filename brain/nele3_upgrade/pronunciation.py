@@ -38,13 +38,15 @@ def pronunciation_score(target, transcript):
 
 
 def pronunciation_feedback(score, target):
+    # Wir bewerten hier den erkannten Text,
+    # nicht Klang, Akzent oder einzelne Laute.
     if score >= 92:
-        return f"Sehr gut. „{target}“ klingt sehr klar."
+        return f"Sehr gut. Ich habe „{target}“ richtig erkannt."
     if score >= 80:
-        return f"Gut gemacht. „{target}“ war gut verständlich."
+        return f"Gut. Ich habe „{target}“ erkannt."
     if score >= 65:
-        return f"Fast. Sag „{target}“ bitte noch einmal langsam und deutlich."
-    return f"Wir probieren es noch einmal. Hör auf jedes Wort: „{target}“."
+        return f"Fast. Ich habe „{target}“ nur teilweise erkannt. Sag es bitte noch einmal langsam."
+    return f"Noch einmal. Sag „{target}“ bitte langsam und deutlich."
 
 
 def evaluate_pronunciation(state, target, transcript):
