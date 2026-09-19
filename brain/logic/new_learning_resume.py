@@ -14,7 +14,11 @@ from brain.memory.lesson_progress import (
 )
 
 from brain.memory.student_progress import (
-    remember_learning_topic
+    remember_learning_topic,
+    get_current_level,
+    get_current_lesson,
+    set_current_level,
+    set_current_lesson
 )
 
 
@@ -260,6 +264,30 @@ def start_new_learning(
 
     if not section:
         return None
+
+
+    # ======================================
+    # AKTUALNY POZIOM / LEKCJA
+    #
+    # Przy przejściu np. z Lektion 1
+    # do Lektion 2 aktualizujemy Student
+    # Progress zanim uruchomimy silnik lekcji.
+    # ======================================
+
+    if level:
+
+        set_current_level(
+            state,
+            level
+        )
+
+
+    if lesson:
+
+        set_current_lesson(
+            state,
+            lesson
+        )
 
 
     # ======================================
