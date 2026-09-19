@@ -6,6 +6,8 @@ from brain.nele3_upgrade.activities import (
     resume_active_task,
 )
 from brain.nele3_upgrade.router import handle_upgrade_message
+from brain.nele3_upgrade.teacher_brain import build_adaptive_recommendation
+from brain.nele3_upgrade.state import mark_activity_completed, update_skill
 from brain.nele3_upgrade.content import (
     DIALOGUES,
     LISTENING_TASKS,
@@ -143,6 +145,26 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(meta, {})
         self.assertEqual(
             state["nele3_upgrade"]["active_task"]["type"],
+            "writing",
+        )
+
+    def test_teacher_brain_does_not_repeat_just_completed_skill(self):
+        state = {}
+
+        update_skill(state, "writing", 40)
+        update_skill(state, "writing", 100)
+        mark_activity_completed(
+            state,
+            "writing",
+            detail="Verspätung melden",
+            score=100,
+        )
+
+        recommendation = build_adaptive_recommendation(state)
+
+        self.assertIsInstance(recommendation, dict)
+        self.assertNotEqual(
+            recommendation.get("activity"),
             "writing",
         )
 
