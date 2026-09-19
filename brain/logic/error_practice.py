@@ -563,9 +563,10 @@ def get_next_pending_error_example(
 
     if not candidates:
 
-        # Jeżeli po oczyszczeniu nie ma żadnego
-        # realnego przykładu oczekującego, kategoria
-        # również nie może pozostać aktywna.
+        # Obsługa starszej pamięci:
+        # jeżeli kategoria nadal mówi "wrong" i nie ma
+        # jeszcze daty Adaptive Review, możemy aktywować
+        # jeden sensowny nieopanowany przykład.
         error_item = get_error_item(
             error_type,
             state
@@ -576,6 +577,82 @@ def get_next_pending_error_example(
             dict
         ):
 
+            legacy_immediate_review = (
+                str(
+                    error_item.get(
+                        "last_result"
+                    )
+                    or
+                    ""
+                ).strip().lower()
+                == "wrong"
+                and
+                not error_item.get(
+                    "next_review_at"
+                )
+            )
+
+            if legacy_immediate_review:
+
+                legacy_candidates = [
+                    example
+                    for example in examples
+                    if (
+                        isinstance(
+                            example,
+                            dict
+                        )
+                        and
+                        not example.get(
+                            "mastered",
+                            False
+                        )
+                        and
+                        not example.get(
+                            "ignored",
+                            False
+                        )
+                    )
+                ]
+
+                if legacy_candidates:
+
+                    legacy_candidates.sort(
+                        key=lambda example: (
+                            int(
+                                example.get(
+                                    "count",
+                                    0
+                                )
+                                or
+                                0
+                            ),
+                            -int(
+                                example.get(
+                                    "practice_count",
+                                    0
+                                )
+                                or
+                                0
+                            )
+                        ),
+                        reverse=True
+                    )
+
+                    legacy_candidates[0][
+                        "needs_practice"
+                    ] = True
+
+                    error_item[
+                        "needs_practice"
+                    ] = True
+
+                    return legacy_candidates[0]
+
+
+            # Po poprawnym ćwiczeniu i przed przyszłym
+            # terminem nie wolno samoczynnie wybierać
+            # innego "jakiegokolwiek" przykładu.
             error_item[
                 "needs_practice"
             ] = False
@@ -945,29 +1022,6 @@ def start_error_practice(
         error_type
     )
 
-    if not isinstance(
-        example,
-        dict
-    ):
-
-        example = get_next_error_example(
-            state,
-            error_type
-        )
-
-        if (
-            isinstance(
-                example,
-                dict
-            )
-            and
-            not is_relevant_error_example(
-                example
-            )
-        ):
-
-            example = None
-
 
     if isinstance(
         example,
@@ -984,13 +1038,8 @@ def start_error_practice(
 
     else:
 
-        wrong_sentence = summary.get(
-            "last_wrong"
-        )
-
-        correct_sentence = summary.get(
-            "last_correct"
-        )
+        wrong_sentence = None
+        correct_sentence = None
 
 
     context = get_error_example_context(
@@ -1002,10 +1051,11 @@ def start_error_practice(
 
     if not wrong_sentence or not correct_sentence:
 
-        return (
-            "Dazu habe ich noch kein "
-            "vollständiges Beispiel gespeichert."
+        finish_error_practice(
+            state
         )
+
+        return None
 
 
     # ======================================
