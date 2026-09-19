@@ -1021,10 +1021,7 @@ def start_error_practice(
     )
 
 
-    return (
-        "Lass uns kurz etwas von letztem Mal wiederholen. "
-        f"{choice_prompt}"
-    )
+    return choice_prompt
 
 
 # ==========================================
