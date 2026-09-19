@@ -300,7 +300,19 @@ class NeleArchitectureSecurityTests(unittest.TestCase):
             memory_module.persistent_memory_initialized = original
 
     def test_gunicorn_defaults_to_one_worker(self):
-        import gunicorn_conf
+        import importlib.util
+        from pathlib import Path
+
+        config_path = (
+            Path(__file__).resolve().parents[1]
+            / "gunicorn.conf.py"
+        )
+        spec = importlib.util.spec_from_file_location(
+            "nele_gunicorn_conf",
+            config_path,
+        )
+        gunicorn_conf = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gunicorn_conf)
 
         self.assertEqual(gunicorn_conf.workers, 1)
         self.assertEqual(gunicorn_conf.worker_class, "gthread")
