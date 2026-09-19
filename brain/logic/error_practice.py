@@ -573,7 +573,7 @@ def start_error_practice(
 
     return (
         f"Dann üben wir kurz {label}. "
-        f"Welcher Satz ist richtig?\n\n"
+        f"Welche Antwort ist richtig?\n\n"
         f"1. {wrong_sentence}\n"
         f"2. {correct_sentence}"
     )
@@ -710,7 +710,7 @@ def handle_error_practice_step_one(
         return (
             "Richtig! Sehr gut. "
             f"„{correct_sentence}“ ist korrekt. "
-            "Sag den richtigen Satz "
+            "Sag die richtige Antwort "
             "jetzt bitte selbst."
         )
 
@@ -763,7 +763,7 @@ def handle_error_practice_step_one(
         return (
             "Noch nicht. "
             f"{hint} "
-            "Welcher Satz ist richtig?\n\n"
+            "Welche Antwort ist richtig?\n\n"
             f"1. {wrong_sentence}\n"
             f"2. {correct_sentence}"
         )
@@ -779,7 +779,7 @@ def handle_error_practice_step_one(
 
     return (
         "Antworte bitte mit 1 oder 2. "
-        "Welcher Satz ist richtig?\n\n"
+        "Welche Antwort ist richtig?\n\n"
         f"1. {wrong_sentence}\n"
         f"2. {correct_sentence}"
     )
@@ -1031,7 +1031,7 @@ def handle_error_practice_step_two(
 
         return (
             "Sehr gut! Genau richtig. "
-            f"„{correct_sentence}“ "
+            f"„{correct_sentence}“. "
             "Diesen Fehler hast du jetzt geübt."
         )
 
