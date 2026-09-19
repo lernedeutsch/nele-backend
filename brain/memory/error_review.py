@@ -315,7 +315,60 @@ def is_error_due_for_review(
         False
     ):
 
-        return True
+        examples = error_item.get(
+            "examples",
+            []
+        )
+
+        if isinstance(
+            examples,
+            list
+        ) and examples:
+
+            active_pending_examples = [
+                example
+                for example in examples
+                if (
+                    isinstance(
+                        example,
+                        dict
+                    )
+                    and
+                    example.get(
+                        "needs_practice",
+                        False
+                    )
+                    and
+                    not example.get(
+                        "mastered",
+                        False
+                    )
+                    and
+                    not example.get(
+                        "ignored",
+                        False
+                    )
+                )
+            ]
+
+            if not active_pending_examples:
+
+                # Stara flaga kategorii nie może sama
+                # wymuszać powtórki, jeśli wszystkie
+                # konkretne oczekujące przykłady zostały
+                # rozwiązane albo świadomie zignorowane.
+                error_item[
+                    "needs_practice"
+                ] = False
+
+            else:
+
+                return True
+
+        else:
+
+            # Kompatybilność ze starą pamięcią bez examples[].
+            return True
 
 
     # ======================================
