@@ -1366,6 +1366,34 @@ def get_last_lesson_recap_data(
         return None
 
 
+    # Jeżeli lekcja jest już aktywna, dokładny
+    # prompt wznowienia sam mówi uczniowi, co ma
+    # zrobić. Nie dokładamy wtedy technicznego
+    # "Zur kurzen Erinnerung...", bo robi się
+    # powtórzenie i brzmi to mniej naturalnie.
+    if is_lesson_teaching_active(
+        state
+    ):
+        return None
+
+
+    # Po ukończeniu jednej sekcji Nele może mieć
+    # już zapisaną kolejną sekcję do rozpoczęcia.
+    # Jej intro jest wystarczającym kontekstem;
+    # nie przypominamy wtedy starej sekcji.
+    pending_new_learning = state.get(
+        "pending_new_learning"
+    )
+
+    if isinstance(
+        pending_new_learning,
+        dict
+    ) and pending_new_learning.get(
+        "section"
+    ):
+        return None
+
+
     try:
 
         plan = get_next_new_learning_step(
@@ -1474,20 +1502,15 @@ def get_last_lesson_recap_data(
     ):
 
         message = (
-            "Zur kurzen Erinnerung: "
-            f"Du bist bei {level}, "
-            f"Lektion {lesson}. "
-            "Zuletzt waren wir bei "
-            f"„{recap_section}“."
+            f"Zuletzt: „{recap_section}“ "
+            f"in Lektion {lesson}."
         )
 
 
     elif recap_section:
 
         message = (
-            "Zur kurzen Erinnerung: "
-            "Zuletzt waren wir bei "
-            f"„{recap_section}“."
+            f"Zuletzt: „{recap_section}“."
         )
 
 
@@ -1498,9 +1521,7 @@ def get_last_lesson_recap_data(
     ):
 
         message = (
-            "Zur kurzen Erinnerung: "
-            f"Du bist bei {level}, "
-            f"Lektion {lesson}."
+            f"Wir sind bei Lektion {lesson}."
         )
 
 
