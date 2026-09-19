@@ -84,6 +84,74 @@ class NeleArchitectureSecurityTests(unittest.TestCase):
             3,
         )
 
+
+    def test_welcome_new_conversation_clears_legacy_and_nele3_active_state(self):
+        state = {
+            "onboarding_completed": True,
+            "user_facts": {"name": "Moni"},
+            "student_progress": {
+                "current_level": "A1",
+                "completed_exercises": 7,
+            },
+            "lesson_progress": {
+                "lessons": {
+                    "A1-1": {
+                        "current_section": "Das deutsche Alphabet",
+                    }
+                }
+            },
+            "lesson_teaching_active": True,
+            "lesson_teaching_section": "Das deutsche Alphabet",
+            "lesson_teaching_step": 4,
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "listening",
+                    "prompt": "Um wie viel Uhr fährt der Zug?",
+                }
+            },
+        }
+
+        client = app.test_client()
+
+        with patch(
+            "server.app.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "server.app.save_conversation_state"
+        ), patch(
+            "brain.logic.welcome.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "brain.logic.welcome.save_conversation_state"
+        ):
+            response = client.post(
+                "/welcome",
+                json={
+                    "session_id": "stable-moni-id",
+                    "new_conversation": True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.get_json()["session_id"],
+            "stable-moni-id",
+        )
+        self.assertIsNone(get_active_task(state))
+        self.assertFalse(state["lesson_teaching_active"])
+        self.assertIsNone(state["lesson_teaching_section"])
+        self.assertEqual(state["lesson_teaching_step"], 0)
+
+        # Durable learning memory is still present.
+        self.assertEqual(
+            state["student_progress"]["completed_exercises"],
+            7,
+        )
+        self.assertEqual(
+            state["lesson_progress"]["lessons"]["A1-1"]["current_section"],
+            "Das deutsche Alphabet",
+        )
+
     def test_cors_allows_canonical_frontend_and_rejects_unknown_origin(self):
         client = app.test_client()
 
