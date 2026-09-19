@@ -1343,11 +1343,11 @@ def create_daily_progress_message(
         return ""
 
 
-    messages.append(
-        "Wir machen jetzt weiter."
-    )
-
-
+    # Der eigentliche nächste Lernschritt
+    # folgt direkt danach (z.B.
+    # "Wir machen genau dort weiter ...").
+    # Deshalb hier kein zweites allgemeines
+    # "Wir machen jetzt weiter." anhängen.
     return " ".join(
         messages
     )
