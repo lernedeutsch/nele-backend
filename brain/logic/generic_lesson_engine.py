@@ -935,11 +935,24 @@ def remember_generic_mistake(
 
     try:
 
+        context_text = render_text(
+            step.get(
+                "context"
+            )
+            or
+            step.get(
+                "prompt"
+            ),
+            state
+        )
+
+
         remember_error(
             state,
             error_type,
             wrong_answer,
-            correct_answer
+            correct_answer,
+            context=context_text
         )
 
     except Exception as error:
