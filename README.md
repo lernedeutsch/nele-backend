@@ -80,3 +80,38 @@ Poniższe moduły są zachowane wyłącznie historycznie/lokalnie i nie należą
 Nie są usuwane, ale nie powinny być używane do uruchamiania produkcyjnej Nele.
 
 Repo `nele-backend-3` pozostaje eksperymentalne i nie jest backendem aktywnego frontendu.
+
+
+## Spójność produkcyjnej sesji
+
+Publiczne endpointy ucznia wymagają prawidłowego `session_id`.
+Wartość `default` jest zarezerwowana i nie jest akceptowana jako publiczna
+tożsamość ucznia.
+
+Kompatybilnościowy `POST /api/session/start` nie posiada już własnego
+mechanizmu sesji. Korzysta z tego samego `start_conversation_session()`,
+co produkcyjny endpoint `/welcome`.
+
+Dla każdego żądania zmieniającego lub odczytującego stan ucznia backend:
+1. uzyskuje blokadę advisory PostgreSQL dla tego ucznia,
+2. odświeża stan z PostgreSQL przed obsługą,
+3. wykonuje logikę na aktualnym stanie,
+4. zwalnia blokadę po zakończeniu żądania.
+
+Plik `gunicorn.conf.py` ustawia domyślnie:
+- 1 worker,
+- `gthread`,
+- 4 wątki.
+
+To ogranicza ryzyko wielu niezależnych cache RAM. Blokada PostgreSQL i
+odświeżanie stanu pozostają dodatkowym zabezpieczeniem, jeśli liczba workerów
+zostanie kiedyś świadomie zmieniona w konfiguracji hostingu.
+
+## E2E
+
+CI uruchamia test:
+prawdziwy Chromium → frontend `deutschsprechen` → lokalny Gunicorn/Flask →
+prawdziwy PostgreSQL → ponowne otwarcie strony.
+
+Test potwierdza utworzenie `nele_session_id`, zapis onboardingu do PostgreSQL
+oraz zachowanie tego samego ucznia po odświeżeniu strony.
