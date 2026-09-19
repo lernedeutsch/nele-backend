@@ -210,6 +210,22 @@ WELLBEING_CORRECTIONS = {
             "spelling"
     },
 
+
+    "git": {
+        "corrected_message":
+            "Gut.",
+
+        "feedback":
+            "Fast! Richtig schreibt man: "
+            "„gut“.",
+
+        "meaning":
+            "good",
+
+        "error_type":
+            "spelling"
+    },
+
     "sehr gutt": {
         "corrected_message":
             "Sehr gut.",
