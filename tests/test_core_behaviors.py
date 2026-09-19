@@ -234,12 +234,12 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         }
 
         with patch(
-            "server.app.get_conversation_state",
+            "brain.logic.session_service.get_conversation_state",
             return_value=state,
         ), patch(
-            "server.app.save_conversation_state"
+            "brain.logic.session_service.save_conversation_state"
         ), patch(
-            "server.app.generate_welcome_reply",
+            "brain.logic.session_service.generate_welcome_reply",
             return_value="Hallo Moni!",
         ):
             from server.app import create_welcome_reply
