@@ -170,6 +170,7 @@ def create_nele_reply(
             state,
             session_id=session_id,
             transcript=transcript,
+            input_mode=mode,
         )
 
         if handled:
