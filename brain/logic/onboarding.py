@@ -501,6 +501,66 @@ def extract_hobby_sentence(
 
 
 # ==========================================
+# POZIOM CEFR – TAKŻE TYPOWE WARIANTY ASR
+# ==========================================
+
+def extract_learning_level(
+    text
+):
+
+    normalized = normalize_answer(
+        text
+    )
+
+    if not normalized:
+        return ""
+
+
+    # Zapis standardowy: A1, B1, B2...
+    direct = re.search(
+        r"\b(a1|a2|b1|b2|c1|c2)\b",
+        normalized,
+        flags=re.IGNORECASE
+    )
+
+    if direct:
+
+        return (
+            direct
+            .group(1)
+            .upper()
+        )
+
+
+    # Typowe wyniki rozpoznawania mowy:
+    # "B eins" -> "b eins"
+    # "B1" -> "bei eins"
+    # podobnie dla A/C i 1/2.
+    spoken_patterns = [
+        (r"\b(?:a|ah)\s*eins\b", "A1"),
+        (r"\b(?:a|ah)\s*zwei\b", "A2"),
+        (r"\b(?:b|be|bei)\s*eins\b", "B1"),
+        (r"\b(?:b|be|bei)\s*zwei\b", "B2"),
+        (r"\b(?:c|ce|cee|ze)\s*eins\b", "C1"),
+        (r"\b(?:c|ce|cee|ze)\s*zwei\b", "C2"),
+    ]
+
+
+    for pattern, level in spoken_patterns:
+
+        if re.search(
+            pattern,
+            normalized,
+            flags=re.IGNORECASE
+        ):
+
+            return level
+
+
+    return ""
+
+
+# ==========================================
 # CEL NAUKI
 # ==========================================
 
@@ -523,6 +583,10 @@ def extract_learning_goal_sentence(
         )
         or
         normalized.startswith(
+            "ich will "
+        )
+        or
+        normalized.startswith(
             "mein ziel ist "
         )
         or
@@ -541,20 +605,12 @@ def extract_learning_goal_sentence(
     # JEŻELI PODANO POZIOM
     # ======================================
 
-    level_match = re.search(
-        r"\b(a1|a2|b1|b2|c1|c2)\b",
-        normalized,
-        flags=re.IGNORECASE
+    level = extract_learning_level(
+        normalized
     )
 
 
-    if level_match:
-
-        level = (
-            level_match
-            .group(1)
-            .upper()
-        )
+    if level:
 
         return (
             f"Deutsch {level}"
@@ -569,6 +625,7 @@ def extract_learning_goal_sentence(
         user_message,
         [
             r"^\s*ich\s+möchte\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*ich\s+will\s+(.+?)\s*[.!?]*\s*$",
             r"^\s*mein\s+ziel\s+ist\s+(.+?)\s*[.!?]*\s*$",
             r"^\s*mein\s+lernziel\s+ist\s+(.+?)\s*[.!?]*\s*$"
         ]
@@ -667,21 +724,8 @@ def get_short_learning_level(
     user_message
 ):
 
-    match = re.search(
-        r"\b(a1|a2|b1|b2|c1|c2)\b",
-        str(
-            user_message or ""
-        ),
-        flags=re.IGNORECASE
-    )
-
-    if not match:
-        return ""
-
-    return (
-        match
-        .group(1)
-        .upper()
+    return extract_learning_level(
+        user_message
     )
 
 
