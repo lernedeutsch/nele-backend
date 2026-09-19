@@ -4,6 +4,7 @@ from unittest.mock import patch
 from brain.nele3_upgrade.activities import (
     _items_for_level,
     _looks_like_prompt_echo,
+    answer_active_task,
     resume_active_task,
 )
 from brain.nele3_upgrade.router import handle_upgrade_message
@@ -108,6 +109,112 @@ class NeleCoreBehaviorTests(unittest.TestCase):
                 prompt,
             )
         )
+
+    def test_writing_corrects_etschuldigung_instead_of_accepting_it(self):
+        item = next(
+            task
+            for task in WRITING_TASKS
+            if task.get("id") == "short_message"
+        )
+
+        state = {
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "writing",
+                    "title": item["title"],
+                    "prompt": item["prompt"],
+                    "keywords": item.get("keywords", []),
+                    "required": item.get("required", []),
+                    "min_words": item.get("min_words", 5),
+                    "min_sentences": item.get("min_sentences", 1),
+                    "spelling_corrections": item.get(
+                        "spelling_corrections",
+                        {},
+                    ),
+                    "model_answer": item.get("model_answer"),
+                }
+            }
+        }
+
+        result = answer_active_task(
+            state,
+            (
+                "etschuldigung, ich komme heute "
+                "zehn Minuten später zur Arbeit."
+            ),
+        )
+
+        self.assertFalse(result["completed"])
+        self.assertIn("Entschuldigung", result["reply"])
+        self.assertTrue(
+            get_active_task(state)
+        )
+
+    def test_writing_accepts_natural_short_message_after_correction(self):
+        item = next(
+            task
+            for task in WRITING_TASKS
+            if task.get("id") == "short_message"
+        )
+
+        state = {
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "writing",
+                    "title": item["title"],
+                    "prompt": item["prompt"],
+                    "keywords": item.get("keywords", []),
+                    "required": item.get("required", []),
+                    "min_words": item.get("min_words", 5),
+                    "min_sentences": item.get("min_sentences", 1),
+                    "spelling_corrections": item.get(
+                        "spelling_corrections",
+                        {},
+                    ),
+                    "model_answer": item.get("model_answer"),
+                }
+            }
+        }
+
+        result = answer_active_task(
+            state,
+            (
+                "Entschuldigung, ich komme heute "
+                "zehn Minuten später zur Arbeit."
+            ),
+        )
+
+        self.assertTrue(result["completed"])
+        self.assertIn(
+            "Das klingt natürlich",
+            result["reply"],
+        )
+        self.assertIsNone(
+            get_active_task(state)
+        )
+
+    def test_short_message_prompt_and_model_no_longer_contradict_each_other(self):
+        item = next(
+            task
+            for task in WRITING_TASKS
+            if task.get("id") == "short_message"
+        )
+
+        self.assertIn(
+            "Schreib eine kurze Nachricht",
+            item["prompt"],
+        )
+        self.assertEqual(
+            item.get("min_sentences"),
+            1,
+        )
+        self.assertEqual(
+            item.get("spelling_corrections", {}).get(
+                "etschuldigung"
+            ),
+            "Entschuldigung",
+        )
+
 
     def test_interrupted_writing_task_can_resume(self):
         state = {

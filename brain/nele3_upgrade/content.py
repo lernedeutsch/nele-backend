@@ -75,12 +75,15 @@ WRITING_TASKS = [
         "id": "short_message",
         "title": "Verspätung melden",
         "level": "A1",
-        "prompt": "Schreib zwei kurze Sätze: Du kommst heute zehn Minuten später zur Arbeit.",
+        "prompt": "Schreib eine kurze Nachricht: Du kommst heute zehn Minuten später zur Arbeit.",
         "keywords": ["komme", "später"],
         "required": ["ich"],
         "min_words": 6,
-        "min_sentences": 2,
-        "model_answer": "Guten Morgen. Ich komme heute etwa zehn Minuten später. Entschuldigung.",
+        "min_sentences": 1,
+        "spelling_corrections": {
+            "etschuldigung": "Entschuldigung",
+        },
+        "model_answer": "Guten Morgen, ich komme heute etwa zehn Minuten später zur Arbeit. Entschuldigung.",
     },
     {
         "id": "appointment_email",

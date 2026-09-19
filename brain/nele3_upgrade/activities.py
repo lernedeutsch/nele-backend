@@ -72,6 +72,36 @@ def _sentence_count(text):
     return len(parts)
 
 
+def _find_writing_spelling_corrections(message, corrections):
+    """Return task-specific obvious spelling corrections found in a message."""
+
+    raw = str(message or "")
+    found = []
+
+    if not isinstance(corrections, dict):
+        return found
+
+    for wrong, correct in corrections.items():
+        wrong_text = str(wrong or "").strip()
+        correct_text = str(correct or "").strip()
+
+        if not wrong_text or not correct_text:
+            continue
+
+        pattern = rf"\b{re.escape(wrong_text)}\b"
+
+        if re.search(
+            pattern,
+            raw,
+            flags=re.IGNORECASE,
+        ):
+            found.append(
+                (wrong_text, correct_text)
+            )
+
+    return found
+
+
 def _looks_like_prompt_echo(message, prompt):
     message_n = _normalize(message)
     prompt = str(prompt or "").strip()
@@ -266,6 +296,7 @@ def start_activity(state, activity_type, level=None):
             "required": item.get("required", []),
             "min_words": item.get("min_words", 5),
             "min_sentences": item.get("min_sentences", 1),
+            "spelling_corrections": item.get("spelling_corrections", {}),
             "model_answer": item.get("model_answer"),
         }
         set_active_task(state, task)
@@ -434,17 +465,46 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
             task.get("prompt", "")
         )
 
+        spelling_corrections = (
+            _find_writing_spelling_corrections(
+                message,
+                task.get(
+                    "spelling_corrections",
+                    {}
+                ),
+            )
+        )
+
+        if spelling_corrections:
+            score = min(
+                score,
+                70,
+            )
+
         completed = (
             score >= 55
             and required_ok
             and sentences_ok
             and not copied_task
+            and not spelling_corrections
         )
 
         model = task.get("model_answer")
 
-        if completed:
-            reply = "Gut. Deine Nachricht passt."
+        if spelling_corrections:
+            wrong, correct = (
+                spelling_corrections[0]
+            )
+            reply = (
+                f"Fast richtig. „{wrong}“ schreibt man "
+                f"„{correct}“. "
+                "Schreib die Nachricht bitte noch einmal."
+            )
+        elif completed:
+            reply = (
+                "Sehr gut. Das klingt natürlich "
+                "und passt zur Situation."
+            )
         elif copied_task:
             reply = (
                 "Das ist die Aufgabe. "
