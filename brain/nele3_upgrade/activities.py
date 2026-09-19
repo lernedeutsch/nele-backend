@@ -1,4 +1,5 @@
 import re
+from difflib import SequenceMatcher
 
 from brain.memory.daily_learning import mark_exercise_completed_today
 from brain.memory.student_progress import (
@@ -54,11 +55,60 @@ def _similarity_score(message, expected):
     return int(round(overlap * 100))
 
 
-def _finish(state, activity_type, detail, score):
-    update_skill(state, activity_type if activity_type in {
-        "speaking", "listening", "writing", "vocabulary", "grammar",
-        "pronunciation", "dialogue", "work_german"
-    } else "speaking", score)
+def _sentence_count(text):
+    raw = str(text or "").strip()
+    if not raw:
+        return 0
+
+    # A1: kropka, !, ?, średnik lub nowa linia
+    # mogą rozdzielać dwa krótkie zdania.
+    parts = [
+        part.strip()
+        for part in re.split(r"[.!?;]+|\n+", raw)
+        if part.strip()
+    ]
+
+    return len(parts)
+
+
+def _looks_like_prompt_echo(message, prompt):
+    message_n = _normalize(message)
+    prompt = str(prompt or "").strip()
+
+    if not message_n or not prompt:
+        return False
+
+    # W wielu zadaniach po dwukropku stoi
+    # sama sytuacja, np.:
+    # "Du kommst heute zehn Minuten später ..."
+    scenario = prompt.split(":", 1)[-1]
+    scenario_n = _normalize(scenario)
+
+    if not scenario_n:
+        return False
+
+    if message_n == scenario_n:
+        return True
+
+    # Nie odrzucamy poprawnej odpowiedzi
+    # "Ich komme ..." tylko dlatego, że jest
+    # podobna do sytuacji "Du kommst ...".
+    if "ich" in _tokens(message_n):
+        return False
+
+    return SequenceMatcher(
+        None,
+        message_n,
+        scenario_n
+    ).ratio() >= 0.92
+
+
+def _finish(state, activity_type, detail, score, update_skill_score=True):
+    if update_skill_score:
+        update_skill(state, activity_type if activity_type in {
+            "speaking", "listening", "writing", "vocabulary", "grammar",
+            "pronunciation", "dialogue", "work_german"
+        } else "speaking", score)
     mark_activity_completed(state, activity_type, detail=detail, score=score)
     try:
         remember_completed_exercise(state)
@@ -125,7 +175,9 @@ def start_activity(state, activity_type, level=None):
             "title": item["title"],
             "prompt": item["prompt"],
             "keywords": item.get("keywords", []),
+            "required": item.get("required", []),
             "min_words": item.get("min_words", 5),
+            "min_sentences": item.get("min_sentences", 1),
             "model_answer": item.get("model_answer"),
         }
         set_active_task(state, task)
@@ -208,9 +260,17 @@ def answer_active_task(state, message, transcript=None):
             }
         result = evaluate_pronunciation(state, task.get("target", ""), heard)
         score = result["score"]
-        completed = score >= 65
+        completed = score >= 80
         if completed:
-            _finish(state, "pronunciation", task.get("title", "Aussprache"), score)
+            # evaluate_pronunciation() hat den Skill-Wert
+            # bereits genau einmal aktualisiert.
+            _finish(
+                state,
+                "pronunciation",
+                task.get("title", "Aussprache"),
+                score,
+                update_skill_score=False
+            )
             set_active_task(state, None)
         return {
             "completed": completed,
@@ -236,11 +296,67 @@ def answer_active_task(state, message, transcript=None):
         keyword_score = _keyword_score(message, task.get("keywords", []))
         length_score = min(100, int(100 * words / max(1, int(task.get("min_words", 5)))))
         score = int(round(keyword_score * 0.65 + length_score * 0.35))
-        completed = score >= 55
+
+        required = [
+            _normalize(value)
+            for value in task.get("required", [])
+            if _normalize(value)
+        ]
+        message_n = _normalize(message)
+        required_ok = all(
+            value in message_n
+            for value in required
+        )
+
+        try:
+            min_sentences = max(
+                1,
+                int(task.get("min_sentences", 1) or 1)
+            )
+        except (TypeError, ValueError):
+            min_sentences = 1
+
+        sentences_ok = (
+            _sentence_count(message) >= min_sentences
+        )
+
+        copied_task = _looks_like_prompt_echo(
+            message,
+            task.get("prompt", "")
+        )
+
+        completed = (
+            score >= 55
+            and required_ok
+            and sentences_ok
+            and not copied_task
+        )
+
+        model = task.get("model_answer")
+
         if completed:
-            reply = "Gut geschrieben. Die Nachricht ist verständlich und enthält die wichtigsten Informationen."
+            reply = "Gut. Deine Nachricht passt."
+        elif copied_task:
+            reply = (
+                "Das ist die Aufgabe. "
+                "Schreib bitte selbst zwei kurze Sätze."
+            )
+            if model:
+                reply += f" Zum Beispiel: „{model}“"
+        elif not required_ok:
+            reply = (
+                "Schreib die Nachricht bitte aus deiner Sicht, "
+                "zum Beispiel mit „Ich ...“"
+            )
+            if model:
+                reply += f" Zum Beispiel: „{model}“"
+        elif not sentences_ok:
+            reply = (
+                f"Schreib bitte {min_sentences} kurze Sätze."
+            )
+            if model:
+                reply += f" Zum Beispiel: „{model}“"
         else:
-            model = task.get("model_answer")
             reply = "Ergänze bitte noch die wichtigsten Informationen."
             if model:
                 reply += f" Zum Beispiel: „{model}“"
