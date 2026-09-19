@@ -18,7 +18,12 @@ from brain.memory.lesson_review import (
 
 from brain.memory.daily_learning import (
     mark_lesson_section_today,
-    mark_daily_plan_completed
+    mark_daily_plan_completed,
+    record_mistake_today
+)
+
+from brain.memory.error_memory import (
+    remember_error
 )
 
 
@@ -65,6 +70,75 @@ def clean_normalized_answer(
             text
         )
     ).strip()
+
+
+# ==========================================
+# FEHLER AUS LEKTIONEN MERKEN
+# ==========================================
+
+def remember_lesson_mistake(
+    state,
+    error_type,
+    wrong_text,
+    correct_text
+):
+
+    if state is None:
+        return False
+
+    wrong_text = str(
+        wrong_text or ""
+    ).strip()
+
+    correct_text = str(
+        correct_text or ""
+    ).strip()
+
+    if not (
+        error_type
+        and
+        wrong_text
+        and
+        correct_text
+    ):
+        return False
+
+
+    try:
+
+        saved = remember_error(
+            state,
+            error_type,
+            wrong_text,
+            correct_text
+        )
+
+    except Exception as error:
+
+        print(
+            f"Lesson error memory error: {error}"
+        )
+
+        saved = False
+
+
+    try:
+
+        record_mistake_today(
+            state,
+            error_type,
+            wrong=wrong_text,
+            correct=correct_text
+        )
+
+    except Exception as error:
+
+        print(
+            f"Daily lesson mistake error: {error}"
+        )
+
+
+    return saved
 
 
 # ==========================================
@@ -965,6 +1039,13 @@ def handle_greeting_section(
             user_message
         ):
 
+            remember_lesson_mistake(
+                state,
+                "vocabulary",
+                user_message,
+                "Guten Morgen"
+            )
+
             return (
                 "Fast. Am Morgen sagt man: "
                 "„Guten Morgen.“ "
@@ -994,6 +1075,13 @@ def handle_greeting_section(
         if not is_day_greeting(
             user_message
         ):
+
+            remember_lesson_mistake(
+                state,
+                "vocabulary",
+                user_message,
+                "Guten Tag"
+            )
 
             return (
                 "Fast. Tagsüber kannst du sagen: "
@@ -1025,6 +1113,13 @@ def handle_greeting_section(
             user_message
         ):
 
+            remember_lesson_mistake(
+                state,
+                "vocabulary",
+                user_message,
+                "Guten Abend"
+            )
+
             return (
                 "Fast. Am Abend sagt man: "
                 "„Guten Abend.“ "
@@ -1054,6 +1149,13 @@ def handle_greeting_section(
         if not is_informal_greeting(
             user_message
         ):
+
+            remember_lesson_mistake(
+                state,
+                "vocabulary",
+                user_message,
+                "Hallo"
+            )
 
             return (
                 "Fast. Ganz einfach kannst du sagen: "
@@ -1086,6 +1188,13 @@ def handle_greeting_section(
             user_message
         ):
 
+            remember_lesson_mistake(
+                state,
+                "vocabulary",
+                user_message,
+                "Tschüss"
+            )
+
             return (
                 "Fast. Zu einem Freund kannst du "
                 "zum Beispiel sagen: "
@@ -1117,6 +1226,13 @@ def handle_greeting_section(
         if not is_morning_greeting(
             user_message
         ):
+
+            remember_lesson_mistake(
+                state,
+                "vocabulary",
+                user_message,
+                "Guten Morgen"
+            )
 
             return (
                 "Fast. Wir treffen uns morgens. "
@@ -1258,6 +1374,13 @@ def handle_introduction_section(
             user_message
         ):
 
+            remember_lesson_mistake(
+                state,
+                "vocabulary",
+                user_message,
+                "Guten Morgen"
+            )
+
             return (
                 "Wir treffen uns morgens. "
                 "Sag einfach: „Guten Morgen.“"
@@ -1289,6 +1412,13 @@ def handle_introduction_section(
             name = get_student_name(
                 state
             ) or "Moni"
+
+            remember_lesson_mistake(
+                state,
+                "grammar",
+                user_message,
+                f"Ich heiße {name}."
+            )
 
             return (
                 "Fast! Sag es bitte als "
@@ -1331,6 +1461,13 @@ def handle_introduction_section(
             user_message
         ):
 
+            remember_lesson_mistake(
+                state,
+                "grammar",
+                user_message,
+                "Wie heißt du?"
+            )
+
             return (
                 "Wenn wir uns duzen, fragst du: "
                 "„Wie heißt du?“ "
@@ -1363,6 +1500,13 @@ def handle_introduction_section(
 
             hint = get_spelled_name_hint(
                 state
+            )
+
+            remember_lesson_mistake(
+                state,
+                "spelling",
+                user_message,
+                hint or "Name Buchstabe für Buchstabe"
             )
 
             if hint:
@@ -1402,6 +1546,13 @@ def handle_introduction_section(
         if not is_formal_name_question(
             user_message
         ):
+
+            remember_lesson_mistake(
+                state,
+                "grammar",
+                user_message,
+                "Wie heißen Sie?"
+            )
 
             return (
                 "Wenn du den Gast siezt, fragst du: "
@@ -1590,6 +1741,13 @@ def handle_alphabet_section(
             "B"
         ):
 
+            remember_lesson_mistake(
+                state,
+                "spelling",
+                user_message,
+                "B"
+            )
+
             return (
                 "Fast. Nach A kommt B. "
                 "Sag bitte: „B“."
@@ -1618,6 +1776,13 @@ def handle_alphabet_section(
             user_message,
             "N"
         ):
+
+            remember_lesson_mistake(
+                state,
+                "spelling",
+                user_message,
+                "N"
+            )
 
             return (
                 "Fast. Nach M kommt N. "
@@ -1648,6 +1813,13 @@ def handle_alphabet_section(
             "Y"
         ):
 
+            remember_lesson_mistake(
+                state,
+                "spelling",
+                user_message,
+                "Y"
+            )
+
             return (
                 "Fast. Vor Z kommt Y. "
                 "Sag bitte: „Y“."
@@ -1676,6 +1848,13 @@ def handle_alphabet_section(
         if not is_umlaut_answer(
             user_message
         ):
+
+            remember_lesson_mistake(
+                state,
+                "spelling",
+                user_message,
+                "Ä, Ö und Ü"
+            )
 
             return (
                 "Fast. Die drei Umlaute sind "
@@ -1706,6 +1885,13 @@ def handle_alphabet_section(
         if not is_eszett_answer(
             user_message
         ):
+
+            remember_lesson_mistake(
+                state,
+                "spelling",
+                user_message,
+                "Eszett"
+            )
 
             return (
                 "Fast. Das besondere Zeichen ist ß. "
@@ -1740,6 +1926,13 @@ def handle_alphabet_section(
 
             hint = get_spelled_name_hint(
                 state
+            )
+
+            remember_lesson_mistake(
+                state,
+                "spelling",
+                user_message,
+                hint or "Name Buchstabe für Buchstabe"
             )
 
             if hint:
