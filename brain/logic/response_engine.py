@@ -41,6 +41,12 @@ from brain.logic.lesson_review_training import (
     start_lesson_review_training
 )
 
+
+from brain.logic.lesson_teaching import (
+    is_lesson_teaching_active,
+    get_current_lesson_prompt
+)
+
 from brain.memory.error_review import (
     refresh_error_reviews,
     get_due_error_reviews
@@ -1697,6 +1703,21 @@ def start_next_new_learning(
 
     if state is None:
         return ""
+
+
+    # Jeżeli uczeń przerwał lekcję w połowie,
+    # wracamy dokładnie do zapisanego kroku,
+    # zamiast uruchamiać sekcję od początku.
+    if is_lesson_teaching_active(
+        state
+    ):
+
+        resume_prompt = get_current_lesson_prompt(
+            state
+        )
+
+        if resume_prompt:
+            return resume_prompt
 
 
     try:
