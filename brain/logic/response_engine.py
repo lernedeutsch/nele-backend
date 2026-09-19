@@ -2300,8 +2300,7 @@ def create_session_start_follow_up(
                 if label:
 
                     parts.append(
-                        "Jetzt wiederholen wir kurz "
-                        f"{label}."
+                        "Lass uns kurz etwas von letztem Mal wiederholen."
                     )
 
                 else:
