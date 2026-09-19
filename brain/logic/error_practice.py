@@ -895,10 +895,33 @@ def start_error_practice(
         )
 
 
-    example = get_next_error_example(
+    example = get_next_pending_error_example(
         state,
         error_type
     )
+
+    if not isinstance(
+        example,
+        dict
+    ):
+
+        example = get_next_error_example(
+            state,
+            error_type
+        )
+
+        if (
+            isinstance(
+                example,
+                dict
+            )
+            and
+            not is_relevant_error_example(
+                example
+            )
+        ):
+
+            example = None
 
 
     if isinstance(
