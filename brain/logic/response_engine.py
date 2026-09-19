@@ -1189,18 +1189,38 @@ def create_daily_progress_message(
         reviewed_errors
     ):
 
-        error_type = str(
-            reviewed_errors[-1]
-            or
-            ""
-        ).strip()
+        seen_error_types = set()
 
 
-        if error_type:
+        for raw_error_type in reviewed_errors:
+
+            error_type = str(
+                raw_error_type
+                or
+                ""
+            ).strip()
+
+
+            if not error_type:
+                continue
+
+
+            key = error_type.lower()
+
+
+            if key in seen_error_types:
+                continue
+
+
+            seen_error_types.add(
+                key
+            )
+
 
             label = get_error_practice_label(
                 error_type
             )
+
 
             if label:
 
