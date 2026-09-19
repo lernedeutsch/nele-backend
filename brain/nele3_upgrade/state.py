@@ -250,9 +250,42 @@ def mark_activity_completed(
 
 
 def get_last_completed_activity(state: dict) -> Optional[str]:
-    value = ensure_upgrade_state(state).get("last_completed_activity")
-    value = str(value or "").strip().lower()
-    return value or None
+    upgrade = ensure_upgrade_state(state)
+
+    value = str(
+        upgrade.get("last_completed_activity")
+        or ""
+    ).strip().lower()
+
+    if value:
+        return value
+
+    # Migracja istniejącej pamięci:
+    # starsi użytkownicy mogą mieć już ukończone ćwiczenia
+    # zapisane w events, ale nie mieć jeszcze nowego pola.
+    events = upgrade.get("events", [])
+
+    if isinstance(events, list):
+        for event in reversed(events):
+            if not isinstance(event, dict):
+                continue
+
+            if str(event.get("type") or "").strip().lower() != "activity_completed":
+                continue
+
+            detail = event.get("detail")
+
+            if isinstance(detail, dict):
+                activity = str(
+                    detail.get("activity_type")
+                    or ""
+                ).strip().lower()
+
+                if activity:
+                    upgrade["last_completed_activity"] = activity
+                    return activity
+
+    return None
 
 
 def get_skills(state: dict) -> Dict[str, dict]:
