@@ -1331,8 +1331,16 @@ def handle_greeting_section(
         ] = 5
 
 
+        spoken_greeting = clean_answer(
+            user_message
+        )
+
+        if not spoken_greeting:
+            spoken_greeting = "Hallo"
+
+
         return (
-            "Sehr gut! „Hallo“ passt perfekt. "
+            f"Sehr gut! „{spoken_greeting}“ passt perfekt. "
             "Und jetzt verabschiedest du dich "
             "von einem Freund. "
             "Was sagst du?"
