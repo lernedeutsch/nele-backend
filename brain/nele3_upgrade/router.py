@@ -12,6 +12,7 @@ from brain.nele3_upgrade.state import (
     clear_pending_recommendation,
 )
 from brain.nele3_upgrade.teacher_brain import (
+    DISABLED_UPGRADE_ACTIVITIES,
     select_next_action,
     build_adaptive_recommendation,
 )
@@ -47,6 +48,17 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
         return False, None, {}
 
     pending = get_pending_recommendation(state)
+
+    # Hören und Schreiben werden außerhalb von Nele trainiert.
+    # Alte, bereits gespeicherte Empfehlungen dürfen nach einem Deploy
+    # nicht wieder als aktive Nele-Aufgabe erscheinen.
+    if (
+        isinstance(pending, dict)
+        and str(pending.get("activity") or "").strip().lower()
+        in DISABLED_UPGRADE_ACTIVITIES
+    ):
+        clear_pending_recommendation(state)
+        pending = None
 
     if pending:
         yes_answers = {
@@ -114,6 +126,18 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
             }
 
     active = get_active_task(state)
+
+    # Ebenso verwerfen wir alte aktive Hören-/Schreiben-Aufgaben aus
+    # gespeicherter Student Memory. Die eigentlichen Implementierungen
+    # bleiben im Projekt erhalten und können später reaktiviert werden.
+    if (
+        isinstance(active, dict)
+        and str(active.get("type") or "").strip().lower()
+        in DISABLED_UPGRADE_ACTIVITIES
+    ):
+        set_active_task(state, None)
+        active = None
+
     if active:
         if norm in {"stop", "stopp", "abbrechen", "übung beenden", "ubung beenden"}:
             set_active_task(state, None)
@@ -197,8 +221,6 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
         repeatable_activities = {
             "dialogue",
             "work_german",
-            "listening",
-            "writing",
             "pronunciation",
             "speaking",
         }
@@ -244,12 +266,18 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
         return True, started["reply"], started.get("meta", {})
 
     if _contains_any(norm, {"hörübung", "hoeruebung", "hörtraining", "hoertraining", "hören üben", "horen uben"}):
-        started = start_activity(state, "listening")
-        return True, started["reply"], {**started.get("meta", {}), "speak_text": started.get("speak_text")}
+        return True, (
+            "Hören übst du auf deiner Deutschsprechen-Seite."
+        ), {
+            "activity_disabled": "listening",
+        }
 
     if _contains_any(norm, {"schreibübung", "schreibuebung", "schreiben üben", "schreiben uben"}):
-        started = start_activity(state, "writing")
-        return True, started["reply"], started.get("meta", {})
+        return True, (
+            "Schreiben übst du auf deiner Deutschsprechen-Seite."
+        ), {
+            "activity_disabled": "writing",
+        }
 
     if _contains_any(norm, {"arbeitsdeutsch", "housekeeping üben", "housekeeping uben", "hotel deutsch", "deutsch für die arbeit", "deutsch fur die arbeit"}):
         started = start_activity(state, "work_german")

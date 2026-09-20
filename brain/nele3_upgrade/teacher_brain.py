@@ -7,9 +7,15 @@ from brain.nele3_upgrade.state import (
 )
 
 
-UPGRADE_ACTIVITY_ORDER = [
+# Hören und Schreiben werden auf der separaten Deutschsprechen-Seite
+# trainiert. Der Code bleibt erhalten, aber Nele bietet diese beiden
+# Aktivitäten nicht mehr als eigenen Trainingstyp an.
+DISABLED_UPGRADE_ACTIVITIES = {
     "listening",
     "writing",
+}
+
+UPGRADE_ACTIVITY_ORDER = [
     "dialogue",
     "work_german",
     "pronunciation",

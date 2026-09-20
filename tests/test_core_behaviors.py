@@ -592,6 +592,74 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             )
         )
 
+    def test_teacher_brain_never_recommends_listening_or_writing(self):
+        state = {}
+
+        for _ in range(8):
+            recommendation = build_adaptive_recommendation(state)
+            self.assertIsInstance(recommendation, dict)
+            self.assertNotIn(
+                recommendation.get("activity"),
+                {"listening", "writing"},
+            )
+
+            activity = recommendation.get("activity")
+            update_skill(state, activity, 100)
+            mark_activity_completed(
+                state,
+                activity,
+                detail="Test",
+                score=100,
+            )
+
+    def test_old_listening_or_writing_task_is_not_resumed(self):
+        for activity_type in ("listening", "writing"):
+            state = {
+                "nele3_upgrade": {
+                    "active_task": {
+                        "type": activity_type,
+                        "prompt": "Alte Aufgabe",
+                    }
+                }
+            }
+
+            handled, answer, meta = handle_upgrade_message(
+                "Hallo",
+                state,
+            )
+
+            self.assertFalse(handled)
+            self.assertIsNone(answer)
+            self.assertEqual(meta, {})
+            self.assertIsNone(
+                get_active_task(state)
+            )
+
+    def test_explicit_listening_and_writing_commands_stay_disabled(self):
+        cases = [
+            ("Hören üben", "listening"),
+            ("Schreiben üben", "writing"),
+        ]
+
+        for message, activity in cases:
+            state = {}
+
+            handled, answer, meta = handle_upgrade_message(
+                message,
+                state,
+            )
+
+            self.assertTrue(handled)
+            self.assertTrue(answer)
+            self.assertEqual(
+                meta.get("activity_disabled"),
+                activity,
+            )
+            self.assertIsNone(
+                get_active_task(state)
+            )
+
+
     def test_teacher_brain_does_not_repeat_just_completed_skill(self):
         state = {}
 
