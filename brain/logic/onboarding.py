@@ -272,6 +272,7 @@ def extract_name_sentence(
         user_message,
         [
             r"^\s*ich\s+hei(?:ß|ss)e\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*ich\s+bin\s+(.+?)\s*[.!?]*\s*$",
             r"^\s*mein\s+name\s+ist\s+(.+?)\s*[.!?]*\s*$"
         ]
     )

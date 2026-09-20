@@ -85,6 +85,65 @@ def cleanup(session_id):
         connection.close()
 
 
+def wait_for_last_nele(page, expected, timeout=15000):
+    page.wait_for_function(
+        """expected => {
+            const items = [
+                ...document.querySelectorAll('.message-nele')
+            ];
+            if (!items.length) {
+                return false;
+            }
+            return items[items.length - 1]
+                .innerText
+                .includes(expected);
+        }""",
+        arg=expected,
+        timeout=timeout,
+    )
+
+    return page.locator(
+        ".message-nele"
+    ).last.inner_text()
+
+
+def send_and_wait(page, message, expected, timeout=15000):
+    before = page.locator(
+        ".message-nele"
+    ).count()
+
+    page.fill(
+        "#message-input",
+        message,
+    )
+    page.click(
+        "#send-btn"
+    )
+
+    page.wait_for_function(
+        """data => {
+            const items = [
+                ...document.querySelectorAll('.message-nele')
+            ];
+            if (items.length <= data.before) {
+                return false;
+            }
+            return items[items.length - 1]
+                .innerText
+                .includes(data.expected);
+        }""",
+        arg={
+            "before": before,
+            "expected": expected,
+        },
+        timeout=timeout,
+    )
+
+    return page.locator(
+        ".message-nele"
+    ).last.inner_text()
+
+
 def verify_backend_http():
     session_id = "e2e-http-backend-check"
 
@@ -109,7 +168,6 @@ def verify_backend_http():
 
 def main():
     test_name = "Monika"
-    test_name_sentence = "Ich heiße Monika"
     session_id = None
 
     verify_backend_http()
@@ -173,34 +231,11 @@ def main():
 
             assert browser_health["status"] == 200
 
-            try:
-                page.wait_for_function(
-                    """() => {
-                        const text =
-                            document.querySelector('#messages')?.innerText || '';
-                        return text.includes('Wie heißt du?');
-                    }""",
-                    timeout=10000,
-                )
-            except Exception:
-                print(
-                    "BROWSER DEBUG:",
-                    {
-                        "messages": page.locator(
-                            "#messages"
-                        ).inner_text(),
-                        "session_id": page.evaluate(
-                            "() => localStorage.getItem('nele_session_id')"
-                        ),
-                        "nele_type": page.evaluate(
-                            "() => typeof Nele"
-                        ),
-                        "backend_override": page.evaluate(
-                            "() => window.NELE_BACKEND_URL"
-                        ),
-                    },
-                )
-                raise
+            wait_for_last_nele(
+                page,
+                "Wie heißt du?",
+                timeout=10000,
+            )
 
             session_id = page.evaluate(
                 "() => localStorage.getItem('nele_session_id')"
@@ -209,55 +244,326 @@ def main():
             assert session_id
             assert session_id != "default"
 
-            page.fill(
-                "#message-input",
-                test_name_sentence,
-            )
-            page.click(
-                "#send-btn"
-            )
-
-            page.wait_for_function(
-                """() => {
-                    const text =
-                        document.querySelector('#messages')?.innerText || '';
-                    return text.includes('Woher kommst du?');
-                }""",
-                timeout=15000,
+            # ----------------------------------
+            # ERSTER KONTAKT / ONBOARDING
+            # ----------------------------------
+            send_and_wait(
+                page,
+                "Ich bin Monika",
+                "Woher kommst du?",
             )
 
             memory = wait_for_memory(
                 session_id,
                 test_name,
             )
-
             assert memory.get("onboarding_step") == 2
 
+            # Unterbrochenes Onboarding muss nach Reload
+            # mit demselben Benutzer weitergehen.
             page.reload(
                 wait_until="domcontentloaded"
             )
-
-            page.wait_for_function(
-                """name => {
-                    const text =
-                        document.querySelector('#messages')?.innerText || '';
-                    return text.includes(name)
-                        && text.includes('Woher kommst du?');
-                }""",
-                arg=test_name,
-                timeout=15000,
+            wait_for_last_nele(
+                page,
+                "Woher kommst du?",
             )
 
             same_session_id = page.evaluate(
                 "() => localStorage.getItem('nele_session_id')"
             )
-
             assert same_session_id == session_id
+
+            send_and_wait(
+                page,
+                "Ich komme aus Polen",
+                "wo wohnst du jetzt?",
+            )
+            send_and_wait(
+                page,
+                "Ich wohne in Heidelberg",
+                "Freizeit",
+            )
+            send_and_wait(
+                page,
+                "Ich schwimme gern",
+                "Ziel beim Deutschlernen",
+            )
+            send_and_wait(
+                page,
+                "Ich will B1 erreichen",
+                "Möchtest du gleich anfangen?",
+            )
+
+            # Nach abgeschlossenem Onboarding beginnt
+            # ein neues Treffen mit dem bekannten Benutzer.
+            page.reload(
+                wait_until="domcontentloaded"
+            )
+            wait_for_last_nele(
+                page,
+                "Wie geht es dir?",
+            )
+
+            send_and_wait(
+                page,
+                "gut",
+                "Stell dir vor, es ist morgens",
+            )
+
+            # ----------------------------------
+            # LEKTION 1 / BEGRÜSSUNGEN + FEHLER
+            # ----------------------------------
+            send_and_wait(page, "h", "Guten Morgen")
+            send_and_wait(page, "k", "Guten Morgen")
+            send_and_wait(page, "g", "Guten Morgen")
+            send_and_wait(
+                page,
+                "Guten Morgen",
+                "tagsüber",
+            )
+
+            send_and_wait(page, "p", "Guten Tag")
+            send_and_wait(page, "o", "Guten Tag")
+            send_and_wait(
+                page,
+                "Guten Tag",
+                "Abend",
+            )
+
+            # Reload mitten in der Lektion:
+            # zuerst Fehlertraining, danach genau an
+            # der unterbrochenen Stelle weiter.
+            page.reload(
+                wait_until="domcontentloaded"
+            )
+            wait_for_last_nele(
+                page,
+                "Wie geht es dir?",
+            )
+
+            first_review = send_and_wait(
+                page,
+                "gut",
+                "Welche Antwort passt hier?",
+            )
+            assert "Guten Morgen" in first_review
+
+            send_and_wait(
+                page,
+                "2",
+                "Sag die richtige Antwort",
+            )
+            second_review = send_and_wait(
+                page,
+                "Guten Morgen",
+                "Welche Antwort passt hier?",
+            )
+            assert "Guten Tag" in second_review
+
+            send_and_wait(
+                page,
+                "2",
+                "Sag die richtige Antwort",
+            )
+            resumed = send_and_wait(
+                page,
+                "Guten Tag",
+                "Abend",
+            )
+            assert "Was sagst du?" in resumed
+
+            # Restliche Begrüßungen mit neuen Fehlern.
+            send_and_wait(page, "h", "Guten Abend")
+            send_and_wait(page, "j", "Guten Abend")
+            send_and_wait(
+                page,
+                "Guten Abend",
+                "locker begrüßt",
+            )
+
+            send_and_wait(page, "j", "Hallo")
+            send_and_wait(page, "k", "Hallo")
+            send_and_wait(
+                page,
+                "Hallo",
+                "verabschiedest",
+            )
+
+            send_and_wait(page, "x", "Tschüss")
+            send_and_wait(
+                page,
+                "Tschüss",
+                "Mini-Dialog",
+            )
+            send_and_wait(
+                page,
+                "Hallo",
+                "Guten Morgen",
+            )
+            send_and_wait(
+                page,
+                "Guten Morgen",
+                "Ich stelle mich vor",
+            )
+
+            # ----------------------------------
+            # ICH STELLE MICH VOR
+            # ----------------------------------
+            send_and_wait(
+                page,
+                "ja",
+                "Guten Morgen!",
+            )
+            send_and_wait(
+                page,
+                "Guten Morgen",
+                "Wie heißt du?",
+            )
+            send_and_wait(
+                page,
+                "testimony",
+                "Ich heiße Monika",
+            )
+            send_and_wait(
+                page,
+                "Ich heiße Monika",
+                "nach meinem Namen",
+            )
+            send_and_wait(
+                page,
+                "wer bist du",
+                "Wie heißt du?",
+            )
+            send_and_wait(
+                page,
+                "Wie heißt du",
+                "buchstabieren",
+            )
+            send_and_wait(
+                page,
+                "Monika",
+                "Buchstabe für Buchstabe",
+            )
+            send_and_wait(
+                page,
+                "m o n i k a",
+                "höfliche Situation",
+            )
+            send_and_wait(
+                page,
+                "Wie heißt du",
+                "Wie heißen Sie?",
+            )
+            send_and_wait(
+                page,
+                "Wie heißen Sie",
+                "Das deutsche Alphabet",
+            )
+
+            # ----------------------------------
+            # DAS DEUTSCHE ALPHABET
+            # ----------------------------------
+            send_and_wait(
+                page,
+                "ja",
+                "Welcher Buchstabe kommt nach A?",
+            )
+            send_and_wait(
+                page,
+                "B",
+                "nach M",
+            )
+            send_and_wait(page, "g", "Nach M kommt N")
+            send_and_wait(page, "j", "Nach M kommt N")
+            send_and_wait(
+                page,
+                "N",
+                "vor Z",
+            )
+            send_and_wait(page, "u", "Vor Z kommt Y")
+            send_and_wait(page, "i", "Vor Z kommt Y")
+            send_and_wait(page, "l", "Vor Z kommt Y")
+            send_and_wait(
+                page,
+                "Y",
+                "Umlaute",
+            )
+            send_and_wait(
+                page,
+                "a o u",
+                "Ä, Ö und Ü",
+            )
+            send_and_wait(
+                page,
+                "ä ö ü",
+                "besondere Zeichen",
+            )
+            send_and_wait(
+                page,
+                "ss",
+                "Eszett",
+            )
+            send_and_wait(
+                page,
+                "ß",
+                "Buchstabiere bitte deinen Namen",
+            )
+            send_and_wait(
+                page,
+                "Monika",
+                "Buchstaben einzeln",
+            )
+            final_reply = send_and_wait(
+                page,
+                "m o n i k a",
+                "Lektion 1 ist fertig",
+            )
+
+            assert "Hörübung" not in final_reply
+            assert "Schreibübung" not in final_reply
+
+            memory = load_memory(
+                session_id
+            )
+            assert isinstance(memory, dict)
+
+            lesson_progress = (
+                memory.get("lesson_progress")
+                or {}
+            )
+            lessons = (
+                lesson_progress.get("lessons")
+                or {}
+            )
+            lesson_one = (
+                lessons.get("A1:1")
+                or {}
+            )
+
+            assert lesson_one.get("completed") is True
+            assert set(
+                lesson_one.get(
+                    "completed_sections",
+                    [],
+                )
+            ) == {
+                "Wir begrüßen uns",
+                "Ich stelle mich vor",
+                "Das deutsche Alphabet",
+            }
+
+            error_memory = (
+                memory.get("error_memory")
+                or {}
+            )
+            assert error_memory
 
             browser.close()
 
         print(
-            "E2E OK: browser -> frontend -> backend -> PostgreSQL -> reload"
+            "E2E OK: first open -> onboarding -> "
+            "Lektion 1 -> Fehlertraining -> PostgreSQL"
         )
 
     finally:

@@ -31,6 +31,7 @@ from brain.logic.lesson_loader import (
     get_available_lesson_numbers,
 )
 from brain.logic.onboarding import (
+    extract_name_sentence,
     extract_learning_goal_sentence,
     get_short_answer_value,
 )
@@ -400,6 +401,17 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertNotIn(
             "Schön, dich kennenzulernen",
             reply,
+        )
+
+
+    def test_onboarding_accepts_natural_ich_bin_name(self):
+        self.assertEqual(
+            extract_name_sentence("Ich bin Moni"),
+            "Moni",
+        )
+        self.assertEqual(
+            extract_name_sentence("Ich heiße Moni"),
+            "Moni",
         )
 
 
