@@ -541,6 +541,63 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         )
 
 
+    def test_same_learning_target_is_practiced_only_once(self):
+        state = {}
+        context = "Welcher Buchstabe kommt vor Z?"
+
+        for wrong in ("u", "i", "l"):
+            remember_error(
+                state,
+                "spelling",
+                wrong,
+                "Y",
+                context=context,
+            )
+
+        first = start_error_practice(
+            state,
+            "spelling",
+        )
+
+        self.assertIn(
+            context,
+            first,
+        )
+        self.assertNotIn(
+            "Erinnerst du dich an die Situation?",
+            first,
+        )
+
+        step_one = handle_error_practice(
+            "2",
+            state,
+        )
+        self.assertIn(
+            "Sag die richtige Antwort",
+            step_one,
+        )
+
+        finished = handle_error_practice(
+            "Y",
+            state,
+        )
+
+        self.assertIn(
+            "Diesen Fehler hast du jetzt geübt",
+            finished,
+        )
+        self.assertNotIn(
+            "Jetzt noch eine",
+            finished,
+        )
+        self.assertFalse(
+            state.get(
+                "error_practice_active",
+                False,
+            )
+        )
+
+
     def test_completed_greeting_error_does_not_repeat_on_reopen(self):
         state = {}
 

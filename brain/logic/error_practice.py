@@ -943,7 +943,6 @@ def build_error_choice_prompt(
     if context:
 
         return (
-            f"Erinnerst du dich an die Situation? "
             f"{context}\n\n"
             "Welche Antwort passt hier?\n\n"
             f"1. {wrong_sentence}\n"
@@ -956,6 +955,124 @@ def build_error_choice_prompt(
         f"1. {wrong_sentence}\n"
         f"2. {correct_sentence}"
     )
+
+
+# ==========================================
+# TEN SAM CEL NAUKI = JEDNA POWTÓRKA
+# ==========================================
+
+def clear_equivalent_pending_error_examples(
+    state,
+    error_type,
+    correct_sentence,
+    context
+):
+
+    if state is None:
+        return
+
+    correct_key = clean_error_practice_message(
+        correct_sentence
+    )
+
+    context_key = clean_error_practice_message(
+        context
+    )
+
+
+    if not correct_key:
+        return
+
+
+    try:
+
+        examples = get_error_examples(
+            state,
+            error_type
+        )
+
+    except Exception as error:
+
+        print(
+            f"Equivalent error examples cleanup: {error}"
+        )
+
+        return
+
+
+    for example in examples:
+
+        if not isinstance(
+            example,
+            dict
+        ):
+
+            continue
+
+
+        example_correct = clean_error_practice_message(
+            example.get(
+                "correct"
+            )
+        )
+
+        example_context = clean_error_practice_message(
+            example.get(
+                "context"
+            )
+        )
+
+
+        # Różne błędne odpowiedzi na dokładnie to samo
+        # pytanie i z tą samą poprawną odpowiedzią są
+        # jednym celem nauki, a nie trzema ćwiczeniami.
+        if (
+            example_correct == correct_key
+            and
+            example_context == context_key
+        ):
+
+            example[
+                "needs_practice"
+            ] = False
+
+
+    error_item = get_error_item(
+        error_type,
+        state
+    )
+
+
+    if isinstance(
+        error_item,
+        dict
+    ):
+
+        still_pending = any(
+            isinstance(example, dict)
+            and example.get(
+                "needs_practice",
+                False
+            )
+            and not example.get(
+                "mastered",
+                False
+            )
+            and not example.get(
+                "ignored",
+                False
+            )
+            for example in get_error_examples(
+                state,
+                error_type
+            )
+        )
+
+        if not still_pending:
+
+            error_item[
+                "needs_practice"
+            ] = False
 
 
 # ==========================================
@@ -1570,6 +1687,16 @@ def handle_error_practice_step_two(
                 wrong_sentence,
                 correct_sentence,
                 result="correct"
+            )
+
+
+            clear_equivalent_pending_error_examples(
+                state,
+                error_type,
+                correct_sentence,
+                state.get(
+                    "error_practice_example_context"
+                )
             )
 
 
