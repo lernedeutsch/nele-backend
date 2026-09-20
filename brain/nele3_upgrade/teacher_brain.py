@@ -194,7 +194,7 @@ def build_adaptive_recommendation(state, excluded=None):
         "reason": reason,
         "excluded": excluded,
         "message": (
-            f"{reason} Möchtest du jetzt {phrase} machen?"
+            f"Möchtest du jetzt {phrase} machen?"
         ),
     }
 

@@ -736,15 +736,15 @@ def get_short_answer_value(
 
     # Przy miejscu zamieszkania nie budujemy zdania
     # z przypadkowego fragmentu rozpoznanego przez ASR.
-    # "Heidelberg" / "Bad König" może być krótką odpowiedzią,
-    # ale "Yvonne in Heidelberg" nie jest nazwą miejsca,
-    # którą Nele powinna automatycznie wstawić do zdania.
+    # Jednoznaczna krótka odpowiedź, np. "Heidelberg", jest
+    # bezpieczna. Przy dwóch lub większej liczbie słów prosimy
+    # o pełne zdanie zamiast zgadywać nazwę miejsca.
     if step == 3:
 
         if " in " in normalized:
             return ""
 
-        if len(words) > 2:
+        if len(words) != 1:
             return ""
 
         return clean_value(

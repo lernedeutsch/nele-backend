@@ -22,6 +22,10 @@ from brain.nele3_upgrade.content import (
     PRONUNCIATION_TARGETS,
 )
 from brain.logic.welcome import generate_welcome_reply
+from brain.logic.response_engine import (
+    _shorten_session_restart_prompt,
+    get_last_lesson_recap_data,
+)
 from brain.nele3_upgrade.state import get_active_task
 from brain.logic.lesson_loader import (
     get_available_lesson_numbers,
@@ -418,6 +422,87 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             get_short_answer_value("Heidelberg", 3),
             "Heidelberg",
         )
+        self.assertEqual(
+            get_short_answer_value("Sonne Heidelberg", 3),
+            "",
+        )
+
+    def test_lesson_recap_is_short_and_does_not_use_zuletzt(self):
+        state = {
+            "last_activity": "lesson",
+            "last_activity_detail": "Wir begrüßen uns",
+        }
+
+        with patch(
+            "brain.logic.response_engine.get_next_new_learning_step",
+            return_value={
+                "type": "continue_lesson",
+                "level": "A1",
+                "lesson": 1,
+                "section": "Wir begrüßen uns",
+            },
+        ):
+            recap = get_last_lesson_recap_data(state)
+
+        self.assertEqual(
+            recap.get("message"),
+            "Wir machen mit Lektion 1 weiter.",
+        )
+        self.assertNotIn(
+            "Zuletzt",
+            recap.get("message"),
+        )
+
+    def test_alphabet_restart_uses_short_natural_intro(self):
+        state = {
+            "last_activity": "lesson",
+            "last_activity_detail": "Ich stelle mich vor",
+        }
+
+        with patch(
+            "brain.logic.response_engine.get_next_new_learning_step",
+            return_value={
+                "type": "continue_lesson",
+                "level": "A1",
+                "lesson": 1,
+                "section": "Das deutsche Alphabet",
+            },
+        ):
+            recap = get_last_lesson_recap_data(state)
+
+        self.assertEqual(
+            recap.get("message"),
+            "Wir machen mit dem Alphabet weiter.",
+        )
+        self.assertEqual(
+            _shorten_session_restart_prompt(
+                (
+                    "Super, dann machen wir eine kurze "
+                    "Übung zum deutschen Alphabet. "
+                    "Welcher Buchstabe kommt nach A?"
+                )
+            ),
+            "Welcher Buchstabe kommt nach A?",
+        )
+
+    def test_completed_lesson_has_no_stale_section_recap(self):
+        state = {
+            "last_activity": "lesson",
+            "last_activity_detail": "Das deutsche Alphabet",
+        }
+
+        with patch(
+            "brain.logic.response_engine.get_next_new_learning_step",
+            return_value={
+                "type": "lesson_completed",
+                "level": "A1",
+                "lesson": 1,
+            },
+        ):
+            recap = get_last_lesson_recap_data(state)
+
+        self.assertIsNone(recap)
+
 
     def test_greeting_steps_require_full_expression(self):
         self.assertFalse(is_morning_greeting("morgen"))
@@ -505,6 +590,10 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         )
         self.assertIn(
             "Diesen Fehler hast du jetzt geübt",
+            finished,
+        )
+        self.assertNotIn(
+            "Genau richtig:",
             finished,
         )
 

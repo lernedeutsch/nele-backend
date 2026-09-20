@@ -1463,7 +1463,10 @@ def get_last_lesson_recap_data(
     # ostatniej sekcji starej lekcji.
     # Wystarczy prosty komunikat z planu:
     # "Lektion 1 ist fertig. Jetzt kommt Lektion 2."
-    if plan_type == "new_lesson":
+    if plan_type in {
+        "new_lesson",
+        "lesson_completed",
+    }:
         return None
 
 
@@ -1528,31 +1531,31 @@ def get_last_lesson_recap_data(
         level
         and
         lesson
-        and
-        recap_section
     ):
 
-        message = (
-            f"Zuletzt: „{recap_section}“ "
-            f"in Lektion {lesson}."
-        )
+        if (
+            section
+            and
+            normalize(section)
+            ==
+            normalize("Das deutsche Alphabet")
+        ):
+
+            message = (
+                "Wir machen mit dem Alphabet weiter."
+            )
+
+        else:
+
+            message = (
+                f"Wir machen mit Lektion {lesson} weiter."
+            )
 
 
     elif recap_section:
 
         message = (
-            f"Zuletzt: „{recap_section}“."
-        )
-
-
-    elif (
-        level
-        and
-        lesson
-    ):
-
-        message = (
-            f"Wir sind bei Lektion {lesson}."
+            "Wir machen hier weiter."
         )
 
 
@@ -2077,6 +2080,37 @@ def start_next_new_learning(
 # nie powtarzać drugi raz tego samego dnia.
 # ==========================================
 
+def _shorten_session_restart_prompt(
+    text
+):
+    """Remove redundant intro text when a lesson is resumed after reopening."""
+
+    text = str(
+        text or ""
+    ).strip()
+
+    prefixes = [
+        (
+            "Super, dann legen wir los! "
+            "Wir üben jetzt Begrüßungen. "
+        ),
+        (
+            "Super, dann machen wir eine kurze "
+            "Übung zum deutschen Alphabet. "
+        ),
+    ]
+
+    for prefix in prefixes:
+
+        if text.startswith(prefix):
+
+            return text[
+                len(prefix):
+            ].strip()
+
+    return text
+
+
 def create_session_start_follow_up(
     state,
     short_answer=""
@@ -2519,6 +2553,19 @@ def create_session_start_follow_up(
     next_learning = start_next_new_learning(
         state
     )
+
+
+    if (
+        recap
+        and
+        next_learning
+    ):
+
+        next_learning = (
+            _shorten_session_restart_prompt(
+                next_learning
+            )
+        )
 
 
     # ======================================
