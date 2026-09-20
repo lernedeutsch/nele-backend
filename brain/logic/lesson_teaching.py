@@ -1391,10 +1391,27 @@ def is_relevant_greeting_mistake(
         message.split()
     )
 
-    return bool(
+
+    if (
         tokens
         &
         greeting_words
+    ):
+
+        return True
+
+
+    # W aktywnym ćwiczeniu uczeń może odpowiedzieć bardzo
+    # krótko, np. "h", "k", "p". To nadal jest realna
+    # błędna próba na konkretne pytanie i powinna trafić
+    # do Fehlertraining. Dłuższych, niezwiązanych zdań
+    # nadal nie zapisujemy jako błędu powitania.
+    words = message.split()
+
+    return bool(
+        1 <= len(words) <= 2
+        and
+        len(message) <= 12
     )
 
 

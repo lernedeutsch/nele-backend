@@ -470,7 +470,19 @@ def is_relevant_error_example(
             greeting_tokens
         ):
 
-            return False
+            # Krótkie odpowiedzi z aktywnego pytania lekcji
+            # (np. "h", "k", "p") są prawdziwymi próbami,
+            # choć nie zawierają słowa powitania. Długie,
+            # niezwiązane zdania nadal ignorujemy.
+            wrong_words = wrong.split()
+
+            if not (
+                1 <= len(wrong_words) <= 2
+                and
+                len(wrong) <= 12
+            ):
+
+                return False
 
 
     return True

@@ -519,6 +519,12 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertTrue(
             is_relevant_greeting_mistake("guten Morgen")
         )
+        self.assertTrue(
+            is_relevant_greeting_mistake("h")
+        )
+        self.assertTrue(
+            is_relevant_greeting_mistake("p")
+        )
 
     def test_old_unrelated_greeting_error_is_skipped(self):
         self.assertFalse(
@@ -538,6 +544,52 @@ class NeleCoreBehaviorTests(unittest.TestCase):
                     "needs_practice": True,
                 }
             )
+        )
+        self.assertTrue(
+            is_relevant_error_example(
+                {
+                    "wrong": "h",
+                    "correct": "Guten Morgen",
+                    "needs_practice": True,
+                }
+            )
+        )
+
+
+    def test_short_wrong_greeting_attempts_are_saved_for_review(self):
+        state = {
+            "lesson_teaching_active": True,
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 1,
+        }
+
+        from brain.logic.lesson_teaching import handle_greeting_section
+
+        handle_greeting_section("h", state)
+        handle_greeting_section("k", state)
+        handle_greeting_section("g", state)
+        handle_greeting_section("Guten Morgen", state)
+
+        item = get_error_item(
+            "vocabulary",
+            state,
+        )
+
+        self.assertTrue(
+            item.get(
+                "needs_practice",
+                False,
+            )
+        )
+
+        first = start_error_practice(
+            state,
+            "vocabulary",
+        )
+
+        self.assertIn(
+            "Guten Morgen",
+            first,
         )
 
 
