@@ -1,12 +1,11 @@
-"""Natural, adaptive free-speaking mode for Nele.
+"""Adaptive everyday conversation for Nele.
 
-This mode deliberately lives beside Teacher Mode. It reuses the same learner
-state, but does not start lessons or exercises. Difficulty grows gently with
-the learner and falls back when an answer shows difficulty.
+Frei sprechen uses the same learner state as the course, but behaves like a
+friendly conversation partner. It keeps a topic for several turns, recasts a
+small set of frequent A1 errors without lecturing, and changes support based
+on how independently the learner answers.
 """
-
 import re
-
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -15,20 +14,38 @@ OPENERS = [
     "Hallo! Hast du heute schon etwas Schönes gemacht?",
 ]
 
-TOPIC_QUESTIONS = {
-    "today": ["Was machst du heute?", "Hast du heute gearbeitet?", "Was möchtest du heute noch machen?"],
-    "yesterday": ["Was hast du gestern gemacht?", "War dein Tag gestern gut?"],
-    "hobby": ["Was machst du gern in deiner Freizeit?", "Was ist dein Hobby?", "Was machst du am Wochenende gern?"],
-    "weather": ["Wie ist das Wetter bei dir?", "Magst du dieses Wetter?"],
-    "work": ["Arbeitest du heute?", "Was machst du bei der Arbeit?", "Wann fängst du normalerweise an?"],
-    "holiday": ["Machst du gern Urlaub?", "Wo machst du gern Urlaub?", "Meer oder Berge – was magst du lieber?"],
+TOPICS = {
+    "today": {
+        "easy": ["Arbeitest du heute?", "Bist du heute zu Hause?", "Hast du heute viel zu tun?"],
+        "normal": ["Was machst du heute?", "Was möchtest du heute noch machen?", "Wie ist dein Tag heute?"],
+        "open": ["Was war heute schön oder interessant?", "Erzähl mir ein bisschen von deinem Tag."],
+    },
+    "yesterday": {
+        "easy": ["Warst du gestern zu Hause oder bei der Arbeit?", "War dein Tag gestern gut?"],
+        "normal": ["Was hast du gestern gemacht?", "Was war gestern schön?"],
+        "open": ["Erzähl mir ein bisschen von gestern. Was ist passiert?"],
+    },
+    "hobby": {
+        "easy": ["Liest du gern?", "Hörst du gern Musik?", "Machst du gern Sport?"],
+        "normal": ["Was machst du gern in deiner Freizeit?", "Was machst du am Wochenende gern?", "Was ist dein Hobby?"],
+        "open": ["Warum machst du das gern?", "Was gefällt dir daran besonders?"],
+    },
+    "weather": {
+        "easy": ["Ist es bei dir warm oder kalt?", "Regnet es bei dir?", "Magst du Sonne?"],
+        "normal": ["Wie ist das Wetter bei dir?", "Was machst du bei diesem Wetter?"],
+        "open": ["Welches Wetter magst du am liebsten und warum?"],
+    },
+    "work": {
+        "easy": ["Arbeitest du heute?", "Arbeitest du morgens?", "Ist die Arbeit heute anstrengend?"],
+        "normal": ["Was machst du bei der Arbeit?", "Wann fängst du normalerweise an?", "Wie war die Arbeit heute?"],
+        "open": ["Was gefällt dir an deiner Arbeit?", "Was war heute bei der Arbeit interessant?"],
+    },
+    "holiday": {
+        "easy": ["Meer oder Berge – was magst du lieber?", "Fährst du gern in den Urlaub?"],
+        "normal": ["Wo machst du gern Urlaub?", "Was machst du gern im Urlaub?"],
+        "open": ["Wie sieht ein schöner Urlaub für dich aus?", "Wohin möchtest du einmal reisen und warum?"],
+    },
 }
-
-EASY_CHOICES = [
-    "Magst du das oder eher nicht?",
-    "Machst du das morgens oder abends?",
-    "Lieber zu Hause oder draußen?",
-]
 
 def _words(text):
     return re.findall(r"[A-Za-zÄÖÜäöüß]+", str(text or ""))
@@ -36,53 +53,67 @@ def _words(text):
 def _difficulty_signal(text):
     value = str(text or "").strip().lower()
     words = _words(value)
-    struggle = (
-        len(words) <= 1
-        or "weiß nicht" in value
-        or "weiss nicht" in value
-        or "nicht wissen" in value
-        or value in {"?", "...", "keine ahnung"}
-    )
-    strong = len(words) >= 7
-    return struggle, strong
+    struggle = len(words) <= 1 or any(x in value for x in (
+        "weiß nicht", "weiss nicht", "nicht wissen", "keine ahnung"
+    )) or value in {"?", "..."}
+    return struggle, len(words) >= 7
 
-def _topic(text):
+def _detect_topic(text, previous="today"):
     value = str(text or "").lower()
     if "gestern" in value: return "yesterday"
-    if any(x in value for x in ("arbeit", "job", "hotel")): return "work"
-    if any(x in value for x in ("hobby", "freizeit", "lesen", "sport", "musik")): return "hobby"
-    if any(x in value for x in ("wetter", "sonne", "regen", "kalt", "warm")): return "weather"
+    if any(x in value for x in ("arbeit", "job", "hotel", "kolleg")): return "work"
+    if any(x in value for x in ("hobby", "freizeit", "lesen", "buch", "krimi", "sport", "musik")): return "hobby"
+    if any(x in value for x in ("wetter", "sonne", "regen", "kalt", "warm", "wind")): return "weather"
     if any(x in value for x in ("urlaub", "reise", "ferien", "meer", "berge")): return "holiday"
-    return "today"
+    if any(x in value for x in ("heute", "jetzt", "morgen")): return "today"
+    return previous if previous in TOPICS else "today"
 
-def _natural_echo(text):
+def _recast(text):
+    """Return a short natural reformulation only for very clear A1 patterns."""
     value = str(text or "").strip()
     low = value.lower()
-    if low in {"gut", "sehr gut", "prima", "super"}:
-        return "Schön!"
-    if low in {"müde", "ich bin müde"}:
-        return "Oh, du bist müde."
-    if low == "arbeit":
-        return "Ah, du arbeitest heute."
-    if len(_words(value)) <= 3:
-        return "Verstehe."
+    patterns = [
+        (r"^ich\s+gehen\s+(.+)$", lambda m: f"Ah, du gehst {m.group(1)}."),
+        (r"^ich\s+arbeiten\s+(.+)$", lambda m: f"Ah, du arbeitest {m.group(1)}."),
+        (r"^ich\s+lesen\s+gern(?:\s+(.+))?$", lambda m: "Ah, du liest gern" + (f" {m.group(1)}." if m.group(1) else ".")),
+        (r"^ich\s+wohnen\s+(.+)$", lambda m: f"Ah, du wohnst {m.group(1)}."),
+    ]
+    for pattern, build in patterns:
+        match = re.match(pattern, low, re.I)
+        if match:
+            return build(match)
+    if low in {"gut", "sehr gut", "prima", "super"}: return "Schön!"
+    if low in {"müde", "ich bin müde"}: return "Oh, du bist müde."
+    if low == "arbeit": return "Ah, du arbeitest heute."
+    if len(_words(value)) <= 3: return "Verstehe."
     return "Das klingt interessant."
+
+def _pick_question(topic, support, independent, turn):
+    data = TOPICS[topic]
+    if support >= 2:
+        pool = data["easy"]
+    elif independent >= 3:
+        pool = data["open"]
+    else:
+        pool = data["normal"]
+    return pool[turn % len(pool)]
 
 def generate_free_welcome(state, session_id=None):
     free = state.setdefault("free_conversation", {})
-    turn = int(free.get("welcome_index", 0) or 0)
-    free["welcome_index"] = (turn + 1) % len(OPENERS)
+    index = int(free.get("welcome_index", 0) or 0)
+    free["welcome_index"] = (index + 1) % len(OPENERS)
     free.setdefault("support_level", 1)
     free.setdefault("independent_turns", 0)
     free.setdefault("struggle_turns", 0)
+    free.setdefault("last_topic", "today")
+    free.setdefault("topic_turns", 0)
     free.setdefault("recent_errors", [])
-    state.setdefault("student_progress", {}).setdefault("current_level", "A1")
-    return OPENERS[turn]
+    state.setdefault("student_progress", {}).setdefault("current_level", "A1.1")
+    return OPENERS[index]
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
     free = state.setdefault("free_conversation", {})
     struggle, strong = _difficulty_signal(user_message)
-
     independent = int(free.get("independent_turns", 0) or 0)
     struggles = int(free.get("struggle_turns", 0) or 0)
     support = int(free.get("support_level", 1) or 1)
@@ -91,47 +122,45 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         struggles += 1
         independent = 0
         support = min(3, support + 1)
-    elif strong:
+    else:
         independent += 1
         struggles = max(0, struggles - 1)
-        if independent >= 2:
+        if strong or independent >= 3:
             support = max(0, support - 1)
-    else:
-        independent += 1
 
-    free["independent_turns"] = independent
-    free["struggle_turns"] = struggles
-    free["support_level"] = support
+    previous_topic = free.get("last_topic", "today")
+    topic = _detect_topic(user_message, previous_topic)
+    topic_turns = int(free.get("topic_turns", 0) or 0)
+    topic_turns = topic_turns + 1 if topic == previous_topic else 1
 
-    topic = _topic(user_message)
-    free["last_topic"] = topic
-    free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+    # Do not jump topics every turn. After a few exchanges, a neutral answer
+    # may gently move the conversation back to everyday "today".
+    if topic_turns >= 5 and topic == previous_topic and topic != "today" and not struggle:
+        topic = "today"
+        topic_turns = 1
 
-    echo = _natural_echo(user_message)
+    turn = int(free.get("turn_count", 0) or 0) + 1
+    free.update({
+        "independent_turns": independent,
+        "struggle_turns": struggles,
+        "support_level": support,
+        "last_topic": topic,
+        "topic_turns": topic_turns,
+        "turn_count": turn,
+        "last_user_message": str(user_message or "").strip(),
+    })
 
-    if struggle or support >= 3:
-        question = EASY_CHOICES[free["turn_count"] % len(EASY_CHOICES)]
-    else:
-        pool = TOPIC_QUESTIONS.get(topic, TOPIC_QUESTIONS["today"])
-        question = pool[free["turn_count"] % len(pool)]
+    reaction = _recast(user_message)
+    question = _pick_question(topic, support, independent, turn)
 
-    # Gentle 90/10 growth: at higher independence use a slightly more open
-    # question, without turning the conversation into a grammar exercise.
-    if independent >= 3 and not struggle:
-        open_questions = {
-            "today": "Was war heute besonders schön oder interessant?",
-            "yesterday": "Erzähl mir ein bisschen von gestern. Was ist passiert?",
-            "hobby": "Warum machst du das gern?",
-            "weather": "Was machst du gern bei diesem Wetter?",
-            "work": "Was gefällt dir an deiner Arbeit?",
-            "holiday": "Wie sieht ein schöner Urlaub für dich aus?",
-        }
-        question = open_questions.get(topic, question)
+    if struggle:
+        reaction = "Kein Problem. 😊 " + reaction
 
-    return f"{echo} {question}", {
+    return f"{reaction} {question}", {
         "conversation_mode": "free",
         "support_level": support,
         "topic": topic,
+        "topic_turns": topic_turns,
         "independent_turns": independent,
-        "course_level": (state.get("student_progress") or {}).get("current_level", "A1"),
+        "course_level": (state.get("student_progress") or {}).get("current_level", "A1.1"),
     }
