@@ -53,9 +53,18 @@ def _words(text):
 def _difficulty_signal(text):
     value = str(text or "").strip().lower()
     words = _words(value)
-    struggle = len(words) <= 1 or any(x in value for x in (
-        "weiß nicht", "weiss nicht", "nicht wissen", "keine ahnung"
-    )) or value in {"?", "..."}
+    normal_short_answers = {
+        "ja", "nein", "ja ja", "nein nein", "gut", "sehr gut", "prima",
+        "super", "okay", "ok", "gern", "ja gern", "nein danke",
+        "müde", "arbeit", "zu hause"
+    }
+    struggle = (
+        value not in normal_short_answers
+        and (
+            any(x in value for x in ("weiß nicht", "weiss nicht", "nicht wissen", "keine ahnung"))
+            or value in {"?", "..."}
+        )
+    )
     return struggle, len(words) >= 7
 
 def _detect_topic(text, previous="today"):
@@ -88,7 +97,7 @@ def _recast(text):
     if len(_words(value)) <= 3: return "Verstehe."
     return "Das klingt interessant."
 
-def _pick_question(topic, support, independent, turn):
+def _pick_question(topic, support, independent, turn, last_question=""):
     data = TOPICS[topic]
     if support >= 2:
         pool = data["easy"]
@@ -96,7 +105,36 @@ def _pick_question(topic, support, independent, turn):
         pool = data["open"]
     else:
         pool = data["normal"]
-    return pool[turn % len(pool)]
+    choices = [q for q in pool if q != last_question] or pool
+    return choices[turn % len(choices)]
+
+def _context_followup(text, last_question):
+    low = str(text or "").strip().lower()
+    q = str(last_question or "").lower()
+    yes = low in {"ja", "ja ja", "ja, gern", "ja gern"}
+    no = low in {"nein", "nein nein", "nein, danke", "nein danke"}
+    if not (yes or no):
+        return None
+    if "arbeitest du heute" in q:
+        return ("Ah, du arbeitest heute. Wann fängst du an?" if yes
+                else "Heute hast du also frei. Was machst du heute?")
+    if "zu hause" in q:
+        return ("Schön. Was machst du zu Hause?" if yes
+                else "Ah, du bist unterwegs. Wo bist du gerade?")
+    if "viel zu tun" in q:
+        return ("Oh, du hast heute viel zu tun. Was musst du noch machen?" if yes
+                else "Das ist schön. Was möchtest du heute machen?")
+    if "liest du gern" in q:
+        return ("Schön! Was liest du gern?" if yes else "Was machst du lieber in deiner Freizeit?")
+    if "musik" in q:
+        return ("Welche Musik hörst du gern?" if yes else "Was machst du lieber?")
+    if "sport" in q:
+        return ("Welchen Sport machst du gern?" if yes else "Was machst du gern in deiner Freizeit?")
+    if "regnet" in q:
+        return ("Oh, es regnet. Bleibst du heute zu Hause?" if yes else "Ist es sonnig bei dir?")
+    if "urlaub" in q:
+        return ("Wo machst du gern Urlaub?" if yes else "Was machst du gern in deiner Freizeit?")
+    return None
 
 def generate_free_welcome(state, session_id=None):
     free = state.setdefault("free_conversation", {})
@@ -108,6 +146,7 @@ def generate_free_welcome(state, session_id=None):
     free.setdefault("last_topic", "today")
     free.setdefault("topic_turns", 0)
     free.setdefault("recent_errors", [])
+    free.setdefault("last_question", "")
     state.setdefault("student_progress", {}).setdefault("current_level", "A1.1")
     return OPENERS[index]
 
@@ -150,13 +189,23 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "last_user_message": str(user_message or "").strip(),
     })
 
+    last_question = free.get("last_question", "")
+    contextual = _context_followup(user_message, last_question)
     reaction = _recast(user_message)
-    question = _pick_question(topic, support, independent, turn)
 
-    if struggle:
-        reaction = "Kein Problem. 😊 " + reaction
+    if contextual:
+        reply = contextual
+        # The follow-up itself becomes the context for the next ja/nein answer.
+        question = contextual.split(". ")[-1]
+    else:
+        question = _pick_question(topic, support, independent, turn, last_question)
+        reply = f"{reaction} {question}"
+        if struggle:
+            reply = f"Kein Problem. 😊 {reply}"
 
-    return f"{reaction} {question}", {
+    free["last_question"] = question
+
+    return reply, {
         "conversation_mode": "free",
         "support_level": support,
         "topic": topic,
