@@ -203,8 +203,16 @@ def _yes_no_followup(text, last_question, facts):
         return "Welchen Sport machst du gern?" if yes else "Was machst du gern in deiner Freizeit?"
     if "fährst du oft rad" in q:
         return "Wo fährst du gern Rad?" if yes else "Was machst du sonst gern in deiner Freizeit?"
+    if "fährst du dort oft rad" in q:
+        return "Schön! Fährst du lieber allein oder mit jemandem?" if yes else "Wo fährst du lieber Rad?"
+    if "schwimmst du dort im sommer" in q:
+        return "Schön! Gehst du auch im Winter schwimmen?" if yes else "Wann schwimmst du dort gern?"
     if "schwimmst du oft" in q:
         return "Wo schwimmst du gern?" if yes else "Welchen Sport machst du sonst gern?"
+    if "hörst du oft" in q and "musik" in q:
+        return "Wann hörst du gern Musik?" if yes else "Welche Musik hörst du lieber?"
+    if "spielst du oft fußball" in q:
+        return "Wo spielst du gern Fußball?" if yes else "Welchen Sport machst du sonst gern?"
     if "hast du schon schöne schuhe" in q:
         if yes:
             facts["shopping_complete"] = True
@@ -236,8 +244,21 @@ def _content_followup(text, facts, memory, free, level):
         return "Was möchtest du kaufen?"
 
     # A one-word color is meaningful after a shopping/color question.
-    # Keep very short weather answers attached to the weather question.
+    # Short noun answers get their meaning from the previous question.
     last_q = _norm(free.get("last_question", ""))
+    if "wo schwimmst du gern" in last_q and low in {"see", "im see", "schwimmbad", "im schwimmbad", "pool", "im pool"}:
+        place_word = "im See" if "see" in low else ("im Schwimmbad" if "schwimmbad" in low else "im Pool")
+        memory["swimming_place"] = place_word
+        return f"Ah, {place_word}. Schwimmst du dort im Sommer?"
+    if "wo fährst du gern rad" in last_q and low in {"park", "im park", "wald", "im wald", "stadt", "in der stadt"}:
+        place_word = "im Park" if "park" in low else ("im Wald" if "wald" in low else "in der Stadt")
+        memory["cycling_place"] = place_word
+        return f"Ah, {place_word}. Fährst du dort oft Rad?"
+    if "welchen sport machst du gern" in last_q and low in {"fuzball", "fußball", "fussball"}:
+        memory["sport"] = "Fußball"
+        return "Fußball? Spielst du oft Fußball?"
+
+    # Keep very short weather answers attached to the weather question.
     if "warm oder kalt" in last_q:
         if low in {"warm", "waren", "war"}:
             memory["weather"] = "warm"
