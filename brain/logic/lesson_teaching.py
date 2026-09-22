@@ -980,8 +980,7 @@ def start_lesson_teaching(
 
 
         return (
-            "Super, dann legen wir los! "
-            "Wir üben jetzt Begrüßungen. "
+            "Los geht’s! "
             "Es ist Morgen. "
             "Was sagst du?"
         )
@@ -1021,9 +1020,8 @@ def start_lesson_teaching(
 
 
         return (
-            "Jetzt machen wir einen kurzen Mini-Dialog. "
-            "Stell dir vor, wir treffen uns morgens "
-            "zum ersten Mal. Guten Morgen!"
+            "Jetzt stellen wir uns vor. "
+            "Guten Morgen!"
         )
 
 
@@ -1061,8 +1059,7 @@ def start_lesson_teaching(
 
 
         return (
-            "Super, dann machen wir eine kurze "
-            "Übung zum deutschen Alphabet. "
+            "Wir üben jetzt das Alphabet. "
             "Hör zu: A. Sag: A."
         )
 
@@ -2195,13 +2192,31 @@ def handle_alphabet_section(
         1
     )
 
-
-    # ======================================
-    # SCHRITT 1
-    # NACH A -> B
-    # ======================================
-
     if step == 1:
+
+        if not is_letter_answer(
+            user_message,
+            "A"
+        ):
+
+            remember_lesson_mistake(
+                state,
+                "spelling",
+                user_message,
+                "A"
+            )
+
+            return (
+                "Hör zu: A. Sag bitte: „A“."
+            )
+
+        state["lesson_teaching_step"] = 2
+
+        return (
+            "Sehr gut. Jetzt B. Sag: B."
+        )
+
+    if step == 2:
 
         if not is_letter_answer(
             user_message,
@@ -2216,99 +2231,40 @@ def handle_alphabet_section(
             )
 
             return (
-                "Fast. Nach A kommt B. "
-                "Sag bitte: „B“."
+                "Hör zu: B. Sag bitte: „B“."
             )
 
-
-        state[
-            "lesson_teaching_step"
-        ] = 2
-
+        state["lesson_teaching_step"] = 3
 
         return (
-            "Richtig! Nach A kommt B. "
-            "Sehr gut. Jetzt B. Sag: B."
+            "Sehr gut. Wie heißt dieser Buchstabe: M?"
         )
-
-
-    # ======================================
-    # SCHRITT 2
-    # NACH M -> N
-    # ======================================
-
-    if step == 2:
-
-        if not is_letter_answer(
-            user_message,
-            "N"
-        ):
-
-            remember_lesson_mistake(
-                state,
-                "spelling",
-                user_message,
-                "N"
-            )
-
-            return (
-                "Fast. Nach M kommt N. "
-                "Sag bitte: „N“."
-            )
-
-
-        state[
-            "lesson_teaching_step"
-        ] = 3
-
-
-        return (
-            "Sehr gut! Nach M kommt N. "
-            "Wie heißt dieser Buchstabe: M?"
-        )
-
-
-    # ======================================
-    # SCHRITT 3
-    # VOR Z -> Y
-    # ======================================
 
     if step == 3:
 
         if not is_letter_answer(
             user_message,
-            "Y"
+            "M"
         ):
 
             remember_lesson_mistake(
                 state,
                 "spelling",
                 user_message,
-                "Y"
+                "M"
             )
 
             return (
-                "Fast. Vor Z kommt Y. "
-                "Sag bitte: „Y“."
+                "Das ist M. Sag bitte: „M“."
             )
 
-
-        state[
-            "lesson_teaching_step"
-        ] = 4
-
+        state["lesson_teaching_step"] = 4
 
         return (
-            "Genau! Vor Z kommt Y. "
-            "Im Deutschen gibt es auch drei Umlaute. "
+            "Genau! Das ist M. "
+            "Im Deutschen gibt es drei Umlaute. "
             "Welche sind das?"
         )
-
-
-    # ======================================
-    # SCHRITT 4
-    # Ä Ö Ü
-    # ======================================
 
     if step == 4:
 
@@ -2329,23 +2285,12 @@ def handle_alphabet_section(
                 "Sag sie bitte noch einmal."
             )
 
-
-        state[
-            "lesson_teaching_step"
-        ] = 5
-
+        state["lesson_teaching_step"] = 5
 
         return (
-            "Perfekt! Ä, Ö und Ü sind die drei Umlaute. "
-            "Und welches besondere Zeichen "
-            "gibt es außerdem im Deutschen?"
+            "Sehr gut! Ä, Ö und Ü. "
+            "Es gibt auch ß. Wie heißt dieses Zeichen?"
         )
-
-
-    # ======================================
-    # SCHRITT 5
-    # ß
-    # ======================================
 
     if step == 5:
 
@@ -2361,28 +2306,15 @@ def handle_alphabet_section(
             )
 
             return (
-                "Fast. Das besondere Zeichen ist ß. "
-                "Man nennt es „Eszett“ oder "
-                "„scharfes S“. "
+                "Das ist ß. Es heißt „Eszett“. "
                 "Sag bitte: „Eszett“."
             )
 
-
-        state[
-            "lesson_teaching_step"
-        ] = 6
-
+        state["lesson_teaching_step"] = 6
 
         return (
-            "Genau. Und jetzt wenden wir das Alphabet "
-            "direkt an: Buchstabiere bitte deinen Namen."
+            "Genau. Buchstabiere bitte deinen Namen."
         )
-
-
-    # ======================================
-    # SCHRITT 6
-    # NAME BUCHSTABIEREN
-    # ======================================
 
     if step == 6:
 
@@ -2409,32 +2341,25 @@ def handle_alphabet_section(
                     f"zum Beispiel: „{hint}“"
                 )
 
-
             return (
                 "Sag deinen Namen bitte "
                 "Buchstabe für Buchstabe."
             )
 
-
         next_section = complete_active_section(
             state
         )
 
-
         if next_section:
 
             return (
-                "Sehr gut! Du hast das Alphabet "
-                "direkt praktisch benutzt. "
-                f"Als Nächstes kommt "
-                f"„{next_section}“."
+                "Sehr gut! "
+                f"Als Nächstes kommt „{next_section}“."
             )
-
 
         return create_lesson_completion_answer(
             state
         )
-
 
     finish_lesson_teaching(
         state
