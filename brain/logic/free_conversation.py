@@ -92,6 +92,16 @@ def _extract_facts(text):
             facts["color"] = color.capitalize()
             break
 
+    if re.search(r"\\b(?:ich\\s+)?(?:fahren|fahre)\\s+rad\\b", low):
+        facts["activity"] = "cycling"
+        facts["topic"] = "hobby"
+    elif re.search(r"\\b(?:shwimmen|schwimmen|schwime?n)\\b", low):
+        facts["activity"] = "swimming"
+        facts["topic"] = "hobby"
+    elif re.search(r"\\bich\\s+machen\\s+lesen\\b", low):
+        facts["activity"] = "reading"
+        facts["topic"] = "hobby"
+
     if any(x in low for x in ("arbeit", "job", "hotel")):
         facts["topic"] = "work"
     elif any(x in low for x in ("hobby", "freizeit", "musik", "sport", "lesen", "buch")):
@@ -178,6 +188,10 @@ def _yes_no_followup(text, last_question, facts):
         return "Welche Musik hörst du gern?" if yes else "Was machst du lieber in deiner Freizeit?"
     if "machst du gern sport" in q:
         return "Welchen Sport machst du gern?" if yes else "Was machst du gern in deiner Freizeit?"
+    if "fährst du oft rad" in q:
+        return "Wo fährst du gern Rad?" if yes else "Was machst du sonst gern in deiner Freizeit?"
+    if "schwimmst du oft" in q:
+        return "Wo schwimmst du gern?" if yes else "Welchen Sport machst du sonst gern?"
     if "hast du schon schöne schuhe" in q:
         if yes:
             facts["shopping_complete"] = True
