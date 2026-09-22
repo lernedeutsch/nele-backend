@@ -428,7 +428,7 @@ def main():
             send_and_wait(
                 page,
                 "Wie heißt du",
-                "buchstabieren",
+                "Buchstabiere bitte deinen Namen",
             )
             send_and_wait(
                 page,
