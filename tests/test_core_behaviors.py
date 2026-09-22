@@ -46,6 +46,9 @@ from brain.logic.error_practice import (
     start_error_practice,
     handle_error_practice,
 )
+from brain.logic.wellbeing_feedback import (
+    analyze_wellbeing_response,
+)
 from brain.memory.error_memory import (
     remember_error,
     get_error_item,
@@ -413,6 +416,45 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             extract_name_sentence("Ich heiße Moni"),
             "Moni",
         )
+
+
+    def test_wellbeing_common_a1_answers_are_understood(self):
+        cases = {
+            "gut": ("good", "Das freut mich!"),
+            "prima": ("very_good", "Super, das freut mich!"),
+            "schlecht": (
+                "bad",
+                "Das tut mir leid. Dann machen wir es heute lieber etwas leichter.",
+            ),
+            "nicht schlecht": ("quite_good", "Schön zu hören!"),
+            "müde": (
+                "tired",
+                "Verstehe. Dann machen wir heute etwas Kurzes und Leichtes.",
+            ),
+        }
+
+        for answer, (expected_type, expected_reaction) in cases.items():
+            with self.subTest(answer=answer):
+                result = analyze_wellbeing_response(answer)
+                self.assertTrue(result["recognized"])
+                self.assertEqual(result["type"], expected_type)
+                self.assertEqual(result["reaction"], expected_reaction)
+
+    def test_wellbeing_gently_corrects_beginner_grammar(self):
+        result = analyze_wellbeing_response("mir geht gut")
+        self.assertTrue(result["recognized"])
+        self.assertEqual(result["type"], "good")
+        self.assertEqual(result["corrected_message"], "Mir geht es gut.")
+        self.assertIn("Fast!", result["feedback"])
+        self.assertIn("Mir geht es gut", result["feedback"])
+
+    def test_onboarding_accepts_all_basic_name_forms(self):
+        self.assertEqual(extract_name_sentence("Ich heiße Moni"), "Moni")
+        self.assertEqual(extract_name_sentence("Mein Name ist Moni"), "Moni")
+        self.assertEqual(extract_name_sentence("Ich bin Moni"), "Moni")
+
+    def test_onboarding_rejects_wrong_ich_heissen_form(self):
+        self.assertEqual(extract_name_sentence("Ich heißen Moni"), "")
 
 
     def test_onboarding_rejects_unrelated_learning_goal(self):
