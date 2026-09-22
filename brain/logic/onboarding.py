@@ -790,9 +790,7 @@ def start_onboarding(
     )
 
     return (
-        "Hallo! Ich bin Nele, "
-        "deine persönliche Deutschtrainerin. "
-        "Schön, dich kennenzulernen! "
+        "Hallo! Ich bin Nele. "
         "Wie heißt du?"
     )
 
@@ -852,7 +850,7 @@ def get_onboarding_question(
     if step == 3:
 
         return (
-            "Und wo wohnst du jetzt?"
+            "Wo wohnst du?"
         )
 
 
@@ -1073,18 +1071,13 @@ def finish_onboarding(
 
         return (
             f"Super, {name}! "
-            "Jetzt kenne ich dich schon "
-            "ein bisschen besser. "
-            "Ich passe die Übungen an dich an. "
-            "Möchtest du gleich anfangen?"
+            "Wir lernen jetzt Deutsch. "
+            "Bist du bereit?"
         )
 
     return (
-        "Super! "
-        "Jetzt kenne ich dich schon "
-        "ein bisschen besser. "
-        "Ich passe die Übungen an dich an. "
-        "Möchtest du gleich anfangen?"
+        "Super! Wir lernen jetzt Deutsch. "
+        "Bist du bereit?"
     )
 
 
@@ -1174,7 +1167,7 @@ def handle_onboarding_answer(
         )
 
         return (
-            "Und wo wohnst du jetzt?"
+            "Wo wohnst du?"
         )
 
 
@@ -1203,14 +1196,8 @@ def handle_onboarding_answer(
             residence
         )
 
-        set_onboarding_step(
-            state,
-            4
-        )
-
-        return (
-            "Was machst du gern "
-            "in deiner Freizeit?"
+        return finish_onboarding(
+            state
         )
 
 
