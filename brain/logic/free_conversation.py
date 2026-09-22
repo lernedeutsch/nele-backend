@@ -186,6 +186,10 @@ def _yes_no_followup(text, last_question, facts):
     if "gefallen dir die schuhe" in q:
         facts["shopping_complete"] = True
         return "Schön! Und wie ist dein Tag heute?" if yes else "Oh, schade. Suchst du noch weiter?"
+    if "magst du das wetter heute" in q:
+        return "Schön! Was machst du bei diesem Wetter gern?" if yes else "Was machst du bei diesem Wetter lieber?"
+    if "magst du das wetter" in q:
+        return "Schön! Was machst du bei diesem Wetter gern?" if yes else "Was machst du bei diesem Wetter lieber?"
     return None
 
 def _content_followup(text, facts, memory, free, level):
@@ -205,6 +209,20 @@ def _content_followup(text, facts, memory, free, level):
         return "Was möchtest du kaufen?"
 
     # A one-word color is meaningful after a shopping/color question.
+    # Keep very short weather answers attached to the weather question.
+    last_q = _norm(free.get("last_question", ""))
+    if "warm oder kalt" in last_q:
+        if low in {"warm", "waren", "war"}:
+            memory["weather"] = "warm"
+            return "Ah, es ist warm. Ist es auch sonnig?"
+        if low == "kalt":
+            memory["weather"] = "kalt"
+            return "Oh, es ist kalt. Bleibst du heute lieber drinnen?"
+
+    if "es regnet" in low or low == "regen":
+        memory["weather"] = "Regen"
+        return "Oh, es regnet. Magst du das Wetter heute?"
+
     if facts.get("day_statement"):
         # "schon" is a very common keyboard/ASR spelling for "schön" here.
         if re.search(r"\b(?:schon|schön)\b", low):
