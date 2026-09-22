@@ -10,6 +10,7 @@ from flask import Flask, g, jsonify, request, send_file
 from speech.speaker import Speaker
 
 from brain.logic.conversation import generate_conversation_reply
+from brain.logic.free_conversation import generate_free_conversation_reply, generate_free_welcome
 from brain.logic.welcome import generate_welcome_reply
 from brain.logic.memory import (
     get_conversation_state,
@@ -361,11 +362,17 @@ def create_nele_reply(
     session_id: str,
     transcript: str | None = None,
     input_mode: str | None = None,
+    conversation_mode: str | None = None,
 ):
     """Run Nele 3 feature commands first, otherwise use Nele 1's original router."""
     try:
         state = get_conversation_state(session_id)
         ensure_upgrade_state(state)
+
+        conversation_mode = str(conversation_mode or "course").strip().lower()
+        if conversation_mode not in {"course", "free"}:
+            conversation_mode = "course"
+        state["conversation_mode"] = conversation_mode
 
         mode = str(input_mode or "").strip().lower()
         if mode not in {"voice", "keyboard"}:
@@ -373,6 +380,16 @@ def create_nele_reply(
 
         state["last_input_mode"] = mode
         state["input_mode"] = mode
+
+        if conversation_mode == "free":
+            answer, meta = generate_free_conversation_reply(
+                user_message,
+                state,
+                session_id=session_id,
+            )
+            remember_nele_output(answer, state)
+            save_conversation_state(session_id)
+            return answer, meta or {}
 
         handled, answer, meta = handle_upgrade_message(
             user_message,
@@ -410,8 +427,16 @@ def create_nele_reply(
         )
 
 
-def create_welcome_reply(session_id, preserve_active_task=True):
+def create_welcome_reply(session_id, preserve_active_task=True, conversation_mode="course"):
     try:
+        if str(conversation_mode).strip().lower() == "free":
+            state = get_conversation_state(session_id)
+            ensure_upgrade_state(state)
+            state["conversation_mode"] = "free"
+            answer = generate_free_welcome(state, session_id=session_id)
+            remember_nele_output(answer, state)
+            save_conversation_state(session_id)
+            return answer
         return start_conversation_session(
             session_id,
             new_conversation=not preserve_active_task,
@@ -436,13 +461,15 @@ def get_chat_request_data():
             request.form.get("input_mode")
             or ("voice" if audio_file else "keyboard")
         ).strip().lower()
-        return user_message, session_id, audio_file, input_mode
+        conversation_mode = str(request.form.get("conversation_mode") or "course").strip().lower()
+        return user_message, session_id, audio_file, input_mode, conversation_mode
 
     data = request.get_json(silent=True) or {}
     user_message = str(data.get("message", "")).strip()
     session_id = getattr(g, "nele_session_id", None)
     input_mode = str(data.get("input_mode") or "keyboard").strip().lower()
-    return user_message, session_id, None, input_mode
+    conversation_mode = str(data.get("conversation_mode") or "course").strip().lower()
+    return user_message, session_id, None, input_mode, conversation_mode
 
 
 def get_audio_info(audio_file):
@@ -566,9 +593,11 @@ def welcome():
         data.get("new_conversation", False)
     )
 
+    conversation_mode = str(data.get("conversation_mode") or "course").strip().lower()
     answer = create_welcome_reply(
         session_id,
         preserve_active_task=not new_conversation,
+        conversation_mode=conversation_mode,
     )
     return jsonify({"reply": answer, "session_id": session_id})
 
@@ -622,7 +651,7 @@ def chat():
     if request.method == "OPTIONS":
         return jsonify({"ok": True})
 
-    user_message, session_id, audio_file, input_mode = get_chat_request_data()
+    user_message, session_id, audio_file, input_mode, conversation_mode = get_chat_request_data()
     audio_info = get_audio_info(audio_file)
 
     if audio_info and audio_info.get("error") == "audio_too_large":
@@ -672,6 +701,7 @@ def chat():
         session_id,
         transcript=(transcription or {}).get("text") if transcription else None,
         input_mode=input_mode,
+        conversation_mode=conversation_mode,
     )
 
     response_data = {
