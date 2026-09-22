@@ -227,6 +227,112 @@ def _yes_no_followup(text, last_question, facts):
         return "Schön! Was machst du bei diesem Wetter gern?" if yes else "Was machst du bei diesem Wetter lieber?"
     return None
 
+def _social_a1_reply(text, free, state):
+    """Core A1 greetings, wellbeing and introductions with gentle modelling."""
+    raw = str(text or "").strip()
+    low = _norm(raw)
+    last = _norm(free.get("last_question", ""))
+
+    # ---- Wie geht's? / Wie geht es dir/Ihnen? ----
+    wellbeing_question = any(x in last for x in (
+        "wie geht's dir", "wie geht es dir", "wie geht es ihnen", "wie geht's ihnen"
+    ))
+    if wellbeing_question:
+        # Accept short everyday answers but model the complete A1 sentence.
+        wellbeing = {
+            "prima": ("Mir geht es prima.", "Prima!"),
+            "super": ("Mir geht es super.", "Super!"),
+            "sehr gut": ("Mir geht es sehr gut.", "Das freut mich!"),
+            "gut": ("Mir geht es gut.", "Das freut mich!"),
+            "ganz gut": ("Mir geht es ganz gut.", "Schön!"),
+            "nicht schlecht": ("Mir geht es nicht schlecht.", "Schön!"),
+            "so lala": ("Mir geht es so lala.", "Verstehe."),
+            "es geht": ("Es geht.", "Verstehe."),
+            "geht so": ("Es geht so.", "Verstehe."),
+            "nicht so gut": ("Mir geht es nicht so gut.", "Oh, das tut mir leid."),
+            "schlecht": ("Mir geht es schlecht.", "Oh, das tut mir leid."),
+            "sehr schlecht": ("Mir geht es sehr schlecht.", "Oh, das tut mir leid."),
+            "müde": ("Ich bin müde.", "Oh, du bist müde."),
+        }
+        if low in wellbeing:
+            model, reaction = wellbeing[low]
+            free.setdefault("conversation_facts", {})["wellbeing"] = low
+            if low in {"schlecht", "sehr schlecht", "nicht so gut"}:
+                return f"{reaction} Du kannst sagen: „{model}“ Warum geht es dir nicht gut?"
+            if low == "müde":
+                return f"{reaction} Du kannst sagen: „{model}“ War dein Tag anstrengend?"
+            return f"{reaction} Du kannst auch sagen: „{model}“ Was machst du heute?"
+
+        # Common malformed answers: ich gut / mir geht gut / ich bin gut.
+        if re.fullmatch(r"ich\s+(?:gut|prima|schlecht)", low):
+            word = low.split()[-1]
+            model = f"Mir geht es {word}."
+            return f"Fast richtig. Sag: „{model}“ Und was machst du heute?"
+        m = re.fullmatch(r"mir\s+geht(?:\s+es)?\s+(gut|prima|schlecht|super)", low)
+        if m:
+            word = m.group(1)
+            model = f"Mir geht es {word}."
+            if low == model.lower().rstrip("."):
+                return f"Sehr gut! Was machst du heute?"
+            return f"Fast richtig. Sag: „{model}“ Was machst du heute?"
+
+    # ---- Introductions / names ----
+    # Correct variants.
+    m = re.match(r"^ich\s+heiße\s+(.+)$", raw, re.I)
+    if m:
+        name = m.group(1).strip(" .")
+        free.setdefault("conversation_facts", {})["name"] = name
+        return f"Hallo {name}! Schön, dich kennenzulernen. Woher kommst du?"
+
+    m = re.match(r"^mein\s+name\s+ist\s+(.+)$", raw, re.I)
+    if m:
+        name = m.group(1).strip(" .")
+        free.setdefault("conversation_facts", {})["name"] = name
+        return f"Hallo {name}! Schön, dich kennenzulernen. Woher kommst du?"
+
+    # "Ich bin Moni" is valid as an informal self-introduction when a name follows.
+    m = re.match(r"^ich\s+bin\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{1,30})[.!]?$", raw)
+    if m:
+        name = m.group(1)
+        free.setdefault("conversation_facts", {})["name"] = name
+        return f"Hallo {name}! Schön, dich kennenzulernen. Woher kommst du?"
+
+    # Common conjugation mistakes when giving a name.
+    m = re.match(r"^ich\s+(?:heißen|heissen|heißt|heisst)\s+(.+)$", raw, re.I)
+    if m:
+        name = m.group(1).strip(" .")
+        free.setdefault("conversation_facts", {})["name"] = name
+        _record_error(state, free, "ich_heisse", raw)
+        return f"Fast richtig. Sag: „Ich heiße {name}.“ Hallo {name}! Woher kommst du?"
+
+    m = re.match(r"^mein\s+name\s+(?:sein|sind)\s+(.+)$", raw, re.I)
+    if m:
+        name = m.group(1).strip(" .")
+        _record_error(state, free, "mein_name_ist", raw)
+        return f"Fast richtig. Sag: „Mein Name ist {name}.“ Woher kommst du?"
+
+    # ---- Greetings: formal and informal ----
+    greetings = {
+        "hallo": ("Hallo!", "informell"),
+        "hi": ("Hi!", "informell"),
+        "hey": ("Hallo!", "informell"),
+        "guten morgen": ("Guten Morgen!", "neutral"),
+        "guten tag": ("Guten Tag!", "formal"),
+        "guten abend": ("Guten Abend!", "neutral"),
+        "moin": ("Moin!", "informell"),
+        "servus": ("Servus!", "informell"),
+        "grüß gott": ("Grüß Gott!", "regional"),
+        "gruss gott": ("Grüß Gott!", "regional"),
+    }
+    clean = low.strip("!., ")
+    if clean in greetings:
+        answer, register = greetings[clean]
+        free.setdefault("conversation_facts", {})["greeting_register"] = register
+        return f"{answer} Wie geht es dir heute?"
+
+    return None
+
+
 def _content_followup(text, facts, memory, free, level):
     """Choose a question from the learner's content before any generic pool."""
     low = _norm(text)
@@ -377,6 +483,26 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     last_question = free.get("last_question", "")
     recast, error_key = _error_and_recast(user_message)
     _record_error(state, free, error_key, user_message)
+
+    # Priority 0: core A1 social language (greetings, wellbeing, introductions).
+    social_reply = _social_a1_reply(user_message, free, state)
+    if social_reply:
+        # Store its final question as conversational context for the next turn.
+        parts = re.findall(r"[^.!?]*[?]", social_reply)
+        next_question = parts[-1].strip() if parts else ""
+        if next_question:
+            _remember_question(free, next_question)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        return social_reply, {
+            "conversation_mode": "free",
+            "support_level": support,
+            "topic": free.get("last_topic", "today"),
+            "independent_turns": independent,
+            "course_level": level,
+            "conversation_facts": dict(free.get("conversation_facts", {})),
+            "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
+        }
 
     # Priority: answer context -> learner content -> safe course-level fallback.
     question = _yes_no_followup(user_message, last_question, memory)
