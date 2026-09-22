@@ -131,12 +131,12 @@ def get_lesson_mistake_context(
         ): {
             1:
                 (
-                    "Stell dir vor, es ist morgens. "
+                    "Es ist Morgen. "
                     "Was sagst du zur Begrüßung?"
                 ),
             2:
                 (
-                    "Es ist tagsüber. "
+                    "Es ist Tag. "
                     "Was sagst du zur Begrüßung?"
                 ),
             3:
@@ -146,12 +146,12 @@ def get_lesson_mistake_context(
                 ),
             4:
                 (
-                    "Du begrüßt jemanden ganz locker. "
+                    "Du sprichst mit einem Freund. "
                     "Was sagst du?"
                 ),
             5:
                 (
-                    "Du verabschiedest dich von einem Freund. "
+                    "Du gehst. "
                     "Was sagst du?"
                 ),
             6:
@@ -197,11 +197,11 @@ def get_lesson_mistake_context(
             "Das deutsche Alphabet"
         ): {
             1:
-                "Welcher Buchstabe kommt nach A?",
+                "Hör zu: A. Sag: A.",
             2:
-                "Welcher Buchstabe kommt nach M?",
+                "Sehr gut. Jetzt B. Sag: B.",
             3:
-                "Welcher Buchstabe kommt vor Z?",
+                "Wie heißt dieser Buchstabe: M?",
             4:
                 "Welche drei Umlaute gibt es im Deutschen?",
             5:
@@ -982,7 +982,7 @@ def start_lesson_teaching(
         return (
             "Super, dann legen wir los! "
             "Wir üben jetzt Begrüßungen. "
-            "Stell dir vor, es ist morgens. "
+            "Es ist Morgen. "
             "Was sagst du?"
         )
 
@@ -1063,7 +1063,7 @@ def start_lesson_teaching(
         return (
             "Super, dann machen wir eine kurze "
             "Übung zum deutschen Alphabet. "
-            "Welcher Buchstabe kommt nach A?"
+            "Hör zu: A. Sag: A."
         )
 
 
@@ -1127,7 +1127,7 @@ def get_current_lesson_prompt(
         prompts = {
             1: (
                 "Wir machen genau dort weiter. "
-                "Stell dir vor, es ist morgens. "
+                "Es ist Morgen. "
                 "Was sagst du?"
             ),
             2: (
@@ -1147,7 +1147,7 @@ def get_current_lesson_prompt(
             ),
             5: (
                 "Wir machen genau dort weiter. "
-                "Du verabschiedest dich von einem Freund. "
+                "Du gehst. "
                 "Was sagst du?"
             ),
             6: (
@@ -1188,7 +1188,7 @@ def get_current_lesson_prompt(
             ),
             4: (
                 "Ich heiße Nele. "
-                "Kannst du deinen Namen bitte buchstabieren?"
+                "Buchstabiere bitte deinen Namen."
             ),
             5: (
                 "Jetzt sind wir in einer höflichen Situation "
@@ -1210,15 +1210,15 @@ def get_current_lesson_prompt(
         prompts = {
             1: (
                 "Wir machen genau dort weiter. "
-                "Welcher Buchstabe kommt nach A?"
+                "Hör zu: A. Sag: A."
             ),
             2: (
                 "Wir machen genau dort weiter. "
-                "Welcher Buchstabe kommt nach M?"
+                "Sehr gut. Jetzt B. Sag: B."
             ),
             3: (
                 "Wir machen genau dort weiter. "
-                "Welcher Buchstabe kommt vor Z?"
+                "Wie heißt dieser Buchstabe: M?"
             ),
             4: (
                 "Wir machen genau dort weiter. "
@@ -1907,13 +1907,13 @@ def handle_introduction_section(
 
             return (
                 f"Freut mich, {name}! "
-                "Und wie fragst du mich nach meinem Namen?"
+                "Frag mich: „Wie heißt du?“"
             )
 
 
         return (
             "Freut mich! "
-            "Und wie fragst du mich nach meinem Namen?"
+            "Frag mich: „Wie heißt du?“"
         )
 
 
@@ -1949,7 +1949,7 @@ def handle_introduction_section(
 
         return (
             "Ich heiße Nele. "
-            "Kannst du deinen Namen bitte buchstabieren?"
+            "Buchstabiere bitte deinen Namen."
         )
 
 
@@ -2228,7 +2228,7 @@ def handle_alphabet_section(
 
         return (
             "Richtig! Nach A kommt B. "
-            "Welcher Buchstabe kommt nach M?"
+            "Sehr gut. Jetzt B. Sag: B."
         )
 
 
@@ -2264,7 +2264,7 @@ def handle_alphabet_section(
 
         return (
             "Sehr gut! Nach M kommt N. "
-            "Welcher Buchstabe kommt vor Z?"
+            "Wie heißt dieser Buchstabe: M?"
         )
 
 
