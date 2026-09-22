@@ -92,15 +92,22 @@ def _extract_facts(text):
             facts["color"] = color.capitalize()
             break
 
-    if re.search(r"\\b(?:ich\\s+)?(?:fahren|fahre)\\s+rad\\b", low):
+    if re.search(r"\b(?:ich\s+)?(?:fahren|fahre|fährst|faehrst)\s+rad\b", low):
         facts["activity"] = "cycling"
         facts["topic"] = "hobby"
-    elif re.search(r"\\b(?:shwimmen|schwimmen|schwime?n)\\b", low):
+    elif re.search(r"\b(?:shwimmen|schwimmen|schwime?n|schwim+en)\b", low):
         facts["activity"] = "swimming"
         facts["topic"] = "hobby"
-    elif re.search(r"\\bich\\s+machen\\s+lesen\\b", low):
+    elif re.search(r"\b(?:ich\s+)?(?:machen\s+)?(?:lesen|lese)\b", low):
         facts["activity"] = "reading"
         facts["topic"] = "hobby"
+    elif re.search(r"\b(?:ich\s+)?(?:horen|hören|höre|hoere)\b", low):
+        facts["activity"] = "music"
+        facts["topic"] = "hobby"
+        for genre in ("pop", "rock", "jazz", "techno", "rap", "klassik"):
+            if re.search(rf"\b{genre}\b", low):
+                facts["music_genre"] = genre.capitalize()
+                break
 
     if any(x in low for x in ("arbeit", "job", "hotel")):
         facts["topic"] = "work"
@@ -119,6 +126,12 @@ def _error_and_recast(text):
     value = str(text or "").strip()
     low = value.lower()
     patterns = [
+        (r"^ich\s+machen\s+lesen$", "ich_machen_lesen", lambda m: "Ah, du liest gern."),
+        (r"^ich\s+lesen\s+gern$", "ich_lesen", lambda m: "Ah, du liest gern."),
+        (r"^ich\s+lesen$", "ich_lesen", lambda m: "Ah, du liest."),
+        (r"^ich\s+fahren\s+rad$", "ich_fahren_rad", lambda m: "Ah, du fährst gern Rad."),
+        (r"^ich\s+(?:horen|hören|hoere)\s+(.+)$", "ich_hoeren", lambda m: f"Ah, du hörst {m.group(1).capitalize()}."),
+        (r"^ich\s+(?:shwimmen|schwimmen|schwimen)$", "ich_schwimmen", lambda m: "Ah, du schwimmst gern."),
         (r"^ich\s+kaufen\s+(.+)$", "ich_kaufen", lambda m: f"Ah, du kaufst {m.group(1)}."),
         (r"^ich\s+gehen\s+(.+)$", "ich_gehen", lambda m: f"Ah, du gehst {m.group(1)}."),
         (r"^ich\s+arbeiten(?:\s+(.+))?$", "ich_arbeiten", lambda m: "Ah, du arbeitest" + (f" {m.group(1)}." if m.group(1) else ".")),
@@ -255,6 +268,19 @@ def _content_followup(text, facts, memory, free, level):
 
     if "ich bin müde" in low or low == "müde":
         return "Oh, du bist müde. War dein Tag anstrengend?"
+
+    activity = facts.get("activity")
+    if activity == "reading":
+        if _norm(text) in {"ich lesen", "ich lese"}:
+            return "Was liest du gerade?"
+        return "Was liest du gern?"
+    if activity == "music":
+        genre = facts.get("music_genre")
+        return f"Hörst du oft {genre}musik?" if genre else "Welche Musik hörst du gern?"
+    if activity == "cycling":
+        return "Fährst du oft Rad?"
+    if activity == "swimming":
+        return "Schwimmen? Schön! Schwimmst du oft?"
 
     if re.search(r"\bich\s+arbeite\b", low):
         return "Wann fängst du an?"
