@@ -310,7 +310,7 @@ def main():
             send_and_wait(
                 page,
                 "Guten Morgen",
-                "Es ist Tag",
+                "tagsüber",
             )
 
             send_and_wait(page, "p", "Guten Tag")
