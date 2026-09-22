@@ -438,7 +438,7 @@ def main():
             send_and_wait(
                 page,
                 "m o n i k a",
-                "Jetzt höflich",
+                "höfliche Situation im Hotel",
             )
             send_and_wait(
                 page,
