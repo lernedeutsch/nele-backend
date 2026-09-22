@@ -224,7 +224,7 @@ def resume_greeting_lesson(
 
         return (
             "Jetzt machen wir weiter. "
-            "Stell dir vor, es ist morgens. "
+            "Es ist Morgen. "
             "Was sagst du?"
         )
 
