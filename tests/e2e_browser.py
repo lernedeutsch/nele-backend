@@ -277,22 +277,12 @@ def main():
             send_and_wait(
                 page,
                 "Ich komme aus Polen",
-                "wo wohnst du jetzt?",
+                "Wo wohnst du?",
             )
             send_and_wait(
                 page,
                 "Ich wohne in Heidelberg",
-                "Freizeit",
-            )
-            send_and_wait(
-                page,
-                "Ich schwimme gern",
-                "Ziel beim Deutschlernen",
-            )
-            send_and_wait(
-                page,
-                "Ich will B1 erreichen",
-                "Möchtest du gleich anfangen?",
+                "Bist du bereit?",
             )
 
             # Nach abgeschlossenem Onboarding beginnt
@@ -308,7 +298,7 @@ def main():
             send_and_wait(
                 page,
                 "gut",
-                "Stell dir vor, es ist morgens",
+                "Es ist Morgen",
             )
 
             # ----------------------------------
@@ -320,7 +310,7 @@ def main():
             send_and_wait(
                 page,
                 "Guten Morgen",
-                "tagsüber",
+                "Es ist Tag",
             )
 
             send_and_wait(page, "p", "Guten Tag")
@@ -428,7 +418,7 @@ def main():
             send_and_wait(
                 page,
                 "Ich heiße Monika",
-                "nach meinem Namen",
+                "Frag mich",
             )
             send_and_wait(
                 page,
@@ -448,7 +438,7 @@ def main():
             send_and_wait(
                 page,
                 "m o n i k a",
-                "höfliche Situation",
+                "Jetzt höflich",
             )
             send_and_wait(
                 page,
@@ -467,26 +457,24 @@ def main():
             send_and_wait(
                 page,
                 "ja",
-                "Welcher Buchstabe kommt nach A?",
+                "Hör zu: A",
             )
+            send_and_wait(page, "g", "Sag bitte: „A“")
+            send_and_wait(
+                page,
+                "A",
+                "Jetzt B",
+            )
+            send_and_wait(page, "j", "Sag bitte: „B“")
             send_and_wait(
                 page,
                 "B",
-                "nach M",
+                "Buchstabe: M",
             )
-            send_and_wait(page, "g", "Nach M kommt N")
-            send_and_wait(page, "j", "Nach M kommt N")
+            send_and_wait(page, "u", "Das ist M")
             send_and_wait(
                 page,
-                "N",
-                "vor Z",
-            )
-            send_and_wait(page, "u", "Vor Z kommt Y")
-            send_and_wait(page, "i", "Vor Z kommt Y")
-            send_and_wait(page, "l", "Vor Z kommt Y")
-            send_and_wait(
-                page,
-                "Y",
+                "M",
                 "Umlaute",
             )
             send_and_wait(
@@ -497,7 +485,7 @@ def main():
             send_and_wait(
                 page,
                 "ä ö ü",
-                "besondere Zeichen",
+                "auch ß",
             )
             send_and_wait(
                 page,
