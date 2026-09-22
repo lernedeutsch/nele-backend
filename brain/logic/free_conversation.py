@@ -82,6 +82,10 @@ def _extract_facts(text):
     if "sportschuh" in low:
         facts["shopping_item"] = "Sportschuhe"
 
+    if re.search(r"\bmein\s+tag\b", low):
+        facts["topic"] = "today"
+        facts["day_statement"] = True
+
     # Simple colors useful for shopping follow-ups.
     for color in ("schwarz", "blau", "rot", "grün", "grau", "rosa", "weiß", "braun"):
         if re.search(rf"\b{color}\w*\b", low):
@@ -174,8 +178,14 @@ def _yes_no_followup(text, last_question, facts):
         return "Welche Musik hörst du gern?" if yes else "Was machst du lieber in deiner Freizeit?"
     if "machst du gern sport" in q:
         return "Welchen Sport machst du gern?" if yes else "Was machst du gern in deiner Freizeit?"
-    if "hast du schon schöne schuhe gefunden" in q:
-        return "Super! Welche Farbe haben sie?" if yes else "Welche Schuhe suchst du?"
+    if "hast du schon schöne schuhe" in q:
+        if yes:
+            facts["shopping_complete"] = True
+            return "Super! Gefallen dir die Schuhe?"
+        return "Welche Schuhe suchst du?"
+    if "gefallen dir die schuhe" in q:
+        facts["shopping_complete"] = True
+        return "Schön! Und wie ist dein Tag heute?" if yes else "Oh, schade. Suchst du noch weiter?"
     return None
 
 def _content_followup(text, facts, memory, free, level):
@@ -195,7 +205,18 @@ def _content_followup(text, facts, memory, free, level):
         return "Was möchtest du kaufen?"
 
     # A one-word color is meaningful after a shopping/color question.
-    if color and ("farbe" in _norm(free.get("last_question", "")) or item):
+    if facts.get("day_statement"):
+        # "schon" is a very common keyboard/ASR spelling for "schön" here.
+        if re.search(r"\b(?:schon|schön)\b", low):
+            return "Das freut mich! Was war heute schön?"
+        if "gut" in low:
+            return "Das freut mich! Was war heute gut?"
+        return "Erzähl mir ein bisschen von deinem Tag."
+
+    if color and (
+        "farbe" in _norm(free.get("last_question", ""))
+        or (item and not memory.get("shopping_complete"))
+    ):
         if place:
             return f"{color} passt gut. Hast du schon schöne Schuhe in {place} gefunden?"
         return f"{color} passt gut. Hast du schon schöne Schuhe gefunden?"
@@ -260,7 +281,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     facts = _extract_facts(user_message)
     memory = free.setdefault("conversation_facts", {})
-    memory.update({k: v for k, v in facts.items() if k != "topic"})
+    memory.update({k: v for k, v in facts.items() if k not in {"topic", "day_statement"}})
+
+    # A clear new everyday topic closes the active shopping branch. Keep the
+    # useful facts (place/color) in memory, but do not let them hijack replies.
+    if facts.get("day_statement"):
+        memory["shopping_complete"] = True
 
     previous_topic = free.get("last_topic", "today")
     topic = facts.get("topic", previous_topic)
