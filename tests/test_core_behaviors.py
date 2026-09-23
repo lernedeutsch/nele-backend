@@ -1151,3 +1151,36 @@ def test_free_speaking_continuous_a1_social_conversation():
 
     reply, _ = generate_free_conversation_reply("Tschüss", state)
     assert reply == "Tschüss!"
+
+
+def test_free_speaking_everyday_a1_topics_and_errors():
+    state = {"student_progress": {"current_level": "A1.1"}}
+
+    reply, _ = generate_free_conversation_reply("Was machst du heute?", state)
+    assert "was machst du heute" in reply.lower()
+    reply, _ = generate_free_conversation_reply("arbeiten", state)
+    assert "Wann fängst du an" in reply
+
+    reply, _ = generate_free_conversation_reply("Ich arbeiten heute", state)
+    assert "Ich arbeite heute" in reply
+
+    reply, _ = generate_free_conversation_reply("Was machst du gern in deiner Freizeit?", state)
+    assert "Freizeit" in reply
+    reply, _ = generate_free_conversation_reply("lesen", state)
+    assert "Was liest du gern" in reply
+
+    reply, _ = generate_free_conversation_reply("Ich fahren Rad", state)
+    assert "Ich fahre Rad" in reply
+
+    reply, _ = generate_free_conversation_reply("Gehst du gern einkaufen?", state)
+    assert "Was kaufst du gern" in reply
+    reply, _ = generate_free_conversation_reply("Ich kaufen Schuhe", state)
+    assert "Ich kaufe Schuhe" in reply
+
+    reply, _ = generate_free_conversation_reply("Machst du gern Urlaub?", state)
+    assert "Wo machst du gern Urlaub" in reply
+    reply, _ = generate_free_conversation_reply("Ich machen Urlaub in Italien", state)
+    assert "Ich mache Urlaub in italien" in reply.lower()
+
+    reply, _ = generate_free_conversation_reply("Meer", state)
+    assert "Meer" in reply
