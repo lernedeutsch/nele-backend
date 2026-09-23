@@ -1490,9 +1490,8 @@ def handle_greeting_section(
                 )
 
             return (
-                "Fast. Tagsüber kannst du sagen: "
-                "„Guten Tag.“ "
-                "Versuch es noch einmal."
+                "Fast. Richtig: „Guten Tag.“ "
+                "Sag es bitte noch einmal."
             )
 
 
@@ -1568,9 +1567,8 @@ def handle_greeting_section(
                 )
 
             return (
-                "Fast. Ganz einfach kannst du sagen: "
-                "„Hallo.“ "
-                "Versuch es noch einmal."
+                "Fast. Richtig: „Hallo.“ "
+                "Sag es bitte noch einmal."
             )
 
 
@@ -1622,9 +1620,7 @@ def handle_greeting_section(
                 )
 
             return (
-                "Fast. Zu einem Freund kannst du "
-                "zum Beispiel sagen: "
-                "„Tschüss.“ "
+                "Fast. Richtig: „Tschüss.“ "
                 "Sag es bitte noch einmal."
             )
 
