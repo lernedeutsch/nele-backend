@@ -1,3 +1,4 @@
+from brain.logic.free_conversation import generate_free_conversation_reply
 import unittest
 from unittest.mock import patch
 
@@ -1052,3 +1053,66 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _free_reply(message, state=None, last_question=""):
+    state = state or {"student_progress": {"current_level": "A1.1"}}
+    free = state.setdefault("free_conversation", {})
+    free["last_question"] = last_question
+    reply, _ = generate_free_conversation_reply(message, state)
+    return reply, state
+
+
+def test_free_speaking_greetings_and_gentle_corrections():
+    reply, _ = _free_reply("Guten Morgen")
+    assert "Guten Morgen!" in reply
+    assert "Wie geht es dir" in reply
+
+    reply, _ = _free_reply("Gute Morgen")
+    assert "Guten Morgen" in reply
+    assert "noch einmal" in reply
+
+    reply, _ = _free_reply("Auf Wiedersehen")
+    assert reply == "Auf Wiedersehen!"
+
+
+def test_free_speaking_name_questions_and_errors():
+    reply, _ = _free_reply("Wie heißt du?")
+    assert "Ich heiße Nele" in reply
+    assert "wie heißt du" in reply
+
+    reply, _ = _free_reply("Wie heißen du?")
+    assert "Wie heißt du?" in reply
+    assert "Ich heiße Nele" in reply
+
+    reply, _ = _free_reply("Ich heißen Moni")
+    assert "Ich heiße Moni" in reply
+
+
+def test_free_speaking_wellbeing_questions_answers_and_errors():
+    reply, _ = _free_reply("Wie geht es dir?")
+    assert "Mir geht es gut" in reply
+    assert "Und dir?" in reply
+
+    reply, _ = _free_reply("Wie geht du?")
+    assert "Wie geht es dir?" in reply
+
+    reply, _ = _free_reply("schlecht", last_question="Wie geht es dir heute?")
+    assert "Mir geht es schlecht" in reply
+
+
+def test_free_speaking_weather_questions_answers_and_errors():
+    reply, _ = _free_reply("Wie ist das Wetter heute?")
+    assert "Wie ist das Wetter bei dir?" in reply
+
+    reply, _ = _free_reply("sonnig", last_question="Wie ist das Wetter bei dir?")
+    assert "sonniges Wetter" in reply
+
+    reply, _ = _free_reply("Es ist Regen", last_question="Wie ist das Wetter bei dir?")
+    assert "Es regnet" in reply
+
+    reply, _ = _free_reply("Es sonnig", last_question="Wie ist das Wetter bei dir?")
+    assert "Es ist sonnig" in reply
+
+    reply, _ = _free_reply("Es schneit", last_question="Wie ist das Wetter bei dir?")
+    assert "Schnee" in reply
