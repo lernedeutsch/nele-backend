@@ -299,9 +299,14 @@ def main():
                 "Ich wohne in Heidelberg",
                 "Bist du bereit?",
             )
+            send_and_wait(
+                page,
+                "Ja",
+                "Es ist Morgen",
+            )
 
-            # Nach abgeschlossenem Onboarding beginnt
-            # ein neues Treffen mit dem bekannten Benutzer.
+            # Nach dem direkten Start der ersten Lektion
+            # bleibt derselbe Benutzer und Lernstand erhalten.
             page.reload(
                 wait_until="domcontentloaded"
             )
