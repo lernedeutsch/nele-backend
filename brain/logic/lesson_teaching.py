@@ -1463,9 +1463,7 @@ def handle_greeting_section(
 
 
         return (
-            "Sehr gut! „Guten Morgen“ ist richtig. "
-            "Jetzt ist es tagsüber. "
-            "Was sagst du?"
+            "Richtig! Es ist Tag. Was sagst du?"
         )
 
 
@@ -1504,9 +1502,7 @@ def handle_greeting_section(
 
 
         return (
-            "Genau! „Guten Tag“ ist richtig. "
-            "Jetzt ist es Abend. "
-            "Was sagst du?"
+            "Sehr gut! Es ist Abend. Was sagst du?"
         )
 
 
@@ -1545,9 +1541,7 @@ def handle_greeting_section(
 
 
         return (
-            "Perfekt! „Guten Abend“ ist richtig. "
-            "Und wenn du jemanden ganz locker "
-            "begrüßt, was kannst du sagen?"
+            "Sehr gut! Und zu einem Freund?"
         )
 
 
@@ -1601,10 +1595,7 @@ def handle_greeting_section(
 
 
         return (
-            f"Sehr gut! „{spoken_greeting}“ passt perfekt. "
-            "Und jetzt verabschiedest du dich "
-            "von einem Freund. "
-            "Was sagst du?"
+            "Genau! Du gehst. Was sagst du?"
         )
 
 
@@ -1644,10 +1635,7 @@ def handle_greeting_section(
 
 
         return (
-            "Sehr gut. Jetzt noch ein kurzer Mini-Dialog. "
-            "Du kommst morgens zur Arbeit. "
-            "Ich sage: „Guten Morgen!“ "
-            "Was antwortest du?"
+            "Sehr gut! Ich sage: „Guten Morgen!“ Was sagst du?"
         )
 
 
@@ -1683,10 +1671,7 @@ def handle_greeting_section(
         if next_section:
 
             return (
-                "Perfekt. So klingt eine echte kurze "
-                "Begrüßung im Alltag. "
-                f"Als Nächstes kommt "
-                f"„{next_section}“. "
+                f"Sehr gut! Jetzt: „{next_section}“. "
                 "Möchtest du weitermachen?"
             )
 
@@ -1903,14 +1888,12 @@ def handle_introduction_section(
         if name:
 
             return (
-                f"Freut mich, {name}! "
-                "Frag mich: „Wie heißt du?“"
+                "Sehr gut! Frag mich: „Wie heißt du?“"
             )
 
 
         return (
-            "Freut mich! "
-            "Frag mich: „Wie heißt du?“"
+            "Sehr gut! Frag mich: „Wie heißt du?“"
         )
 
 
@@ -1994,9 +1977,8 @@ def handle_introduction_section(
 
 
         return (
-            "Sehr gut. Jetzt wechseln wir in eine "
-            "höfliche Situation im Hotel. "
-            "Wie fragst du einen Gast nach dem Namen?"
+            "Jetzt höflich. Du sprichst mit einem Gast. "
+            "Frag nach dem Namen."
         )
 
 
@@ -2033,11 +2015,7 @@ def handle_introduction_section(
         if next_section:
 
             return (
-                "Sehr gut! Du hast jetzt Begrüßung, "
-                "Vorstellung, Namensfrage und "
-                "Buchstabieren in einem kleinen Dialog benutzt. "
-                f"Als Nächstes kommt "
-                f"„{next_section}“. "
+                f"Sehr gut! Jetzt: „{next_section}“. "
                 "Möchtest du weitermachen?"
             )
 
@@ -2261,9 +2239,7 @@ def handle_alphabet_section(
         state["lesson_teaching_step"] = 4
 
         return (
-            "Genau! Das ist M. "
-            "Im Deutschen gibt es drei Umlaute. "
-            "Welche sind das?"
+            "Genau! Welche drei Umlaute gibt es?"
         )
 
     if step == 4:
@@ -2288,8 +2264,7 @@ def handle_alphabet_section(
         state["lesson_teaching_step"] = 5
 
         return (
-            "Sehr gut! Ä, Ö und Ü. "
-            "Es gibt auch ß. Wie heißt dieses Zeichen?"
+            "Sehr gut! Wie heißt dieses Zeichen: ß?"
         )
 
     if step == 5:
