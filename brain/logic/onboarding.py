@@ -833,8 +833,7 @@ def get_onboarding_question(
         if name:
 
             return (
-                f"Schön, dich kennenzulernen, "
-                f"{name}! Woher kommst du?"
+                f"Hallo {name}! Woher kommst du?"
             )
 
         return (
@@ -1199,8 +1198,7 @@ def handle_onboarding_answer(
         )
 
         return (
-            f"Schön, dich kennenzulernen, "
-            f"{name}! Woher kommst du?"
+            f"Hallo {name}! Woher kommst du?"
         )
 
 
