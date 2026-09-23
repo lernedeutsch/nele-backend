@@ -386,7 +386,7 @@ def main():
             send_and_wait(
                 page,
                 "Guten Abend",
-                "locker begrüßt",
+                "zu einem Freund",
             )
 
             send_and_wait(page, "j", "Hallo")
@@ -394,14 +394,14 @@ def main():
             send_and_wait(
                 page,
                 "Hallo",
-                "verabschiedest",
+                "Du gehst",
             )
 
             send_and_wait(page, "x", "Tschüss")
             send_and_wait(
                 page,
                 "Tschüss",
-                "Mini-Dialog",
+                "Ich sage: „Guten Morgen!“",
             )
             send_and_wait(
                 page,
