@@ -467,6 +467,42 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertIn("Sag es bitte noch einmal.", reply)
 
 
+    def test_onboarding_gently_corrects_missing_aus(self):
+        from brain.logic.onboarding import get_onboarding_retry
+
+        reply = get_onboarding_retry(2, "Ich komme Polen")
+
+        self.assertIn("Fast! Richtig:", reply)
+        self.assertIn("Ich komme aus Polen.", reply)
+        self.assertIn("Sag es bitte noch einmal.", reply)
+
+    def test_onboarding_gently_corrects_wrong_wohnen_form(self):
+        from brain.logic.onboarding import get_onboarding_retry
+
+        reply = get_onboarding_retry(3, "Ich wohnen in Heidelberg")
+
+        self.assertIn("Fast! Richtig:", reply)
+        self.assertIn("Ich wohne in Heidelberg.", reply)
+        self.assertIn("Sag es bitte noch einmal.", reply)
+
+    def test_wrong_morning_greetings_do_not_advance(self):
+        from brain.logic.lesson_teaching import handle_greeting_section
+
+        for answer in ("Gute Morgen", "Guten Nacht"):
+            with self.subTest(answer=answer):
+                state = {
+                    "lesson_teaching_active": True,
+                    "lesson_teaching_section": "Wir begrüßen uns",
+                    "lesson_teaching_step": 1,
+                }
+
+                reply = handle_greeting_section(answer, state)
+
+                self.assertIn("Guten Morgen", reply)
+                self.assertIn("noch einmal", reply)
+                self.assertEqual(state["lesson_teaching_step"], 1)
+
+
     def test_onboarding_rejects_unrelated_learning_goal(self):
         self.assertEqual(
             extract_learning_goal_sentence("ich will spielen"),
