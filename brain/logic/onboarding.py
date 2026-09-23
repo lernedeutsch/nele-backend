@@ -926,6 +926,28 @@ def get_onboarding_retry(
 
     if step == 1:
 
+        normalized = normalize_answer(
+            user_message
+        )
+
+        wrong_heissen = re.match(
+            r"^ich\s+hei(?:ß|ss)en\s+(.+?)\s*[.!?]*$",
+            normalized,
+            flags=re.IGNORECASE
+        )
+
+        if wrong_heissen:
+
+            name = clean_value(
+                wrong_heissen.group(1)
+            )
+
+            return (
+                "Fast! Richtig: "
+                f"„Ich heiße {name}.“ "
+                "Sag es bitte noch einmal."
+            )
+
         if short_value:
 
             return (
