@@ -327,7 +327,7 @@ def main():
             send_and_wait(
                 page,
                 "Guten Morgen",
-                "tagsüber",
+                "Es ist Tag",
             )
 
             send_and_wait(page, "p", "Guten Tag")
@@ -455,7 +455,7 @@ def main():
             send_and_wait(
                 page,
                 "m o n i k a",
-                "höfliche Situation im Hotel",
+                "Jetzt höflich",
             )
             send_and_wait(
                 page,
