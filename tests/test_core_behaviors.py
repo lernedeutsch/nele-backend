@@ -338,6 +338,26 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         available = get_available_lesson_numbers("A1")
         self.assertIn(2, available)
 
+    def test_a1_lesson_2_is_beginner_friendly(self):
+        from brain.logic.lesson_loader import load_lesson_flow
+        from brain.logic.generic_lesson_engine import answer_matches_step
+
+        flow = load_lesson_flow("A1", 2)
+        sections = flow["sections"]
+
+        origin = sections["Woher kommen Sie?"]
+        self.assertIn("Beispiel:", origin["intro"])
+        first = origin["steps"][0]
+        self.assertIn("Ich komme aus", first["prompt"])
+        self.assertTrue(answer_matches_step("Polen", first, {}))
+        self.assertTrue(answer_matches_step("aus Polen", first, {}))
+
+        numbers = sections["Zahlen 1–20"]["steps"]
+        self.assertTrue(answer_matches_step("1 2 3 4 5", numbers[0], {}))
+        self.assertTrue(answer_matches_step("6 7 8 9 10", numbers[1], {}))
+        self.assertTrue(answer_matches_step("11 12 13 14 15", numbers[2], {}))
+        self.assertTrue(answer_matches_step("16 17 18 19 20", numbers[3], {}))
+
     def test_a1_lesson_2_teaches_source_page_topics(self):
         from brain.logic.lesson_loader import load_lesson_flow
 
