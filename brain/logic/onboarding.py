@@ -969,6 +969,28 @@ def get_onboarding_retry(
 
     if step == 2:
 
+        normalized = normalize_answer(
+            user_message
+        )
+
+        wrong_origin = re.match(
+            r"^ich\s+komme\s+(?!aus\b)(.+?)\s*[.!?]*$",
+            normalized,
+            flags=re.IGNORECASE
+        )
+
+        if wrong_origin:
+
+            origin = clean_value(
+                wrong_origin.group(1)
+            )
+
+            return (
+                "Fast! Richtig: "
+                f"„Ich komme aus {origin}.“ "
+                "Sag es bitte noch einmal."
+            )
+
         if short_value:
 
             return (
@@ -989,6 +1011,28 @@ def get_onboarding_retry(
     # ======================================
 
     if step == 3:
+
+        normalized = normalize_answer(
+            user_message
+        )
+
+        wrong_residence = re.match(
+            r"^ich\s+wohnen\s+in\s+(.+?)\s*[.!?]*$",
+            normalized,
+            flags=re.IGNORECASE
+        )
+
+        if wrong_residence:
+
+            residence = clean_value(
+                wrong_residence.group(1)
+            )
+
+            return (
+                "Fast! Richtig: "
+                f"„Ich wohne in {residence}.“ "
+                "Sag es bitte noch einmal."
+            )
 
         if short_value:
 
