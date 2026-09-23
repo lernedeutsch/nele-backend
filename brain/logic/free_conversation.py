@@ -233,6 +233,120 @@ def _social_a1_reply(text, free, state):
     low = _norm(raw)
     last = _norm(free.get("last_question", ""))
 
+    # ---- Questions the learner can ask Nele at any moment ----
+    # Names: informal and polite variants.
+    if low.strip(" ?!.") in {
+        "wie heißt du", "wie heisst du", "wie ist dein name",
+        "wer bist du", "wie heißen sie", "wie heissen sie",
+        "wie ist ihr name"
+    }:
+        return "Ich heiße Nele. Und wie heißt du?"
+
+    # Gentle correction for very common A1 name-question mistakes.
+    if low.strip(" ?!.") in {
+        "wie heißen du", "wie heissen du", "wie heißt sie",
+        "wie heisst sie", "wie du heißt", "wie du heisst"
+    }:
+        _record_error(state, free, "wie_heisst_du", raw)
+        return "Fast. Richtig: „Wie heißt du?“ Ich heiße Nele. Und du?"
+
+    # Wellbeing: the learner may ask first, not only answer Nele.
+    if low.strip(" ?!.") in {
+        "wie geht's", "wie gehts", "wie geht es dir", "wie geht's dir",
+        "wie gehts dir", "wie geht es ihnen", "wie geht's ihnen",
+        "wie gehts ihnen", "alles gut", "alles klar"
+    }:
+        return "Mir geht es gut, danke. Und dir?"
+
+    if low.strip(" ?!.") in {
+        "wie geht du", "wie geht dir", "wie geht es du",
+        "wie geht ihnen", "wie geht sie"
+    }:
+        _record_error(state, free, "wie_geht_es_dir", raw)
+        return "Fast. Richtig: „Wie geht es dir?“ Mir geht es gut, danke. Und dir?"
+
+    # Weather questions. Free conversation uses a conversational answer rather
+    # than pretending to know the learner's live local weather.
+    weather_questions = {
+        "wie ist das wetter", "wie ist das wetter heute",
+        "wie ist heute das wetter", "was macht das wetter",
+        "wie ist das wetter bei dir", "ist es warm",
+        "ist es kalt", "regnet es", "regnet es heute",
+        "scheint die sonne", "ist es sonnig", "ist es windig",
+        "schneit es", "ist es bewölkt", "ist es bewoelkt"
+    }
+    if low.strip(" ?!.") in weather_questions:
+        return "Bei mir gibt es kein echtes Wetter. Wie ist das Wetter bei dir?"
+
+    if low.strip(" ?!.") in {
+        "wie wetter heute", "wie ist wetter", "was ist das wetter",
+        "wie das wetter ist"
+    }:
+        _record_error(state, free, "wie_ist_das_wetter", raw)
+        return "Fast. Richtig: „Wie ist das Wetter heute?“ Wie ist es bei dir?"
+
+    # ---- Weather statements and natural reactions ----
+    weather_patterns = [
+        (("sonnig", "die sonne scheint", "sonne"), "Sonne", "Schön! Magst du sonniges Wetter?"),
+        (("warm", "heiß", "heiss"), "warm", "Schön! Was machst du gern, wenn es warm ist?"),
+        (("kalt", "kühl", "kuehl"), "kalt", "Oh, es ist kalt. Magst du kaltes Wetter?"),
+        (("regen", "regnet", "regnerisch"), "Regen", "Oh, es regnet. Hast du einen Regenschirm?"),
+        (("schnee", "schneit", "verschneit"), "Schnee", "Oh, es schneit. Magst du Schnee?"),
+        (("windig", "wind"), "windig", "Es ist windig. Ist es auch kalt?"),
+        (("bewölkt", "bewoelkt", "wolken", "wolkig"), "bewölkt", "Es ist bewölkt. Ist es trotzdem warm?"),
+        (("nebel", "neblig"), "neblig", "Es ist neblig. Ist es auch kalt?"),
+        (("gewitter", "donner", "blitz"), "Gewitter", "Oh, ein Gewitter. Regnet es stark?"),
+    ]
+    weather_context = any(x in last for x in (
+        "wetter", "warm", "kalt", "sonnig", "regnet", "schnee",
+        "windig", "bewölkt", "bewoelkt"
+    ))
+    explicit_weather = any(x in low for x in (
+        "wetter", "sonne", "sonnig", "regen", "regnet", "schnee", "schneit",
+        "wind", "windig", "bewölkt", "bewoelkt", "wolken", "wolkig",
+        "nebel", "neblig", "gewitter"
+    ))
+    if weather_context or explicit_weather:
+        # Common A1 errors: "es ist regen", "es regnen", "es sonnig".
+        if re.fullmatch(r"es\s+ist\s+regen", low):
+            _record_error(state, free, "es_regnet", raw)
+            return "Fast. Richtig: „Es regnet.“ Magst du Regen?"
+        if re.fullmatch(r"es\s+(?:regnen|regen)", low):
+            _record_error(state, free, "es_regnet", raw)
+            return "Fast. Richtig: „Es regnet.“ Hast du einen Regenschirm?"
+        m = re.fullmatch(r"es\s+(sonnig|warm|kalt|windig|bewölkt|bewoelkt)", low)
+        if m:
+            word = m.group(1)
+            correct = "bewölkt" if word == "bewoelkt" else word
+            _record_error(state, free, "wetter_es_ist", raw)
+            return f"Fast. Richtig: „Es ist {correct}.“ Magst du dieses Wetter?"
+
+        # Accept short answers such as "sonnig" after a weather question.
+        for variants, remembered, reaction in weather_patterns:
+            if any(v == low or v in low for v in variants):
+                free.setdefault("conversation_facts", {})["weather"] = remembered
+                return reaction
+
+        if low in {"gut", "schön", "schoen", "schlecht", "wechselhaft"}:
+            return f"Das Wetter ist also {low}. Magst du das Wetter heute?"
+
+    # ---- Greetings: common variants and gentle correction ----
+    greeting_mistakes = {
+        "gute morgen": "Guten Morgen",
+        "gut morgen": "Guten Morgen",
+        "guten morg": "Guten Morgen",
+        "gute tag": "Guten Tag",
+        "gut tag": "Guten Tag",
+        "gute abend": "Guten Abend",
+        "gut abend": "Guten Abend",
+        "guten nacht": "Gute Nacht",
+    }
+    clean_social = low.strip("!., ")
+    if clean_social in greeting_mistakes:
+        correct = greeting_mistakes[clean_social]
+        _record_error(state, free, "greeting", raw)
+        return f"Fast. Richtig: „{correct}!“ Sag es bitte noch einmal."
+
     # ---- Wie geht's? / Wie geht es dir/Ihnen? ----
     wellbeing_question = any(x in last for x in (
         "wie geht's dir", "wie geht es dir", "wie geht es ihnen", "wie geht's ihnen"
@@ -323,11 +437,26 @@ def _social_a1_reply(text, free, state):
         "servus": ("Servus!", "informell"),
         "grüß gott": ("Grüß Gott!", "regional"),
         "gruss gott": ("Grüß Gott!", "regional"),
+        "grüß dich": ("Grüß dich!", "informell"),
+        "gruss dich": ("Grüß dich!", "informell"),
+        "gute nacht": ("Gute Nacht!", "neutral"),
+        "tschüss": ("Tschüss!", "informell"),
+        "tschuss": ("Tschüss!", "informell"),
+        "ciao": ("Ciao!", "informell"),
+        "bis bald": ("Bis bald!", "neutral"),
+        "bis später": ("Bis später!", "informell"),
+        "bis spaeter": ("Bis später!", "informell"),
+        "auf wiedersehen": ("Auf Wiedersehen!", "formal"),
     }
     clean = low.strip("!., ")
     if clean in greetings:
         answer, register = greetings[clean]
         free.setdefault("conversation_facts", {})["greeting_register"] = register
+        if clean in {
+            "gute nacht", "tschüss", "tschuss", "ciao",
+            "bis bald", "bis später", "bis spaeter", "auf wiedersehen"
+        }:
+            return answer
         return f"{answer} Wie geht es dir heute?"
 
     return None
