@@ -502,7 +502,7 @@ def main():
             send_and_wait(
                 page,
                 "ä ö ü",
-                "auch ß",
+                "dieses Zeichen: ß",
             )
             send_and_wait(
                 page,
