@@ -196,10 +196,7 @@ def generate_welcome_reply(
             if onboarding_step == 1:
 
                 answer = (
-                    "Hallo! Ich bin Nele, "
-                    "deine persönliche "
-                    "Deutschtrainerin. "
-                    "Schön, dich kennenzulernen! "
+                    "Hallo! Ich bin Nele. "
                     "Wie heißt du?"
                 )
 
@@ -286,9 +283,7 @@ def generate_welcome_reply(
             )
 
             answer = (
-                "Hallo! Ich bin Nele, "
-                "deine persönliche Deutschtrainerin. "
-                "Schön, dich kennenzulernen! "
+                "Hallo! Ich bin Nele. "
                 "Wie heißt du?"
             )
 
