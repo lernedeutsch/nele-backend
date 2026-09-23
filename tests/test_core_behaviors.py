@@ -457,6 +457,16 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(extract_name_sentence("Ich heißen Moni"), "")
 
 
+    def test_onboarding_gently_corrects_wrong_ich_heissen_form(self):
+        from brain.logic.onboarding import get_onboarding_retry
+
+        reply = get_onboarding_retry(1, "Ich heißen Moni")
+
+        self.assertIn("Fast! Richtig:", reply)
+        self.assertIn("Ich heiße Moni.", reply)
+        self.assertIn("Sag es bitte noch einmal.", reply)
+
+
     def test_onboarding_rejects_unrelated_learning_goal(self):
         self.assertEqual(
             extract_learning_goal_sentence("ich will spielen"),
