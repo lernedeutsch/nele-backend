@@ -110,6 +110,29 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "Hallo! Ich bin Nele. Wie heißt du?",
         )
 
+    def test_onboarding_name_moves_to_short_origin_question(self):
+        from brain.logic.onboarding import handle_onboarding_answer
+
+        state = {
+            "onboarding_completed": False,
+            "onboarding_step": 1,
+            "user_facts": {},
+        }
+
+        reply = handle_onboarding_answer(
+            state,
+            "Ich heiße Moni",
+        )
+
+        self.assertEqual(
+            reply,
+            "Hallo Moni! Woher kommst du?",
+        )
+        self.assertEqual(
+            state["onboarding_step"],
+            2,
+        )
+
     def test_a1_addon_content_never_returns_a2_items(self):
         groups = [
             DIALOGUES,
