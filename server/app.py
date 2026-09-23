@@ -417,7 +417,11 @@ def create_nele_reply(
         # Add a lightweight event without changing the original learning logic.
         record_event(state, "chat_turn", detail={"message_length": len(user_message or "")})
         save_conversation_state(session_id)
-        return answer, {}
+        progress = state.get("student_progress") or {}
+        return answer, {
+            "level": progress.get("current_level", "A1"),
+            "lesson": progress.get("current_lesson", 1),
+        }
 
     except Exception as error:
         print(f"Nele conversation error: {error}")
@@ -599,7 +603,16 @@ def welcome():
         preserve_active_task=not new_conversation,
         conversation_mode=conversation_mode,
     )
-    return jsonify({"reply": answer, "session_id": session_id})
+    state = get_conversation_state(session_id)
+    progress = state.get("student_progress") or {}
+    return jsonify({
+        "reply": answer,
+        "session_id": session_id,
+        "meta": {
+            "level": progress.get("current_level", "A1"),
+            "lesson": progress.get("current_lesson", 1),
+        },
+    })
 
 
 # =========================================================
