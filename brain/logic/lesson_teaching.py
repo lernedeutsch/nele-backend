@@ -1912,9 +1912,8 @@ def handle_introduction_section(
             )
 
             return (
-                "Wenn wir uns duzen, fragst du: "
-                "„Wie heißt du?“ "
-                "Versuch es noch einmal."
+                "Fast. Richtig: „Wie heißt du?“ "
+                "Sag es bitte noch einmal."
             )
 
 
@@ -1997,9 +1996,8 @@ def handle_introduction_section(
             )
 
             return (
-                "Wenn du den Gast siezt, fragst du: "
-                "„Wie heißen Sie?“ "
-                "Versuch es noch einmal."
+                "Fast. Richtig: „Wie heißen Sie?“ "
+                "Sag es bitte noch einmal."
             )
 
 
