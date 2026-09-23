@@ -48,8 +48,16 @@ LESSON_RESPONSES = [
 LESSON_FLOW = {
     "sections": {
         "Woher kommen Sie?": {
-            "intro": "Wir üben jetzt die Herkunft. Eine Frage und eine Antwort nach der anderen.",
+            "intro": "Wir üben jetzt die Herkunft. Zuerst frage ich dich: Woher kommst du?",
             "steps": [
+                {
+                    "prompt": "Woher kommst du?",
+                    "accepted": ["Ich komme aus Polen."],
+                    "correct_answer": "Ich komme aus Polen.",
+                    "error_type": "grammar",
+                    "retry": "Antworte mit einem ganzen Satz: „Ich komme aus …“ Zum Beispiel: „Ich komme aus Polen.“",
+                    "success": "Sehr gut. Jetzt fragst du mich."
+                },
                 {
                     "prompt": "Frag mich informell: Woher …?",
                     "accepted": ["Woher kommst du?"],
@@ -92,45 +100,6 @@ LESSON_FLOW = {
                 }
             ],
             "complete": "Du kannst jetzt nach der Herkunft fragen und mit „Ich komme aus …“ antworten."
-        },
-
-        "Länder und Nationalitäten": {
-            "intro": "Jetzt üben wir Länder und Nationalitäten.",
-            "steps": [
-                {
-                    "prompt": "Eine Frau kommt aus Polen. Ergänze: „Ich bin …“",
-                    "accepted": ["Ich bin Polin."],
-                    "correct_answer": "Ich bin Polin.",
-                    "error_type": "vocabulary",
-                    "retry": "Richtig ist: „Ich bin Polin.“ Sag es bitte noch einmal.",
-                    "success": "Genau."
-                },
-                {
-                    "prompt": "Ein Mann kommt aus Polen. Ergänze: „Ich bin …“",
-                    "accepted": ["Ich bin Pole."],
-                    "correct_answer": "Ich bin Pole.",
-                    "error_type": "vocabulary",
-                    "retry": "Richtig ist: „Ich bin Pole.“ Sag es bitte noch einmal.",
-                    "success": "Sehr gut."
-                },
-                {
-                    "prompt": "Ein Mann kommt aus Deutschland. Ergänze: „Er ist …“",
-                    "accepted": ["Er ist Deutscher."],
-                    "correct_answer": "Er ist Deutscher.",
-                    "error_type": "vocabulary",
-                    "retry": "Richtig ist: „Er ist Deutscher.“ Sag es bitte noch einmal.",
-                    "success": "Richtig."
-                },
-                {
-                    "prompt": "Eine Frau kommt aus Österreich. Ergänze: „Sie ist …“",
-                    "accepted": ["Sie ist Österreicherin."],
-                    "correct_answer": "Sie ist Österreicherin.",
-                    "error_type": "vocabulary",
-                    "retry": "Richtig ist: „Sie ist Österreicherin.“ Sag es bitte noch einmal.",
-                    "success": "Sehr gut. Bei Frauen endet die Nationalität oft auf „-in“."
-                }
-            ],
-            "complete": "Du kennst jetzt wichtige Länder und Nationalitäten."
         },
 
         "Das Verb kommen": {
