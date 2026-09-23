@@ -330,6 +330,95 @@ def _social_a1_reply(text, free, state):
         if low in {"gut", "schön", "schoen", "schlecht", "wechselhaft"}:
             return f"Das Wetter ist also {low}. Magst du das Wetter heute?"
 
+    # ---- Everyday A1: today, hobby, work, shopping and holiday ----
+    # Clear learner questions can start these topics at any moment.
+    everyday_questions = {
+        "was machst du heute": "Heute spreche ich mit dir. Und was machst du heute?",
+        "was machst du gern": "Ich spreche gern mit dir. Was machst du gern?",
+        "was machst du gern in deiner freizeit": "Ich spreche gern mit dir. Und du? Was machst du gern in deiner Freizeit?",
+        "hast du ein hobby": "Ja, ich mag Sprachen. Und du? Was ist dein Hobby?",
+        "arbeitest du": "Ich bin deine Deutschtrainerin. Arbeitest du heute?",
+        "gehst du arbeiten": "Ich arbeite hier mit dir. Und du? Arbeitest du heute?",
+        "gehst du gern einkaufen": "Ich kann mit dir über Einkaufen sprechen. Was kaufst du gern?",
+        "was kaufst du gern": "Ich mag Wörter und Gespräche. Was kaufst du gern?",
+        "machst du gern urlaub": "Ich kann mit dir über Urlaub sprechen. Wo machst du gern Urlaub?",
+        "wo machst du urlaub": "Ich reise nicht wirklich. Und du? Wo machst du gern Urlaub?",
+    }
+    everyday_key = low.strip(" ?!.")
+    if everyday_key in everyday_questions:
+        return everyday_questions[everyday_key]
+
+    # Common A1 verb/conjugation errors in the five everyday topics.
+    everyday_errors = [
+        (r"^ich\s+arbeiten(?:\s+(.+))?$", "ich_arbeite",
+         lambda m: "Ich arbeite" + (f" {m.group(1)}." if m.group(1) else ".")),
+        (r"^ich\s+kaufen(?:\s+(.+))?$", "ich_kaufe",
+         lambda m: "Ich kaufe" + (f" {m.group(1)}." if m.group(1) else ".")),
+        (r"^ich\s+fahren\s+rad$", "ich_fahre_rad",
+         lambda m: "Ich fahre Rad."),
+        (r"^ich\s+machen\s+sport$", "ich_mache_sport",
+         lambda m: "Ich mache Sport."),
+        (r"^ich\s+machen\s+urlaub(?:\s+(.+))?$", "ich_mache_urlaub",
+         lambda m: "Ich mache Urlaub" + (f" {m.group(1)}." if m.group(1) else ".")),
+        (r"^ich\s+gehen\s+einkaufen$", "ich_gehe_einkaufen",
+         lambda m: "Ich gehe einkaufen."),
+    ]
+    for pattern, key, build in everyday_errors:
+        match = re.match(pattern, low, re.I)
+        if match:
+            correct = build(match)
+            _record_error(state, free, key, raw)
+            if key == "ich_arbeite":
+                return f"Fast. Richtig: „{correct}“ Wann arbeitest du heute?"
+            if key in {"ich_kaufe", "ich_gehe_einkaufen"}:
+                return f"Fast. Richtig: „{correct}“ Was möchtest du kaufen?"
+            if key in {"ich_fahre_rad", "ich_mache_sport"}:
+                return f"Fast. Richtig: „{correct}“ Machst du das oft?"
+            return f"Fast. Richtig: „{correct}“ Wo machst du gern Urlaub?"
+
+    # Natural short answers keep the current everyday topic alive.
+    if any(x in last for x in ("was machst du heute", "wie ist dein tag", "viel zu tun")):
+        if low in {"arbeiten", "arbeit"}:
+            return "Du arbeitest heute. Wann fängst du an?"
+        if low in {"einkaufen", "shoppen"}:
+            return "Du gehst einkaufen. Was möchtest du kaufen?"
+        if low in {"zu hause", "zuhause"}:
+            return "Du bist zu Hause. Was machst du dort?"
+        if low in {"frei", "ich habe frei"}:
+            return "Schön, du hast heute frei. Was möchtest du machen?"
+
+    if any(x in last for x in ("freizeit", "hobby", "was machst du gern")):
+        if low in {"lesen", "bücher lesen", "buch lesen"}:
+            return "Du liest gern. Was liest du gern?"
+        if low in {"musik", "musik hören", "musik hoeren"}:
+            return "Du hörst gern Musik. Welche Musik magst du?"
+        if low in {"sport", "sport machen"}:
+            return "Du machst gern Sport. Welchen Sport machst du?"
+        if low in {"rad fahren", "fahrrad fahren"}:
+            return "Du fährst gern Rad. Wo fährst du gern Rad?"
+        if low in {"schwimmen", "schwimmbad"}:
+            return "Du schwimmst gern. Wo schwimmst du gern?"
+
+    if any(x in last for x in ("arbeitest du", "arbeit", "wann fängst du", "wann faengst du")):
+        if low in {"ja", "ja gern", "ja, gern"}:
+            return "Wann fängst du heute an?"
+        if low in {"nein", "nein heute nicht", "heute nicht"}:
+            return "Dann hast du heute frei. Was machst du heute?"
+        if re.fullmatch(r"(?:um\s+)?\d{1,2}(?::\d{2})?(?:\s+uhr)?", low):
+            return f"Du fängst {raw.strip()} an. Was machst du bei der Arbeit?"
+
+    if any(x in last for x in ("kaufen", "einkaufen", "welche schuhe", "was möchtest du kaufen")):
+        if low in {"schuhe", "sportschuhe", "kleidung", "lebensmittel", "essen"}:
+            return f"Du möchtest {raw.strip()} kaufen. Wo kaufst du gern ein?"
+
+    if any(x in last for x in ("urlaub", "meer oder berge", "wohin reist")):
+        if low in {"meer", "ans meer"}:
+            return "Du magst das Meer. Was machst du dort gern?"
+        if low in {"berge", "in die berge"}:
+            return "Du magst die Berge. Wanderst du gern?"
+        if re.fullmatch(r"(?:in|nach)\s+[a-zäöüß-]+", low):
+            return f"Schön! Du machst Urlaub {raw.strip()}. Was machst du dort gern?"
+
     # ---- Greetings: common variants and gentle correction ----
     greeting_mistakes = {
         "gute morgen": "Guten Morgen",
