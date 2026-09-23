@@ -249,6 +249,11 @@ def main():
             # ----------------------------------
             send_and_wait(
                 page,
+                "Ich heißen Monika",
+                "Ich heiße Monika",
+            )
+            send_and_wait(
+                page,
                 "Ich bin Monika",
                 "Woher kommst du?",
             )
@@ -276,8 +281,18 @@ def main():
 
             send_and_wait(
                 page,
+                "Ich komme Polen",
+                "Ich komme aus Polen",
+            )
+            send_and_wait(
+                page,
                 "Ich komme aus Polen",
                 "Wo wohnst du?",
+            )
+            send_and_wait(
+                page,
+                "Ich wohnen in Heidelberg",
+                "Ich wohne in Heidelberg",
             )
             send_and_wait(
                 page,
@@ -304,6 +319,8 @@ def main():
             # ----------------------------------
             # LEKTION 1 / BEGRÜSSUNGEN + FEHLER
             # ----------------------------------
+            send_and_wait(page, "Gute Morgen", "Guten Morgen")
+            send_and_wait(page, "Guten Nacht", "Guten Morgen")
             send_and_wait(page, "h", "Guten Morgen")
             send_and_wait(page, "k", "Guten Morgen")
             send_and_wait(page, "g", "Guten Morgen")
