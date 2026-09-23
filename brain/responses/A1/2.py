@@ -48,18 +48,18 @@ LESSON_RESPONSES = [
 LESSON_FLOW = {
     "sections": {
         "Woher kommen Sie?": {
-            "intro": "Wir üben jetzt die Herkunft. Zuerst frage ich dich: Woher kommst du?",
+            "intro": "Jetzt sprechen wir über Länder. Ich frage dich, du antwortest. Beispiel: „Woher kommst du?“ – „Ich komme aus Polen.“",
             "steps": [
                 {
-                    "prompt": "Woher kommst du?",
-                    "accepted": ["Ich komme aus Polen."],
+                    "prompt": "{name}, woher kommst du? Antworte: „Ich komme aus …“",
+                    "accepted": ["Ich komme aus Polen.", "Polen", "aus Polen"],
                     "correct_answer": "Ich komme aus Polen.",
                     "error_type": "grammar",
-                    "retry": "Antworte mit einem ganzen Satz: „Ich komme aus …“ Zum Beispiel: „Ich komme aus Polen.“",
+                    "retry": "Fast. Sag den ganzen Satz: „Ich komme aus Polen.“ Sprich ihn bitte nach.",
                     "success": "Sehr gut. Jetzt fragst du mich."
                 },
                 {
-                    "prompt": "Frag mich informell: Woher …?",
+                    "prompt": "Jetzt fragst du mich. Zu Freunden sagen wir „du“. Frag: „Woher kommst du?“",
                     "accepted": ["Woher kommst du?"],
                     "correct_answer": "Woher kommst du?",
                     "error_type": "grammar",
@@ -67,7 +67,7 @@ LESSON_FLOW = {
                     "success": "Sehr gut."
                 },
                 {
-                    "prompt": "Jetzt höflich: Frag mich mit „Sie“.",
+                    "prompt": "Jetzt höflich mit „Sie“. Frag: „Woher kommen Sie?“",
                     "accepted": ["Woher kommen Sie?"],
                     "correct_answer": "Woher kommen Sie?",
                     "error_type": "grammar",
@@ -75,7 +75,7 @@ LESSON_FLOW = {
                     "success": "Genau."
                 },
                 {
-                    "prompt": "Antworte mit Polen: Ich …",
+                    "prompt": "Jetzt antworte mit einem ganzen Satz. Land: Polen. „Ich komme …“",
                     "accepted": ["Ich komme aus Polen."],
                     "correct_answer": "Ich komme aus Polen.",
                     "error_type": "grammar",
@@ -83,7 +83,7 @@ LESSON_FLOW = {
                     "success": "Richtig."
                 },
                 {
-                    "prompt": "Und mit der Schweiz?",
+                    "prompt": "Land: die Schweiz. Sag den ganzen Satz: „Ich komme aus …“",
                     "accepted": ["Ich komme aus der Schweiz."],
                     "correct_answer": "Ich komme aus der Schweiz.",
                     "error_type": "grammar",
@@ -91,7 +91,7 @@ LESSON_FLOW = {
                     "success": "Sehr gut."
                 },
                 {
-                    "prompt": "Und mit den USA?",
+                    "prompt": "Land: die USA. Sag den ganzen Satz: „Ich komme aus …“",
                     "accepted": ["Ich komme aus den USA."],
                     "correct_answer": "Ich komme aus den USA.",
                     "error_type": "grammar",
@@ -103,10 +103,10 @@ LESSON_FLOW = {
         },
 
         "Das Verb kommen": {
-            "intro": "Jetzt üben wir das Verb „kommen“. Der Stamm ist „komm-“.",
+            "intro": "Jetzt lernen wir „kommen“. Hör zuerst: ich komme, du kommst, er oder sie kommt, wir kommen, ihr kommt, sie kommen. Jetzt üben wir langsam.",
             "steps": [
                 {
-                    "prompt": "Ich … aus Spanien.",
+                    "prompt": "Zuerst „ich“. Ergänze: „Ich … aus Spanien.“",
                     "accepted": ["Ich komme aus Spanien."],
                     "correct_answer": "Ich komme aus Spanien.",
                     "error_type": "grammar",
@@ -114,7 +114,7 @@ LESSON_FLOW = {
                     "success": "Richtig: ich komme."
                 },
                 {
-                    "prompt": "Du … aus Frankreich.",
+                    "prompt": "Jetzt „du“. Ergänze: „Du … aus Frankreich.“",
                     "accepted": ["Du kommst aus Frankreich."],
                     "correct_answer": "Du kommst aus Frankreich.",
                     "error_type": "grammar",
@@ -122,7 +122,7 @@ LESSON_FLOW = {
                     "success": "Richtig: du kommst."
                 },
                 {
-                    "prompt": "Anna … aus Österreich.",
+                    "prompt": "Jetzt Anna, also „sie“. Ergänze: „Anna … aus Österreich.“",
                     "accepted": ["Anna kommt aus Österreich."],
                     "correct_answer": "Anna kommt aus Österreich.",
                     "error_type": "grammar",
@@ -130,7 +130,7 @@ LESSON_FLOW = {
                     "success": "Richtig: sie kommt."
                 },
                 {
-                    "prompt": "Wir … aus der Schweiz.",
+                    "prompt": "Jetzt „wir“. Ergänze: „Wir … aus der Schweiz.“",
                     "accepted": ["Wir kommen aus der Schweiz."],
                     "correct_answer": "Wir kommen aus der Schweiz.",
                     "error_type": "grammar",
@@ -138,7 +138,7 @@ LESSON_FLOW = {
                     "success": "Richtig: wir kommen."
                 },
                 {
-                    "prompt": "Ihr … aus Italien.",
+                    "prompt": "Jetzt „ihr“. Ergänze: „Ihr … aus Italien.“",
                     "accepted": ["Ihr kommt aus Italien."],
                     "correct_answer": "Ihr kommt aus Italien.",
                     "error_type": "grammar",
@@ -146,7 +146,7 @@ LESSON_FLOW = {
                     "success": "Richtig: ihr kommt."
                 },
                 {
-                    "prompt": "Sie … aus Deutschland.",
+                    "prompt": "Zum Schluss „Sie“. Ergänze: „Sie … aus Deutschland.“",
                     "accepted": ["Sie kommen aus Deutschland."],
                     "correct_answer": "Sie kommen aus Deutschland.",
                     "error_type": "grammar",
@@ -158,35 +158,35 @@ LESSON_FLOW = {
         },
 
         "Zahlen 1–20": {
-            "intro": "Zum Schluss üben wir die Zahlen von 1 bis 20.",
+            "intro": "Zum Schluss üben wir die Zahlen von 1 bis 20. Du kannst sie sagen oder schreiben. Ich helfe dir, wenn du sie noch nicht kennst.",
             "steps": [
                 {
-                    "prompt": "Sag die Zahlen 1 bis 5.",
-                    "accepted": ["eins, zwei, drei, vier, fünf", "eins zwei drei vier fünf"],
+                    "prompt": "Sag die Zahlen 1 bis 5 auf Deutsch. Wenn du sie noch nicht weißt, kannst du auch 1 2 3 4 5 schreiben.",
+                    "accepted": ["eins, zwei, drei, vier, fünf", "eins zwei drei vier fünf", "1 2 3 4 5", "1, 2, 3, 4, 5"],
                     "correct_answer": "eins, zwei, drei, vier, fünf",
                     "error_type": "vocabulary",
                     "retry": "Hör zu: eins, zwei, drei, vier, fünf. Sag sie bitte noch einmal.",
                     "success": "Sehr gut."
                 },
                 {
-                    "prompt": "Jetzt 6 bis 10.",
-                    "accepted": ["sechs, sieben, acht, neun, zehn", "sechs sieben acht neun zehn"],
+                    "prompt": "Sehr gut. Jetzt 6 bis 10 auf Deutsch. Du kannst auch die Ziffern schreiben.",
+                    "accepted": ["sechs, sieben, acht, neun, zehn", "sechs sieben acht neun zehn", "6 7 8 9 10", "6, 7, 8, 9, 10"],
                     "correct_answer": "sechs, sieben, acht, neun, zehn",
                     "error_type": "vocabulary",
                     "retry": "Hör zu: sechs, sieben, acht, neun, zehn. Sag sie bitte noch einmal.",
                     "success": "Richtig."
                 },
                 {
-                    "prompt": "Jetzt 11 bis 15.",
-                    "accepted": ["elf, zwölf, dreizehn, vierzehn, fünfzehn", "elf zwölf dreizehn vierzehn fünfzehn"],
+                    "prompt": "Jetzt 11 bis 15 auf Deutsch. Du kannst auch die Ziffern schreiben.",
+                    "accepted": ["elf, zwölf, dreizehn, vierzehn, fünfzehn", "elf zwölf dreizehn vierzehn fünfzehn", "11 12 13 14 15", "11, 12, 13, 14, 15"],
                     "correct_answer": "elf, zwölf, dreizehn, vierzehn, fünfzehn",
                     "error_type": "vocabulary",
                     "retry": "Hör zu: elf, zwölf, dreizehn, vierzehn, fünfzehn. Sag sie bitte noch einmal.",
                     "success": "Sehr gut."
                 },
                 {
-                    "prompt": "Und 16 bis 20.",
-                    "accepted": ["sechzehn, siebzehn, achtzehn, neunzehn, zwanzig", "sechzehn siebzehn achtzehn neunzehn zwanzig"],
+                    "prompt": "Und jetzt 16 bis 20 auf Deutsch. Du kannst auch die Ziffern schreiben.",
+                    "accepted": ["sechzehn, siebzehn, achtzehn, neunzehn, zwanzig", "sechzehn siebzehn achtzehn neunzehn zwanzig", "16 17 18 19 20", "16, 17, 18, 19, 20"],
                     "correct_answer": "sechzehn, siebzehn, achtzehn, neunzehn, zwanzig",
                     "error_type": "vocabulary",
                     "retry": "Hör zu: sechzehn, siebzehn, achtzehn, neunzehn, zwanzig. Sag sie bitte noch einmal.",
