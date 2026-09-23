@@ -62,6 +62,54 @@ from brain.memory.error_review import (
 
 class NeleCoreBehaviorTests(unittest.TestCase):
 
+    def test_first_a1_welcome_is_short(self):
+        state = {
+            "onboarding_completed": False,
+            "onboarding_step": 0,
+            "user_facts": {},
+        }
+
+        with patch(
+            "brain.logic.welcome.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "brain.logic.welcome.save_conversation_state"
+        ):
+            reply = generate_welcome_reply("test-new-user")
+
+        self.assertEqual(
+            reply,
+            "Hallo! Ich bin Nele. Wie heißt du?",
+        )
+        self.assertNotIn(
+            "persönliche Deutschtrainerin",
+            reply,
+        )
+        self.assertNotIn(
+            "Schön, dich kennenzulernen",
+            reply,
+        )
+
+    def test_resumed_first_a1_welcome_stays_short(self):
+        state = {
+            "onboarding_completed": False,
+            "onboarding_step": 1,
+            "user_facts": {},
+        }
+
+        with patch(
+            "brain.logic.welcome.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "brain.logic.welcome.save_conversation_state"
+        ):
+            reply = generate_welcome_reply("test-resumed-user")
+
+        self.assertEqual(
+            reply,
+            "Hallo! Ich bin Nele. Wie heißt du?",
+        )
+
     def test_a1_addon_content_never_returns_a2_items(self):
         groups = [
             DIALOGUES,
