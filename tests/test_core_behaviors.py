@@ -334,9 +334,45 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "listening",
         )
 
-    def test_empty_a1_lesson_2_is_not_treated_as_ready(self):
+    def test_a1_lesson_2_is_ready(self):
         available = get_available_lesson_numbers("A1")
-        self.assertNotIn(2, available)
+        self.assertIn(2, available)
+
+    def test_a1_lesson_2_teaches_source_page_topics(self):
+        from brain.logic.lesson_loader import load_lesson_flow
+
+        flow = load_lesson_flow("A1", 2)
+        self.assertIsInstance(flow, dict)
+        sections = flow.get("sections", {})
+        self.assertEqual(
+            list(sections.keys()),
+            [
+                "Woher kommen Sie?",
+                "Länder und Nationalitäten",
+                "Das Verb kommen",
+                "Zahlen 1–20",
+            ],
+        )
+
+        origin_steps = sections["Woher kommen Sie?"]["steps"]
+        self.assertTrue(
+            any(
+                step.get("correct_answer") == "Ich komme aus der Schweiz."
+                for step in origin_steps
+            )
+        )
+        self.assertTrue(
+            any(
+                step.get("correct_answer") == "Ich komme aus den USA."
+                for step in origin_steps
+            )
+        )
+
+        kommen_steps = sections["Das Verb kommen"]["steps"]
+        self.assertEqual(len(kommen_steps), 6)
+
+        number_steps = sections["Zahlen 1–20"]["steps"]
+        self.assertEqual(len(number_steps), 4)
 
     def test_wellbeing_reply_is_not_consumed_by_interrupted_addon_task(self):
         state = {
