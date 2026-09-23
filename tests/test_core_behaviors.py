@@ -120,8 +120,8 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         }
 
         reply = handle_onboarding_answer(
-            state,
             "Ich heiße Moni",
+            state,
         )
 
         self.assertEqual(
