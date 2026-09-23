@@ -1116,3 +1116,38 @@ def test_free_speaking_weather_questions_answers_and_errors():
 
     reply, _ = _free_reply("Es schneit", last_question="Wie ist das Wetter bei dir?")
     assert "Schnee" in reply
+
+
+def test_free_speaking_continuous_a1_social_conversation():
+    state = {"student_progress": {"current_level": "A1.1"}}
+
+    reply, _ = generate_free_conversation_reply("Guten Morgen", state)
+    assert "Guten Morgen!" in reply
+    assert "Wie geht es dir" in reply
+
+    reply, _ = generate_free_conversation_reply("Mir geht gut", state)
+    assert "Mir geht es gut" in reply
+
+    reply, _ = generate_free_conversation_reply("Wie geht es dir?", state)
+    assert "Mir geht es gut" in reply
+    assert "Und dir?" in reply
+
+    reply, _ = generate_free_conversation_reply("gut", state)
+    assert reply
+
+    reply, _ = generate_free_conversation_reply("Wie ist das Wetter heute?", state)
+    assert "Wie ist das Wetter bei dir?" in reply
+
+    reply, _ = generate_free_conversation_reply("Es sonnig", state)
+    assert "Es ist sonnig" in reply
+
+    reply, _ = generate_free_conversation_reply("Wie heißen du?", state)
+    assert "Wie heißt du?" in reply
+    assert "Ich heiße Nele" in reply
+
+    reply, _ = generate_free_conversation_reply("Ich heißen Moni", state)
+    assert "Ich heiße Moni" in reply
+    assert "Woher kommst du?" in reply
+
+    reply, _ = generate_free_conversation_reply("Tschüss", state)
+    assert reply == "Tschüss!"
