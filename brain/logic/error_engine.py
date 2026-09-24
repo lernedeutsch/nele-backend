@@ -37,6 +37,9 @@ EXACT_ERRORS = {
     "gute abend": ("grammar", "Guten Abend!", "greeting"),
     "gut abend": ("grammar", "Guten Abend!", "greeting"),
     "guten nacht": ("grammar", "Gute Nacht!", "greeting"),
+    "es ist regen": ("grammar", "Es regnet.", "es_regnet"),
+    "ich gut": ("grammar", "Mir geht es gut.", "wellbeing_ich"),
+    "ich heißen moni": ("verb", "Ich heiße Moni.", "ich_heisse"),
 }
 
 ERROR_PATTERNS = [
