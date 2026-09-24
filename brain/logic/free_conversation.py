@@ -193,6 +193,8 @@ def _yes_no_followup(text, last_question, facts):
         return "Welche Farbe möchtest du?" if yes else "Welche Schuhe suchst du?"
     if "arbeitest du heute" in q:
         return "Wann fängst du an?" if yes else "Heute hast du also frei. Was machst du heute?"
+    if "kochst du jeden tag bei der arbeit" in q:
+        return "Was kochst du gern bei der Arbeit?" if yes else "Was machst du sonst bei der Arbeit?"
     if "bist du heute zu hause" in q:
         return "Was machst du zu Hause?" if yes else "Ah, du bist unterwegs. Wo bist du gerade?"
     if "hast du heute viel zu tun" in q:
@@ -421,8 +423,13 @@ def _social_a1_reply(text, free, state):
             return "Wann fängst du heute an?"
         if low in {"nein", "nein heute nicht", "heute nicht"}:
             return "Dann hast du heute frei. Was machst du heute?"
-        if re.fullmatch(r"(?:um\s+)?\d{1,2}(?::\d{2})?(?:\s+uhr)?", low):
-            return f"Du fängst {raw.strip()} an. Was machst du bei der Arbeit?"
+        match = re.fullmatch(r"(?:um\s+)?(\d{1,2})(?::(\d{2}))?(?:\s+uhr)?", low)
+        if match:
+            hour = match.group(1)
+            minute = match.group(2)
+            time_value = f"{hour}:{minute}" if minute else hour
+            free.setdefault("conversation_facts", {})["work_start"] = time_value
+            return f"Du kannst sagen: „Ich fange um {time_value} Uhr an.“ Was machst du bei der Arbeit?"
 
     if any(x in last for x in ("kaufen", "einkaufen", "welche schuhe", "was möchtest du kaufen")):
         if low in {"schuhe", "sportschuhe", "kleidung", "lebensmittel", "essen"}:
