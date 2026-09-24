@@ -8,6 +8,7 @@ import re
 
 from brain.logic.vocabulary_engine import build_personalized_conversation_vocabulary
 from brain.logic.conversation_state import reset_conversation_state, sync_conversation_state
+from brain.logic.topic_manager import choose_topic, update_topic_manager
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -836,11 +837,31 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "alltag": "today",
     }
     vocabulary_topic = vocabulary_topic_map.get(vocabulary_context.get("topic"))
-    topic = facts.get("topic", vocabulary_topic or previous_topic)
+    explicit_topic = facts.get("topic")
+    # Explicit topic words in the learner message must outrank context. This is
+    # deliberately checked again here because social/weather handlers may have
+    # already enriched memory while the active state still says work/kochen.
+    low_message = _norm(user_message)
+    if any(x in low_message for x in ("wetter", "sonne", "sonnig", "regen", "regnet", "warm", "kalt", "windig", "schnee")):
+        explicit_topic = "weather"
+    elif any(x in low_message for x in ("urlaub", "reise", "ferien", "meer", "berge")):
+        explicit_topic = "holiday"
+    elif "gestern" in low_message:
+        explicit_topic = "yesterday"
+    elif any(x in low_message for x in ("arbeit", "job", "hotel")):
+        explicit_topic = "work"
+    elif any(x in low_message for x in ("hobby", "freizeit", "musik", "sport", "lesen", "buch")):
+        explicit_topic = "hobby"
     if facts.get("activity") == "shopping":
-        topic = "shopping"
+        explicit_topic = "shopping"
     elif facts.get("place"):
-        topic = "place"
+        explicit_topic = "place"
+
+    topic, topic_source = choose_topic(
+        state,
+        explicit_topic=explicit_topic,
+        vocabulary_topic=vocabulary_topic or previous_topic,
+    )
 
     last_question = free.get("last_question", "")
     recast, error_key = _error_and_recast(user_message)
@@ -856,22 +877,35 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             _remember_question(free, next_question)
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        social_topic, social_topic_source = choose_topic(
+            state,
+            explicit_topic=explicit_topic,
+            vocabulary_topic=vocabulary_topic or previous_topic,
+        )
+        free["last_topic"] = social_topic
         conversation_state = sync_conversation_state(
             state,
-            topic=free.get("last_topic", "today"),
+            topic=social_topic,
             last_question=free.get("last_question", ""),
             level=level,
+        )
+        topic_manager = update_topic_manager(
+            state,
+            topic=social_topic,
+            source=social_topic_source,
+            subtopic=conversation_state.get("subtopic"),
         )
         return social_reply, {
             "conversation_mode": "free",
             "support_level": support,
-            "topic": free.get("last_topic", "today"),
+            "topic": social_topic,
             "independent_turns": independent,
             "course_level": level,
             "conversation_facts": dict(free.get("conversation_facts", {})),
             "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
             "vocabulary": vocabulary_context,
             "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
         }
 
     # Priority: answer context -> learner content -> safe course-level fallback.
@@ -920,6 +954,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         last_question=free.get("last_question", question),
         level=level,
     )
+    topic_manager = update_topic_manager(
+        state,
+        topic=topic,
+        source=topic_source,
+        subtopic=conversation_state.get("subtopic"),
+    )
 
     return reply, {
         "conversation_mode": "free",
@@ -931,4 +971,5 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
         "vocabulary": vocabulary_context,
         "conversation_state": conversation_state,
+        "topic_manager": topic_manager,
     }
