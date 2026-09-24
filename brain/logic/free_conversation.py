@@ -22,6 +22,7 @@ from brain.logic.conversation_goal_transition import decide_topic_transition
 from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
 from brain.logic.conversation_quality_controller import check_reply
 from brain.logic.conversation_recovery import recover_reply
+from brain.logic.conversation_orchestrator import build_orchestration_contract, enforce_orchestration, record_orchestration
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -990,6 +991,17 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         teacher_policy=teacher_policy,
         explicit_topic=bool(explicit_topic),
     )
+    orchestration_contract = build_orchestration_contract(
+        teacher_policy=teacher_policy,
+        struggle=struggle,
+        explicit_topic=explicit_topic,
+        topic_transition=topic_transition,
+    )
+    transition_guard = enforce_orchestration(
+        orchestration_contract,
+        topic_transition=topic_transition,
+    )
+    topic_transition = transition_guard["topic_transition"]
     if topic_transition.get("transition"):
         topic = topic_transition["next_topic"]
         topic_source = "goal_transition"
@@ -1072,7 +1084,19 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         user_message=user_message,
         explicit_topic=explicit_topic,
     )
+    final_orchestration = enforce_orchestration(
+        orchestration_contract,
+        topic_transition=topic_transition,
+        personalized_followup=personalized,
+        question_support=question_support,
+        recovery=recovery,
+    )
+    topic_transition = final_orchestration["topic_transition"]
+    personalized = final_orchestration["personalized_followup"]
+    question_support = final_orchestration["question_support"]
+    recovery = final_orchestration["recovery"]
     reply = recovery.get("reply") or reply
+    orchestration = record_orchestration(state, final_orchestration)
     state["conversation_recovery_v2"] = recovery
     state["conversation_recovery_v1"] = recovery
     state["conversation_quality_controller_v2"] = quality
@@ -1132,6 +1156,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "learning_action": learning_action,
         "conversation_quality": quality,
         "conversation_recovery": recovery,
+        "conversation_orchestrator": orchestration,
         "question_simplifier": question_support,
         "learning_outcome": learning_outcome,
         "response_understanding": response_understanding,
