@@ -957,6 +957,45 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
     state["turn_plan_v1"] = turn_plan
 
+    # Priority -1: preserve a specific active yes/no subthread before the
+    # broad social/work router sees the same short answer. This prevents a
+    # contextual "ja" in cooking from being reinterpreted as "ja, ich arbeite".
+    contextual_yes_no = _yes_no_followup(user_message, last_question, memory)
+    if contextual_yes_no and (
+        "kochst du " in _norm(last_question)
+        or "isst du " in _norm(last_question)
+    ):
+        _remember_question(free, contextual_yes_no)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        free["last_topic"] = topic
+        conversation_state = sync_conversation_state(
+            state, topic=topic, last_question=free.get("last_question", contextual_yes_no), level=level
+        )
+        topic_manager = update_topic_manager(
+            state, topic=topic, source=topic_source, subtopic=conversation_state.get("subtopic")
+        )
+        return contextual_yes_no, {
+            "conversation_mode": "free",
+            "support_level": support,
+            "topic": topic,
+            "independent_turns": independent,
+            "course_level": level,
+            "conversation_facts": dict(memory),
+            "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
+            "vocabulary": vocabulary_context,
+            "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
+            "error_engine": error_result,
+            "teacher_engine": teacher_action,
+            "teacher_policy": teacher_policy,
+            "turn_plan": turn_plan,
+            "learning_outcome": learning_outcome,
+            "response_understanding": response_understanding,
+            "learner_model": learner_model,
+            "global_conversation_guard": {"version": 2, "blocked": False, "reason": "active_subthread"},
+        }
+
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
     social_reply = _social_a1_reply(user_message, free, state)
     if social_reply:
