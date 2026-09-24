@@ -136,3 +136,19 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("Was machst du bei der Arbeit?" not in fourth)
         self.assertTrue("Was kochst du gern bei der Arbeit?" in fourth)
 
+    def test_work_cooking_food_chain_keeps_context(self):
+        state = {"free_conversation": {
+            "last_question": "Was kochst du gern bei der Arbeit?",
+            "recent_questions": ["Was kochst du gern bei der Arbeit?"],
+            "conversation_facts": {"work_activity": "kochen"},
+        }}
+
+        first, _ = _turn(state, "suppe")
+        self.assertTrue("Ich koche gern Suppe." in first)
+        self.assertTrue("etwas anderes" in first)
+
+        second, _ = _turn(state, "pizza")
+        self.assertTrue("Ich koche auch gern Pizza." in second)
+        self.assertTrue("Wann fängst du" not in second)
+        self.assertTrue("Was machst du bei der Arbeit?" not in second)
+
