@@ -179,3 +179,24 @@ class GeneratedTests(unittest.TestCase):
         self.assertIn("vocabulary", meta)
         self.assertTrue(meta["vocabulary"]["memory_aware"])
         self.assertEqual(meta["vocabulary"]["topic"], "arbeit")
+
+
+    def test_cooking_chain_suppe_pizza_nudeln_keeps_context(self):
+        state = {"free_conversation": {
+            "last_question": "Was kochst du gern bei der Arbeit?",
+            "recent_questions": ["Was kochst du gern bei der Arbeit?"],
+            "last_topic": "work",
+            "conversation_facts": {"work_activity": "kochen"},
+        }}
+
+        first, _ = _turn(state, "suppe")
+        self.assertIn("Ich koche gern Suppe.", first)
+
+        second, _ = _turn(state, "pizza")
+        self.assertIn("Ich koche auch gern Pizza.", second)
+        self.assertIn("Was kochst du am liebsten?", second)
+
+        third, _ = _turn(state, "nudeln")
+        self.assertIn("Am liebsten koche ich Nudeln.", third)
+        self.assertNotIn("Was machst du bei der Arbeit?", third)
+        self.assertNotIn("Wie ist dein Tag heute?", third)

@@ -634,6 +634,14 @@ def _short_answer_followup(text, last_question, memory):
             memory["other_cooked_food"] = food
             return f"Schön! Du kannst sagen: „Ich koche auch gern {food}.“ Was kochst du am liebsten?"
 
+    # Favourite cooked food: keep the same cooking thread for another food noun.
+    if "was kochst du am liebsten" in question:
+        foods = {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}
+        if low in foods:
+            food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
+            memory["favorite_cooked_food"] = food
+            return f"Du kannst sagen: „Am liebsten koche ich {food}.“ Wie kochst du {food} gern?"
+
     # Essen: a food noun is a valid answer, not a new unrelated topic.
     if any(key in question for key in ("was isst du", "was hast du gegessen", "was möchtest du essen")):
         if low in {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}:
