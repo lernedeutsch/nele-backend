@@ -15,7 +15,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(memory["work_until"] == "2")
 
 
-    def test_kochen_answers_work_activity_question():
+    def test_kochen_answers_work_activity_question(self):
         memory = {}
         reply = _short_answer_followup(
         "Kochen",
@@ -26,7 +26,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("Ich arbeite Kochen" not in reply)
 
 
-    def test_pizza_answers_food_question():
+    def test_pizza_answers_food_question(self):
         memory = {}
         reply = _short_answer_followup(
         "Pizza",
@@ -37,7 +37,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(memory["food"] == "Pizza")
 
 
-    def test_company_answer_stays_in_activity_context():
+    def test_company_answer_stays_in_activity_context(self):
         memory = {}
         reply = _short_answer_followup(
         "Mit meinem Mann",
@@ -48,5 +48,5 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(memory["activity_company"] == "Mit meinem Mann")
 
 
-    def test_short_answer_without_matching_question_is_not_guessed():
+    def test_short_answer_without_matching_question_is_not_guessed(self):
         self.assertTrue(_short_answer_followup("Pizza", "Wie ist das Wetter?", {}) is None)
