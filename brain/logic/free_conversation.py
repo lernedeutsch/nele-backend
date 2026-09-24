@@ -13,6 +13,7 @@ from brain.logic.error_engine import process_error
 from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
 from brain.logic.learner_model import build_learner_model
 from brain.logic.teacher_policy import choose_next_best_learning_action, policy_to_teacher_action
+from brain.logic.learning_action_executor import execute_learning_action
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -949,6 +950,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "error_engine": error_result,
             "teacher_engine": teacher_action,
             "teacher_policy": teacher_policy,
+            "learning_action": state.get("learning_action_executor_v1"),
             "learner_model": learner_model,
         }
 
@@ -970,19 +972,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         if question == last_question:
             question = _not_recent(free, FALLBACKS["today"])[0]
 
-    teacher_prefix = render_teacher_prefix(teacher_action)
-    if teacher_action.get("action") == "ask_repeat":
-        reply = teacher_prefix
-    elif teacher_prefix:
-        reply = f"{teacher_prefix} {question}"
-    elif recast:
-        reply = f"{recast} {question}"
-    elif _norm(user_message) in {"gut", "sehr gut", "prima", "super"}:
-        reply = f"Schön! {question}"
-    elif _norm(user_message) in YES | NO:
-        reply = question
-    else:
-        reply = question
+    learning_action = execute_learning_action(
+        teacher_policy,
+        teacher_action=teacher_action,
+        vocabulary_context=vocabulary_context,
+        fallback_question=question,
+    )
+    reply = learning_action.get("reply") or question
+    state["learning_action_executor_v1"] = learning_action
 
     turn = int(free.get("turn_count", 0) or 0) + 1
     free.update({
@@ -1022,5 +1019,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "error_engine": error_result,
         "teacher_engine": teacher_action,
         "teacher_policy": teacher_policy,
+        "learning_action": learning_action,
         "learner_model": learner_model,
     }
