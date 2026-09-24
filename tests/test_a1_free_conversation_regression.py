@@ -690,3 +690,53 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(model["learning_outcomes"]["success"], 3)
         self.assertEqual(model["learning_outcomes"]["partial"], 1)
         self.assertIn("learning_response", model["strengths"])
+
+
+    def test_learning_progress_moves_to_mastered(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        base = {"expected_outcome": "use_full_sentence", "target_word": None, "model": "Ich arbeite."}
+        for _ in range(3):
+            update_learning_progress(state, dict(base, status="SUCCESS"))
+        skill = state["learning_progress_v1"]["skills"]["conversation:full_sentence"]
+        self.assertEqual(skill["status"], "mastered")
+        self.assertEqual(skill["successes"], 3)
+
+    def test_learning_progress_mastered_can_need_review_again(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        base = {"expected_outcome": "use_full_sentence", "target_word": None, "model": "Ich arbeite."}
+        for _ in range(3):
+            update_learning_progress(state, dict(base, status="SUCCESS"))
+        update_learning_progress(state, dict(base, status="NOT_YET"))
+        skill = state["learning_progress_v1"]["skills"]["conversation:full_sentence"]
+        self.assertEqual(skill["status"], "needs_review")
+
+    def test_learning_progress_tracks_vocabulary_separately(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        update_learning_progress(state, {
+            "expected_outcome": "recall_target_word", "status": "SUCCESS",
+            "target_word": "pause", "model": None,
+        })
+        self.assertIn("vocabulary:pause", state["learning_progress_v1"]["skills"])
+
+    def test_learning_progress_repeated_failure_needs_review(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        outcome = {"expected_outcome": "independent_answer", "status": "NOT_YET"}
+        update_learning_progress(state, outcome)
+        update_learning_progress(state, outcome)
+        skill = state["learning_progress_v1"]["skills"]["conversation:independent_answer"]
+        self.assertEqual(skill["status"], "needs_review")
+
+    def test_learner_model_exposes_long_term_learning_progress(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        from brain.logic.learner_model import build_learner_model
+        state = {}
+        outcome = {"expected_outcome": "use_full_sentence", "status": "SUCCESS"}
+        for _ in range(3):
+            update_learning_progress(state, outcome)
+        model = build_learner_model(state)
+        self.assertEqual(model["learning_progress"]["mastered_count"], 1)
+        self.assertIn("conversation:full_sentence", model["learning_progress"]["by_status"]["mastered"])

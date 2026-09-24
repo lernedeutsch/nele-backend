@@ -7,6 +7,7 @@ Executor expectation and writes a compact outcome history into state.
 import re
 
 from brain.memory.vocabulary_memory import remember_correct_answer, remember_mistake
+from brain.logic.learning_progress_engine import update_learning_progress
 
 
 TRACKER_VERSION = 1
@@ -105,4 +106,5 @@ def evaluate_learning_outcome(user_message, state):
     if len(history) > 50:
         del history[:-50]
     state["last_learning_outcome"] = outcome
+    outcome["progress"] = update_learning_progress(state, outcome)
     return outcome
