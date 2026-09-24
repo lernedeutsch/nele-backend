@@ -9,6 +9,7 @@ import re
 from brain.logic.vocabulary_engine import build_personalized_conversation_vocabulary
 from brain.logic.conversation_state import reset_conversation_state, sync_conversation_state
 from brain.logic.topic_manager import choose_topic, update_topic_manager
+from brain.logic.error_engine import process_error
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -864,8 +865,22 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
 
     last_question = free.get("last_question", "")
-    recast, error_key = _error_and_recast(user_message)
-    _record_error(state, free, error_key, user_message)
+    # Central Error Engine handles clear A1 corrections and writes them to
+    # Student Memory 2.0. Legacy social rules below remain compatible while
+    # they are migrated incrementally.
+    current_state = state.get("conversation_state_v2") or {}
+    error_result = process_error(
+        user_message,
+        state,
+        support_level=support,
+        expected_answer=current_state.get("expected_answer"),
+        context={
+            "mode": "free",
+            "topic": current_state.get("topic") or previous_topic,
+            "last_question": last_question,
+        },
+    )
+    recast = error_result.get("recast")
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
     social_reply = _social_a1_reply(user_message, free, state)
@@ -906,6 +921,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "vocabulary": vocabulary_context,
             "conversation_state": conversation_state,
             "topic_manager": topic_manager,
+            "error_engine": error_result,
         }
 
     # Priority: answer context -> learner content -> safe course-level fallback.
@@ -972,4 +988,5 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "vocabulary": vocabulary_context,
         "conversation_state": conversation_state,
         "topic_manager": topic_manager,
+        "error_engine": error_result,
     }
