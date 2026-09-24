@@ -360,3 +360,35 @@ class GeneratedTests(unittest.TestCase):
         for text in ("Wie heißt du?", "Wie geht es dir?", "Guten Morgen!", "Es regnet.", "Mir geht es gut."):
             with self.subTest(text=text):
                 self.assertIsNone(detect_error(text))
+
+
+    def test_error_engine_v2_uses_natural_recast_first(self):
+        from brain.logic.error_engine import process_error
+        state = {}
+        result = process_error("ich arbeiten", state, support_level=1)
+        self.assertEqual(result["decision"]["style"], "natural_recast")
+        self.assertEqual(result["recast"], "Ah, Ich arbeite.")
+
+    def test_error_engine_v2_uses_explicit_model_with_more_support(self):
+        from brain.logic.error_engine import process_error
+        state = {}
+        result = process_error("ich arbeiten", state, support_level=2)
+        self.assertEqual(result["decision"]["style"], "explicit_model")
+        self.assertEqual(result["recast"], "Du kannst sagen: „Ich arbeite.“")
+
+    def test_error_engine_v2_requests_repeat_for_recurring_error(self):
+        from brain.logic.error_engine import process_error
+        state = {}
+        process_error("ich arbeiten", state, support_level=1)
+        process_error("ich arbeiten", state, support_level=1)
+        third = process_error("ich arbeiten", state, support_level=1)
+        self.assertEqual(third["decision"]["style"], "repeat_request")
+        self.assertIn("Sag es bitte noch einmal.", third["recast"])
+
+    def test_error_engine_v2_does_not_interrupt_without_clear_error(self):
+        from brain.logic.error_engine import process_error
+        state = {}
+        result = process_error("Ich arbeite heute.", state, support_level=1)
+        self.assertFalse(result["decision"]["correct"])
+        self.assertEqual(result["decision"]["style"], "none")
+        self.assertIsNone(result["recast"])
