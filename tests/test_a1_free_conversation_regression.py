@@ -446,3 +446,51 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertEqual(action["action"], "ask_repeat")
         self.assertFalse(action["continue_conversation"])
+
+
+    def test_teacher_engine_reviews_problem_vocabulary_first(self):
+        from brain.logic.teacher_engine import choose_teacher_action
+        action = choose_teacher_action(
+            "Ich arbeite heute.",
+            conversation_state={"topic": "work", "expected_answer": "open"},
+            error_result={"decision": {"correct": False}},
+            support_level=1,
+            independent_turns=2,
+            vocabulary_context={
+                "suggestions": [{"word": "kollege", "level": "A1"}],
+                "memory": {"kollege": {"seen": 2, "correct": 0, "mistakes": 1, "needs_review": True}},
+            },
+        )
+        self.assertEqual(action["action"], "review_vocabulary")
+        self.assertEqual(action["word"], "kollege")
+
+    def test_teacher_engine_can_introduce_unseen_topic_word(self):
+        from brain.logic.teacher_engine import choose_teacher_action
+        action = choose_teacher_action(
+            "Ich arbeite heute.",
+            conversation_state={"topic": "work", "expected_answer": "open"},
+            error_result={"decision": {"correct": False}},
+            support_level=1,
+            independent_turns=2,
+            vocabulary_context={
+                "suggestions": [{"word": "pause", "level": "A1"}],
+                "memory": {},
+            },
+        )
+        self.assertEqual(action["action"], "introduce_vocabulary")
+        self.assertEqual(action["word"], "pause")
+
+    def test_teacher_engine_does_not_push_new_word_during_struggle(self):
+        from brain.logic.teacher_engine import choose_teacher_action
+        action = choose_teacher_action(
+            "?",
+            conversation_state={"topic": "work", "expected_answer": "open"},
+            error_result={"decision": {"correct": False}},
+            support_level=3,
+            struggle=True,
+            vocabulary_context={
+                "suggestions": [{"word": "kollege", "level": "A1"}],
+                "memory": {},
+            },
+        )
+        self.assertEqual(action["action"], "simplify_next_question")
