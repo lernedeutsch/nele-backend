@@ -1077,3 +1077,44 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(result["transition"])
         self.assertEqual(result["next_topic"], "hobby")
         self.assertIn("work", state["topic_transition_v1"]["completed_topics"])
+
+
+    def test_personalization_memory_saves_reusable_fact(self):
+        from brain.logic.conversation_personalization import remember_conversation_facts
+        state = {}
+        remember_conversation_facts(state, {"activity": "cycling"}, topic="hobby")
+        fact = state["conversation_personalization_v1"]["facts"]["activity"]
+        self.assertEqual(fact["value"], "cycling")
+        self.assertEqual(fact["confirmations"], 1)
+
+    def test_personalization_memory_counts_repeated_confirmation(self):
+        from brain.logic.conversation_personalization import remember_conversation_facts
+        state = {}
+        remember_conversation_facts(state, {"music_genre": "Rock"}, topic="hobby")
+        remember_conversation_facts(state, {"music_genre": "Rock"}, topic="hobby")
+        self.assertEqual(
+            state["conversation_personalization_v1"]["facts"]["music_genre"]["confirmations"], 2
+        )
+
+    def test_personalization_followup_reuses_hobby_naturally(self):
+        from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
+        state = {}
+        remember_conversation_facts(state, {"activity": "cycling"}, topic="hobby")
+        result = choose_personalized_followup(state, topic="hobby", turn_count=4)
+        self.assertIsNotNone(result)
+        self.assertIn("Rad", result["question"])
+
+    def test_personalization_does_not_fire_in_first_turns(self):
+        from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
+        state = {}
+        remember_conversation_facts(state, {"activity": "swimming"}, topic="hobby")
+        self.assertIsNone(choose_personalized_followup(state, topic="hobby", turn_count=1))
+
+    def test_personalization_does_not_repeat_same_prompt(self):
+        from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
+        state = {}
+        remember_conversation_facts(state, {"activity": "reading"}, topic="hobby")
+        first = choose_personalized_followup(state, topic="hobby", turn_count=4)
+        second = choose_personalized_followup(state, topic="hobby", turn_count=5)
+        self.assertIsNotNone(first)
+        self.assertIsNone(second)
