@@ -1155,3 +1155,58 @@ class GeneratedTests(unittest.TestCase):
         result = check_reply(reply, action="REPEAT_ERROR", model="Ich heiße Moni.")
         self.assertFalse(result["changed"])
         self.assertEqual(result["reply"], reply)
+
+
+    def test_quality_controller_v2_flags_long_a1_sentence_without_rewriting(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        reply = " ".join(["Wort"] * 19) + "."
+        result = check_reply(reply, topic="today")
+        self.assertEqual(result["version"], 2)
+        self.assertIn("a1_complexity_warning", result["issues"])
+        self.assertFalse(result["changed"])
+        self.assertEqual(result["reply"], reply)
+
+    def test_quality_controller_v2_flags_topic_drift_for_continue(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        result = check_reply(
+            "Magst du das Wetter heute?",
+            topic="work",
+            action="CONTINUE",
+            user_message="Pizza",
+            response_understanding={"canonical": "pizza"},
+        )
+        self.assertIn("topic_alignment_warning", result["issues"])
+
+    def test_quality_controller_v2_sees_response_alignment(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        result = check_reply(
+            "Pizza ist lecker. Kochst du Pizza gern?",
+            topic="work",
+            action="CONTINUE",
+            user_message="Pizza",
+            response_understanding={"canonical": "pizza"},
+        )
+        self.assertTrue(result["response_alignment"])
+        self.assertNotIn("response_alignment_warning", result["issues"])
+
+    def test_quality_controller_v2_flags_confirmed_memory_contradiction(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        result = check_reply(
+            "Du fährst nicht gern cycling.",
+            topic="hobby",
+            action="CONTINUE",
+            personalization_facts={"activity": {"value": "cycling", "confirmations": 2}},
+        )
+        self.assertIn("memory_contradiction_warning", result["issues"])
+        self.assertIn("activity", result["memory_contradictions"])
+        self.assertFalse(result["changed"])
+
+    def test_quality_controller_v2_does_not_flag_single_unconfirmed_memory_fact(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        result = check_reply(
+            "Du fährst nicht gern cycling.",
+            topic="hobby",
+            action="CONTINUE",
+            personalization_facts={"activity": {"value": "cycling", "confirmations": 1}},
+        )
+        self.assertNotIn("memory_contradiction_warning", result["issues"])

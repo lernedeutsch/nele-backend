@@ -1056,8 +1056,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         topic=topic,
         action=learning_action.get("action"),
         model=learning_action.get("model"),
+        user_message=user_message,
+        response_understanding=response_understanding,
+        personalization_facts=personalization_memory.get("facts") or {},
     )
     reply = quality.get("reply") or reply
+    state["conversation_quality_controller_v2"] = quality
     state["conversation_quality_controller_v1"] = quality
     state["learning_action_executor_v1"] = learning_action
 
