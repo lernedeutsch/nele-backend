@@ -21,6 +21,7 @@ from brain.logic.conversation_coherence import choose_coherent_question, update_
 from brain.logic.conversation_goal_transition import decide_topic_transition
 from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
 from brain.logic.conversation_quality_controller import check_reply
+from brain.logic.conversation_recovery import recover_reply
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -1061,6 +1062,16 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         personalization_facts=personalization_memory.get("facts") or {},
     )
     reply = quality.get("reply") or reply
+    recovery = recover_reply(
+        reply,
+        quality,
+        topic=topic,
+        action=learning_action.get("action"),
+        response_understanding=response_understanding,
+        safe_question=action_question,
+    )
+    reply = recovery.get("reply") or reply
+    state["conversation_recovery_v1"] = recovery
     state["conversation_quality_controller_v2"] = quality
     state["conversation_quality_controller_v1"] = quality
     state["learning_action_executor_v1"] = learning_action
@@ -1117,6 +1128,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "teacher_policy": teacher_policy,
         "learning_action": learning_action,
         "conversation_quality": quality,
+        "conversation_recovery": recovery,
         "question_simplifier": question_support,
         "learning_outcome": learning_outcome,
         "response_understanding": response_understanding,

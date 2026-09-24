@@ -1210,3 +1210,72 @@ class GeneratedTests(unittest.TestCase):
             personalization_facts={"activity": {"value": "cycling", "confirmations": 1}},
         )
         self.assertNotIn("memory_contradiction_warning", result["issues"])
+
+
+    def test_recovery_engine_uses_learner_meaning_for_work_food(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Magst du das Wetter heute?",
+            {"issues": ["topic_alignment_warning", "response_alignment_warning"], "changed": False},
+            topic="work",
+            action="CONTINUE",
+            response_understanding={"canonical": "pizza"},
+            safe_question="Was machst du bei der Arbeit?",
+        )
+        self.assertTrue(result["recovered"])
+        self.assertEqual(result["strategy"], "learner_meaning")
+        self.assertIn("Pizza", result["reply"])
+        self.assertIn("Arbeit", result["reply"])
+
+    def test_recovery_engine_falls_back_to_safe_topic_question(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Was machst du heute?",
+            {"issues": ["topic_alignment_warning"], "changed": False},
+            topic="weather",
+            action="CONTINUE",
+            response_understanding={"canonical": "ja"},
+            safe_question="Wie ist das Wetter bei dir?",
+        )
+        self.assertTrue(result["recovered"])
+        self.assertEqual(result["strategy"], "safe_topic_question")
+        self.assertEqual(result["reply"], "Wie ist das Wetter bei dir?")
+
+    def test_recovery_engine_never_overrides_repeat_error(self):
+        from brain.logic.conversation_recovery import recover_reply
+        reply = "Richtig ist: „Ich heiße Moni.“ Sag es bitte noch einmal."
+        result = recover_reply(
+            reply,
+            {"issues": ["topic_alignment_warning"], "changed": False},
+            topic="work",
+            action="REPEAT_ERROR",
+            response_understanding={"canonical": "moni"},
+        )
+        self.assertFalse(result["recovered"])
+        self.assertEqual(result["reply"], reply)
+
+    def test_recovery_engine_respects_quality_controller_repair(self):
+        from brain.logic.conversation_recovery import recover_reply
+        reply = "Ich koche bei der Arbeit."
+        result = recover_reply(
+            reply,
+            {"issues": ["known_invalid_construction"], "changed": True},
+            topic="work",
+            action="CONTINUE",
+            response_understanding={"canonical": "kochen"},
+        )
+        self.assertFalse(result["recovered"])
+        self.assertEqual(result["reply"], reply)
+
+    def test_recovery_engine_does_nothing_without_recoverable_warning(self):
+        from brain.logic.conversation_recovery import recover_reply
+        reply = "Was kochst du gern?"
+        result = recover_reply(
+            reply,
+            {"issues": ["a1_complexity_warning"], "changed": False},
+            topic="work",
+            action="CONTINUE",
+            response_understanding={"canonical": "pizza"},
+        )
+        self.assertFalse(result["recovered"])
+        self.assertEqual(result["reply"], reply)
