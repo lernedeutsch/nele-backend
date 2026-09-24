@@ -836,3 +836,43 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertEqual(policy["action"], "ADVANCE")
         self.assertEqual(policy["reason"], "curriculum_next_ready_skill")
+
+
+    def test_question_simplifier_turns_open_work_question_into_yes_no(self):
+        from brain.logic.question_simplifier import simplify_question
+        result = simplify_question("Was machst du bei der Arbeit?", topic="work")
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["question"], "Arbeitest du heute?")
+        self.assertEqual(result["strategy"], "specific_rule")
+
+    def test_question_simplifier_preserves_cooking_subtopic(self):
+        from brain.logic.question_simplifier import simplify_question
+        result = simplify_question(
+            "Was machst du sonst bei der Arbeit?",
+            topic="work",
+            subtopic="kochen",
+        )
+        self.assertTrue(result["question"].startswith("Kochst du"))
+
+    def test_question_simplifier_avoids_recent_question(self):
+        from brain.logic.question_simplifier import simplify_question
+        result = simplify_question(
+            "Was machst du bei der Arbeit?",
+            topic="work",
+            recent_questions=["Arbeitest du heute?"],
+        )
+        self.assertNotEqual(result["question"], "Arbeitest du heute?")
+
+    def test_question_simplifier_weather_stays_weather(self):
+        from brain.logic.question_simplifier import simplify_question
+        result = simplify_question(
+            "Was machst du bei diesem Wetter gern?",
+            topic="weather",
+        )
+        self.assertEqual(result["question"], "Gehst du gern spazieren?")
+
+    def test_simplified_question_is_yes_no_for_conversation_state(self):
+        from brain.logic.question_simplifier import simplify_question
+        from brain.logic.conversation_state import infer_expected_answer
+        result = simplify_question("Was machst du bei der Arbeit?", topic="work")
+        self.assertEqual(infer_expected_answer(result["question"]), "yes_no")
