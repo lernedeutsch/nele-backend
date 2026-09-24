@@ -112,3 +112,27 @@ class GeneratedTests(unittest.TestCase):
         third, _ = _turn(state, "Pizza")
         self.assertTrue("Pizza" in third)
         self.assertTrue(third != second)
+
+    def test_real_work_sequence_does_not_restart_after_kochen_yes(self):
+        state = {"free_conversation": {
+        "last_question": "Was machst du gerade?",
+        "recent_questions": ["Was machst du gerade?"],
+        "conversation_facts": {},
+        }}
+
+        first, _ = _turn(state, "Arbeit")
+        self.assertTrue("Wann fängst du an?" in first)
+
+        second, _ = _turn(state, "8")
+        self.assertTrue("Ich fange um 8 Uhr an." in second)
+        self.assertTrue("Was machst du bei der Arbeit?" in second)
+
+        third, _ = _turn(state, "kochen")
+        self.assertTrue("Ich koche." in third)
+        self.assertTrue("Kochst du jeden Tag bei der Arbeit?" in third)
+
+        fourth, _ = _turn(state, "ja")
+        self.assertTrue("Wann fängst du" not in fourth)
+        self.assertTrue("Was machst du bei der Arbeit?" not in fourth)
+        self.assertTrue("Was kochst du gern bei der Arbeit?" in fourth)
+
