@@ -1,30 +1,32 @@
-import pytest
 from brain.logic.a1_lesson2_conversation import classify, start, handle, NUMBERS
 
 def task(kind, expected, **kw):
     d={"kind":kind,"expected":expected,"prompt":"test"}
     d.update(kw); return d
 
-@pytest.mark.parametrize("text,status",[
- ("Ich kommen aus Polen.","CONJUGATION_ERROR"),
- ("Ich kommst aus Polen.","CONJUGATION_ERROR"),
- ("Ich komme Polen.","PREPOSITION_ERROR"),
- ("Ich komme aus der Polen.","ARTICLE_ERROR"),
- ("Ich komme aus Schweiz.","ARTICLE_ERROR"),
- ("Ich komme aus der Schweiz.","CORRECT_FULL"),
- ("Ich komme aus USA.","ARTICLE_ERROR"),
- ("Ich komme aus den USA.","CORRECT_FULL"),
-])
-def test_origin_errors(text,status):
-    assert classify(text,task("origin","Ich komme aus Polen." if "Polen" in text else ("Ich komme aus der Schweiz." if "Schweiz" in text else "Ich komme aus den USA.")))["status"]==status
+def test_origin_errors():
+    cases = [
+        ("Ich kommen aus Polen.","CONJUGATION_ERROR"),
+        ("Ich kommst aus Polen.","CONJUGATION_ERROR"),
+        ("Ich komme Polen.","PREPOSITION_ERROR"),
+        ("Ich komme aus der Polen.","ARTICLE_ERROR"),
+        ("Ich komme aus Schweiz.","ARTICLE_ERROR"),
+        ("Ich komme aus der Schweiz.","CORRECT_FULL"),
+        ("Ich komme aus USA.","ARTICLE_ERROR"),
+        ("Ich komme aus den USA.","CORRECT_FULL"),
+    ]
+    for text, status in cases:
+        expected = "Ich komme aus Polen." if "Polen" in text else ("Ich komme aus der Schweiz." if "Schweiz" in text else "Ich komme aus den USA.")
+        assert classify(text,task("origin", expected))["status"] == status
 
-@pytest.mark.parametrize("text,status",[
- ("zwolf","CORRECT_WITH_TYPO"),("sechszehn","CORRECT_WITH_TYPO"),
- ("siebenzehn","CORRECT_WITH_TYPO"),("sechzehn","CORRECT_FULL"),("siebzehn","CORRECT_FULL")
-])
-def test_number_spelling(text,status):
-    num=12 if "zw" in text else (16 if "sech" in text else 17)
-    assert classify(text,task("number",NUMBERS[num],number=num))["status"]==status
+def test_number_spelling():
+    cases = [
+        ("zwolf","CORRECT_WITH_TYPO"),("sechszehn","CORRECT_WITH_TYPO"),
+        ("siebenzehn","CORRECT_WITH_TYPO"),("sechzehn","CORRECT_FULL"),("siebzehn","CORRECT_FULL")
+    ]
+    for text, status in cases:
+        num=12 if "zw" in text else (16 if "sech" in text else 17)
+        assert classify(text,task("number",NUMBERS[num],number=num))["status"] == status
 
 def test_short_answer_is_not_error():
     assert classify("Polen",task("origin","Ich komme aus Polen."))["status"]=="CORRECT_SHORT"
