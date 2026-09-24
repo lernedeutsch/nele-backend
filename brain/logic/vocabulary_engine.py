@@ -150,5 +150,10 @@ def build_personalized_conversation_vocabulary(message, state=None, topic=None, 
     suggestions = sorted(context["suggestions"], key=learning_priority)[:max(0, int(limit))]
     context["suggestions"] = suggestions
     context["suggestion_words"] = [item.get("word") for item in suggestions if item.get("word")]
+    context["memory"] = {
+        word: dict(memory.get(word, {}))
+        for word in context["suggestion_words"]
+        if isinstance(memory.get(word, {}), dict)
+    }
     context["memory_aware"] = True
     return context
