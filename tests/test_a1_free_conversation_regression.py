@@ -1279,3 +1279,68 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertFalse(result["recovered"])
         self.assertEqual(result["reply"], reply)
+
+
+    def test_recovery_v2_classifies_learner_not_understanding(self):
+        from brain.logic.conversation_recovery import classify_recovery
+        reason = classify_recovery(
+            {"issues": []},
+            user_message="Ich verstehe nicht",
+            response_understanding={"understood": True, "confidence": "high"},
+            current_topic="work",
+        )
+        self.assertEqual(reason, "learner_did_not_understand")
+
+    def test_recovery_v2_simplifies_when_learner_did_not_understand(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Was machst du bei der Arbeit?",
+            {"issues": [], "changed": False},
+            topic="work", action="CONTINUE",
+            response_understanding={"understood": True, "confidence": "high"},
+            safe_question="Arbeitest du heute?",
+            user_message="Ich verstehe nicht",
+        )
+        self.assertTrue(result["recovered"])
+        self.assertEqual(result["strategy"], "simplify_for_learner")
+        self.assertIn("Ich frage einfacher", result["reply"])
+
+    def test_recovery_v2_asks_again_when_nele_is_uncertain(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Was machst du heute?",
+            {"issues": ["response_alignment_warning"], "changed": False},
+            topic="today", action="CONTINUE",
+            response_understanding={"understood": False, "confidence": "low"},
+            user_message="...",
+        )
+        self.assertTrue(result["recovered"])
+        self.assertEqual(result["strategy"], "ask_again")
+        self.assertIn("nicht ganz verstanden", result["reply"])
+
+    def test_recovery_v2_accepts_explicit_topic_change(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Wie ist das Wetter bei dir?",
+            {"issues": ["response_alignment_warning"], "changed": False},
+            topic="work", action="CONTINUE",
+            response_understanding={"understood": True, "confidence": "high", "canonical": "wetter"},
+            user_message="Wetter",
+            explicit_topic="weather",
+        )
+        self.assertFalse(result["recovered"])
+        self.assertEqual(result["strategy"], "accept_topic_change")
+        self.assertEqual(result["recovery_reason"], "learner_topic_change")
+
+    def test_recovery_v2_keeps_error_actions_authoritative(self):
+        from brain.logic.conversation_recovery import recover_reply
+        reply = "Richtig ist: „Ich heiße Moni.“ Sag es bitte noch einmal."
+        result = recover_reply(
+            reply,
+            {"issues": ["response_alignment_warning"], "changed": False},
+            topic="today", action="REPEAT_ERROR",
+            response_understanding={"understood": False, "confidence": "low"},
+            user_message="was",
+        )
+        self.assertFalse(result["recovered"])
+        self.assertEqual(result["reply"], reply)
