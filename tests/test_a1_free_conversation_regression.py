@@ -780,3 +780,59 @@ class GeneratedTests(unittest.TestCase):
         model = build_learner_model(state)
         self.assertIn("curriculum", model)
         self.assertEqual(model["next_curriculum_skill"]["skill"], "conversation:supported_answer")
+
+
+    def test_teacher_policy_v3_uses_ready_full_sentence_skill(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "continue_conversation", "reason": "normal_progress"},
+            learner_model={"autonomy": "developing", "next_curriculum_skill": {
+                "skill": "conversation:full_sentence", "reason": "prerequisites_met",
+            }},
+        )
+        self.assertEqual(policy["version"], 3)
+        self.assertEqual(policy["action"], "MODEL_SENTENCE")
+        self.assertEqual(policy["curriculum_skill"], "conversation:full_sentence")
+
+    def test_teacher_policy_v3_curriculum_does_not_override_repeat_error(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "continue_conversation"},
+            learner_model={"autonomy": "developing", "next_curriculum_skill": {
+                "skill": "conversation:independent_answer", "reason": "prerequisites_met",
+            }},
+            error_result={"decision": {"style": "repeat_request"}},
+        )
+        self.assertEqual(policy["action"], "REPEAT_ERROR")
+
+    def test_teacher_policy_v3_curriculum_does_not_override_support(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "continue_conversation"},
+            learner_model={"autonomy": "needs_support", "next_curriculum_skill": {
+                "skill": "conversation:independent_answer", "reason": "prerequisites_met",
+            }},
+        )
+        self.assertEqual(policy["action"], "SIMPLIFY")
+
+    def test_teacher_policy_v3_reviews_dynamic_vocabulary_target(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "continue_conversation"},
+            learner_model={"autonomy": "developing", "next_curriculum_skill": {
+                "skill": "vocabulary:pause", "reason": "dynamic_review",
+            }},
+        )
+        self.assertEqual(policy["action"], "REVIEW_WORD")
+        self.assertEqual(policy["target_word"], "pause")
+
+    def test_teacher_policy_v3_advances_to_independent_answer(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "continue_conversation"},
+            learner_model={"autonomy": "developing", "next_curriculum_skill": {
+                "skill": "conversation:independent_answer", "reason": "prerequisites_met",
+            }},
+        )
+        self.assertEqual(policy["action"], "ADVANCE")
+        self.assertEqual(policy["reason"], "curriculum_next_ready_skill")
