@@ -876,3 +876,46 @@ class GeneratedTests(unittest.TestCase):
         from brain.logic.conversation_state import infer_expected_answer
         result = simplify_question("Was machst du bei der Arbeit?", topic="work")
         self.assertEqual(infer_expected_answer(result["question"]), "yes_no")
+
+
+    def test_response_understanding_reads_yes_in_yes_no_context(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response("ja", conversation_state={
+            "last_question": "Arbeitest du heute?", "expected_answer": "yes_no", "topic": "work",
+        })
+        self.assertEqual(result["meaning"], "yes")
+        self.assertEqual(result["confidence"], "high")
+
+    def test_response_understanding_reads_beginner_time(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response("bis 2", conversation_state={
+            "last_question": "Bis wann arbeitest du?", "expected_answer": "time", "topic": "work",
+        })
+        self.assertEqual(result["intent"], "time")
+        self.assertEqual(result["canonical"], "bis 2")
+
+    def test_response_understanding_recognizes_noisy_weather_but_preserves_original(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response("sonn8g", conversation_state={
+            "last_question": "Wie ist das Wetter bei dir?", "expected_answer": "open", "topic": "weather",
+        })
+        self.assertEqual(result["canonical"], "sonnig")
+        self.assertEqual(result["preserve_for_error_engine"], "sonn8g")
+
+    def test_response_understanding_accepts_one_word_a1_content(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response("Pizza", conversation_state={
+            "last_question": "Was kochst du gern?", "expected_answer": "open", "topic": "work", "subtopic": "kochen",
+        })
+        self.assertEqual(result["meaning"], "pizza")
+        self.assertEqual(result["confidence"], "high")
+
+    def test_response_understanding_does_not_hide_grammar_error(self):
+        from brain.logic.response_understanding import understand_response
+        from brain.logic.error_engine import detect_error
+        raw = "ich heißen Moni"
+        result = understand_response(raw, conversation_state={
+            "last_question": "Wie heißt du?", "expected_answer": "open",
+        })
+        self.assertEqual(result["preserve_for_error_engine"], raw)
+        self.assertIsNotNone(detect_error(result["preserve_for_error_engine"]))
