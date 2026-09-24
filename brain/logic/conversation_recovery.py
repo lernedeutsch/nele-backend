@@ -1,11 +1,12 @@
-"""Conversation Recovery Engine v1.
+"""Conversation Recovery Engine v2.
 
-Uses Quality Controller diagnostics to recover only high-confidence broken
-normal conversation turns. Pedagogical correction/repetition/model actions are
-never replaced. Recovery is deterministic and A1-safe.
+Classifies why a free conversation needs recovery before choosing a response:
+learner did not understand, Nele is uncertain, answer mismatch, or explicit
+learner topic change. Pedagogical correction/repetition/model actions remain
+authoritative and are never replaced.
 """
 
-ENGINE_VERSION = 1
+ENGINE_VERSION = 2
 
 SAFE_TOPIC_QUESTIONS = {
     "work": "Was machst du bei der Arbeit?",
@@ -18,9 +19,35 @@ SAFE_TOPIC_QUESTIONS = {
     "place": "Wo bist du jetzt?",
 }
 
+STRUGGLE_PHRASES = {
+    "ich verstehe nicht", "verstehe nicht", "ich weiß nicht", "ich weiss nicht",
+    "keine ahnung", "was", "wie bitte", "bitte",
+}
+
 def _meaning(response_understanding):
     data = response_understanding or {}
     return str(data.get("canonical") or data.get("meaning") or "").strip()
+
+def _norm(value):
+    return " ".join(str(value or "").strip().lower().split()).strip(" ?!.")
+
+def classify_recovery(quality, *, user_message=None, response_understanding=None,
+                      explicit_topic=None, current_topic=None):
+    issues = set((quality or {}).get("issues") or [])
+    understood = response_understanding or {}
+    low = _norm(user_message)
+
+    if explicit_topic and explicit_topic != current_topic:
+        return "learner_topic_change"
+    if low in STRUGGLE_PHRASES or any(p in low for p in ("verstehe nicht", "weiß nicht", "weiss nicht")):
+        return "learner_did_not_understand"
+    if understood.get("understood") is False or understood.get("confidence") == "low":
+        return "nele_uncertain"
+    if "response_alignment_warning" in issues:
+        return "answer_mismatch"
+    if "topic_alignment_warning" in issues:
+        return "topic_drift"
+    return None
 
 def _content_recovery(meaning, topic):
     low = meaning.lower()
@@ -40,27 +67,65 @@ def _content_recovery(meaning, topic):
     return None
 
 def recover_reply(reply, quality, *, topic=None, action=None,
-                  response_understanding=None, safe_question=None):
+                  response_understanding=None, safe_question=None,
+                  user_message=None, explicit_topic=None):
     issues = set((quality or {}).get("issues") or [])
     original = str(reply or "").strip()
-
+    reason = classify_recovery(
+        quality,
+        user_message=user_message,
+        response_understanding=response_understanding,
+        explicit_topic=explicit_topic,
+        current_topic=topic,
+    )
     result = {
         "version": ENGINE_VERSION,
         "original": original,
         "reply": original,
         "recovered": False,
         "strategy": None,
+        "recovery_reason": reason,
         "trigger_issues": sorted(issues),
         "topic": topic,
         "action": action,
     }
 
-    # Never override pedagogy or an already deterministic QC repair.
     if action not in {"CONTINUE", "ADVANCE"} or (quality or {}).get("changed"):
         return result
 
-    recoverable = {"topic_alignment_warning", "response_alignment_warning"}
-    if not issues.intersection(recoverable):
+    # A learner-led topic change is not an error. The normal Topic Manager /
+    # generated question should stand; Recovery must not pull them backwards.
+    if reason == "learner_topic_change":
+        result["strategy"] = "accept_topic_change"
+        return result
+
+    if reason == "learner_did_not_understand":
+        fallback = safe_question or SAFE_TOPIC_QUESTIONS.get(topic)
+        if fallback:
+            result.update(
+                reply=f"Kein Problem. Ich frage einfacher. {fallback}",
+                recovered=True,
+                strategy="simplify_for_learner",
+            )
+        return result
+
+    if reason == "nele_uncertain":
+        meaning = _meaning(response_understanding)
+        if meaning:
+            result.update(
+                reply=f"Meinst du „{meaning}“?",
+                recovered=True,
+                strategy="clarify_meaning",
+            )
+        else:
+            result.update(
+                reply="Ich habe dich nicht ganz verstanden. Kannst du das noch einmal sagen?",
+                recovered=True,
+                strategy="ask_again",
+            )
+        return result
+
+    if reason not in {"answer_mismatch", "topic_drift"}:
         return result
 
     meaning = _meaning(response_understanding)
