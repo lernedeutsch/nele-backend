@@ -1,0 +1,212 @@
+"""Generative tutor for A1 Lektion 2: Herkunft, Nationalitäten, kommen, Zahlen 1-20."""
+
+import re
+from brain.memory.error_memory import remember_error
+
+COUNTRIES = {
+    "polen": {"name":"Polen","aus":"aus Polen","m":"Pole","f":"Polin","aliases":["polen"],"typos":["polen"]},
+    "deutschland": {"name":"Deutschland","aus":"aus Deutschland","m":"Deutscher","f":"Deutsche","aliases":["deutschland"],"typos":["deutchland","deutschlan"]},
+    "österreich": {"name":"Österreich","aus":"aus Österreich","m":"Österreicher","f":"Österreicherin","aliases":["österreich","osterreich"],"typos":["osterreich"]},
+    "schweiz": {"name":"die Schweiz","aus":"aus der Schweiz","m":"Schweizer","f":"Schweizerin","aliases":["schweiz"],"typos":["schweitz"]},
+    "italien": {"name":"Italien","aus":"aus Italien","m":"Italiener","f":"Italienerin","aliases":["italien"],"typos":[]},
+    "spanien": {"name":"Spanien","aus":"aus Spanien","m":"Spanier","f":"Spanierin","aliases":["spanien"],"typos":[]},
+    "frankreich": {"name":"Frankreich","aus":"aus Frankreich","m":"Franzose","f":"Französin","aliases":["frankreich"],"typos":[]},
+    "portugal": {"name":"Portugal","aus":"aus Portugal","m":"Portugiese","f":"Portugiesin","aliases":["portugal"],"typos":[]},
+    "griechenland": {"name":"Griechenland","aus":"aus Griechenland","m":"Grieche","f":"Griechin","aliases":["griechenland"],"typos":[]},
+    "türkei": {"name":"die Türkei","aus":"aus der Türkei","m":"Türke","f":"Türkin","aliases":["türkei","turkei"],"typos":["turkei"]},
+    "ukraine": {"name":"die Ukraine","aus":"aus der Ukraine","m":"Ukrainer","f":"Ukrainerin","aliases":["ukraine"],"typos":[]},
+    "rumänien": {"name":"Rumänien","aus":"aus Rumänien","m":"Rumäne","f":"Rumänin","aliases":["rumänien","rumanien"],"typos":[]},
+    "bulgarien": {"name":"Bulgarien","aus":"aus Bulgarien","m":"Bulgare","f":"Bulgarin","aliases":["bulgarien"],"typos":[]},
+    "tschechien": {"name":"Tschechien","aus":"aus Tschechien","m":"Tscheche","f":"Tschechin","aliases":["tschechien"],"typos":[]},
+    "ungarn": {"name":"Ungarn","aus":"aus Ungarn","m":"Ungar","f":"Ungarin","aliases":["ungarn"],"typos":[]},
+    "kroatien": {"name":"Kroatien","aus":"aus Kroatien","m":"Kroate","f":"Kroatin","aliases":["kroatien"],"typos":[]},
+    "niederlande": {"name":"die Niederlande","aus":"aus den Niederlanden","m":"Niederländer","f":"Niederländerin","aliases":["niederlande","niederlanden"],"typos":[]},
+    "großbritannien": {"name":"Großbritannien","aus":"aus Großbritannien","m":"Brite","f":"Britin","aliases":["großbritannien","grossbritannien"],"typos":[]},
+    "usa": {"name":"die USA","aus":"aus den USA","m":"US-Amerikaner","f":"US-Amerikanerin","aliases":["usa"],"typos":[]},
+}
+NUMBERS = {1:"eins",2:"zwei",3:"drei",4:"vier",5:"fünf",6:"sechs",7:"sieben",8:"acht",9:"neun",10:"zehn",11:"elf",12:"zwölf",13:"dreizehn",14:"vierzehn",15:"fünfzehn",16:"sechzehn",17:"siebzehn",18:"achtzehn",19:"neunzehn",20:"zwanzig"}
+NUMBER_ALIASES = {"zwolf":"zwölf","funf":"fünf","funfzehn":"fünfzehn","sechszehn":"sechzehn","siebenzehn":"siebzehn"}
+KOMMEN = {"ich":"komme","du":"kommst","er":"kommt","sie":"kommt","es":"kommt","wir":"kommen","ihr":"kommt","sie_pl":"kommen","Sie":"kommen"}
+PEOPLE = [("Anna","f"),("Paul","m"),("Maria","f"),("Thomas","m"),("Julia","f"),("Lukas","m"),("Emma","f"),("Max","m")]
+
+def _norm(text):
+    text=str(text or "").strip().lower()
+    text=text.replace("„","").replace("“","").replace('"',"")
+    return re.sub(r"[^a-zäöüß0-9 ]+"," ",text).strip()
+
+def _mem(state):
+    m=state.setdefault("a1_l2_tutor",{})
+    m.setdefault("turn",0); m.setdefault("recent_intents",[]); m.setdefault("recent_questions",[])
+    m.setdefault("errors",{}); m.setdefault("mastery",{}); m.setdefault("support_level",0)
+    return m
+
+def _remember_error(state, kind, wrong, correct, context):
+    m=_mem(state); item=m["errors"].setdefault(kind,{"attempts":0,"resolved":False,"review_due":None})
+    item.update({"student_form":wrong,"expected_form":correct,"context":context,"resolved":False})
+    item["attempts"]+=1; item["review_due"]=m["turn"]+3
+    try: remember_error(state, kind, wrong, correct, context=context)
+    except Exception: pass
+
+def _country_from(text):
+    n=_norm(text)
+    for key,c in COUNTRIES.items():
+        for form in [key]+c["aliases"]+c["typos"]:
+            if _norm(form) in n.split() or _norm(form) in n:
+                return key,c
+    return None,None
+
+def _number_from(text):
+    n=_norm(text)
+    if n.isdigit() and 1 <= int(n) <= 20: return int(n), False
+    n2=NUMBER_ALIASES.get(n,n)
+    for k,v in NUMBERS.items():
+        if n2==v: return k, n!=v
+    return None,False
+
+def classify(user_message, task):
+    raw=str(user_message or "").strip(); n=_norm(raw)
+    expected=task.get("expected",""); kind=task.get("kind")
+    if not n: return {"status":"UNCLEAR","correct":expected}
+    if kind=="origin":
+        key,c=_country_from(n)
+        if not c: return {"status":"UNCLEAR","correct":expected}
+        if n in c["aliases"] or n==key or n==_norm(c["aus"]): return {"status":"CORRECT_SHORT","correct":expected}
+        if n in c["typos"]: return {"status":"CORRECT_WITH_TYPO","correct":expected}
+        if re.match(r"^ich\s+(kommen|kommst|kommt)\b",n):
+            return {"status":"CONJUGATION_ERROR","correct":expected}
+        if re.match(r"^ich\s+komme\s+(?!aus\b)",n):
+            return {"status":"PREPOSITION_ERROR","correct":expected}
+        if c["aus"]=="aus Polen" and "aus der polen" in n:
+            return {"status":"ARTICLE_ERROR","correct":expected}
+        if c["aus"]=="aus der Schweiz" and "aus schweiz" in n:
+            return {"status":"ARTICLE_ERROR","correct":expected}
+        if c["aus"]=="aus der Türkei" and ("aus türkei" in n or "aus turkei" in n):
+            return {"status":"ARTICLE_ERROR","correct":expected}
+        if c["aus"]=="aus den USA" and "aus usa" in n:
+            return {"status":"ARTICLE_ERROR","correct":expected}
+        if c["aus"]=="aus den Niederlanden" and "aus niederlanden" in n:
+            return {"status":"ARTICLE_ERROR","correct":expected}
+        if _norm(expected)==n: return {"status":"CORRECT_FULL","correct":expected}
+    if kind=="kommen":
+        pron=task["pronoun"]; form=task["form"]
+        if n==form or _norm(expected)==n: return {"status":"CORRECT_FULL","correct":expected}
+        if n in KOMMEN.values() or any(x in n.split() for x in KOMMEN.values()):
+            return {"status":"CONJUGATION_ERROR","correct":expected}
+    if kind=="number":
+        num,typo=_number_from(n)
+        if num==task["number"]:
+            return {"status":"CORRECT_WITH_TYPO" if typo else ("CORRECT_SHORT" if n.isdigit() else "CORRECT_FULL"),"correct":expected}
+        if num is not None: return {"status":"NUMBER_ERROR","correct":expected}
+    if kind=="nationality":
+        if n==_norm(expected) or _norm(expected) in n: return {"status":"CORRECT_FULL","correct":expected}
+        key,c=_country_from(n)
+        if c: return {"status":"VOCABULARY_ERROR","correct":expected}
+        all_nat=[_norm(c[x]) for c in COUNTRIES.values() for x in ("m","f")]
+        if n in all_nat:
+            exp=_norm(expected)
+            same_country=task.get("country")
+            if same_country and n in {_norm(COUNTRIES[same_country]["m"]),_norm(COUNTRIES[same_country]["f"])}:
+                return {"status":"GENDER_FORM_ERROR","correct":expected}
+            return {"status":"NATIONALITY_ERROR","correct":expected}
+    return {"status":"UNCLEAR","correct":expected}
+
+def _correction(result, user_message, task, state):
+    status=result["status"]; correct=result["correct"]; m=_mem(state)
+    if status=="CORRECT_SHORT":
+        m["support_level"]=max(0,m["support_level"]-1)
+        return "Ja, genau. 👍 Als ganzer Satz: „%s“" % correct
+    if status=="CORRECT_WITH_TYPO":
+        m["support_level"]=max(0,m["support_level"]-1)
+        return "Ja, genau. 👍 Richtig geschrieben: „%s“" % correct
+    if status=="CORRECT_FULL":
+        m["support_level"]=max(0,m["support_level"]-1); return None
+    if status=="UNCLEAR":
+        m["support_level"]=min(4,m["support_level"]+1)
+        return "Ich helfe dir. Versuch es noch einmal: „%s“" % correct
+    _remember_error(state,status,user_message,correct,task.get("prompt",""))
+    m["support_level"]=min(4,m["support_level"]+1)
+    attempts=m["errors"][status]["attempts"]
+    if attempts==1:
+        return "Fast richtig. 😊 Versuch es noch einmal. Tipp: „%s“" % correct
+    if attempts==2:
+        return "Achte auf die Form. Richtig ist: „%s“ Sag es bitte einmal." % correct
+    return "Kein Problem. 😊 Richtig ist: „%s“ Wir machen danach weiter." % correct
+
+def _set_task(state, task):
+    m=_mem(state); m["task"]=task
+    m["recent_intents"].append(task["intent"]); m["recent_intents"]=m["recent_intents"][-8:]
+    m["recent_questions"].append(task["prompt"]); m["recent_questions"]=m["recent_questions"][-8:]
+    state["last_question"]=task["intent"]
+    return task["prompt"]
+
+def _next_task(state, section):
+    m=_mem(state); t=m["turn"]; review=None
+    for k,item in m["errors"].items():
+        if not item.get("resolved") and item.get("review_due") is not None and item["review_due"]<=t:
+            review=k; break
+    if review=="CONJUGATION_ERROR":
+        return {"intent":"ERROR_REVIEW","kind":"kommen","pronoun":"ich","form":"komme","expected":"komme","prompt":"Kurze Wiederholung: Ergänze: „Ich ___ aus Deutschland.“"}
+    s=_norm(section)
+    if "zahl" in s:
+        num=(t*3 % 20)+1
+        modes=t%4
+        if modes==0: p=f"Welche Zahl ist {num} auf Deutsch?"
+        elif modes==1: p=f"Schreib {num} auf Deutsch."
+        elif modes==2 and num<20: p=f"Was kommt nach {NUMBERS[num]}?"
+        else: p=f"Welche Zahl ist richtig: {NUMBERS[num]} oder {NUMBERS[(num%20)+1]}? Schreib {num} auf Deutsch."
+        return {"intent":"NUMBER_PRODUCTION","kind":"number","number":num,"expected":NUMBERS[num],"prompt":p}
+    if "verb kommen" in s or "kommen"==s:
+        items=[("ich","komme"),("du","kommst"),("er","kommt"),("sie","kommt"),("wir","kommen"),("ihr","kommt"),("Sie","kommen")]
+        pron,form=items[t%len(items)]
+        country=list(COUNTRIES.values())[(t*2)%len(COUNTRIES)]["aus"]
+        return {"intent":"PRACTICE_KOMMEN","kind":"kommen","pronoun":pron,"form":form,"expected":form,"prompt":f"Ergänze: „{pron} ___ {country}.“"}
+    # Herkunft / Länder / Nationalitäten: rotate genuinely different acts.
+    key=list(COUNTRIES.keys())[(t*5)%len(COUNTRIES)]; c=COUNTRIES[key]
+    person,gender=PEOPLE[t%len(PEOPLE)]
+    mode=t%6
+    if mode==0:
+        return {"intent":"ASK_USER_ORIGIN","kind":"origin","expected":"Ich komme aus Polen.","prompt":"Woher kommst du? Du kannst kurz oder mit einem ganzen Satz antworten."}
+    if mode==1:
+        return {"intent":"ASK_PERSON_ORIGIN","kind":"origin","expected":f"{person} kommt {c['aus']}.","prompt":f"{person} kommt {c['aus']}. Woher kommt {person}?"}
+    if mode==2:
+        nat=c[gender]
+        return {"intent":"COUNTRY_TO_NATIONALITY","kind":"nationality","country":key,"expected":nat,"prompt":f"{person} kommt {c['aus']}. Ist {person} {nat}?"}
+    if mode==3:
+        return {"intent":"COMPLETE_KOMMEN","kind":"kommen","pronoun":"sie" if gender=="f" else "er","form":"kommt","expected":"kommt","prompt":f"Ergänze: „{person} ___ {c['aus']}.“"}
+    if mode==4:
+        n=(t*2%20)+1
+        return {"intent":"MIXED_REVIEW","kind":"number","number":n,"expected":NUMBERS[n],"prompt":f"{person} ist {n} Jahre alt und kommt {c['aus']}. Wie alt ist {person}? Schreib die Zahl auf Deutsch."}
+    return {"intent":"ROLEPLAY_FORMAL","kind":"origin","expected":f"Ich komme {c['aus']}.","prompt":f"Wir spielen ein formelles Gespräch. Ich frage: „Woher kommen Sie?“ Antworte mit {c['name']}."}
+
+def start(section,state):
+    m=_mem(state); m["section"]=section; m["turn"]=0; m["task"]=None
+    state["lesson_teaching_active"]=True; state["lesson_teaching_level"]="A1"; state["lesson_teaching_lesson"]=2
+    state["lesson_teaching_section"]=section; state["lesson_teaching_step"]=1
+    intro="Wir üben Lektion 2 als Gespräch. Ich passe die Fragen an deine Antworten an."
+    return intro+" "+_set_task(state,_next_task(state,section))
+
+def current_prompt(state):
+    task=_mem(state).get("task") or {}
+    return task.get("prompt","Wir machen mit Lektion 2 weiter.")
+
+def handle(user_message,state):
+    m=_mem(state); task=m.get("task")
+    if not task: return _set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
+    result=classify(user_message,task)
+    m["last_result"]=result
+    if result["status"] in {"CORRECT_FULL","CORRECT_SHORT","CORRECT_WITH_TYPO"}:
+        # mark matching pending error as resolved only after a later successful transfer
+        if task.get("intent")=="ERROR_REVIEW":
+            for item in m["errors"].values(): item["resolved"]=True
+        correction=_correction(result,user_message,task,state)
+        m["turn"]+=1
+        nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
+        if correction: return correction+" "+nxt
+        return "Genau! "+nxt
+    correction=_correction(result,user_message,task,state)
+    # keep same learning target for self-correction; after repeated attempts next turn can move on.
+    if m["support_level"]>=4:
+        m["turn"]+=1
+        nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
+        return correction+" "+nxt
+    return correction
