@@ -1404,3 +1404,75 @@ class GeneratedTests(unittest.TestCase):
         self.assertFalse(result["recovery"]["recovered"])
         self.assertEqual(result["recovery"]["reply"], "Du kannst sagen: Ich arbeite.")
         self.assertIn("recovery_override_blocked", result["conflicts"])
+
+
+    def test_orchestrator_v2_turn_plan_for_error_repeat(self):
+        from brain.logic.conversation_orchestrator import build_turn_plan
+        plan = build_turn_plan(
+            teacher_policy={"action": "REPEAT_ERROR", "model": "Ich heiße Moni."},
+            topic="today",
+            error_result={"error": {"category": "verb"}},
+            response_understanding={"confidence": "high"},
+        )
+        self.assertEqual(plan["version"], 2)
+        self.assertEqual(plan["goal"], "repair_error")
+        self.assertEqual(plan["expected_outcome"], "repeat_correct_form")
+        self.assertTrue(plan["keep_topic"])
+        self.assertFalse(plan["allow_topic_transition"])
+        self.assertFalse(plan["allow_recovery_override"])
+
+    def test_orchestrator_v2_turn_plan_for_normal_advance(self):
+        from brain.logic.conversation_orchestrator import build_turn_plan
+        plan = build_turn_plan(
+            teacher_policy={"action": "ADVANCE"},
+            topic="hobby",
+            struggle=False,
+        )
+        self.assertEqual(plan["goal"], "increase_independence")
+        self.assertEqual(plan["expected_outcome"], "independent_answer")
+        self.assertTrue(plan["allow_topic_transition"])
+        self.assertTrue(plan["allow_personalization"])
+        self.assertTrue(plan["allow_recovery_override"])
+
+    def test_orchestrator_v2_contract_uses_supplied_turn_plan(self):
+        from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract
+        plan = build_turn_plan(
+            teacher_policy={"action": "SIMPLIFY"},
+            topic="work",
+            struggle=True,
+        )
+        contract = build_orchestration_contract(
+            teacher_policy={"action": "CONTINUE"},
+            struggle=False,
+            turn_plan=plan,
+        )
+        self.assertEqual(contract["action"], "SIMPLIFY")
+        self.assertTrue(contract["allow_question_simplifier"])
+        self.assertFalse(contract["allow_topic_transition"])
+
+    def test_orchestrator_v2_records_turn_plan_and_compatibility_state(self):
+        from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration
+        state = {}
+        plan = build_turn_plan(teacher_policy={"action": "CONTINUE"}, topic="weather")
+        contract = build_orchestration_contract(turn_plan=plan)
+        result = enforce_orchestration(contract)
+        recorded = record_orchestration(state, result)
+        self.assertEqual(recorded["version"], 2)
+        self.assertEqual(state["turn_plan_v1"]["topic"], "weather")
+        self.assertEqual(state["conversation_orchestrator_v1"]["version"], 2)
+        self.assertEqual(state["conversation_orchestrator_v2"]["version"], 2)
+
+    def test_orchestrator_v2_turn_plan_blocks_topic_change_during_simplify(self):
+        from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration
+        plan = build_turn_plan(
+            teacher_policy={"action": "SIMPLIFY"},
+            topic="work",
+            struggle=True,
+        )
+        contract = build_orchestration_contract(turn_plan=plan)
+        result = enforce_orchestration(
+            contract,
+            topic_transition={"transition": True, "topic": "work", "next_topic": "hobby"},
+        )
+        self.assertFalse(result["topic_transition"]["transition"])
+        self.assertIn("topic_transition_blocked", result["conflicts"])
