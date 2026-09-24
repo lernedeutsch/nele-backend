@@ -7,6 +7,7 @@ clear A1 errors, and records recurring errors in shared learner state.
 import re
 
 from brain.logic.vocabulary_engine import build_personalized_conversation_vocabulary
+from brain.logic.conversation_state import reset_conversation_state, sync_conversation_state
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -776,7 +777,8 @@ def generate_free_welcome(state, session_id=None):
     free["topic_turns"] = 0
     free["conversation_facts"] = {}
     free.setdefault("error_counts", {})
-    state.setdefault("student_progress", {}).setdefault("current_level", "A1.1")
+    level = state.setdefault("student_progress", {}).setdefault("current_level", "A1.1")
+    reset_conversation_state(state, opener=OPENERS[index], level=level)
     return OPENERS[index]
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
@@ -848,6 +850,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             _remember_question(free, next_question)
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        conversation_state = sync_conversation_state(
+            state,
+            topic=free.get("last_topic", "today"),
+            last_question=free.get("last_question", ""),
+            level=level,
+        )
         return social_reply, {
             "conversation_mode": "free",
             "support_level": support,
@@ -857,6 +865,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "conversation_facts": dict(free.get("conversation_facts", {})),
             "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
             "vocabulary": vocabulary_context,
+            "conversation_state": conversation_state,
         }
 
     # Priority: answer context -> learner content -> safe course-level fallback.
@@ -899,6 +908,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "last_user_message": str(user_message or "").strip(),
     })
     _remember_question(free, question)
+    conversation_state = sync_conversation_state(
+        state,
+        topic=topic,
+        last_question=question,
+        level=level,
+    )
 
     return reply, {
         "conversation_mode": "free",
@@ -909,4 +924,5 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "conversation_facts": dict(memory),
         "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
         "vocabulary": vocabulary_context,
+        "conversation_state": conversation_state,
     }
