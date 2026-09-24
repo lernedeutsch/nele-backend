@@ -916,7 +916,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     conversation_state = sync_conversation_state(
         state,
         topic=topic,
-        last_question=question,
+        last_question=free.get("last_question", question),
         level=level,
     )
 
