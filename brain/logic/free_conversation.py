@@ -877,22 +877,35 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             _remember_question(free, next_question)
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        social_topic, social_topic_source = choose_topic(
+            state,
+            explicit_topic=explicit_topic,
+            vocabulary_topic=vocabulary_topic or previous_topic,
+        )
+        free["last_topic"] = social_topic
         conversation_state = sync_conversation_state(
             state,
-            topic=free.get("last_topic", "today"),
+            topic=social_topic,
             last_question=free.get("last_question", ""),
             level=level,
+        )
+        topic_manager = update_topic_manager(
+            state,
+            topic=social_topic,
+            source=social_topic_source,
+            subtopic=conversation_state.get("subtopic"),
         )
         return social_reply, {
             "conversation_mode": "free",
             "support_level": support,
-            "topic": free.get("last_topic", "today"),
+            "topic": social_topic,
             "independent_turns": independent,
             "course_level": level,
             "conversation_facts": dict(free.get("conversation_facts", {})),
             "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
             "vocabulary": vocabulary_context,
             "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
         }
 
     # Priority: answer context -> learner content -> safe course-level fallback.
