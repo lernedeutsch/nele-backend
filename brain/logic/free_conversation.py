@@ -15,6 +15,7 @@ from brain.logic.learner_model import build_learner_model
 from brain.logic.teacher_policy import choose_next_best_learning_action, policy_to_teacher_action
 from brain.logic.learning_action_executor import execute_learning_action
 from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
+from brain.logic.question_simplifier import simplify_question
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -977,11 +978,22 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         if question == last_question:
             question = _not_recent(free, FALLBACKS["today"])[0]
 
+    question_support = None
+    action_question = question
+    if teacher_policy.get("action") == "SIMPLIFY" and struggle:
+        question_support = simplify_question(
+            question,
+            topic=topic,
+            subtopic=current_state.get("subtopic"),
+            recent_questions=free.get("recent_questions", []),
+        )
+        action_question = question_support.get("question") or question
+
     learning_action = execute_learning_action(
         teacher_policy,
         teacher_action=teacher_action,
         vocabulary_context=vocabulary_context,
-        fallback_question=question,
+        fallback_question=action_question,
     )
     reply = learning_action.get("reply") or question
     state["learning_action_executor_v1"] = learning_action
@@ -996,11 +1008,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "turn_count": turn,
         "last_user_message": str(user_message or "").strip(),
     })
-    _remember_question(free, question)
+    _remember_question(free, action_question)
     conversation_state = sync_conversation_state(
         state,
         topic=topic,
-        last_question=free.get("last_question", question),
+        last_question=free.get("last_question", action_question),
         level=level,
     )
     topic_manager = update_topic_manager(
@@ -1025,6 +1037,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "teacher_engine": teacher_action,
         "teacher_policy": teacher_policy,
         "learning_action": learning_action,
+        "question_simplifier": question_support,
         "learning_outcome": learning_outcome,
         "learner_model": learner_model,
     }
