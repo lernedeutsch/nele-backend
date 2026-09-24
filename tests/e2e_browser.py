@@ -364,7 +364,7 @@ def main():
             send_and_wait(
                 page,
                 "2",
-                "Sag die richtige Antwort",
+                "Sag jetzt:",
             )
             second_review = send_and_wait(
                 page,
@@ -376,7 +376,7 @@ def main():
             send_and_wait(
                 page,
                 "2",
-                "Sag die richtige Antwort",
+                "Sag jetzt:",
             )
             resumed = send_and_wait(
                 page,
