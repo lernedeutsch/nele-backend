@@ -919,3 +919,49 @@ class GeneratedTests(unittest.TestCase):
         })
         self.assertEqual(result["preserve_for_error_engine"], raw)
         self.assertIsNotNone(detect_error(result["preserve_for_error_engine"]))
+
+
+    def test_response_understanding_v2_known_asr_variant_in_context(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response("shwimmen", conversation_state={
+            "last_question": "Welchen Sport machst du gern?",
+            "expected_answer": "open", "topic": "hobby",
+        })
+        self.assertEqual(result["version"], 2)
+        self.assertEqual(result["canonical"], "schwimmen")
+        self.assertTrue(result["asr_tolerant"])
+
+    def test_response_understanding_v2_context_similarity(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response("nudlen", conversation_state={
+            "last_question": "Was kochst du noch gern?",
+            "expected_answer": "open", "topic": "work", "subtopic": "kochen",
+        })
+        self.assertEqual(result["canonical"], "nudeln")
+        self.assertEqual(result["asr_strategy"], "context_similarity")
+
+    def test_response_understanding_v2_does_not_apply_unrelated_known_variant(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response("arbait", conversation_state={
+            "last_question": "Welchen Sport machst du gern?",
+            "expected_answer": "open", "topic": "hobby",
+        })
+        self.assertEqual(result["canonical"], "arbait")
+        self.assertFalse(result["asr_tolerant"])
+
+    def test_response_understanding_v2_uses_vocabulary_context_candidate(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response(
+            "kaffe",
+            conversation_state={"last_question": "Was trinkst du gern?", "expected_answer": "open", "topic": "today"},
+            vocabulary_context={"suggestion_words": ["kaffee"]},
+        )
+        self.assertEqual(result["canonical"], "kaffee")
+        self.assertTrue(result["asr_tolerant"])
+
+    def test_response_understanding_v2_preserves_original_asr_text_for_error_engine(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response("shwimmen", conversation_state={
+            "last_question": "Welchen Sport machst du gern?", "expected_answer": "open", "topic": "hobby",
+        })
+        self.assertEqual(result["preserve_for_error_engine"], "shwimmen")
