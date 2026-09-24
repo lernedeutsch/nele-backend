@@ -18,7 +18,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(first != second)
 
 
-    def test_topic_has_finite_sequence():
+    def test_topic_has_finite_sequence(self):
         state = {"conversation_vocabulary_topic": "wetter"}
 
         answers = [
@@ -30,7 +30,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(answers[-1] is None)
 
 
-    def test_topics_keep_separate_history():
+    def test_topics_keep_separate_history(self):
         state = {}
 
         freizeit = next_topic_follow_up(state, "freizeit")
@@ -41,7 +41,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(freizeit != wetter)
 
 
-    def test_reset_topic_questions():
+    def test_reset_topic_questions(self):
         state = {"conversation_vocabulary_topic": "essen"}
 
         first = next_topic_follow_up(state)
