@@ -1069,8 +1069,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         action=learning_action.get("action"),
         response_understanding=response_understanding,
         safe_question=action_question,
+        user_message=user_message,
+        explicit_topic=explicit_topic,
     )
     reply = recovery.get("reply") or reply
+    state["conversation_recovery_v2"] = recovery
     state["conversation_recovery_v1"] = recovery
     state["conversation_quality_controller_v2"] = quality
     state["conversation_quality_controller_v1"] = quality
