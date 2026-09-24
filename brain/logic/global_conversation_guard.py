@@ -7,7 +7,7 @@ scripts.
 """
 import re
 
-ENGINE_VERSION = 1
+ENGINE_VERSION = 2
 
 STOP = {
     "der","die","das","den","dem","ein","eine","einen","einem","einer",
@@ -33,6 +33,7 @@ def question_intent(question):
     if q.startswith(("wer ","mit wem ")): return "person"
     if q.startswith(("warum ","wieso ")): return "reason"
     if q.startswith(("wie oft ","wie lange ")): return "frequency"
+    if q.startswith(("wie heisst ","wie heißt ")): return "name"
     if q.startswith(("welche ","welcher ","welches ","was ")): return "content"
     if q.startswith(("wie ist ","wie war ")): return "description"
     return "yes_no" if q.split(" ",1)[0] in {
@@ -55,9 +56,16 @@ def _similar(a, b):
     if not ta or not tb:
         return False
     overlap = len(ta & tb) / max(1, min(len(ta), len(tb)))
-    # Same requested slot + substantial shared subject means the learner would
-    # effectively be asked for the same information again.
-    return a.get("intent") == b.get("intent") and overlap >= 0.6
+    # Be conservative. The guard must stop a repeated information request,
+    # never a legitimate next detail in the same topic. A strong lexical
+    # subject match plus the same requested slot is required.
+    if a.get("intent") != b.get("intent"):
+        return False
+    if overlap >= 0.75:
+        return True
+    # For slot-like questions (name/place/time/person) one stable subject token
+    # is enough: "Wie heißt dein Hund?" and "Wie heißt dein Hund denn?".
+    return a.get("intent") in {"name","place","time","person","frequency"} and overlap >= 0.5
 
 def record_answer(state, user_message, previous_question):
     store = state.setdefault("global_conversation_guard_v1", {
