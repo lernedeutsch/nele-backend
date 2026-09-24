@@ -12,6 +12,7 @@ from brain.logic.topic_manager import choose_topic, update_topic_manager
 from brain.logic.error_engine import process_error
 from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
 from brain.logic.learner_model import build_learner_model
+from brain.logic.teacher_policy import choose_next_best_learning_action, policy_to_teacher_action
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -895,6 +896,16 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         vocabulary_context=vocabulary_context,
         learner_model=learner_model,
     )
+    teacher_policy = choose_next_best_learning_action(
+        teacher_action=teacher_action,
+        learner_model=learner_model,
+        conversation_state=current_state,
+        topic_manager=state.get("topic_manager_v2") or {},
+        error_result=error_result,
+        vocabulary_context=vocabulary_context,
+    )
+    teacher_action = policy_to_teacher_action(teacher_policy, teacher_action)
+    state["teacher_policy_v2"] = teacher_policy
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
     social_reply = _social_a1_reply(user_message, free, state)
@@ -937,6 +948,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "topic_manager": topic_manager,
             "error_engine": error_result,
             "teacher_engine": teacher_action,
+            "teacher_policy": teacher_policy,
             "learner_model": learner_model,
         }
 
@@ -1009,5 +1021,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "topic_manager": topic_manager,
         "error_engine": error_result,
         "teacher_engine": teacher_action,
+        "teacher_policy": teacher_policy,
         "learner_model": learner_model,
     }
