@@ -10,6 +10,7 @@ from brain.logic.vocabulary_engine import build_personalized_conversation_vocabu
 from brain.logic.conversation_state import reset_conversation_state, sync_conversation_state
 from brain.logic.topic_manager import choose_topic, update_topic_manager
 from brain.logic.error_engine import process_error
+from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -881,6 +882,15 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         },
     )
     recast = error_result.get("recast")
+    teacher_action = choose_teacher_action(
+        user_message,
+        conversation_state=current_state,
+        topic_manager=state.get("topic_manager_v2") or {},
+        error_result=error_result,
+        support_level=support,
+        struggle=struggle,
+        independent_turns=independent,
+    )
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
     social_reply = _social_a1_reply(user_message, free, state)
@@ -922,6 +932,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "conversation_state": conversation_state,
             "topic_manager": topic_manager,
             "error_engine": error_result,
+            "teacher_engine": teacher_action,
         }
 
     # Priority: answer context -> learner content -> safe course-level fallback.
@@ -942,8 +953,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         if question == last_question:
             question = _not_recent(free, FALLBACKS["today"])[0]
 
-    if struggle:
-        reply = f"Kein Problem. {question}"
+    teacher_prefix = render_teacher_prefix(teacher_action)
+    if teacher_action.get("action") == "ask_repeat":
+        reply = teacher_prefix
+    elif teacher_prefix:
+        reply = f"{teacher_prefix} {question}"
     elif recast:
         reply = f"{recast} {question}"
     elif _norm(user_message) in {"gut", "sehr gut", "prima", "super"}:
@@ -989,4 +1003,5 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "conversation_state": conversation_state,
         "topic_manager": topic_manager,
         "error_engine": error_result,
+        "teacher_engine": teacher_action,
     }
