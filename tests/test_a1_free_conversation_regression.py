@@ -1,0 +1,111 @@
+from brain.logic.free_conversation import (
+    generate_free_conversation_reply,
+    generate_free_welcome,
+)
+
+
+def _turn(state, message):
+    reply, meta = generate_free_conversation_reply(message, state)
+    return reply, meta
+
+
+def test_beginner_work_dialog_keeps_context():
+    state = {}
+    generate_free_welcome(state)
+
+    # Force the exact question being regression-tested.
+    free = state["free_conversation"]
+    free["last_question"] = "Was machst du bei der Arbeit?"
+
+    reply, _ = _turn(state, "Kochen")
+
+    assert "Ich koche." in reply
+    assert "Ich arbeite Kochen" not in reply
+    assert "Arbeit" in reply
+
+
+def test_beginner_work_time_dialog_understands_bis_two():
+    state = {"free_conversation": {
+        "last_question": "Bis wann arbeitest du heute?",
+        "recent_questions": ["Bis wann arbeitest du heute?"],
+        "conversation_facts": {},
+    }}
+
+    reply, _ = _turn(state, "Bis 2")
+
+    assert "Ich arbeite bis 2 Uhr" in reply
+    assert "danach" in reply.lower()
+
+
+def test_beginner_food_dialog_understands_pizza():
+    state = {"free_conversation": {
+        "last_question": "Was isst du gern?",
+        "recent_questions": ["Was isst du gern?"],
+        "conversation_facts": {},
+    }}
+
+    reply, _ = _turn(state, "Pizza")
+
+    assert "Pizza" in reply
+    assert "Isst du das oft?" in reply
+
+
+def test_beginner_hobby_dialog_understands_company():
+    state = {"free_conversation": {
+        "last_question": "Machst du das lieber allein oder mit jemandem?",
+        "recent_questions": ["Machst du das lieber allein oder mit jemandem?"],
+        "conversation_facts": {},
+    }}
+
+    reply, _ = _turn(state, "Mit meinem Mann")
+
+    assert "zusammen" in reply.lower()
+
+
+def test_weather_yes_does_not_repeat_same_question():
+    state = {"free_conversation": {
+        "last_question": "Magst du das Wetter heute?",
+        "recent_questions": ["Magst du das Wetter heute?"],
+        "conversation_facts": {"weather": "warm"},
+    }}
+
+    reply, _ = _turn(state, "Ja")
+
+    assert "Magst du das Wetter heute?" not in reply
+    assert "bei diesem Wetter" in reply
+
+
+def test_typo_sonnig_gets_gentle_help_and_stays_weather():
+    state = {"free_conversation": {
+        "last_question": "Wie ist das Wetter bei dir?",
+        "recent_questions": ["Wie ist das Wetter bei dir?"],
+        "conversation_facts": {},
+    }}
+
+    reply, _ = _turn(state, "Sonn8g")
+
+    assert "sonnig" in reply
+    assert "warm" in reply.lower()
+
+
+def test_free_conversation_multi_turn_regression():
+    state = {"free_conversation": {
+        "last_question": "Was machst du heute?",
+        "recent_questions": ["Was machst du heute?"],
+        "conversation_facts": {},
+    }}
+
+    first, _ = _turn(state, "Arbeit")
+    assert "arbeit" in first.lower()
+
+    # Simulate a natural work follow-up explicitly; this isolates learner
+    # interpretation from randomized/open fallback wording.
+    state["free_conversation"]["last_question"] = "Was machst du bei der Arbeit?"
+    second, _ = _turn(state, "Kochen")
+    assert "Ich koche." in second
+    assert "Ich arbeite Kochen" not in second
+
+    state["free_conversation"]["last_question"] = "Was isst du gern?"
+    third, _ = _turn(state, "Pizza")
+    assert "Pizza" in third
+    assert third != second
