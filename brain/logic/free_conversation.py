@@ -22,7 +22,7 @@ from brain.logic.conversation_goal_transition import decide_topic_transition
 from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
 from brain.logic.conversation_quality_controller import check_reply
 from brain.logic.conversation_recovery import recover_reply
-from brain.logic.conversation_orchestrator import build_orchestration_contract, enforce_orchestration, record_orchestration
+from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -933,6 +933,15 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
     teacher_action = policy_to_teacher_action(teacher_policy, teacher_action)
     state["teacher_policy_v2"] = teacher_policy
+    turn_plan = build_turn_plan(
+        teacher_policy=teacher_policy,
+        topic=topic,
+        struggle=struggle,
+        explicit_topic=explicit_topic,
+        error_result=error_result,
+        response_understanding=response_understanding,
+    )
+    state["turn_plan_v1"] = turn_plan
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
     social_reply = _social_a1_reply(user_message, free, state)
@@ -976,6 +985,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "error_engine": error_result,
             "teacher_engine": teacher_action,
             "teacher_policy": teacher_policy,
+            "turn_plan": turn_plan,
             "learning_action": state.get("learning_action_executor_v1"),
             "learning_outcome": learning_outcome,
             "response_understanding": response_understanding,
@@ -996,6 +1006,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         struggle=struggle,
         explicit_topic=explicit_topic,
         topic_transition=topic_transition,
+        turn_plan=turn_plan,
     )
     transition_guard = enforce_orchestration(
         orchestration_contract,
@@ -1153,6 +1164,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "error_engine": error_result,
         "teacher_engine": teacher_action,
         "teacher_policy": teacher_policy,
+        "turn_plan": turn_plan,
         "learning_action": learning_action,
         "conversation_quality": quality,
         "conversation_recovery": recovery,
