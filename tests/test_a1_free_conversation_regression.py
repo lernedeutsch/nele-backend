@@ -637,3 +637,56 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertEqual(result["reply"], "Kein Problem. Arbeitest du heute?")
         self.assertEqual(result["expects_outcome"], "answer_with_support")
+
+
+    def test_outcome_tracker_successful_error_repeat(self):
+        from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
+        state = {"learning_action_executor_v1": {
+            "action": "REPEAT_ERROR", "expects_outcome": "repeat_correct_form",
+            "model": "Ich arbeite heute.", "target_word": None,
+        }}
+        outcome = evaluate_learning_outcome("Ich arbeite heute.", state)
+        self.assertEqual(outcome["status"], "SUCCESS")
+        self.assertEqual(outcome["reason"], "correct_form_repeated")
+
+    def test_outcome_tracker_failed_error_repeat(self):
+        from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
+        state = {"learning_action_executor_v1": {
+            "action": "REPEAT_ERROR", "expects_outcome": "repeat_correct_form",
+            "model": "Ich arbeite heute.", "target_word": None,
+        }}
+        outcome = evaluate_learning_outcome("ich arbeiten", state)
+        self.assertEqual(outcome["status"], "NOT_YET")
+
+    def test_outcome_tracker_updates_vocabulary_on_recall(self):
+        from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
+        state = {"learning_action_executor_v1": {
+            "action": "REVIEW_WORD", "expects_outcome": "recall_target_word",
+            "target_word": "pause", "model": None,
+        }}
+        outcome = evaluate_learning_outcome("Ich mache eine Pause.", state)
+        self.assertEqual(outcome["status"], "SUCCESS")
+        self.assertEqual(state["vocabulary_memory"]["pause"]["correct"], 1)
+        self.assertFalse(state["vocabulary_memory"]["pause"]["needs_review"])
+
+    def test_outcome_tracker_marks_missing_review_word(self):
+        from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
+        state = {"learning_action_executor_v1": {
+            "action": "REVIEW_WORD", "expects_outcome": "recall_target_word",
+            "target_word": "pause", "model": None,
+        }}
+        outcome = evaluate_learning_outcome("Ich arbeite heute.", state)
+        self.assertEqual(outcome["status"], "NOT_YET")
+        self.assertEqual(state["vocabulary_memory"]["pause"]["mistakes"], 1)
+        self.assertTrue(state["vocabulary_memory"]["pause"]["needs_review"])
+
+    def test_learner_model_contains_learning_outcomes(self):
+        from brain.logic.learner_model import build_learner_model
+        state = {"learning_outcomes": [
+            {"status": "SUCCESS"}, {"status": "SUCCESS"}, {"status": "SUCCESS"},
+            {"status": "PARTIAL"},
+        ]}
+        model = build_learner_model(state)
+        self.assertEqual(model["learning_outcomes"]["success"], 3)
+        self.assertEqual(model["learning_outcomes"]["partial"], 1)
+        self.assertIn("learning_response", model["strengths"])
