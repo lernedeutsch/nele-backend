@@ -10,7 +10,7 @@ import re
 ENGINE_VERSION = 1
 
 TOPIC_TERMS = {
-    "work": {"arbeit", "arbeitest", "arbeiten", "job", "hotel", "koch", "kochst", "pause"},
+    "work": {"arbeit", "arbeitest", "arbeiten", "job", "hotel", "koch", "kochst", "pause", "fängst", "faengst"},
     "hobby": {"hobby", "freizeit", "musik", "sport", "rad", "schwimm", "lesen"},
     "weather": {"wetter", "warm", "kalt", "sonn", "regen", "wind", "schnee"},
     "holiday": {"urlaub", "ferien", "reise", "meer", "berge"},
