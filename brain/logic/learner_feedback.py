@@ -6,6 +6,10 @@
 
 from brain.logic.matcher import normalize
 
+from brain.logic.a1_verb_correction import (
+    find_a1_verb_correction
+)
+
 from brain.memory.error_memory import (
     remember_error
 )
@@ -175,6 +179,16 @@ def get_learner_feedback(
 
 
     if not correction:
+
+        automatic_correction = (
+            find_a1_verb_correction(
+                user_message
+            )
+        )
+
+        if automatic_correction:
+            return automatic_correction
+
         return None
 
 
