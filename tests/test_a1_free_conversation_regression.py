@@ -200,3 +200,28 @@ class GeneratedTests(unittest.TestCase):
         self.assertIn("Am liebsten koche ich Nudeln.", third)
         self.assertNotIn("Was machst du bei der Arbeit?", third)
         self.assertNotIn("Wie ist dein Tag heute?", third)
+
+
+    def test_cooking_yes_after_suppe_stays_in_context(self):
+        state = {"free_conversation": {
+            "last_question": "Was kochst du gern bei der Arbeit?",
+            "recent_questions": ["Was kochst du gern bei der Arbeit?"],
+            "last_topic": "work",
+            "conversation_facts": {"work_activity": "kochen"},
+        }}
+
+        first, _ = _turn(state, "suppe")
+        self.assertIn("Kochst du auch gern etwas anderes?", first)
+
+        second, _ = _turn(state, "ja")
+        self.assertIn("Was kochst du noch gern?", second)
+        self.assertNotIn("Was machst du bei der Arbeit?", second)
+        self.assertNotIn("Wie ist dein Tag heute?", second)
+
+        third, _ = _turn(state, "pizza")
+        self.assertIn("Ich koche auch gern Pizza.", third)
+        self.assertIn("Was kochst du am liebsten?", third)
+
+        fourth, _ = _turn(state, "nudeln")
+        self.assertIn("Am liebsten koche ich Nudeln.", fourth)
+        self.assertNotIn("Was machst du bei der Arbeit?", fourth)
