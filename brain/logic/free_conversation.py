@@ -6,6 +6,8 @@ clear A1 errors, and records recurring errors in shared learner state.
 """
 import re
 
+from brain.logic.vocabulary_engine import build_personalized_conversation_vocabulary
+
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
     "Hallo! Wie war dein Tag?",
@@ -764,6 +766,17 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     progress = state.setdefault("student_progress", {})
     level = str(progress.get("current_level", "A1.1") or "A1.1")
 
+    # Vocabulary Engine is the single vocabulary source for free conversation.
+    # Existing handcrafted rules below remain conversational fallbacks only.
+    previous_topic = free.get("last_topic", "today")
+    vocabulary_context = build_personalized_conversation_vocabulary(
+        user_message,
+        state=state,
+        topic=previous_topic,
+        limit=8,
+    )
+    free["vocabulary_context"] = vocabulary_context
+
     struggle, strong = _difficulty_signal(user_message)
     independent = int(free.get("independent_turns", 0) or 0)
     struggles = int(free.get("struggle_turns", 0) or 0)
@@ -788,8 +801,16 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if facts.get("day_statement"):
         memory["shopping_complete"] = True
 
-    previous_topic = free.get("last_topic", "today")
-    topic = facts.get("topic", previous_topic)
+    vocabulary_topic_map = {
+        "arbeit": "work",
+        "freizeit": "hobby",
+        "wetter": "weather",
+        "essen": "food",
+        "hotel": "work",
+        "alltag": "today",
+    }
+    vocabulary_topic = vocabulary_topic_map.get(vocabulary_context.get("topic"))
+    topic = facts.get("topic", vocabulary_topic or previous_topic)
     if facts.get("activity") == "shopping":
         topic = "shopping"
     elif facts.get("place"):
@@ -817,6 +838,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "course_level": level,
             "conversation_facts": dict(free.get("conversation_facts", {})),
             "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
+            "vocabulary": vocabulary_context,
         }
 
     # Priority: answer context -> learner content -> safe course-level fallback.
@@ -868,4 +890,5 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "course_level": level,
         "conversation_facts": dict(memory),
         "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
+        "vocabulary": vocabulary_context,
     }
