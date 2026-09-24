@@ -392,3 +392,57 @@ class GeneratedTests(unittest.TestCase):
         self.assertFalse(result["decision"]["correct"])
         self.assertEqual(result["decision"]["style"], "none")
         self.assertIsNone(result["recast"])
+
+
+    def test_teacher_engine_models_full_sentence_for_kochen(self):
+        from brain.logic.teacher_engine import choose_teacher_action
+        action = choose_teacher_action(
+            "kochen",
+            conversation_state={"topic": "work", "subtopic": "kochen", "expected_answer": "open"},
+            topic_manager={"topic": "work", "subtopic": "kochen"},
+            error_result={"decision": {"correct": False}},
+            support_level=1,
+        )
+        self.assertEqual(action["action"], "model_full_sentence")
+        self.assertEqual(action["model"], "Ich koche.")
+
+    def test_teacher_engine_uses_error_engine_for_ich_kochen_suppe(self):
+        from brain.logic.error_engine import process_error
+        from brain.logic.teacher_engine import choose_teacher_action
+        state = {}
+        error = process_error("ich kochen Suppe", state, support_level=2)
+        action = choose_teacher_action(
+            "ich kochen Suppe",
+            conversation_state={"topic": "work", "subtopic": "kochen", "expected_answer": "open"},
+            topic_manager={"topic": "work", "subtopic": "kochen"},
+            error_result=error,
+            support_level=2,
+        )
+        self.assertTrue(error["detected"])
+        self.assertEqual(error["error"]["correct"], "Ich koche Suppe.")
+        self.assertEqual(action["action"], "correct_and_continue")
+
+    def test_teacher_engine_does_not_treat_valid_yes_as_error(self):
+        from brain.logic.teacher_engine import choose_teacher_action
+        action = choose_teacher_action(
+            "ja",
+            conversation_state={"topic": "work", "subtopic": "kochen", "expected_answer": "yes_no"},
+            error_result={"decision": {"correct": False}},
+            support_level=1,
+        )
+        self.assertEqual(action["action"], "continue_conversation")
+        self.assertEqual(action["reason"], "valid_expected_short_answer")
+
+    def test_teacher_engine_repeat_request_pauses_next_question(self):
+        from brain.logic.teacher_engine import choose_teacher_action
+        action = choose_teacher_action(
+            "ich arbeiten",
+            conversation_state={"topic": "work", "expected_answer": "open"},
+            error_result={
+                "error": {"correct": "Ich arbeite."},
+                "decision": {"correct": True, "style": "repeat_request"},
+            },
+            support_level=1,
+        )
+        self.assertEqual(action["action"], "ask_repeat")
+        self.assertFalse(action["continue_conversation"])
