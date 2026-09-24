@@ -179,6 +179,7 @@ def _remember_question(free, question):
     # answer type and the next turn can route against the real prompt.
     parts = re.findall(r"[^.!?]*[?]", str(question))
     actual_question = parts[-1].strip() if parts else str(question).strip()
+    actual_question = actual_question.lstrip("„“”\"' ").strip()
     free["last_question"] = actual_question
     history = free.setdefault("recent_questions", [])
     if not history or history[-1] != actual_question:
