@@ -11,6 +11,7 @@ from brain.logic.conversation_state import reset_conversation_state, sync_conver
 from brain.logic.topic_manager import choose_topic, update_topic_manager
 from brain.logic.error_engine import process_error
 from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
+from brain.logic.learner_model import build_learner_model
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -882,6 +883,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         },
     )
     recast = error_result.get("recast")
+    learner_model = build_learner_model(state)
     teacher_action = choose_teacher_action(
         user_message,
         conversation_state=current_state,
@@ -891,6 +893,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         struggle=struggle,
         independent_turns=independent,
         vocabulary_context=vocabulary_context,
+        learner_model=learner_model,
     )
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
@@ -934,6 +937,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "topic_manager": topic_manager,
             "error_engine": error_result,
             "teacher_engine": teacher_action,
+            "learner_model": learner_model,
         }
 
     # Priority: answer context -> learner content -> safe course-level fallback.
@@ -1005,4 +1009,5 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "topic_manager": topic_manager,
         "error_engine": error_result,
         "teacher_engine": teacher_action,
+        "learner_model": learner_model,
     }

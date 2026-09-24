@@ -494,3 +494,54 @@ class GeneratedTests(unittest.TestCase):
             },
         )
         self.assertEqual(action["action"], "simplify_next_question")
+
+
+    def test_learner_model_summarizes_vocabulary_and_autonomy(self):
+        from brain.logic.learner_model import build_learner_model
+        state = {
+            "student_progress": {"current_level": "A1.1"},
+            "free_conversation": {"independent_turns": 4, "struggle_turns": 0, "support_level": 1},
+            "vocabulary_memory": {
+                "arbeit": {"seen": 4, "correct": 4, "mistakes": 0, "correct_streak": 3, "needs_review": False},
+                "kollege": {"seen": 2, "correct": 0, "mistakes": 1, "correct_streak": 0, "needs_review": True},
+            },
+        }
+        model = build_learner_model(state)
+        self.assertEqual(model["autonomy"], "independent")
+        self.assertIn("arbeit", model["vocabulary"]["mastered"])
+        self.assertIn("kollege", model["vocabulary"]["review_due"])
+        self.assertIn("conversation_independence", model["strengths"])
+
+    def test_learner_model_detects_need_for_support(self):
+        from brain.logic.learner_model import build_learner_model
+        state = {
+            "student_progress": {"current_level": "A1.1"},
+            "free_conversation": {"independent_turns": 0, "struggle_turns": 2, "support_level": 3},
+        }
+        model = build_learner_model(state)
+        self.assertEqual(model["autonomy"], "needs_support")
+        self.assertIn("conversation_support", model["weaknesses"])
+
+    def test_teacher_engine_uses_learner_model_support(self):
+        from brain.logic.teacher_engine import choose_teacher_action
+        action = choose_teacher_action(
+            "Ich arbeite heute.",
+            conversation_state={"topic": "work", "expected_answer": "open"},
+            error_result={"decision": {"correct": False}},
+            support_level=1,
+            independent_turns=4,
+            learner_model={"autonomy": "needs_support", "adaptive_support": 3},
+        )
+        self.assertEqual(action["action"], "simplify_next_question")
+
+    def test_teacher_engine_can_advance_independent_learner(self):
+        from brain.logic.teacher_engine import choose_teacher_action
+        action = choose_teacher_action(
+            "Ich arbeite heute.",
+            conversation_state={"topic": "work", "expected_answer": "open"},
+            error_result={"decision": {"correct": False}},
+            support_level=1,
+            independent_turns=1,
+            learner_model={"autonomy": "independent", "adaptive_support": 1},
+        )
+        self.assertEqual(action["action"], "advance")
