@@ -19,6 +19,7 @@ from brain.logic.question_simplifier import simplify_question
 from brain.logic.response_understanding import understand_response
 from brain.logic.conversation_coherence import choose_coherent_question, update_coherence_state
 from brain.logic.conversation_goal_transition import decide_topic_transition
+from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -844,6 +845,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     facts = _extract_facts(user_message)
     memory = free.setdefault("conversation_facts", {})
     memory.update({k: v for k, v in facts.items() if k not in {"topic", "day_statement"}})
+    personalization_memory = remember_conversation_facts(
+        state,
+        {k: v for k, v in facts.items() if k not in {"topic", "day_statement"}},
+        topic=facts.get("topic") or free.get("last_topic"),
+    )
 
     # A clear new everyday topic closes the active shopping branch. Keep the
     # useful facts (place/color) in memory, but do not let them hijack replies.
@@ -995,6 +1001,16 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if not question:
         question = _content_followup(user_message, facts, memory, free, level)
     if not question:
+        personalized = choose_personalized_followup(
+            state,
+            topic=topic,
+            recent_questions=free.get("recent_questions", []),
+            turn_count=free.get("turn_count", 0),
+        )
+        question = (personalized or {}).get("question")
+    else:
+        personalized = None
+    if not question:
         question = _generic_followup(topic, free, support, independent, level)
 
     # Conversation Coherence Engine keeps the local thread and avoids loops.
@@ -1080,6 +1096,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "conversation_state": conversation_state,
         "topic_manager": topic_manager,
         "conversation_coherence": coherence_state,
+        "conversation_personalization": personalization_memory,
+        "personalized_followup": personalized,
         "topic_transition": topic_transition,
         "error_engine": error_result,
         "teacher_engine": teacher_action,
