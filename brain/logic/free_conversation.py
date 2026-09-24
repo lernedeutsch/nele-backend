@@ -197,6 +197,8 @@ def _yes_no_followup(text, last_question, facts):
         return "Wann fängst du an?" if yes else "Heute hast du also frei. Was machst du heute?"
     if "kochst du jeden tag bei der arbeit" in q:
         return "Was kochst du gern bei der Arbeit?" if yes else "Was machst du sonst bei der Arbeit?"
+    if "kochst du auch gern etwas anderes" in q:
+        return "Was kochst du noch gern?" if yes else "Was kochst du am liebsten?"
     if "bist du heute zu hause" in q:
         return "Was machst du zu Hause?" if yes else "Ah, du bist unterwegs. Wo bist du gerade?"
     if "hast du heute viel zu tun" in q:
@@ -633,6 +635,14 @@ def _short_answer_followup(text, last_question, memory):
             food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
             memory["other_cooked_food"] = food
             return f"Schön! Du kannst sagen: „Ich koche auch gern {food}.“ Was kochst du am liebsten?"
+
+    # A food noun after "Was kochst du noch gern?" remains in the cooking thread.
+    if "was kochst du noch gern" in question:
+        foods = {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}
+        if low in foods:
+            food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
+            memory["other_cooked_food"] = food
+            return f"Du kannst sagen: „Ich koche auch gern {food}.“ Was kochst du am liebsten?"
 
     # Favourite cooked food: keep the same cooking thread for another food noun.
     if "was kochst du am liebsten" in question:
