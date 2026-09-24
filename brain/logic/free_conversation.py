@@ -22,7 +22,8 @@ from brain.logic.conversation_goal_transition import decide_topic_transition
 from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
 from brain.logic.conversation_quality_controller import check_reply
 from brain.logic.conversation_recovery import recover_reply
-from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration\nfrom brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, record_turn_plan_compliance
+from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration
+from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, record_turn_plan_compliance
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
