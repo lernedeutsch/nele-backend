@@ -862,7 +862,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "Diesen Fehler hast du jetzt geübt",
+            "Genau!",
             finished,
         )
         self.assertNotIn(
@@ -916,7 +916,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             state,
         )
         self.assertIn(
-            "Sag die richtige Antwort",
+            "Sag jetzt:",
             step_one,
         )
 
@@ -925,7 +925,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             state,
         )
         self.assertIn(
-            "Diesen Fehler hast du jetzt geübt",
+            "Genau!",
             finished,
         )
         self.assertNotIn(
