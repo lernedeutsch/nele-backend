@@ -307,6 +307,12 @@ def _social_a1_reply(text, free, state):
         "nebel", "neblig", "gewitter"
     ))
     if weather_context or explicit_weather:
+        # Common keyboard/ASR typo from beginner input.
+        if low in {"sonn8g", "sonnlg", "sonig"}:
+            _record_error(state, free, "sonnig_spelling", raw)
+            free.setdefault("conversation_facts", {})["weather"] = "Sonne"
+            return "Fast richtig 😊 Du meinst „sonnig“. Du kannst sagen: „Es ist sonnig.“ Ist es auch warm?"
+
         # Common A1 errors: "es ist regen", "es regnen", "es sonnig".
         if re.fullmatch(r"es\s+ist\s+regen", low):
             _record_error(state, free, "es_regnet", raw)
@@ -376,8 +382,11 @@ def _social_a1_reply(text, free, state):
                 return f"Fast. Richtig: „{correct}“ Machst du das oft?"
             return f"Fast. Richtig: „{correct}“ Wo machst du gern Urlaub?"
 
-    # Natural short answers keep the current everyday topic alive.
-    if any(x in last for x in ("was machst du heute", "wie ist dein tag", "viel zu tun")):
+    # Natural short answers keep the current everyday topic alive and model
+    # a complete A1 sentence instead of abruptly changing the subject.
+    if any(x in last for x in ("was machst du gerade", "was machst du heute", "wie ist dein tag", "viel zu tun")):
+        if low in {"lernen", "deutsch lernen"}:
+            return "Du kannst sagen: „Ich lerne gerade Deutsch.“ Was lernst du gerade?"
         if low in {"arbeiten", "arbeit"}:
             return "Du arbeitest heute. Wann fängst du an?"
         if low in {"einkaufen", "shoppen"}:
@@ -386,6 +395,14 @@ def _social_a1_reply(text, free, state):
             return "Du bist zu Hause. Was machst du dort?"
         if low in {"frei", "ich habe frei"}:
             return "Schön, du hast heute frei. Was möchtest du machen?"
+
+    if any(x in last for x in ("bei diesem wetter", "wenn es warm ist")):
+        if low in {"radfahren", "rad fahren", "fahrrad fahren"}:
+            return "Du kannst sagen: „Ich fahre gern Rad.“ Fährst du lieber allein oder mit jemandem?"
+        if low in {"spazieren", "spazieren gehen", "spaziergang"}:
+            return "Du kannst sagen: „Ich gehe gern spazieren.“ Wo gehst du gern spazieren?"
+        if low in {"schwimmen", "baden"}:
+            return "Du kannst sagen: „Ich gehe gern schwimmen.“ Wo schwimmst du gern?"
 
     if any(x in last for x in ("freizeit", "hobby", "was machst du gern")):
         if low in {"lesen", "bücher lesen", "buch lesen"}:
@@ -729,9 +746,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if not question:
         question = _generic_followup(topic, free, support, independent, level)
 
-    # Do not repeat the same question. If a content rule happens to return it,
-    # fall back to a different everyday question.
-    if question == last_question:
+    # Do not repeat the same question. Compare normalized text so punctuation
+    # and capitalization cannot bypass the loop guard.
+    recent_norm = {_norm(q).strip(" ?!.") for q in free.get("recent_questions", [])[-8:]}
+    question_norm = _norm(question).strip(" ?!.")
+    if question_norm in recent_norm:
         question = _generic_followup("today", free, support, independent, level)
         if question == last_question:
             question = _not_recent(free, FALLBACKS["today"])[0]
