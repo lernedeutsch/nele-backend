@@ -7,7 +7,7 @@ existing Student Memory 2.0 error memory.
 
 import re
 
-from brain.memory.error_memory import remember_error
+from brain.memory.error_memory import remember_error, get_error_summary
 
 
 EXACT_ERRORS = {
@@ -129,24 +129,62 @@ def detect_error(text):
     return None
 
 
-def decide_correction(error, *, support_level=1, expected_answer=None):
-    """Decide how strongly to correct without stopping a natural conversation."""
+def _previous_error_count(state, error):
+    if not state or not error:
+        return 0
+    summary = get_error_summary(state, error.get("type") or "grammar")
+    if not isinstance(summary, dict):
+        return 0
+    return int(summary.get("count", 0) or 0)
+
+
+def decide_correction(error, *, state=None, support_level=1, expected_answer=None):
+    """Choose a teaching reaction while protecting conversation flow."""
     if not error:
         return {"correct": False, "style": "none", "reason": "no_clear_error"}
 
-    # Free conversation favors recasting. Explicit drills can use stronger
-    # correction elsewhere; this engine does not turn conversation into a test.
     if error.get("confidence") != "high":
         return {"correct": False, "style": "none", "reason": "uncertain"}
 
+    support = int(support_level or 1)
+    previous_count = _previous_error_count(state, error)
+
+    # A repeated clear error deserves active retrieval: learner says the
+    # corrected form once instead of only seeing it again.
+    if previous_count >= 2:
+        style = "repeat_request"
+        reason = "recurring_clear_error"
+    # At higher support levels, give the learner an explicit ready-to-use model.
+    elif support >= 2:
+        style = "explicit_model"
+        reason = "learner_needs_support"
+    # For a normal first occurrence, a short natural recast is enough.
+    else:
+        style = "natural_recast"
+        reason = "first_clear_error"
+
     return {
         "correct": True,
-        "style": "gentle_recast",
-        "reason": "clear_a1_error",
-        "support_level": int(support_level or 1),
+        "style": style,
+        "reason": reason,
+        "support_level": support,
         "expected_answer": expected_answer,
+        "previous_count": previous_count,
     }
 
+
+def render_correction(error, decision):
+    if not error or not decision.get("correct"):
+        return None
+    correct = error["correct"]
+    style = decision.get("style")
+    if style == "repeat_request":
+        return f"Richtig ist: „{correct}“ Sag es bitte noch einmal."
+    if style == "explicit_model":
+        return f"Du kannst sagen: „{correct}“"
+    if style == "natural_recast":
+        return f"Ah, {correct}"
+    return None
 
 def record_error(state, error, *, context=None):
     if not error:
@@ -165,6 +203,7 @@ def process_error(text, state, *, support_level=1, expected_answer=None, context
     error = detect_error(text)
     decision = decide_correction(
         error,
+        state=state,
         support_level=support_level,
         expected_answer=expected_answer,
     )
@@ -178,6 +217,7 @@ def process_error(text, state, *, support_level=1, expected_answer=None, context
         "recast": None,
     }
     if error and decision.get("correct"):
-        result["recast"] = f"Du kannst sagen: „{error['correct']}“"
-    state["error_engine_v1"] = result
+        result["recast"] = render_correction(error, decision)
+    state["error_engine_v2"] = result
+    state["error_engine_v1"] = result  # compatibility
     return result
