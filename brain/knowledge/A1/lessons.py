@@ -39,6 +39,22 @@ A1_LESSONS = {
 
         "source":
             "lessons/a1/lektion-1.html"
+    },
+
+    2: {
+        "level": "A1",
+        "lesson": 2,
+        "title": "Woher kommen Sie?",
+        "description": (
+            "Herkunft, Länder, Nationalitäten, "
+            "das Verb kommen und die Zahlen 1 bis 20."
+        ),
+        "sections": [
+            "Woher kommen Sie?",
+            "Das Verb kommen",
+            "Zahlen 1–20"
+        ],
+        "source": "lessons/a1/lektion-2.html"
     }
 }
 
