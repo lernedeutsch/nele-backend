@@ -1,10 +1,10 @@
-"""Teacher Policy v2 / Next Best Learning Action for Nele.
+"""Teacher Policy v3 / Curriculum-Aware Next Best Learning Action for Nele.
 
 Selects exactly one pedagogical priority from already-computed engine signals.
 It does not detect errors, own memory, choose topics or render conversation.
 """
 
-POLICY_VERSION = 2
+POLICY_VERSION = 3
 
 ACTION_MAP = {
     "ask_repeat": "REPEAT_ERROR",
@@ -26,6 +26,14 @@ PRIORITY = {
     "INTRODUCE_WORD": 40,
     "ADVANCE": 30,
     "CONTINUE": 10,
+}
+
+CURRICULUM_ACTIONS = {
+    "conversation:supported_answer": "SIMPLIFY",
+    "conversation:full_sentence": "MODEL_SENTENCE",
+    "conversation:continue_after_correction": "CONTINUE",
+    "conversation:continuation": "CONTINUE",
+    "conversation:independent_answer": "ADVANCE",
 }
 
 
@@ -55,11 +63,34 @@ def choose_next_best_learning_action(
         action = "SIMPLIFY"
         reason = "learner_model_needs_support"
 
-    # A recurring error requiring retrieval must not be displaced by vocabulary.
+    # A recurring error requiring retrieval must not be displaced by curriculum.
     error_decision = error_result.get("decision") or {}
     if error_decision.get("style") == "repeat_request":
         action = "REPEAT_ERROR"
         reason = "recurring_error_active_retrieval"
+
+    next_skill = learner_model.get("next_curriculum_skill") or {}
+    curriculum_skill = next_skill.get("skill")
+    curriculum_reason = next_skill.get("reason")
+
+    # Curriculum may steer only low-priority normal/enrichment actions. Direct
+    # correction, repetition, support and an explicit sentence model remain
+    # authoritative for the current turn.
+    if action in {"REVIEW_WORD", "INTRODUCE_WORD", "ADVANCE", "CONTINUE"} and curriculum_skill:
+        if curriculum_reason in {"curriculum_review", "dynamic_review"}:
+            if curriculum_skill.startswith("vocabulary:"):
+                action = "REVIEW_WORD"
+                reason = "curriculum_vocabulary_review"
+            elif curriculum_skill.startswith("correct_form:"):
+                # A concrete correction model is required before active repeat.
+                # Without one, keep the normal action but surface the target.
+                reason = "curriculum_correct_form_review_pending_context"
+            else:
+                action = CURRICULUM_ACTIONS.get(curriculum_skill, action)
+                reason = "curriculum_skill_review"
+        elif curriculum_reason == "prerequisites_met":
+            action = CURRICULUM_ACTIONS.get(curriculum_skill, action)
+            reason = "curriculum_next_ready_skill"
 
     selected = {
         "version": POLICY_VERSION,
@@ -72,7 +103,9 @@ def choose_next_best_learning_action(
         "target_word": teacher_action.get("word"),
         "model": teacher_action.get("model"),
         "course_level": learner_model.get("course_level"),
-        "next_curriculum_skill": learner_model.get("next_curriculum_skill"),
+        "next_curriculum_skill": next_skill or None,
+        "curriculum_skill": curriculum_skill,
+        "curriculum_reason": curriculum_reason,
     }
     return selected
 
