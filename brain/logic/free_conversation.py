@@ -24,6 +24,7 @@ from brain.logic.conversation_quality_controller import check_reply
 from brain.logic.conversation_recovery import recover_reply
 from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration
 from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, record_turn_plan_compliance
+from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -896,6 +897,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
 
     last_question = free.get("last_question", "")
+    # Global, topic-agnostic memory: the learner just answered the previous
+    # question. Record that semantic slot before any handler chooses the next
+    # question, so paraphrases cannot ask for the same information again.
+    record_answer(state, user_message, last_question)
     # Central Error Engine handles clear A1 corrections and writes them to
     # Student Memory 2.0. Legacy social rules below remain compatible while
     # they are migrated incrementally.
@@ -951,7 +956,21 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         parts = re.findall(r"[^.!?]*[?]", social_reply)
         next_question = parts[-1].strip() if parts else ""
         if next_question:
-            _remember_question(free, next_question)
+            # Social/weather A1 handlers used to return before the central
+            # coherence engine. Route their question through the same global
+            # semantic guard as every other free-conversation turn.
+            social_alternatives = _not_recent(
+                free,
+                FALLBACKS.get(explicit_topic or previous_topic, FALLBACKS["today"]),
+            )
+            guard = select_question(state, next_question, social_alternatives)
+            guarded_question = guard.get("selected") or next_question
+            social_reply = replace_final_question(
+                social_reply, next_question, guarded_question
+            )
+            _remember_question(free, guarded_question)
+        else:
+            guard = {"version": 1, "blocked": False, "reason": "no_question"}
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
         social_topic, social_topic_source = choose_topic(
@@ -991,6 +1010,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "learning_outcome": learning_outcome,
             "response_understanding": response_understanding,
             "learner_model": learner_model,
+            "global_conversation_guard": guard,
         }
 
     topic_transition = decide_topic_transition(
@@ -1050,6 +1070,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         alternatives=topic_alternatives,
     )
     question = coherence.get("selected") or question
+
+    # Global semantic guard: blocks both literal repetition and questions whose
+    # answer is already known from an earlier turn. This is intentionally after
+    # all question generators, so every generated branch is covered.
+    guard = select_question(state, question, topic_alternatives)
+    question = guard.get("selected") or question
 
     # Final safety fallback if every topic alternative has already appeared.
     recent_norm = {_norm(q).strip(" ?!.") for q in free.get("recent_questions", [])[-8:]}
@@ -1185,4 +1211,5 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "learning_outcome": learning_outcome,
         "response_understanding": response_understanding,
         "learner_model": learner_model,
+        "global_conversation_guard": guard,
     }
