@@ -838,6 +838,20 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     }
     vocabulary_topic = vocabulary_topic_map.get(vocabulary_context.get("topic"))
     explicit_topic = facts.get("topic")
+    # Explicit topic words in the learner message must outrank context. This is
+    # deliberately checked again here because social/weather handlers may have
+    # already enriched memory while the active state still says work/kochen.
+    low_message = _norm(user_message)
+    if any(x in low_message for x in ("wetter", "sonne", "sonnig", "regen", "regnet", "warm", "kalt", "windig", "schnee")):
+        explicit_topic = "weather"
+    elif any(x in low_message for x in ("urlaub", "reise", "ferien", "meer", "berge")):
+        explicit_topic = "holiday"
+    elif "gestern" in low_message:
+        explicit_topic = "yesterday"
+    elif any(x in low_message for x in ("arbeit", "job", "hotel")):
+        explicit_topic = "work"
+    elif any(x in low_message for x in ("hobby", "freizeit", "musik", "sport", "lesen", "buch")):
+        explicit_topic = "hobby"
     if facts.get("activity") == "shopping":
         explicit_topic = "shopping"
     elif facts.get("place"):
