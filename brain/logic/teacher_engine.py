@@ -36,11 +36,13 @@ def choose_teacher_action(
     support_level=1,
     struggle=False,
     independent_turns=0,
+    vocabulary_context=None,
 ):
     """Return one central pedagogical action for the next response."""
     conversation_state = conversation_state or {}
     topic_manager = topic_manager or {}
     error_result = error_result or {}
+    vocabulary_context = vocabulary_context or {}
     decision = error_result.get("decision") or {}
     error = error_result.get("error") or {}
 
@@ -90,6 +92,29 @@ def choose_teacher_action(
             "model": None,
             "continue_conversation": True,
         }
+
+    suggestions = vocabulary_context.get("suggestions") or []
+    if suggestions:
+        candidate = suggestions[0] or {}
+        word = candidate.get("word")
+        vocabulary_memory = vocabulary_context.get("memory") or {}
+        word_memory = vocabulary_memory.get(word, {}) if word else {}
+        if word and (word_memory.get("needs_review") or int(word_memory.get("mistakes", 0) or 0) > int(word_memory.get("correct", 0) or 0)):
+            return {
+                "action": "review_vocabulary",
+                "reason": "vocabulary_needs_review",
+                "word": word,
+                "vocabulary": candidate,
+                "continue_conversation": True,
+            }
+        if word and int(word_memory.get("seen", 0) or 0) == 0 and int(independent_turns or 0) >= 1:
+            return {
+                "action": "introduce_vocabulary",
+                "reason": "useful_unseen_topic_word",
+                "word": word,
+                "vocabulary": candidate,
+                "continue_conversation": True,
+            }
 
     if _word_count(user_message) >= 3 and int(independent_turns or 0) >= 3:
         return {
