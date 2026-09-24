@@ -16,22 +16,22 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(entry["level"] == "A1")
 
 
-    def test_unknown_vocabulary_entry():
+    def test_unknown_vocabulary_entry(self):
         self.assertTrue(get_entry("xyz-unbekannt") is None)
 
 
-    def test_words_in_message():
+    def test_words_in_message(self):
         words = words_in_message("Ich bin im Hotel und habe ein Zimmer.")
         self.assertTrue("hotel" in words)
         self.assertTrue("zimmer" in words)
 
 
-    def test_detect_topic():
+    def test_detect_topic(self):
         self.assertTrue(detect_topic("Heute ist es sonnig und warm.") == "wetter")
         self.assertTrue(detect_topic("Ich arbeite heute in einer Firma.") == "arbeit")
 
 
-    def test_build_conversation_vocabulary():
+    def test_build_conversation_vocabulary(self):
         context = build_conversation_vocabulary("Das Zimmer im Hotel ist schön.")
         self.assertTrue(context["level"] == "A1")
         self.assertTrue(context["topic"] == "hotel")
