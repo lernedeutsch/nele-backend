@@ -1118,3 +1118,40 @@ class GeneratedTests(unittest.TestCase):
         second = choose_personalized_followup(state, topic="hobby", turn_count=5)
         self.assertIsNotNone(first)
         self.assertIsNone(second)
+
+
+    def test_quality_controller_repairs_known_invalid_construction(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        result = check_reply("Ich arbeite Kochen.", topic="work")
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["reply"], "Ich koche bei der Arbeit.")
+        self.assertIn("known_invalid_construction", result["issues"])
+
+    def test_quality_controller_removes_adjacent_duplicate_sentence(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        result = check_reply("Magst du Pizza? Magst du Pizza?", topic="work")
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["reply"], "Magst du Pizza?")
+        self.assertIn("adjacent_duplicate", result["issues"])
+
+    def test_quality_controller_does_not_rewrite_good_a1_reply(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        reply = "Du kannst sagen: „Ich koche.“ Was kochst du gern?"
+        result = check_reply(reply, topic="work", action="CORRECT_ERROR", model="Ich koche.")
+        self.assertFalse(result["changed"])
+        self.assertEqual(result["reply"], reply)
+
+    def test_quality_controller_only_warns_on_long_reply(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        reply = " ".join(["Wort"] * 33)
+        result = check_reply(reply, topic="today")
+        self.assertTrue(result["a1_length_warning"])
+        self.assertFalse(result["changed"])
+        self.assertEqual(result["reply"], reply)
+
+    def test_quality_controller_preserves_repeat_error_instruction(self):
+        from brain.logic.conversation_quality_controller import check_reply
+        reply = "Richtig ist: „Ich heiße Moni.“ Sag es bitte noch einmal."
+        result = check_reply(reply, action="REPEAT_ERROR", model="Ich heiße Moni.")
+        self.assertFalse(result["changed"])
+        self.assertEqual(result["reply"], reply)
