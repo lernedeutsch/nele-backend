@@ -108,6 +108,10 @@ from brain.logic.conversation_vocabulary import (
     handle_vocabulary_explanation_request
 )
 
+from brain.logic.conversation_vocabulary_context import (
+    update_conversation_vocabulary_context
+)
+
 from brain.logic.conversation_error_training import (
     handle_priority_error_practice,
     handle_active_error_practice
@@ -417,6 +421,12 @@ def generate_conversation_reply(
             user_message,
             state
         )
+    )
+
+    # Vocabulary Engine enriches the state; existing routers keep priority.
+    update_conversation_vocabulary_context(
+        processed_message,
+        state
     )
 
 
