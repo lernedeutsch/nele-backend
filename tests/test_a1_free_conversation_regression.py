@@ -1344,3 +1344,63 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertFalse(result["recovered"])
         self.assertEqual(result["reply"], reply)
+
+
+    def test_orchestrator_pipeline_has_explicit_order(self):
+        from brain.logic.conversation_orchestrator import PIPELINE
+        self.assertLess(PIPELINE.index("response_understanding"), PIPELINE.index("error_engine"))
+        self.assertLess(PIPELINE.index("teacher_policy"), PIPELINE.index("learning_action_executor"))
+        self.assertLess(PIPELINE.index("quality_controller"), PIPELINE.index("recovery"))
+
+    def test_orchestrator_blocks_transition_during_error_repeat(self):
+        from brain.logic.conversation_orchestrator import build_orchestration_contract, enforce_orchestration
+        contract = build_orchestration_contract(
+            teacher_policy={"action": "REPEAT_ERROR"},
+            struggle=False,
+            topic_transition={"transition": True},
+        )
+        result = enforce_orchestration(
+            contract,
+            topic_transition={"transition": True, "topic": "work", "next_topic": "hobby"},
+        )
+        self.assertFalse(result["topic_transition"]["transition"])
+        self.assertIn("topic_transition_blocked", result["conflicts"])
+
+    def test_orchestrator_blocks_personalization_during_correction(self):
+        from brain.logic.conversation_orchestrator import build_orchestration_contract, enforce_orchestration
+        contract = build_orchestration_contract(teacher_policy={"action": "CORRECT_ERROR"})
+        result = enforce_orchestration(
+            contract,
+            personalized_followup={"question": "Du fährst gern Rad. Wo fährst du?"},
+        )
+        self.assertIsNone(result["personalized_followup"])
+        self.assertIn("personalization_blocked", result["conflicts"])
+
+    def test_orchestrator_allows_simplifier_only_for_current_struggle(self):
+        from brain.logic.conversation_orchestrator import build_orchestration_contract, enforce_orchestration
+        allowed = build_orchestration_contract(
+            teacher_policy={"action": "SIMPLIFY"}, struggle=True,
+        )
+        result = enforce_orchestration(
+            allowed, question_support={"question": "Arbeitest du heute?"},
+        )
+        self.assertIsNotNone(result["question_support"])
+
+        blocked = build_orchestration_contract(
+            teacher_policy={"action": "SIMPLIFY"}, struggle=False,
+        )
+        result2 = enforce_orchestration(
+            blocked, question_support={"question": "Arbeitest du heute?"},
+        )
+        self.assertIsNone(result2["question_support"])
+
+    def test_orchestrator_blocks_recovery_from_overriding_pedagogy(self):
+        from brain.logic.conversation_orchestrator import build_orchestration_contract, enforce_orchestration
+        contract = build_orchestration_contract(teacher_policy={"action": "MODEL_SENTENCE"})
+        result = enforce_orchestration(
+            contract,
+            recovery={"recovered": True, "original": "Du kannst sagen: Ich arbeite.", "reply": "Was machst du heute?"},
+        )
+        self.assertFalse(result["recovery"]["recovered"])
+        self.assertEqual(result["recovery"]["reply"], "Du kannst sagen: Ich arbeite.")
+        self.assertIn("recovery_override_blocked", result["conflicts"])
