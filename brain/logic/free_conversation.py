@@ -16,6 +16,7 @@ from brain.logic.teacher_policy import choose_next_best_learning_action, policy_
 from brain.logic.learning_action_executor import execute_learning_action
 from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
 from brain.logic.question_simplifier import simplify_question
+from brain.logic.response_understanding import understand_response
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -803,6 +804,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     progress = state.setdefault("student_progress", {})
     level = str(progress.get("current_level", "A1.1") or "A1.1")
 
+    # Understand the learner's response against the question they actually
+    # received. Keep original text untouched for grammar/error detection.
+    response_understanding = understand_response(
+        user_message,
+        conversation_state=state.get("conversation_state_v2") or {},
+    )
+    state["response_understanding_v1"] = response_understanding
+
     # Vocabulary Engine is the single vocabulary source for free conversation.
     # Existing handcrafted rules below remain conversational fallbacks only.
     previous_topic = free.get("last_topic", "today")
@@ -957,6 +966,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "teacher_policy": teacher_policy,
             "learning_action": state.get("learning_action_executor_v1"),
             "learning_outcome": learning_outcome,
+            "response_understanding": response_understanding,
             "learner_model": learner_model,
         }
 
@@ -1039,5 +1049,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "learning_action": learning_action,
         "question_simplifier": question_support,
         "learning_outcome": learning_outcome,
+        "response_understanding": response_understanding,
         "learner_model": learner_model,
     }
