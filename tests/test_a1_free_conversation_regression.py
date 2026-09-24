@@ -27,7 +27,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("Arbeit" in reply)
 
 
-    def test_beginner_work_time_dialog_understands_bis_two():
+    def test_beginner_work_time_dialog_understands_bis_two(self):
         state = {"free_conversation": {
         "last_question": "Bis wann arbeitest du heute?",
         "recent_questions": ["Bis wann arbeitest du heute?"],
@@ -40,7 +40,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("danach" in reply.lower())
 
 
-    def test_beginner_food_dialog_understands_pizza():
+    def test_beginner_food_dialog_understands_pizza(self):
         state = {"free_conversation": {
         "last_question": "Was isst du gern?",
         "recent_questions": ["Was isst du gern?"],
@@ -53,7 +53,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("Isst du das oft?" in reply)
 
 
-    def test_beginner_hobby_dialog_understands_company():
+    def test_beginner_hobby_dialog_understands_company(self):
         state = {"free_conversation": {
         "last_question": "Machst du das lieber allein oder mit jemandem?",
         "recent_questions": ["Machst du das lieber allein oder mit jemandem?"],
@@ -65,7 +65,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("zusammen" in reply.lower())
 
 
-    def test_weather_yes_does_not_repeat_same_question():
+    def test_weather_yes_does_not_repeat_same_question(self):
         state = {"free_conversation": {
         "last_question": "Magst du das Wetter heute?",
         "recent_questions": ["Magst du das Wetter heute?"],
@@ -78,7 +78,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("bei diesem Wetter" in reply)
 
 
-    def test_typo_sonnig_gets_gentle_help_and_stays_weather():
+    def test_typo_sonnig_gets_gentle_help_and_stays_weather(self):
         state = {"free_conversation": {
         "last_question": "Wie ist das Wetter bei dir?",
         "recent_questions": ["Wie ist das Wetter bei dir?"],
@@ -91,7 +91,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("warm" in reply.lower())
 
 
-    def test_free_conversation_multi_turn_regression():
+    def test_free_conversation_multi_turn_regression(self):
         state = {"free_conversation": {
         "last_question": "Was machst du heute?",
         "recent_questions": ["Was machst du heute?"],
