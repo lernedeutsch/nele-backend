@@ -545,3 +545,44 @@ class GeneratedTests(unittest.TestCase):
             learner_model={"autonomy": "independent", "adaptive_support": 1},
         )
         self.assertEqual(action["action"], "advance")
+
+
+    def test_teacher_policy_repeat_error_has_top_priority(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "introduce_vocabulary", "word": "Pause"},
+            learner_model={"autonomy": "independent", "course_level": "A1.1"},
+            error_result={"decision": {"style": "repeat_request"}},
+        )
+        self.assertEqual(policy["action"], "REPEAT_ERROR")
+        self.assertEqual(policy["priority"], 100)
+        self.assertFalse(policy["continue_conversation"])
+
+    def test_teacher_policy_support_overrides_enrichment(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "introduce_vocabulary", "word": "Kollege"},
+            learner_model={"autonomy": "needs_support", "adaptive_support": 3, "course_level": "A1.1"},
+        )
+        self.assertEqual(policy["action"], "SIMPLIFY")
+        self.assertEqual(policy["reason"], "learner_model_needs_support")
+
+    def test_teacher_policy_preserves_vocabulary_review(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "review_vocabulary", "word": "Kollege", "reason": "vocabulary_needs_review"},
+            learner_model={"autonomy": "developing", "course_level": "A1.1"},
+            conversation_state={"topic": "work"},
+        )
+        self.assertEqual(policy["action"], "REVIEW_WORD")
+        self.assertEqual(policy["target_word"], "Kollege")
+        self.assertEqual(policy["topic"], "work")
+
+    def test_teacher_policy_allows_advance_for_independent_learner(self):
+        from brain.logic.teacher_policy import choose_next_best_learning_action
+        policy = choose_next_best_learning_action(
+            teacher_action={"action": "advance", "reason": "learner_is_independent"},
+            learner_model={"autonomy": "independent", "course_level": "A1.1"},
+        )
+        self.assertEqual(policy["action"], "ADVANCE")
+        self.assertEqual(policy["priority"], 30)
