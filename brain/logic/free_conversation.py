@@ -418,6 +418,14 @@ def _social_a1_reply(text, free, state):
         if low in {"schwimmen", "schwimmbad"}:
             return "Du schwimmst gern. Wo schwimmst du gern?"
 
+    # A specific work question must win over the broad "Arbeit" context.
+    # Otherwise "ja" after cooking restarts the work-start questions.
+    if "kochst du jeden tag bei der arbeit" in last:
+        if low in {"ja", "ja gern", "ja, gern"}:
+            return "Was kochst du gern bei der Arbeit?"
+        if low in {"nein", "nein heute nicht", "heute nicht"}:
+            return "Was machst du sonst bei der Arbeit?"
+
     if any(x in last for x in ("arbeitest du", "arbeit", "wann fängst du", "wann faengst du")):
         if low in {"ja", "ja gern", "ja, gern"}:
             return "Wann fängst du heute an?"
