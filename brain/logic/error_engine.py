@@ -10,6 +10,38 @@ import re
 from brain.memory.error_memory import remember_error
 
 
+EXACT_ERRORS = {
+    "wie heißen du": ("grammar", "Wie heißt du?", "wie_heisst_du"),
+    "wie heissen du": ("grammar", "Wie heißt du?", "wie_heisst_du"),
+    "wie heißt sie": ("grammar", "Wie heißt du?", "wie_heisst_du"),
+    "wie heisst sie": ("grammar", "Wie heißt du?", "wie_heisst_du"),
+    "wie du heißt": ("grammar", "Wie heißt du?", "wie_heisst_du"),
+    "wie du heisst": ("grammar", "Wie heißt du?", "wie_heisst_du"),
+    "wie geht du": ("grammar", "Wie geht es dir?", "wie_geht_es_dir"),
+    "wie geht dir": ("grammar", "Wie geht es dir?", "wie_geht_es_dir"),
+    "wie geht es du": ("grammar", "Wie geht es dir?", "wie_geht_es_dir"),
+    "wie geht ihnen": ("grammar", "Wie geht es Ihnen?", "wie_geht_es_dir"),
+    "wie geht sie": ("grammar", "Wie geht es dir?", "wie_geht_es_dir"),
+    "wie wetter heute": ("grammar", "Wie ist das Wetter heute?", "wie_ist_das_wetter"),
+    "wie ist wetter": ("grammar", "Wie ist das Wetter heute?", "wie_ist_das_wetter"),
+    "was ist das wetter": ("grammar", "Wie ist das Wetter heute?", "wie_ist_das_wetter"),
+    "wie das wetter ist": ("grammar", "Wie ist das Wetter heute?", "wie_ist_das_wetter"),
+    "sonn8g": ("spelling", "Es ist sonnig.", "sonnig_spelling"),
+    "sonnlg": ("spelling", "Es ist sonnig.", "sonnig_spelling"),
+    "sonig": ("spelling", "Es ist sonnig.", "sonnig_spelling"),
+    "gute morgen": ("grammar", "Guten Morgen!", "greeting"),
+    "gut morgen": ("grammar", "Guten Morgen!", "greeting"),
+    "guten morg": ("spelling", "Guten Morgen!", "greeting"),
+    "gute tag": ("grammar", "Guten Tag!", "greeting"),
+    "gut tag": ("grammar", "Guten Tag!", "greeting"),
+    "gute abend": ("grammar", "Guten Abend!", "greeting"),
+    "gut abend": ("grammar", "Guten Abend!", "greeting"),
+    "guten nacht": ("grammar", "Gute Nacht!", "greeting"),
+    "es ist regen": ("grammar", "Es regnet.", "es_regnet"),
+    "ich gut": ("grammar", "Mir geht es gut.", "wellbeing_ich"),
+    "ich heißen moni": ("verb", "Ich heiße Moni.", "ich_heisse"),
+}
+
 ERROR_PATTERNS = [
     (r"^ich\s+machen\s+lesen$", "verb", "Ich lese gern.", "ich_machen_lesen"),
     (r"^ich\s+lesen\s+gern$", "verb", "Ich lese gern.", "ich_lesen"),
@@ -21,6 +53,16 @@ ERROR_PATTERNS = [
     (r"^ich\s+gehen\s+(.+)$", "verb", None, "ich_gehen"),
     (r"^ich\s+arbeiten(?:\s+(.+))?$", "verb", None, "ich_arbeiten"),
     (r"^ich\s+wohnen\s+(.+)$", "verb", None, "ich_wohnen"),
+    (r"^ich\\s+machen\\s+sport$", "verb", "Ich mache Sport.", "ich_mache_sport"),
+    (r"^ich\\s+machen\\s+urlaub(?:\\s+(.+))?$", "verb", None, "ich_mache_urlaub"),
+    (r"^ich\\s+gehen\\s+einkaufen$", "verb", "Ich gehe einkaufen.", "ich_gehe_einkaufen"),
+    (r"^es\\s+ist\\s+regen$", "grammar", "Es regnet.", "es_regnet"),
+    (r"^es\\s+(?:regnen|regen)$", "verb", "Es regnet.", "es_regnet"),
+    (r"^es\\s+(sonnig|warm|kalt|windig|bewölkt|bewoelkt)$", "grammar", None, "wetter_es_ist"),
+    (r"^ich\\s+(gut|prima|schlecht)$", "grammar", None, "wellbeing_ich"),
+    (r"^mir\\s+geht\\s+(gut|prima|schlecht|super)$", "grammar", None, "wellbeing_es"),
+    (r"^ich\\s+(?:heißen|heissen|heißt|heisst)\\s+(.+)$", "verb", None, "ich_heisse"),
+    (r"^mein\\s+name\\s+(?:sein|sind)\\s+(.+)$", "verb", None, "mein_name_ist"),
 ]
 
 
@@ -40,12 +82,36 @@ def _build_correction(key, match):
         return "Ich arbeite" + (f" {extra}." if extra else ".")
     if key == "ich_wohnen":
         return f"Ich wohne {match.group(1)}."
+    if key == "ich_mache_urlaub":
+        extra = match.group(1)
+        return "Ich mache Urlaub" + (f" {extra}." if extra else ".")
+    if key == "wetter_es_ist":
+        word = match.group(1)
+        return f"Es ist {'bewölkt' if word == 'bewoelkt' else word}."
+    if key == "wellbeing_ich":
+        return f"Mir geht es {match.group(1)}."
+    if key == "wellbeing_es":
+        return f"Mir geht es {match.group(1)}."
+    if key == "ich_heisse":
+        return f"Ich heiße {match.group(1).strip(' .')}."
+    if key == "mein_name_ist":
+        return f"Mein Name ist {match.group(1).strip(' .')}."
     return None
 
 
 def detect_error(text):
     """Return a structured error or None. Only clear A1 errors are detected."""
-    low = _normalize(text)
+    low = _normalize(text).strip(" ?!.")
+    if low in EXACT_ERRORS:
+        error_type, correction, key = EXACT_ERRORS[low]
+        return {
+            "key": key,
+            "type": error_type,
+            "original": str(text or "").strip(),
+            "correct": correction,
+            "confidence": "high",
+        }
+
     for pattern, error_type, fixed, key in ERROR_PATTERNS:
         match = re.match(pattern, low, re.I)
         if not match:

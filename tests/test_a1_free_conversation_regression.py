@@ -335,3 +335,28 @@ class GeneratedTests(unittest.TestCase):
         self.assertGreaterEqual(summary["count"], 1)
         self.assertEqual(summary["last_wrong"], "ich arbeiten")
         self.assertEqual(summary["last_correct"], "Ich arbeite.")
+
+
+    def test_error_engine_centralizes_social_and_weather_errors(self):
+        from brain.logic.error_engine import detect_error
+        cases = {
+            "wie heißen du": "Wie heißt du?",
+            "wie geht du": "Wie geht es dir?",
+            "wie wetter heute": "Wie ist das Wetter heute?",
+            "sonn8g": "Es ist sonnig.",
+            "gute morgen": "Guten Morgen!",
+            "es ist regen": "Es regnet.",
+            "ich gut": "Mir geht es gut.",
+            "ich heißen Moni": "Ich heiße moni.",
+        }
+        for wrong, correct in cases.items():
+            with self.subTest(wrong=wrong):
+                error = detect_error(wrong)
+                self.assertIsNotNone(error)
+                self.assertEqual(error["correct"].lower(), correct.lower())
+
+    def test_error_engine_keeps_correct_social_language_unflagged(self):
+        from brain.logic.error_engine import detect_error
+        for text in ("Wie heißt du?", "Wie geht es dir?", "Guten Morgen!", "Es regnet.", "Mir geht es gut."):
+            with self.subTest(text=text):
+                self.assertIsNone(detect_error(text))
