@@ -17,6 +17,7 @@ from brain.logic.learning_action_executor import execute_learning_action
 from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
 from brain.logic.question_simplifier import simplify_question
 from brain.logic.response_understanding import understand_response
+from brain.logic.conversation_coherence import choose_coherent_question, update_coherence_state
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -980,11 +981,21 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if not question:
         question = _generic_followup(topic, free, support, independent, level)
 
-    # Do not repeat the same question. Compare normalized text so punctuation
-    # and capitalization cannot bypass the loop guard.
+    # Conversation Coherence Engine keeps the local thread and avoids loops.
+    # Prefer alternatives from the active topic before falling back to today.
+    topic_alternatives = _not_recent(free, FALLBACKS.get(topic, FALLBACKS["today"]))
+    coherence = choose_coherent_question(
+        question,
+        topic=topic,
+        recent_questions=free.get("recent_questions", []),
+        previous_question=last_question,
+        alternatives=topic_alternatives,
+    )
+    question = coherence.get("selected") or question
+
+    # Final safety fallback if every topic alternative has already appeared.
     recent_norm = {_norm(q).strip(" ?!.") for q in free.get("recent_questions", [])[-8:]}
-    question_norm = _norm(question).strip(" ?!.")
-    if question_norm in recent_norm:
+    if _norm(question).strip(" ?!.") in recent_norm:
         question = _generic_followup("today", free, support, independent, level)
         if question == last_question:
             question = _not_recent(free, FALLBACKS["today"])[0]
@@ -1032,6 +1043,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         source=topic_source,
         subtopic=conversation_state.get("subtopic"),
     )
+    coherence_state = update_coherence_state(
+        state,
+        user_message=user_message,
+        topic=topic,
+        question=action_question,
+        facts=memory,
+        decision=coherence,
+    )
 
     return reply, {
         "conversation_mode": "free",
@@ -1044,6 +1063,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "vocabulary": vocabulary_context,
         "conversation_state": conversation_state,
         "topic_manager": topic_manager,
+        "conversation_coherence": coherence_state,
         "error_engine": error_result,
         "teacher_engine": teacher_action,
         "teacher_policy": teacher_policy,
