@@ -174,10 +174,15 @@ def _record_error(state, free, key, original):
 def _remember_question(free, question):
     if not question:
         return
-    free["last_question"] = question
+    # Replies may contain an A1 model sentence followed by the actual question.
+    # Store only the final question so Conversation State can infer the expected
+    # answer type and the next turn can route against the real prompt.
+    parts = re.findall(r"[^.!?]*[?]", str(question))
+    actual_question = parts[-1].strip() if parts else str(question).strip()
+    free["last_question"] = actual_question
     history = free.setdefault("recent_questions", [])
-    if not history or history[-1] != question:
-        history.append(question)
+    if not history or history[-1] != actual_question:
+        history.append(actual_question)
     del history[:-8]
 
 def _not_recent(free, candidates):
