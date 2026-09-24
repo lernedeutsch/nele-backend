@@ -100,7 +100,11 @@ def choose_next_best_learning_action(
         "continue_conversation": action != "REPEAT_ERROR",
         "topic": conversation_state.get("topic") or topic_manager.get("topic"),
         "subtopic": conversation_state.get("subtopic") or topic_manager.get("subtopic"),
-        "target_word": teacher_action.get("word"),
+        "target_word": (
+            curriculum_skill.split(":", 1)[1]
+            if action == "REVIEW_WORD" and curriculum_skill and curriculum_skill.startswith("vocabulary:")
+            else teacher_action.get("word")
+        ),
         "model": teacher_action.get("model"),
         "course_level": learner_model.get("course_level"),
         "next_curriculum_skill": next_skill or None,
