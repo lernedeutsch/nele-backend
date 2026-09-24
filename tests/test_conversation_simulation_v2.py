@@ -3,6 +3,7 @@ import re
 import unittest
 
 from brain.logic.free_conversation import generate_free_conversation_reply
+from brain.logic.conversation_health_score import score_conversation, score_turn
 
 BAD_GERMAN = ("Ich arbeite Kochen.", "Ich arbeiten", "Ich heißen")
 ACTIONS = {"REPEAT_ERROR","CORRECT_ERROR","SIMPLIFY","MODEL_SENTENCE","REVIEW_WORD","INTRODUCE_WORD","ADVANCE","CONTINUE"}
@@ -61,8 +62,10 @@ class LongConversationSimulator:
             if transition.get("transition") and plan and not plan.get("allow_topic_transition", True):
                 unexpected_transitions.append(index)
 
+        health = score_conversation(self.turns)
         return {
             "turn_count": len(self.turns),
+            "conversation_health": health,
             "adjacent_duplicate_replies": adjacent_duplicates,
             "compliance_violations": compliance_violations,
             "orchestrator_conflicts": orchestrator_conflicts,
@@ -78,6 +81,8 @@ class ConversationSimulationV2Tests(unittest.TestCase):
         self.assertEqual(report["orchestrator_conflicts"], [], report)
         self.assertEqual(report["invalid_turn_plans"], [], report)
         self.assertEqual(report["unexpected_topic_transitions"], [], report)
+        self.assertTrue(report["conversation_health"]["healthy"], report)
+        self.assertGreaterEqual(report["conversation_health"]["score"], 80, report)
 
     def test_20_turn_everyday_conversation_has_no_engine_conflicts(self):
         sim = LongConversationSimulator()
