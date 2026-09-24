@@ -108,6 +108,14 @@ from brain.logic.conversation_vocabulary import (
     handle_vocabulary_explanation_request
 )
 
+from brain.logic.conversation_vocabulary_context import (
+    update_conversation_vocabulary_context
+)
+
+from brain.logic.topic_follow_up_engine import (
+    next_topic_follow_up
+)
+
 from brain.logic.conversation_error_training import (
     handle_priority_error_practice,
     handle_active_error_practice
@@ -417,6 +425,12 @@ def generate_conversation_reply(
             user_message,
             state
         )
+    )
+
+    # Vocabulary Engine enriches the state; existing routers keep priority.
+    update_conversation_vocabulary_context(
+        processed_message,
+        state
     )
 
 
@@ -930,7 +944,28 @@ def generate_conversation_reply(
 
 
     # ======================================
-    # 22. FALLBACK
+    # 22. NATÜRLICHE THEMENFORTSETZUNG
+    #
+    # Nur wenn kein spezialisierter Router
+    # geantwortet hat. So bleiben Lektionen,
+    # Korrekturen und Trainings unverändert.
+    # ======================================
+
+    topic_follow_up = next_topic_follow_up(
+        state
+    )
+
+    if topic_follow_up:
+
+        return return_with_feedback(
+            topic_follow_up,
+            feedback_text,
+            session_id
+        )
+
+
+    # ======================================
+    # 23. FALLBACK
     # ======================================
 
     return return_with_feedback(

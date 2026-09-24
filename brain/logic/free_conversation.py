@@ -568,6 +568,54 @@ def _social_a1_reply(text, free, state):
     return None
 
 
+def _short_answer_followup(text, last_question, memory):
+    """Interpret a short A1 answer through the question Nele asked before."""
+    raw = str(text or "").strip()
+    low = _norm(raw).strip(" .?!")
+    question = _norm(last_question)
+
+    if not low or len(_words(low)) > 5:
+        return None
+
+    # Arbeit: "Bis wann arbeitest du?" -> "Bis 2."
+    if "bis wann arbeitest du" in question:
+        match = re.fullmatch(r"(?:bis\s+)?(\d{1,2})(?::(\d{2}))?(?:\s+uhr)?", low)
+        if match:
+            hour = match.group(1)
+            minute = match.group(2)
+            time_value = f"{hour}:{minute}" if minute else hour
+            memory["work_until"] = time_value
+            return f"Du kannst sagen: „Ich arbeite bis {time_value} Uhr.“ Was machst du danach?"
+
+    # Arbeit: "Was machst du bei der Arbeit?" -> one activity.
+    if "was machst du" in question and "arbeit" in question:
+        activities = {
+            "kochen": ("Ich koche.", "Kochst du jeden Tag bei der Arbeit?"),
+            "putzen": ("Ich putze.", "Was putzt du bei der Arbeit?"),
+            "reinigen": ("Ich reinige.", "Was reinigst du bei der Arbeit?"),
+            "zimmer reinigen": ("Ich reinige Zimmer.", "Wie viele Zimmer reinigst du normalerweise?"),
+        }
+        if low in activities:
+            model, follow_up = activities[low]
+            memory["work_activity"] = low
+            return f"Du kannst sagen: „{model}“ {follow_up}"
+
+    # Essen: a food noun is a valid answer, not a new unrelated topic.
+    if any(key in question for key in ("was isst du", "was hast du gegessen", "was möchtest du essen")):
+        if low in {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}:
+            food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
+            memory["food"] = food
+            return f"Du kannst sagen: „Ich esse gern {food}.“ Isst du das oft?"
+
+    # Company: "Mit wem ...?" / "allein oder mit jemandem?"
+    if "mit wem" in question or "allein oder mit jemandem" in question:
+        if low in {"mit meinem mann", "mit meiner frau", "mit freunden", "mit meiner familie"}:
+            memory["activity_company"] = raw.strip(" .?!")
+            return f"Schön! {raw.strip(' .?!').capitalize()}. Macht ihr das oft zusammen?"
+
+    return None
+
+
 def _content_followup(text, facts, memory, free, level):
     """Choose a question from the learner's content before any generic pool."""
     low = _norm(text)
@@ -741,6 +789,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     # Priority: answer context -> learner content -> safe course-level fallback.
     question = _yes_no_followup(user_message, last_question, memory)
+    if not question:
+        question = _short_answer_followup(user_message, last_question, memory)
     if not question:
         question = _content_followup(user_message, facts, memory, free, level)
     if not question:

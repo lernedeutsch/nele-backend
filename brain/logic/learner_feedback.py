@@ -6,6 +6,10 @@
 
 from brain.logic.matcher import normalize
 
+from brain.logic.a1_verb_correction import (
+    find_a1_verb_correction
+)
+
 from brain.memory.error_memory import (
     remember_error
 )
@@ -41,6 +45,56 @@ def clean_feedback_message(
 # ==========================================
 
 KNOWN_CORRECTIONS = {
+
+    # ======================================
+    # NATÜRLICHE A1-GESPRÄCHE
+    # ======================================
+
+    "mit mein mann": {
+        "corrected_message": "Mit meinem Mann.",
+        "feedback": (
+            "Fast richtig 😊 Du kannst sagen: "
+            "„Mit meinem Mann.“"
+        ),
+        "error_type": "dative_possessive",
+    },
+
+    "ich fahren fahrrad": {
+        "corrected_message": "Ich fahre Fahrrad.",
+        "feedback": (
+            "Fast richtig 😊 Du kannst sagen: "
+            "„Ich fahre Fahrrad.“"
+        ),
+        "error_type": "verb_conjugation",
+    },
+
+    "ich fahren gern fahrrad": {
+        "corrected_message": "Ich fahre gern Fahrrad.",
+        "feedback": (
+            "Fast richtig 😊 Du kannst sagen: "
+            "„Ich fahre gern Fahrrad.“"
+        ),
+        "error_type": "verb_conjugation",
+    },
+
+    "ich arbeiten heute": {
+        "corrected_message": "Ich arbeite heute.",
+        "feedback": (
+            "Fast richtig 😊 Du kannst sagen: "
+            "„Ich arbeite heute.“"
+        ),
+        "error_type": "verb_conjugation",
+    },
+
+    "ich kochen": {
+        "corrected_message": "Ich koche.",
+        "feedback": (
+            "Fast richtig 😊 Du kannst sagen: "
+            "„Ich koche.“"
+        ),
+        "error_type": "verb_conjugation",
+    },
+
 
     # ======================================
     # WAS SOLL ICH HEUTE LERNEN?
@@ -125,6 +179,16 @@ def get_learner_feedback(
 
 
     if not correction:
+
+        automatic_correction = (
+            find_a1_verb_correction(
+                user_message
+            )
+        )
+
+        if automatic_correction:
+            return automatic_correction
+
         return None
 
 
