@@ -265,3 +265,42 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(cs["expected_answer"], "open")
         self.assertEqual(cs["food"], "Suppe")
         self.assertNotIn("Was machst du bei der Arbeit?", reply)
+
+
+    def test_topic_manager_keeps_work_cooking_for_short_answers(self):
+        state = {}
+        generate_free_welcome(state)
+        free = state["free_conversation"]
+        free["last_topic"] = "work"
+        free["last_question"] = "Was kochst du gern bei der Arbeit?"
+        free.setdefault("conversation_facts", {})["work_activity"] = "kochen"
+        # Seed the central state as it would exist after the preceding work turn.
+        from brain.logic.conversation_state import sync_conversation_state
+        sync_conversation_state(state, topic="work", last_question=free["last_question"], level="A1.1")
+
+        _, meta = _turn(state, "suppe")
+        self.assertEqual(meta["topic"], "work")
+        self.assertEqual(meta["conversation_state"]["subtopic"], "kochen")
+        self.assertEqual(meta["topic_manager"]["topic"], "work")
+
+        _, meta = _turn(state, "ja")
+        self.assertEqual(meta["topic_manager"]["topic"], "work")
+        self.assertEqual(meta["topic_manager"]["subtopic"], "kochen")
+
+        _, meta = _turn(state, "pizza")
+        self.assertEqual(meta["topic_manager"]["topic"], "work")
+        self.assertEqual(meta["conversation_state"]["subtopic"], "kochen")
+
+    def test_topic_manager_allows_clear_topic_change(self):
+        state = {}
+        generate_free_welcome(state)
+        free = state["free_conversation"]
+        free["last_topic"] = "work"
+        free["last_question"] = "Was machst du bei der Arbeit?"
+        free.setdefault("conversation_facts", {})["work_activity"] = "kochen"
+        from brain.logic.conversation_state import sync_conversation_state
+        sync_conversation_state(state, topic="work", last_question=free["last_question"], level="A1.1")
+
+        _, meta = _turn(state, "Das Wetter ist warm")
+        self.assertEqual(meta["topic"], "weather")
+        self.assertEqual(meta["topic_manager"]["topic"], "weather")
