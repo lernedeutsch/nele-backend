@@ -225,3 +225,43 @@ class GeneratedTests(unittest.TestCase):
         fourth, _ = _turn(state, "nudeln")
         self.assertIn("Am liebsten koche ich Nudeln.", fourth)
         self.assertNotIn("Was machst du bei der Arbeit?", fourth)
+
+
+    def test_conversation_state_v2_tracks_cooking_context(self):
+        state = {}
+        generate_free_welcome(state)
+        free = state["free_conversation"]
+        free["last_topic"] = "work"
+        free["last_question"] = "Was kochst du gern bei der Arbeit?"
+        free.setdefault("conversation_facts", {})["work_activity"] = "kochen"
+
+        reply, meta = _turn(state, "suppe")
+        cs = meta["conversation_state"]
+        self.assertEqual(cs["version"], 2)
+        self.assertEqual(cs["topic"], "work")
+        self.assertEqual(cs["subtopic"], "kochen")
+        self.assertEqual(cs["last_question"], "Kochst du auch gern etwas anderes?")
+        self.assertEqual(cs["expected_answer"], "yes_no")
+        self.assertEqual(cs["activity"], "kochen")
+        self.assertEqual(cs["food"], "Suppe")
+        self.assertEqual(cs["conversation_goal"], "über Arbeit und Kochen sprechen")
+        self.assertEqual(cs["support_level"], "A1")
+        self.assertGreaterEqual(cs["turn_number"], 1)
+
+    def test_conversation_state_v2_updates_after_yes(self):
+        state = {}
+        generate_free_welcome(state)
+        free = state["free_conversation"]
+        free["last_topic"] = "work"
+        free["last_question"] = "Was kochst du gern bei der Arbeit?"
+        free.setdefault("conversation_facts", {})["work_activity"] = "kochen"
+
+        _turn(state, "suppe")
+        reply, meta = _turn(state, "ja")
+        cs = meta["conversation_state"]
+        self.assertEqual(cs["topic"], "work")
+        self.assertEqual(cs["subtopic"], "kochen")
+        self.assertEqual(cs["last_question"], "Was kochst du noch gern?")
+        self.assertEqual(cs["expected_answer"], "open")
+        self.assertEqual(cs["food"], "Suppe")
+        self.assertNotIn("Was machst du bei der Arbeit?", reply)
