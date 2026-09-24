@@ -90,7 +90,9 @@ def classify(user_message, task):
     if kind=="kommen":
         pron=task["pronoun"]; form=task["form"]
         if n==form or _norm(expected)==n: return {"status":"CORRECT_FULL","correct":expected}
-        if n in KOMMEN.values() or any(x in n.split() for x in KOMMEN.values()):
+        tokens=n.split()
+        if form in tokens: return {"status":"CORRECT_FULL","correct":expected}
+        if n in KOMMEN.values() or any(x in tokens for x in KOMMEN.values()):
             return {"status":"CONJUGATION_ERROR","correct":expected}
     if kind=="number":
         num,typo=_number_from(n)
@@ -114,23 +116,23 @@ def _correction(result, user_message, task, state):
     status=result["status"]; correct=result["correct"]; m=_mem(state)
     if status=="CORRECT_SHORT":
         m["support_level"]=max(0,m["support_level"]-1)
-        return "Ja, genau. 👍 Als ganzer Satz: „%s“" % correct
+        return ("Genau. Sag auch: „%s“" % correct) if " " in str(correct).strip() else "Genau."
     if status=="CORRECT_WITH_TYPO":
         m["support_level"]=max(0,m["support_level"]-1)
-        return "Ja, genau. 👍 Richtig geschrieben: „%s“" % correct
+        return "Fast. Richtig: „%s“" % correct
     if status=="CORRECT_FULL":
         m["support_level"]=max(0,m["support_level"]-1); return None
     if status=="UNCLEAR":
         m["support_level"]=min(4,m["support_level"]+1)
-        return "Ich helfe dir. Versuch es noch einmal: „%s“" % correct
+        return "Sag: „%s“" % correct
     _remember_error(state,status,user_message,correct,task.get("prompt",""))
     m["support_level"]=min(4,m["support_level"]+1)
     attempts=m["errors"][status]["attempts"]
     if attempts==1:
-        return "Fast richtig. 😊 Versuch es noch einmal. Tipp: „%s“" % correct
+        return "Fast. Sag: „%s“" % correct
     if attempts==2:
-        return "Achte auf die Form. Richtig ist: „%s“ Sag es bitte einmal." % correct
-    return "Kein Problem. 😊 Richtig ist: „%s“ Wir machen danach weiter." % correct
+        return "Fast. Richtig ist: „%s“" % correct
+    return "Richtig heißt es: „%s“" % correct
 
 def _set_task(state, task):
     m=_mem(state); m["task"]=task
@@ -145,15 +147,15 @@ def _next_task(state, section):
         if not item.get("resolved") and item.get("review_due") is not None and item["review_due"]<=t:
             review=k; break
     if review=="CONJUGATION_ERROR":
-        return {"intent":"ERROR_REVIEW","kind":"kommen","pronoun":"ich","form":"komme","expected":"komme","prompt":"Kurze Wiederholung: Ergänze: „Ich ___ aus Deutschland.“"}
+        return {"intent":"ERROR_REVIEW","kind":"kommen","pronoun":"ich","form":"komme","expected":"komme","prompt":"Noch einmal: „Ich ___ aus Deutschland.“"}
     s=_norm(section)
     if "zahl" in s:
         num=(t*3 % 20)+1
         modes=t%4
-        if modes==0: p=f"Welche Zahl ist {num} auf Deutsch?"
-        elif modes==1: p=f"Schreib {num} auf Deutsch."
+        if modes==0: p=f"Wie heißt {num} auf Deutsch?"
+        elif modes==1: p=f"Sag {num} auf Deutsch."
         elif modes==2 and num<20: p=f"Was kommt nach {NUMBERS[num]}?"
-        else: p=f"Welche Zahl ist richtig: {NUMBERS[num]} oder {NUMBERS[(num%20)+1]}? Schreib {num} auf Deutsch."
+        else: p=f"Wie heißt {num} auf Deutsch?"
         return {"intent":"NUMBER_PRODUCTION","kind":"number","number":num,"expected":NUMBERS[num],"prompt":p}
     if "verb kommen" in s or "kommen"==s:
         items=[("ich","komme"),("du","kommst"),("er","kommt"),("sie","kommt"),("wir","kommen"),("ihr","kommt"),("Sie","kommen")]
@@ -165,7 +167,7 @@ def _next_task(state, section):
     person,gender=PEOPLE[t%len(PEOPLE)]
     mode=t%6
     if mode==0:
-        return {"intent":"ASK_USER_ORIGIN","kind":"origin","expected":"Ich komme aus Polen.","prompt":"Woher kommst du? Du kannst kurz oder mit einem ganzen Satz antworten."}
+        return {"intent":"ASK_USER_ORIGIN","kind":"origin","expected":"Ich komme aus Polen.","prompt":"Woher kommst du?"}
     if mode==1:
         return {"intent":"ASK_PERSON_ORIGIN","kind":"origin","expected":f"{person} kommt {c['aus']}.","prompt":f"{person} kommt {c['aus']}. Woher kommt {person}?"}
     if mode==2:
@@ -182,8 +184,7 @@ def start(section,state):
     m=_mem(state); m["section"]=section; m["turn"]=0; m["task"]=None
     state["lesson_teaching_active"]=True; state["lesson_teaching_level"]="A1"; state["lesson_teaching_lesson"]=2
     state["lesson_teaching_section"]=section; state["lesson_teaching_step"]=1
-    intro="Wir üben Lektion 2 als Gespräch. Ich passe die Fragen an deine Antworten an."
-    return intro+" "+_set_task(state,_next_task(state,section))
+    return _set_task(state,_next_task(state,section))
 
 def current_prompt(state):
     task=_mem(state).get("task") or {}
