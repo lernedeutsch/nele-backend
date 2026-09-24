@@ -40,6 +40,7 @@ def execute_learning_action(
         "action": action,
         "executed": True,
         "target_word": target_word,
+        "model": model,
         "expects_outcome": None,
         "reply": fallback_question,
     }
