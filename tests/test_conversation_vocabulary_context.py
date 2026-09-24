@@ -19,7 +19,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(state["conversation_vocabulary_topic"] == "hotel")
 
 
-    def test_short_answer_keeps_previous_topic():
+    def test_short_answer_keeps_previous_topic(self):
         state = {
         "conversation_vocabulary_topic": "freizeit",
         }
@@ -34,7 +34,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(isinstance(context["suggestions"], list))
 
 
-    def test_context_does_not_generate_reply():
+    def test_context_does_not_generate_reply(self):
         state = {}
 
         result = update_conversation_vocabulary_context(
