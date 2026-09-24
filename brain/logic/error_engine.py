@@ -53,6 +53,7 @@ ERROR_PATTERNS = [
     (r"^ich\s+gehen\s+(.+)$", "verb", None, "ich_gehen"),
     (r"^ich\s+arbeiten(?:\s+(.+))?$", "verb", None, "ich_arbeiten"),
     (r"^ich\s+wohnen\s+(.+)$", "verb", None, "ich_wohnen"),
+    (r"^ich\\s+kochen\\s+(.+)$", "verb", None, "ich_kochen"),
     (r"^ich\\s+machen\\s+sport$", "verb", "Ich mache Sport.", "ich_mache_sport"),
     (r"^ich\\s+machen\\s+urlaub(?:\\s+(.+))?$", "verb", None, "ich_mache_urlaub"),
     (r"^ich\\s+gehen\\s+einkaufen$", "verb", "Ich gehe einkaufen.", "ich_gehe_einkaufen"),
@@ -82,6 +83,8 @@ def _build_correction(key, match):
         return "Ich arbeite" + (f" {extra}." if extra else ".")
     if key == "ich_wohnen":
         return f"Ich wohne {match.group(1)}."
+    if key == "ich_kochen":
+        return f"Ich koche {match.group(1).strip(' .')}."
     if key == "ich_mache_urlaub":
         extra = match.group(1)
         return "Ich mache Urlaub" + (f" {extra}." if extra else ".")
