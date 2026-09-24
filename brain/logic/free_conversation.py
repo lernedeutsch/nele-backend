@@ -446,6 +446,14 @@ def _social_a1_reply(text, free, state):
         if low in {"schwimmen", "schwimmbad"}:
             return "Du schwimmst gern. Wo schwimmst du gern?"
 
+    # Cooking subthread must win over the broad "Arbeit" context.
+    # These are contextual yes/no answers, not a new answer to "Arbeitest du?".
+    if "kochst du auch gern etwas anderes" in last:
+        if low in {"ja", "ja gern", "ja, gern"}:
+            return "Was kochst du noch gern?"
+        if low in {"nein", "nein heute nicht", "heute nicht"}:
+            return "Was kochst du am liebsten?"
+
     # A specific work question must win over the broad "Arbeit" context.
     # Otherwise "ja" after cooking restarts the work-start questions.
     if "kochst du jeden tag bei der arbeit" in last:
