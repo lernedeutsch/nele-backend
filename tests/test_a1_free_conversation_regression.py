@@ -965,3 +965,66 @@ class GeneratedTests(unittest.TestCase):
             "last_question": "Welchen Sport machst du gern?", "expected_answer": "open", "topic": "hobby",
         })
         self.assertEqual(result["preserve_for_error_engine"], "shwimmen")
+
+
+    def test_coherence_engine_keeps_non_repeated_candidate(self):
+        from brain.logic.conversation_coherence import choose_coherent_question
+        result = choose_coherent_question(
+            "Was kochst du gern bei der Arbeit?",
+            topic="work",
+            recent_questions=["Arbeitest du heute?"],
+            previous_question="Arbeitest du heute?",
+            alternatives=["Wann fängst du an?"],
+        )
+        self.assertFalse(result["changed"])
+        self.assertEqual(result["selected"], "Was kochst du gern bei der Arbeit?")
+
+    def test_coherence_engine_replaces_repeat_with_same_topic_question(self):
+        from brain.logic.conversation_coherence import choose_coherent_question
+        result = choose_coherent_question(
+            "Was machst du bei der Arbeit?",
+            topic="work",
+            recent_questions=["Was machst du bei der Arbeit?"],
+            previous_question="Was machst du bei der Arbeit?",
+            alternatives=["Wann fängst du an?", "Arbeitest du heute?"],
+        )
+        self.assertTrue(result["changed"])
+        self.assertEqual(result["selected"], "Wann fängst du an?")
+        self.assertEqual(result["reason"], "avoid_repeat_keep_topic")
+
+    def test_coherence_engine_tracks_recent_turns_and_facts(self):
+        from brain.logic.conversation_coherence import update_coherence_state
+        state = {}
+        for i in range(10):
+            update_coherence_state(
+                state,
+                user_message=f"Antwort {i}",
+                topic="work",
+                question=f"Frage {i}?",
+                facts={"work_activity": "kochen"},
+            )
+        store = state["conversation_coherence_v1"]
+        self.assertEqual(len(store["turns"]), 8)
+        self.assertEqual(store["turns"][-1]["facts"]["work_activity"], "kochen")
+
+    def test_coherence_engine_marks_topic_continuation(self):
+        from brain.logic.conversation_coherence import assess_candidate_question
+        result = assess_candidate_question(
+            "Was kochst du bei der Arbeit?",
+            topic="work",
+            recent_questions=[],
+        )
+        self.assertTrue(result["topic_match"])
+        self.assertEqual(result["reason"], "topic_continuation")
+
+    def test_coherence_engine_detects_immediate_repeat(self):
+        from brain.logic.conversation_coherence import assess_candidate_question
+        result = assess_candidate_question(
+            "Magst du das Wetter heute?",
+            topic="weather",
+            recent_questions=["Magst du das Wetter heute?"],
+            previous_question="Magst du das Wetter heute?",
+        )
+        self.assertTrue(result["repeated"])
+        self.assertTrue(result["immediate_repeat"])
+        self.assertFalse(result["coherent"])
