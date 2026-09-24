@@ -51,3 +51,15 @@ def test_generator_changes_prompts():
         current=state["a1_l2_tutor"]["task"]
         prompts.append(handle(current["expected"],state))
     assert len(set(prompts)) >= 5
+
+
+def test_full_sentence_is_accepted_for_gap_task():
+    t=task("kommen","kommt",pronoun="er",form="kommt")
+    assert classify("Thomas kommt aus Kroatien.",t)["status"]=="CORRECT_FULL"
+
+def test_short_number_does_not_call_word_a_full_sentence():
+    state={}
+    start("Zahlen 1–20",state)
+    state["a1_l2_tutor"]["task"]=task("number","neun",number=9,intent="NUMBER_PRODUCTION")
+    reply=handle("9",state)
+    assert "Als ganzer Satz" not in reply
