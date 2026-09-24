@@ -37,12 +37,14 @@ def choose_teacher_action(
     struggle=False,
     independent_turns=0,
     vocabulary_context=None,
+    learner_model=None,
 ):
     """Return one central pedagogical action for the next response."""
     conversation_state = conversation_state or {}
     topic_manager = topic_manager or {}
     error_result = error_result or {}
     vocabulary_context = vocabulary_context or {}
+    learner_model = learner_model or {}
     decision = error_result.get("decision") or {}
     error = error_result.get("error") or {}
 
@@ -77,7 +79,9 @@ def choose_teacher_action(
             "continue_conversation": True,
         }
 
-    if struggle or int(support_level or 1) >= 3:
+    learner_autonomy = learner_model.get("autonomy")
+    learner_support = int(learner_model.get("adaptive_support", support_level) or support_level or 1)
+    if struggle or learner_support >= 3 or learner_autonomy == "needs_support":
         return {
             "action": "simplify_next_question",
             "reason": "learner_needs_more_support",
@@ -116,7 +120,7 @@ def choose_teacher_action(
                 "continue_conversation": True,
             }
 
-    if _word_count(user_message) >= 3 and int(independent_turns or 0) >= 3:
+    if _word_count(user_message) >= 3 and (learner_autonomy == "independent" or int(independent_turns or 0) >= 3):
         return {
             "action": "advance",
             "reason": "learner_is_independent",
