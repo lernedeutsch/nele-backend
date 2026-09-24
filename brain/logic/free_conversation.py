@@ -1114,6 +1114,16 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     state["conversation_quality_controller_v2"] = quality
     state["conversation_quality_controller_v1"] = quality
     state["learning_action_executor_v1"] = learning_action
+    compliance = evaluate_turn_plan_compliance(
+        turn_plan,
+        learning_action=learning_action,
+        topic_transition=topic_transition,
+        personalized_followup=personalized,
+        question_support=question_support,
+        recovery=recovery,
+        orchestration=orchestration,
+    )
+    record_turn_plan_compliance(state, compliance)
 
     turn = int(free.get("turn_count", 0) or 0) + 1
     free.update({
@@ -1170,6 +1180,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "conversation_quality": quality,
         "conversation_recovery": recovery,
         "conversation_orchestrator": orchestration,
+        "turn_plan_compliance": compliance,
         "question_simplifier": question_support,
         "learning_outcome": learning_outcome,
         "response_understanding": response_understanding,
