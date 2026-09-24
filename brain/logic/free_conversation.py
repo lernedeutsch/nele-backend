@@ -8,6 +8,7 @@ import re
 
 from brain.logic.vocabulary_engine import build_personalized_conversation_vocabulary
 from brain.logic.conversation_state import reset_conversation_state, sync_conversation_state
+from brain.logic.topic_manager import choose_topic, update_topic_manager
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -836,11 +837,17 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "alltag": "today",
     }
     vocabulary_topic = vocabulary_topic_map.get(vocabulary_context.get("topic"))
-    topic = facts.get("topic", vocabulary_topic or previous_topic)
+    explicit_topic = facts.get("topic")
     if facts.get("activity") == "shopping":
-        topic = "shopping"
+        explicit_topic = "shopping"
     elif facts.get("place"):
-        topic = "place"
+        explicit_topic = "place"
+
+    topic, topic_source = choose_topic(
+        state,
+        explicit_topic=explicit_topic,
+        vocabulary_topic=vocabulary_topic or previous_topic,
+    )
 
     last_question = free.get("last_question", "")
     recast, error_key = _error_and_recast(user_message)
@@ -920,6 +927,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         last_question=free.get("last_question", question),
         level=level,
     )
+    topic_manager = update_topic_manager(
+        state,
+        topic=topic,
+        source=topic_source,
+        subtopic=conversation_state.get("subtopic"),
+    )
 
     return reply, {
         "conversation_mode": "free",
@@ -931,4 +944,5 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "recurring_errors": list((state.get("learner_memory") or {}).get("recurring_errors", [])),
         "vocabulary": vocabulary_context,
         "conversation_state": conversation_state,
+        "topic_manager": topic_manager,
     }
