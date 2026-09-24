@@ -20,6 +20,7 @@ from brain.logic.response_understanding import understand_response
 from brain.logic.conversation_coherence import choose_coherent_question, update_coherence_state
 from brain.logic.conversation_goal_transition import decide_topic_transition
 from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
+from brain.logic.conversation_quality_controller import check_reply
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -1050,6 +1051,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         fallback_question=action_question,
     )
     reply = learning_action.get("reply") or question
+    quality = check_reply(
+        reply,
+        topic=topic,
+        action=learning_action.get("action"),
+        model=learning_action.get("model"),
+    )
+    reply = quality.get("reply") or reply
+    state["conversation_quality_controller_v1"] = quality
     state["learning_action_executor_v1"] = learning_action
 
     turn = int(free.get("turn_count", 0) or 0) + 1
@@ -1103,6 +1112,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "teacher_engine": teacher_action,
         "teacher_policy": teacher_policy,
         "learning_action": learning_action,
+        "conversation_quality": quality,
         "question_simplifier": question_support,
         "learning_outcome": learning_outcome,
         "response_understanding": response_understanding,
