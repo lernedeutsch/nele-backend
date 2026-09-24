@@ -50,6 +50,16 @@ ERROR_PATTERNS = [
     (r"^ich\s+gehen\s+(.+)$", "verb", None, "ich_gehen"),
     (r"^ich\s+arbeiten(?:\s+(.+))?$", "verb", None, "ich_arbeiten"),
     (r"^ich\s+wohnen\s+(.+)$", "verb", None, "ich_wohnen"),
+    (r"^ich\\s+machen\\s+sport$", "verb", "Ich mache Sport.", "ich_mache_sport"),
+    (r"^ich\\s+machen\\s+urlaub(?:\\s+(.+))?$", "verb", None, "ich_mache_urlaub"),
+    (r"^ich\\s+gehen\\s+einkaufen$", "verb", "Ich gehe einkaufen.", "ich_gehe_einkaufen"),
+    (r"^es\\s+ist\\s+regen$", "grammar", "Es regnet.", "es_regnet"),
+    (r"^es\\s+(?:regnen|regen)$", "verb", "Es regnet.", "es_regnet"),
+    (r"^es\\s+(sonnig|warm|kalt|windig|bewölkt|bewoelkt)$", "grammar", None, "wetter_es_ist"),
+    (r"^ich\\s+(gut|prima|schlecht)$", "grammar", None, "wellbeing_ich"),
+    (r"^mir\\s+geht\\s+(gut|prima|schlecht|super)$", "grammar", None, "wellbeing_es"),
+    (r"^ich\\s+(?:heißen|heissen|heißt|heisst)\\s+(.+)$", "verb", None, "ich_heisse"),
+    (r"^mein\\s+name\\s+(?:sein|sind)\\s+(.+)$", "verb", None, "mein_name_ist"),
 ]
 
 
