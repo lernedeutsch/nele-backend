@@ -84,7 +84,10 @@ def _build_correction(key, match):
     if key == "ich_wohnen":
         return f"Ich wohne {match.group(1)}."
     if key == "ich_kochen":
-        return f"Ich koche {match.group(1).strip(' .')}."
+        food = match.group(1).strip(" .")
+        if food:
+            food = food[0].upper() + food[1:]
+        return f"Ich koche {food}."
     if key == "ich_mache_urlaub":
         extra = match.group(1)
         return "Ich mache Urlaub" + (f" {extra}." if extra else ".")
