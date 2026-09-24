@@ -980,7 +980,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     question_support = None
     action_question = question
-    if teacher_policy.get("action") == "SIMPLIFY":
+    if teacher_policy.get("action") == "SIMPLIFY" and struggle:
         question_support = simplify_question(
             question,
             topic=topic,
