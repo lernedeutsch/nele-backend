@@ -152,3 +152,30 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("Wann fängst du" not in second)
         self.assertTrue("Was machst du bei der Arbeit?" not in second)
 
+
+
+    def test_free_conversation_exposes_vocabulary_engine_context(self):
+        state = {"free_conversation": {
+            "last_question": "Wie ist das Wetter bei dir?",
+            "recent_questions": ["Wie ist das Wetter bei dir?"],
+            "conversation_facts": {},
+        }}
+        reply, meta = _turn(state, "warm")
+        self.assertTrue(reply)
+        self.assertIn("vocabulary", meta)
+        self.assertTrue(meta["vocabulary"]["memory_aware"])
+        self.assertEqual(meta["vocabulary"]["topic"], "alltag" if meta["vocabulary"]["topic"] == "alltag" else meta["vocabulary"]["topic"])
+        self.assertIn("suggestions", meta["vocabulary"])
+
+    def test_work_food_chain_keeps_vocabulary_context(self):
+        state = {"free_conversation": {
+            "last_question": "Was kochst du gern bei der Arbeit?",
+            "recent_questions": ["Was kochst du gern bei der Arbeit?"],
+            "last_topic": "work",
+            "conversation_facts": {"work_activity": "kochen"},
+        }}
+        reply, meta = _turn(state, "suppe")
+        self.assertIn("Ich koche gern Suppe.", reply)
+        self.assertIn("vocabulary", meta)
+        self.assertTrue(meta["vocabulary"]["memory_aware"])
+        self.assertEqual(meta["vocabulary"]["topic"], "arbeit")

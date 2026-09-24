@@ -99,3 +99,56 @@ def build_conversation_vocabulary(message, topic=None, limit=8):
         "used_words": used_words,
         "suggestions": suggestions,
     }
+
+
+TOPIC_ALIASES = {
+    "work": "arbeit",
+    "hobby": "freizeit",
+    "weather": "wetter",
+    "food": "essen",
+    "shopping": "alltag",
+    "today": "alltag",
+    "yesterday": "alltag",
+    "holiday": "alltag",
+}
+
+
+def canonical_topic(topic):
+    """Map Conversation Engine topic names to Vocabulary Engine topic names."""
+    value = normalize_text(topic)
+    return TOPIC_ALIASES.get(value, value or None)
+
+
+def build_personalized_conversation_vocabulary(message, state=None, topic=None, limit=8):
+    """Vocabulary context ranked with the learner's vocabulary memory.
+
+    Conversation Engine may consume this context, but vocabulary knowledge
+    remains owned by Vocabulary Engine / brain.knowledge.
+    """
+    detected = canonical_topic(topic) or detect_topic(message)
+    context = build_conversation_vocabulary(message, topic=detected, limit=max(limit * 2, limit))
+    memory = (state or {}).get("vocabulary_memory", {})
+    if not isinstance(memory, dict):
+        memory = {}
+
+    def learning_priority(entry):
+        word = entry.get("word", "")
+        item = memory.get(word, {})
+        if not isinstance(item, dict):
+            item = {}
+        needs_review = bool(item.get("needs_review", False))
+        seen = int(item.get("seen", 0) or 0)
+        correct = int(item.get("correct", 0) or 0)
+        mistakes = int(item.get("mistakes", 0) or 0)
+        # Review-due/problem words first, then unseen words, then mastered words.
+        return (
+            0 if needs_review or mistakes > correct else 1 if seen == 0 else 2,
+            seen,
+            word,
+        )
+
+    suggestions = sorted(context["suggestions"], key=learning_priority)[:max(0, int(limit))]
+    context["suggestions"] = suggestions
+    context["suggestion_words"] = [item.get("word") for item in suggestions if item.get("word")]
+    context["memory_aware"] = True
+    return context

@@ -5,6 +5,8 @@ from brain.logic.vocabulary_engine import (
     words_in_message,
     detect_topic,
     build_conversation_vocabulary,
+    canonical_topic,
+    build_personalized_conversation_vocabulary,
 )
 
 
@@ -40,3 +42,22 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(context["topic"] == "hotel")
         self.assertTrue("zimmer" in context["used_words"])
         self.assertTrue(isinstance(context["suggestions"], list))
+
+    def test_conversation_topic_aliases(self):
+        self.assertEqual(canonical_topic("work"), "arbeit")
+        self.assertEqual(canonical_topic("hobby"), "freizeit")
+        self.assertEqual(canonical_topic("weather"), "wetter")
+
+    def test_personalized_context_uses_memory(self):
+        state = {"vocabulary_memory": {
+            "warm": {"seen": 4, "correct": 4, "mistakes": 0, "needs_review": False},
+            "kalt": {"seen": 2, "correct": 0, "mistakes": 2, "needs_review": True},
+        }}
+        context = build_personalized_conversation_vocabulary(
+            "Das Wetter ist kalt.", state=state, topic="weather"
+        )
+        self.assertTrue(context["memory_aware"])
+        self.assertEqual(context["topic"], "wetter")
+        words = context["suggestion_words"]
+        if "kalt" in words and "warm" in words:
+            self.assertLess(words.index("kalt"), words.index("warm"))
