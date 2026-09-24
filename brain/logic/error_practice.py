@@ -1383,10 +1383,8 @@ def handle_error_practice_step_one(
 
 
         return (
-            "Richtig! Sehr gut. "
-            f"„{correct_sentence}“ ist korrekt. "
-            "Sag die richtige Antwort "
-            "jetzt bitte selbst."
+            "Genau. "
+            f"Sag jetzt: „{correct_sentence}“"
         )
 
 
@@ -1856,11 +1854,7 @@ def handle_error_practice_step_two(
         # bez podwójnego komunikatu.
         # ======================================
 
-        return (
-            "Sehr gut! "
-            f"„{correct_sentence}“ ist richtig. "
-            "Diesen Fehler hast du jetzt geübt."
-        )
+        return "Genau!"
 
 
     # ======================================
@@ -1891,9 +1885,7 @@ def handle_error_practice_step_two(
 
 
     return (
-        "Fast. "
-        f"Richtig ist: „{correct_sentence}“ "
-        "Sag die richtige Antwort bitte noch einmal."
+        f"Fast. Sag: „{correct_sentence}“"
     )
 
 
