@@ -304,3 +304,34 @@ class GeneratedTests(unittest.TestCase):
         _, meta = _turn(state, "Das Wetter ist warm")
         self.assertEqual(meta["topic"], "weather")
         self.assertEqual(meta["topic_manager"]["topic"], "weather")
+
+
+    def test_error_engine_gently_recasts_clear_a1_error(self):
+        state = {}
+        generate_free_welcome(state)
+        reply, meta = _turn(state, "ich arbeiten")
+        engine = meta["error_engine"]
+        self.assertTrue(engine["detected"])
+        self.assertEqual(engine["error"]["type"], "verb")
+        self.assertEqual(engine["error"]["correct"], "Ich arbeite.")
+        self.assertEqual(engine["decision"]["style"], "gentle_recast")
+        self.assertIn("Ich arbeite.", reply)
+
+    def test_error_engine_does_not_correct_valid_short_answer(self):
+        state = {}
+        generate_free_welcome(state)
+        _, meta = _turn(state, "gut")
+        engine = meta["error_engine"]
+        self.assertFalse(engine["detected"])
+        self.assertFalse(engine["decision"]["correct"])
+
+    def test_error_engine_records_in_student_error_memory(self):
+        state = {}
+        generate_free_welcome(state)
+        _turn(state, "ich arbeiten")
+        from brain.memory.error_memory import get_error_summary
+        summary = get_error_summary(state, "verb")
+        self.assertIsNotNone(summary)
+        self.assertGreaterEqual(summary["count"], 1)
+        self.assertEqual(summary["last_wrong"], "ich arbeiten")
+        self.assertEqual(summary["last_correct"], "Ich arbeite.")
