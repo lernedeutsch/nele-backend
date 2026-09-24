@@ -809,6 +809,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     response_understanding = understand_response(
         user_message,
         conversation_state=state.get("conversation_state_v2") or {},
+        vocabulary_context=(state.get("free_conversation") or {}).get("vocabulary_context") or {},
     )
     state["response_understanding_v1"] = response_understanding
 
