@@ -615,6 +615,23 @@ def _short_answer_followup(text, last_question, memory):
             memory["work_activity"] = low
             return f"Du kannst sagen: „{model}“ {follow_up}"
 
+    # Cooking at work: short food nouns answer "Was kochst du gern ...?".
+    # Keep the cooking branch alive instead of falling back to generic work.
+    if "was kochst du gern" in question:
+        foods = {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}
+        if low in foods:
+            food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
+            memory["cooked_food"] = food
+            return f"Du kannst sagen: „Ich koche gern {food}.“ Kochst du auch gern etwas anderes?"
+
+    # Follow-up after a cooking preference stays with food.
+    if "kochst du auch gern etwas anderes" in question:
+        foods = {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}
+        if low in foods:
+            food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
+            memory["other_cooked_food"] = food
+            return f"Schön! Du kannst sagen: „Ich koche auch gern {food}.“ Was kochst du am liebsten?"
+
     # Essen: a food noun is a valid answer, not a new unrelated topic.
     if any(key in question for key in ("was isst du", "was hast du gegessen", "was möchtest du essen")):
         if low in {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}:
