@@ -19,7 +19,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(state.get("error_memory"))
 
 
-    def test_fahren_is_corrected_for_conversation():
+    def test_fahren_is_corrected_for_conversation(self):
         state = {}
 
         corrected, feedback = prepare_message_with_feedback(
@@ -31,7 +31,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue("Ich fahre gern Fahrrad" in feedback)
 
 
-    def test_arbeiten_is_corrected_for_conversation():
+    def test_arbeiten_is_corrected_for_conversation(self):
         corrected, feedback = prepare_message_with_feedback(
         "Ich arbeiten heute",
         {},
@@ -41,7 +41,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(feedback)
 
 
-    def test_correct_sentence_is_not_changed():
+    def test_correct_sentence_is_not_changed(self):
         corrected, feedback = prepare_message_with_feedback(
         "Ich fahre gern Fahrrad.",
         {},
