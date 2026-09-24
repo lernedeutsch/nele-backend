@@ -1,49 +1,52 @@
+import unittest
+
 from brain.logic.topic_follow_up_engine import (
     next_topic_follow_up,
     reset_topic_questions,
 )
 
 
-def test_follow_ups_do_not_repeat():
-    state = {"conversation_vocabulary_topic": "freizeit"}
+class GeneratedTests(unittest.TestCase):
+    def test_follow_ups_do_not_repeat(self):
+        state = {"conversation_vocabulary_topic": "freizeit"}
 
-    first = next_topic_follow_up(state)
-    second = next_topic_follow_up(state)
+        first = next_topic_follow_up(state)
+        second = next_topic_follow_up(state)
 
-    assert first
-    assert second
-    assert first != second
+        self.assertTrue(first)
+        self.assertTrue(second)
+        self.assertTrue(first != second)
 
 
-def test_topic_has_finite_sequence():
-    state = {"conversation_vocabulary_topic": "wetter"}
+    def test_topic_has_finite_sequence():
+        state = {"conversation_vocabulary_topic": "wetter"}
 
-    answers = [
+        answers = [
         next_topic_follow_up(state)
         for _ in range(5)
-    ]
+        ]
 
-    assert len([item for item in answers if item]) == 4
-    assert answers[-1] is None
-
-
-def test_topics_keep_separate_history():
-    state = {}
-
-    freizeit = next_topic_follow_up(state, "freizeit")
-    wetter = next_topic_follow_up(state, "wetter")
-
-    assert freizeit
-    assert wetter
-    assert freizeit != wetter
+        self.assertTrue(len([item for item in answers if item]) == 4)
+        self.assertTrue(answers[-1] is None)
 
 
-def test_reset_topic_questions():
-    state = {"conversation_vocabulary_topic": "essen"}
+    def test_topics_keep_separate_history():
+        state = {}
 
-    first = next_topic_follow_up(state)
-    next_topic_follow_up(state)
+        freizeit = next_topic_follow_up(state, "freizeit")
+        wetter = next_topic_follow_up(state, "wetter")
 
-    reset_topic_questions(state, "essen")
+        self.assertTrue(freizeit)
+        self.assertTrue(wetter)
+        self.assertTrue(freizeit != wetter)
 
-    assert next_topic_follow_up(state) == first
+
+    def test_reset_topic_questions():
+        state = {"conversation_vocabulary_topic": "essen"}
+
+        first = next_topic_follow_up(state)
+        next_topic_follow_up(state)
+
+        reset_topic_questions(state, "essen")
+
+        self.assertTrue(next_topic_follow_up(state) == first)
