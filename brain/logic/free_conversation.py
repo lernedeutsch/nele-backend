@@ -890,6 +890,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         support_level=support,
         struggle=struggle,
         independent_turns=independent,
+        vocabulary_context=vocabulary_context,
     )
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
