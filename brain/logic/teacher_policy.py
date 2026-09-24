@@ -72,6 +72,7 @@ def choose_next_best_learning_action(
         "target_word": teacher_action.get("word"),
         "model": teacher_action.get("model"),
         "course_level": learner_model.get("course_level"),
+        "next_curriculum_skill": learner_model.get("next_curriculum_skill"),
     }
     return selected
 

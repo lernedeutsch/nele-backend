@@ -7,6 +7,7 @@ together with conversational independence/support, for Teacher Engine.
 from brain.memory.error_memory import get_all_errors, get_unmastered_errors
 from brain.memory.vocabulary_memory import get_vocabulary_memory, get_words_for_review
 from brain.logic.learning_progress_engine import summarize_learning_progress
+from brain.logic.curriculum_skill_graph import get_curriculum_state, choose_next_curriculum_skill
 
 
 MODEL_VERSION = 1
@@ -61,6 +62,8 @@ def build_learner_model(state):
         autonomy = "developing"
 
     learning_progress = summarize_learning_progress(state)
+    curriculum = get_curriculum_state(state)
+    next_curriculum_skill = choose_next_curriculum_skill(state)
     recent_outcomes = list(state.get("learning_outcomes") or [])[-10:]
     outcome_successes = sum(1 for item in recent_outcomes if item.get("status") == "SUCCESS")
     outcome_not_yet = sum(1 for item in recent_outcomes if item.get("status") == "NOT_YET")
@@ -106,6 +109,8 @@ def build_learner_model(state):
         "strengths": strengths,
         "weaknesses": weaknesses,
         "learning_progress": learning_progress,
+        "curriculum": curriculum,
+        "next_curriculum_skill": next_curriculum_skill,
         "learning_outcomes": {
             "recent_count": len(recent_outcomes),
             "success": outcome_successes,

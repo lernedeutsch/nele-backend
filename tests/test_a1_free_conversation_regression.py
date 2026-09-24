@@ -740,3 +740,43 @@ class GeneratedTests(unittest.TestCase):
         model = build_learner_model(state)
         self.assertEqual(model["learning_progress"]["mastered_count"], 1)
         self.assertIn("conversation:full_sentence", model["learning_progress"]["by_status"]["mastered"])
+
+
+    def test_curriculum_graph_blocks_skill_until_prerequisite_mastered(self):
+        from brain.logic.curriculum_skill_graph import get_curriculum_state
+        state = {}
+        curriculum = get_curriculum_state(state)
+        self.assertIn("conversation:supported_answer", curriculum["ready"])
+        self.assertIn("conversation:full_sentence", curriculum["blocked"])
+
+    def test_curriculum_graph_unlocks_full_sentence(self):
+        from brain.logic.curriculum_skill_graph import get_curriculum_state
+        state = {"learning_progress_v1": {"skills": {
+            "conversation:supported_answer": {"status": "mastered"},
+        }}}
+        curriculum = get_curriculum_state(state)
+        self.assertIn("conversation:full_sentence", curriculum["ready"])
+
+    def test_curriculum_graph_prioritizes_review(self):
+        from brain.logic.curriculum_skill_graph import choose_next_curriculum_skill
+        state = {"learning_progress_v1": {"skills": {
+            "conversation:supported_answer": {"status": "needs_review"},
+        }}}
+        next_skill = choose_next_curriculum_skill(state)
+        self.assertEqual(next_skill["skill"], "conversation:supported_answer")
+        self.assertEqual(next_skill["reason"], "curriculum_review")
+
+    def test_curriculum_graph_keeps_dynamic_vocabulary_review(self):
+        from brain.logic.curriculum_skill_graph import get_curriculum_state
+        state = {"learning_progress_v1": {"skills": {
+            "vocabulary:pause": {"status": "needs_review"},
+        }}}
+        curriculum = get_curriculum_state(state)
+        self.assertIn("vocabulary:pause", curriculum["dynamic_needs_review"])
+
+    def test_learner_model_exposes_curriculum_and_next_skill(self):
+        from brain.logic.learner_model import build_learner_model
+        state = {}
+        model = build_learner_model(state)
+        self.assertIn("curriculum", model)
+        self.assertEqual(model["next_curriculum_skill"]["skill"], "conversation:supported_answer")
