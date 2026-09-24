@@ -14,6 +14,7 @@ from brain.logic.teacher_engine import choose_teacher_action, render_teacher_pre
 from brain.logic.learner_model import build_learner_model
 from brain.logic.teacher_policy import choose_next_best_learning_action, policy_to_teacher_action
 from brain.logic.learning_action_executor import execute_learning_action
+from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -794,6 +795,9 @@ def generate_free_welcome(state, session_id=None):
     return OPENERS[index]
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
+    # First evaluate whether the previous pedagogical action worked. The
+    # resulting signal is available to Learner Model before the next policy.
+    learning_outcome = evaluate_learning_outcome(user_message, state)
     free = state.setdefault("free_conversation", {})
     progress = state.setdefault("student_progress", {})
     level = str(progress.get("current_level", "A1.1") or "A1.1")
@@ -951,6 +955,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "teacher_engine": teacher_action,
             "teacher_policy": teacher_policy,
             "learning_action": state.get("learning_action_executor_v1"),
+            "learning_outcome": learning_outcome,
             "learner_model": learner_model,
         }
 
@@ -1020,5 +1025,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "teacher_engine": teacher_action,
         "teacher_policy": teacher_policy,
         "learning_action": learning_action,
+        "learning_outcome": learning_outcome,
         "learner_model": learner_model,
     }

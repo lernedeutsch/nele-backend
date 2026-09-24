@@ -59,7 +59,14 @@ def build_learner_model(state):
     else:
         autonomy = "developing"
 
+    recent_outcomes = list(state.get("learning_outcomes") or [])[-10:]
+    outcome_successes = sum(1 for item in recent_outcomes if item.get("status") == "SUCCESS")
+    outcome_not_yet = sum(1 for item in recent_outcomes if item.get("status") == "NOT_YET")
+    outcome_partials = sum(1 for item in recent_outcomes if item.get("status") == "PARTIAL")
+
     strengths = []
+    if outcome_successes >= 3 and outcome_successes > outcome_not_yet:
+        strengths.append("learning_response")
     if mastered_words:
         strengths.append("vocabulary")
     if autonomy == "independent":
@@ -72,6 +79,8 @@ def build_learner_model(state):
         weaknesses.append("recurring_errors")
     if autonomy == "needs_support":
         weaknesses.append("conversation_support")
+    if outcome_not_yet >= 2 and outcome_not_yet > outcome_successes:
+        weaknesses.append("learning_actions_not_yet_effective")
 
     model = {
         "version": MODEL_VERSION,
@@ -94,6 +103,13 @@ def build_learner_model(state):
         },
         "strengths": strengths,
         "weaknesses": weaknesses,
+        "learning_outcomes": {
+            "recent_count": len(recent_outcomes),
+            "success": outcome_successes,
+            "partial": outcome_partials,
+            "not_yet": outcome_not_yet,
+            "last": dict(state.get("last_learning_outcome") or {}),
+        },
     }
     state["learner_model_v1"] = model
     return model
