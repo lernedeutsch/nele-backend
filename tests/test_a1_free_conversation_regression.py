@@ -586,3 +586,54 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertEqual(policy["action"], "ADVANCE")
         self.assertEqual(policy["priority"], 30)
+
+
+    def test_learning_executor_repeat_error_stops_question(self):
+        from brain.logic.learning_action_executor import execute_learning_action
+        result = execute_learning_action(
+            {"action": "REPEAT_ERROR", "model": "Ich arbeite heute."},
+            fallback_question="Was machst du morgen?",
+        )
+        self.assertEqual(result["reply"], "Richtig ist: „Ich arbeite heute.“ Sag es bitte noch einmal.")
+        self.assertEqual(result["expects_outcome"], "repeat_correct_form")
+        self.assertNotIn("morgen", result["reply"])
+
+    def test_learning_executor_models_sentence_and_continues(self):
+        from brain.logic.learning_action_executor import execute_learning_action
+        result = execute_learning_action(
+            {"action": "MODEL_SENTENCE", "model": "Ich koche."},
+            fallback_question="Was kochst du gern?",
+        )
+        self.assertEqual(result["reply"], "Du kannst sagen: „Ich koche.“ Was kochst du gern?")
+        self.assertEqual(result["expects_outcome"], "use_full_sentence")
+
+    def test_learning_executor_reviews_target_word(self):
+        from brain.logic.learning_action_executor import execute_learning_action
+        result = execute_learning_action(
+            {"action": "REVIEW_WORD", "target_word": "pause"},
+            vocabulary_context={"suggestions": [{"word": "pause", "example": "Beispiel: „Ich mache eine Pause.“"}]},
+            fallback_question="Was machst du bei der Arbeit?",
+        )
+        self.assertIn("pause", result["reply"].lower())
+        self.assertIn("Ich mache eine Pause.", result["reply"])
+        self.assertEqual(result["expects_outcome"], "recall_target_word")
+
+    def test_learning_executor_introduces_new_word(self):
+        from brain.logic.learning_action_executor import execute_learning_action
+        result = execute_learning_action(
+            {"action": "INTRODUCE_WORD", "target_word": "pause"},
+            vocabulary_context={"suggestions": [{"word": "pause", "example": "Beispiel: „Ich mache eine Pause.“"}]},
+            fallback_question="Wann machst du Pause?",
+        )
+        self.assertIn("Ein neues Wort", result["reply"])
+        self.assertIn("Wann machst du Pause?", result["reply"])
+        self.assertEqual(result["expects_outcome"], "notice_new_word")
+
+    def test_learning_executor_simplifies_without_losing_question(self):
+        from brain.logic.learning_action_executor import execute_learning_action
+        result = execute_learning_action(
+            {"action": "SIMPLIFY"},
+            fallback_question="Arbeitest du heute?",
+        )
+        self.assertEqual(result["reply"], "Kein Problem. Arbeitest du heute?")
+        self.assertEqual(result["expects_outcome"], "answer_with_support")
