@@ -314,7 +314,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(engine["detected"])
         self.assertEqual(engine["error"]["type"], "verb")
         self.assertEqual(engine["error"]["correct"], "Ich arbeite.")
-        self.assertEqual(engine["decision"]["style"], "gentle_recast")
+        self.assertEqual(engine["decision"]["style"], "natural_recast")
         self.assertIn("Ich arbeite.", reply)
 
     def test_error_engine_does_not_correct_valid_short_answer(self):
