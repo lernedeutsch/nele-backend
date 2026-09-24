@@ -18,6 +18,7 @@ from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
 from brain.logic.question_simplifier import simplify_question
 from brain.logic.response_understanding import understand_response
 from brain.logic.conversation_coherence import choose_coherent_question, update_coherence_state
+from brain.logic.conversation_goal_transition import decide_topic_transition
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -972,8 +973,23 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "learner_model": learner_model,
         }
 
+    topic_transition = decide_topic_transition(
+        state,
+        topic=topic,
+        independent_turns=independent,
+        struggle=struggle,
+        error_result=error_result,
+        teacher_policy=teacher_policy,
+        explicit_topic=bool(explicit_topic),
+    )
+    if topic_transition.get("transition"):
+        topic = topic_transition["next_topic"]
+        topic_source = "goal_transition"
+
     # Priority: answer context -> learner content -> safe course-level fallback.
-    question = _yes_no_followup(user_message, last_question, memory)
+    # On a deliberate topic transition, start with the new topic's safe
+    # fallback instead of letting the old answer context pull us backwards.
+    question = None if topic_transition.get("transition") else _yes_no_followup(user_message, last_question, memory)
     if not question:
         question = _short_answer_followup(user_message, last_question, memory)
     if not question:
@@ -1064,6 +1080,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "conversation_state": conversation_state,
         "topic_manager": topic_manager,
         "conversation_coherence": coherence_state,
+        "topic_transition": topic_transition,
         "error_engine": error_result,
         "teacher_engine": teacher_action,
         "teacher_policy": teacher_policy,

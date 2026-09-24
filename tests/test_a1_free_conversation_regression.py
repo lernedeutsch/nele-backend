@@ -1028,3 +1028,52 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(result["repeated"])
         self.assertTrue(result["immediate_repeat"])
         self.assertFalse(result["coherent"])
+
+
+    def test_topic_goal_does_not_finish_too_early(self):
+        from brain.logic.conversation_goal_transition import assess_topic_goal
+        state = {"conversation_coherence_v1": {"turns": [
+            {"topic": "work"}, {"topic": "work"},
+        ]}}
+        result = assess_topic_goal(state, topic="work", independent_turns=3)
+        self.assertFalse(result["completed"])
+        self.assertEqual(result["reason"], "continue_topic")
+
+    def test_topic_goal_completes_after_enough_useful_practice(self):
+        from brain.logic.conversation_goal_transition import assess_topic_goal
+        state = {"conversation_coherence_v1": {"turns": [
+            {"topic": "work"}, {"topic": "work"}, {"topic": "work"}, {"topic": "work"},
+        ]}}
+        result = assess_topic_goal(state, topic="work", independent_turns=3)
+        self.assertTrue(result["completed"])
+        self.assertEqual(result["reason"], "goal_reached")
+
+    def test_topic_transition_is_blocked_by_active_error(self):
+        from brain.logic.conversation_goal_transition import assess_topic_goal
+        state = {"conversation_coherence_v1": {"turns": [{"topic": "work"}] * 5}}
+        result = assess_topic_goal(
+            state, topic="work", independent_turns=4,
+            error_result={"error": {"category": "verb"}},
+        )
+        self.assertFalse(result["completed"])
+        self.assertEqual(result["reason"], "active_learning_problem")
+
+    def test_topic_transition_is_blocked_by_explicit_learner_topic(self):
+        from brain.logic.conversation_goal_transition import assess_topic_goal
+        state = {"conversation_coherence_v1": {"turns": [{"topic": "weather"}] * 5}}
+        result = assess_topic_goal(
+            state, topic="weather", independent_turns=4, explicit_topic=True,
+        )
+        self.assertFalse(result["completed"])
+        self.assertEqual(result["reason"], "explicit_learner_topic")
+
+    def test_topic_transition_selects_next_not_recent_topic(self):
+        from brain.logic.conversation_goal_transition import decide_topic_transition
+        state = {"conversation_coherence_v1": {
+            "turns": [{"topic": "work"}] * 4,
+            "recent_topics": ["today", "work"],
+        }}
+        result = decide_topic_transition(state, topic="work", independent_turns=3)
+        self.assertTrue(result["transition"])
+        self.assertEqual(result["next_topic"], "hobby")
+        self.assertIn("work", state["topic_transition_v1"]["completed_topics"])
