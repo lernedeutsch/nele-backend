@@ -877,6 +877,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # systems can reinterpret a valid A1 fact and replace its natural follow-up.
     a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
     if a1_reply:
+        previous_question = free.get("last_question", "")
+        # Early A1 turns still have to commit the same global conversation
+        # contracts as the full pipeline. Otherwise the next turn sees a
+        # partially updated session and loses semantic/orchestrator context.
+        record_answer(state, user_message, previous_question)
         _remember_question(free, a1_reply)
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
@@ -884,11 +889,38 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         conversation_state = sync_conversation_state(
             state, topic="everyday_a1", last_question=free.get("last_question", ""), level=level
         )
+        topic_manager = update_topic_manager(
+            state, topic="everyday_a1", source="a1_everyday_router",
+            subtopic=conversation_state.get("subtopic"),
+        )
+        turn_plan = build_turn_plan(
+            teacher_policy={"action": "CONTINUE"},
+            topic="everyday_a1",
+            response_understanding={"confidence": "high"},
+        )
+        orchestration_contract = build_orchestration_contract(
+            teacher_policy={"action": "CONTINUE"},
+            turn_plan=turn_plan,
+        )
+        orchestration = record_orchestration(
+            state,
+            enforce_orchestration(orchestration_contract),
+        )
+        guard_store = state.get("global_conversation_guard_v1") or {}
+        guard = {
+            "version": guard_store.get("version", 2),
+            "blocked": False,
+            "reason": "a1_everyday_router",
+        }
         return a1_reply, {
             "conversation_mode": "free",
             "course_level": level,
             "topic": "everyday_a1",
             "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
+            "conversation_orchestrator": orchestration,
+            "turn_plan": turn_plan,
+            "global_conversation_guard": guard,
             "a1_everyday_router": True,
         }
 
