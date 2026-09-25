@@ -1309,7 +1309,10 @@ class GeneratedTests(unittest.TestCase):
         }}
         reply, meta = _turn(state, "gut")
         self.assertNotIn("Kein Problem", reply)
-        self.assertFalse(meta["conversation_recovery"]["recovered"])
+        # Core A1 social replies intentionally return before Recovery; the
+        # important regression is that "gut" is accepted and continued
+        # naturally instead of entering a failure path.
+        self.assertIn("Was machst du heute?", reply)
         self.assertTrue(meta["response_understanding"]["understood"])
         self.assertIn(meta["response_understanding"]["confidence"], {"medium", "high"})
 
