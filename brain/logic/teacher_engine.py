@@ -81,10 +81,25 @@ def choose_teacher_action(
 
     learner_autonomy = learner_model.get("autonomy")
     learner_support = int(learner_model.get("adaptive_support", support_level) or support_level or 1)
-    if struggle or learner_support >= 3 or learner_autonomy == "needs_support":
+
+    # A valid short A1 answer is successful communication, not evidence that
+    # the learner failed. Honour the current answer before using historical
+    # support signals. This keeps free conversation natural for beginners.
+    if expected == "yes_no" and low in {"ja", "nein", "ja gern", "nein danke"}:
+        return {
+            "action": "continue_conversation",
+            "reason": "valid_expected_short_answer",
+            "model": None,
+            "continue_conversation": True,
+        }
+
+    # Historical learner support may make the NEXT question simpler, but it
+    # must never turn a valid current answer into "Kein Problem". Only an
+    # explicit current-turn struggle triggers SIMPLIFY here.
+    if struggle:
         return {
             "action": "simplify_next_question",
-            "reason": "learner_needs_more_support",
+            "reason": "current_turn_struggle",
             "model": None,
             "continue_conversation": True,
         }
