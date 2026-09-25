@@ -366,6 +366,13 @@ def main():
                 "2",
                 "Sag jetzt:",
             )
+            # Repeating the visible model is not mastery. Nele now removes
+            # the model and requires an independent production turn.
+            send_and_wait(
+                page,
+                "Guten Morgen",
+                "ohne Auswahl",
+            )
             second_review = send_and_wait(
                 page,
                 "Guten Morgen",
@@ -377,6 +384,11 @@ def main():
                 page,
                 "2",
                 "Sag jetzt:",
+            )
+            send_and_wait(
+                page,
+                "Guten Tag",
+                "ohne Auswahl",
             )
             resumed = send_and_wait(
                 page,
