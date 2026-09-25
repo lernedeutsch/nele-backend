@@ -587,10 +587,10 @@ ALPHABET_RESPONSES = [
 
 
 # ==========================================
-# 9. MINI-DIALOGI
+# 9. MINI-DIALOGI – krótkie odpowiedzi wiedzy
 # ==========================================
 
-DIALOGUES = [
+DIALOGUE_RESPONSES = [
 
     {
         "patterns": [
@@ -669,6 +669,6 @@ LESSON_RESPONSES = (
     + WELLBEING
     + DU_SIE
     + ALPHABET_RESPONSES
-    + DIALOGUES
+    + DIALOGUE_RESPONSES
     + THANKS
 )
