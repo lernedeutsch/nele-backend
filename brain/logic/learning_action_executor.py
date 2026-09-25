@@ -63,11 +63,14 @@ def execute_learning_action(
         return result
 
     if action == "SIMPLIFY":
-        # SIMPLIFY means: make the next turn easier. Do not automatically say
-        # "Kein Problem" — that reaction is often semantically wrong after an
-        # ordinary learner statement (for example "Mein Tag war anstrengend").
-        # The simplified contextual question is sufficient support by itself.
-        result["reply"] = fallback_question
+        # SIMPLIFY is selected only when the learner needs explicit support.
+        # Keep the contextual question, but mark the repair naturally so the
+        # learner knows Nele is asking again in an easier way.
+        result["reply"] = (
+            f"Kein Problem. {fallback_question}".strip()
+            if fallback_question
+            else "Kein Problem. Sag es bitte noch einmal."
+        )
         result["expects_outcome"] = "answer_with_support"
         return result
 
