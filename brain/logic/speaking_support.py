@@ -7,6 +7,8 @@ answer map, so future LESSON_FLOW lessons inherit the same pedagogy.
 
 import re
 
+from brain.memory.user_facts import get_user_fact
+
 ENGINE_VERSION = 1
 
 
@@ -58,7 +60,7 @@ def _render_target(step, state):
     if not target:
         return ""
     values = {
-        "name": _text((state or {}).get("name")),
+        "name": _text(get_user_fact(state or {}, "name") or (state or {}).get("name")),
         "level": _text((state or {}).get("lesson_teaching_level")),
         "lesson": _text((state or {}).get("lesson_teaching_lesson")),
         "section": _text((state or {}).get("lesson_teaching_section")),
