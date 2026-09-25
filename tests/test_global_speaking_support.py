@@ -46,7 +46,7 @@ def test_natural_short_answer_is_not_forced_into_full_sentence():
 def test_help_increases_gradually_and_does_not_advance_target():
     state = {"course_pending_speaking_model": "Ich lerne heute Deutsch."}
     first = handle_pending_course_model("weiß nicht", state)
-    assert "Versuch" in first
+    assert first == "Fast. Noch einmal."
     second = handle_pending_course_model("hm", state)
     assert "Fang so an" in second
     assert "Ich lerne" in second
@@ -203,3 +203,26 @@ def test_natural_short_answer_is_not_forced_into_full_sentence():
     assert result["intercept"] is False
     assert result["kind"] == "natural_short_success"
 
+
+
+def test_course_support_replies_stay_short_and_everyday():
+    state = {}
+    step = _step(
+        "Ich trinke morgens Kaffee.",
+        ["Ich trinke morgens Kaffee.", "Kaffee"],
+    )
+    assessment = assess_course_answer(
+        "Kaffee",
+        step,
+        state,
+        answer_matches=True,
+    )
+    reply = build_course_support_reply(assessment, step, state)
+    assert reply == "Genau. Sag: „Ich trinke morgens Kaffee.“"
+    assert len(reply.split()) <= 7
+
+    retry_state = {
+        "course_pending_speaking_model": "Ich trinke morgens Kaffee.",
+        "course_speaking_support_level": 0,
+    }
+    assert handle_pending_course_model("hm", retry_state) == "Fast. Noch einmal."
