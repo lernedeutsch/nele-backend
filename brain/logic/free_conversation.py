@@ -1198,15 +1198,34 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         parts = re.findall(r"[^.!?]*[?]", social_reply)
         next_question = parts[-1].strip() if parts else ""
         if next_question:
-            # Social/weather A1 handlers used to return before the central
-            # coherence engine. Route their question through the same global
-            # semantic guard as every other free-conversation turn.
-            social_alternatives = _not_recent(
-                free,
-                FALLBACKS.get(explicit_topic or previous_topic, FALLBACKS["today"]),
+            # A1 may have resolved a short answer from the immediately previous
+            # question (for example "Um acht Uhr." after "Wann fängst du morgen
+            # an?"). That continuation is semantic context, not a generic
+            # suggestion, so a later guard must not replace it with another
+            # topic merely because the question history is similar.
+            dependent_answer = bool(
+                re.fullmatch(
+                    r"(?:um\s+)?(?:[01]?\d|2[0-3])(?:(?::|\.)[0-5]\d)?(?:\s*uhr)?[.!]?",
+                    str(user_message or "").strip().lower(),
+                )
+                or _norm(user_message).strip(" ?!.,") in YES
+                or _norm(user_message).strip(" ?!.,") in NO
             )
-            guard = select_question(state, next_question, social_alternatives)
-            guarded_question = guard.get("selected") or next_question
+            if dependent_answer:
+                guard = {
+                    "version": 2,
+                    "blocked": False,
+                    "reason": "contextual_a1_continuation",
+                    "selected": next_question,
+                }
+                guarded_question = next_question
+            else:
+                social_alternatives = _not_recent(
+                    free,
+                    FALLBACKS.get(explicit_topic or previous_topic, FALLBACKS["today"]),
+                )
+                guard = select_question(state, next_question, social_alternatives)
+                guarded_question = guard.get("selected") or next_question
             social_reply = replace_final_question(
                 social_reply, next_question, guarded_question
             )
