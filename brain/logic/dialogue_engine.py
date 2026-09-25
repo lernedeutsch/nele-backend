@@ -19,7 +19,7 @@ def load_dialogues(level="A1", lesson=1):
     module = load_lesson_module(str(level or "A1").upper(), lesson)
     if module is None:
         return []
-    data = getattr(module, "DIALOGUES", [])
+    data = getattr(module, "LESSON_DIALOGUES", [])
     return data if isinstance(data, list) else []
 
 
