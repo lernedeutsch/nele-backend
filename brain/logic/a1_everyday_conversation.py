@@ -45,6 +45,18 @@ def a1_everyday_reply(text, last_question, state=None):
         return "Was machst du heute?"
     if re.search(r"\bmorgen arbeite ich\b", low):
         return "Wann fängst du morgen an?"
+
+    # Work start time: a short time answer belongs to the active work question.
+    # Acknowledge/model the learner's answer before moving the conversation on.
+    # This handles arbitrary valid clock times, not one hard-coded example.
+    if (
+        any(q in last for q in ("wann fängst du an", "wann faengst du an", "wann fängst du heute an", "wann faengst du heute an"))
+        and (m := re.fullmatch(r"(?:um\s+)?([01]?\d|2[0-3])(?:(?::|\.)([0-5]\d))?(?:\s*uhr)?", low))
+    ):
+        hour, minute = m.group(1), m.group(2)
+        time_value = f"{hour}:{minute}" if minute else hour
+        facts["work_start"] = time_value
+        return f"Du kannst sagen: „Ich fange um {time_value} Uhr an.“ Was machst du bei der Arbeit?"
     if (
         ("wann fängst du morgen an" in last or "wann faengst du morgen an" in last)
         and re.fullmatch(r"(?:um\s+)?(?:[01]?\d|2[0-3])(?:(?::|\.)[0-5]\d)?(?:\s*uhr)?", low)
