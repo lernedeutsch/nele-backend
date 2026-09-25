@@ -106,9 +106,12 @@ def recover_reply(reply, quality, *, topic=None, action=None,
         "action": action,
     }
 
-    # Explicit learner struggle is a recovery signal even when Teacher Policy
-    # selected SIMPLIFY. The executor stays semantically neutral; Recovery owns
-    # the natural support phrase because it has the learner-message context.
+    # Correction/model/review actions are authoritative. SIMPLIFY is the one
+    # pedagogical action where Recovery may add comprehension support because
+    # the learner explicitly signalled that the question was not understood.
+    if action not in {"CONTINUE", "ADVANCE", "SIMPLIFY"} or (quality or {}).get("changed"):
+        return result
+
     if reason == "learner_did_not_understand":
         fallback = safe_question or SAFE_TOPIC_QUESTIONS.get(topic)
         if fallback:
@@ -117,9 +120,6 @@ def recover_reply(reply, quality, *, topic=None, action=None,
                 recovered=True,
                 strategy="simplify_for_learner",
             )
-        return result
-
-    if action not in {"CONTINUE", "ADVANCE"} or (quality or {}).get("changed"):
         return result
 
     # A learner-led topic change is not an error. The normal Topic Manager /
