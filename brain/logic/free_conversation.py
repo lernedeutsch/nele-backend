@@ -265,8 +265,17 @@ def _social_a1_reply(text, free, state):
     low = _norm(raw)
     last = _norm(free.get("last_question", ""))
 
+    # A fresh learner question must outrank stale answer context.
+    learner_question = bool(
+        raw.rstrip().endswith("?")
+        or re.match(
+            r"^(?:wie|was|wo|woher|wohin|wann|warum|wer|welch\\w*|arbeitest|machst|"
+            r"hast|bist|gehst|kommst|wohnst|magst|hörst|hoerst|kannst|willst|möchtest|moechtest)\\b",
+            low,
+        )
+    )
     # A1 lessons 1-10: reusable natural conversation, not a fixed script.
-    everyday_reply = a1_everyday_reply(raw, free.get("last_question", ""), state)
+    everyday_reply = a1_everyday_reply(raw, "" if learner_question else free.get("last_question", ""), state)
     if everyday_reply:
         return everyday_reply
 
@@ -293,6 +302,7 @@ def _social_a1_reply(text, free, state):
         "wie geht es dir", "wie geht's dir", "wie gehts dir",
         "wie geht es ihnen", "wie geht's ihnen", "wie gehts ihnen",
     )):
+        free["pending_answer_intent"] = "wellbeing"
         return "Mir geht es gut, danke. Und dir?"
 
     if wellbeing_ask in {"wie geht's", "wie gehts", "alles gut", "alles klar"}:
@@ -550,9 +560,12 @@ def _social_a1_reply(text, free, state):
         return f"Fast. Richtig: „{correct}!“ Sag es bitte noch einmal."
 
     # ---- Wie geht's? / Wie geht es dir/Ihnen? ----
-    wellbeing_question = any(x in last for x in (
+    pending_wellbeing = free.get("pending_answer_intent") == "wellbeing"
+    wellbeing_question = pending_wellbeing or any(x in last for x in (
         "wie geht's dir", "wie geht es dir", "wie geht es ihnen", "wie geht's ihnen"
     ))
+    if pending_wellbeing:
+        free.pop("pending_answer_intent", None)
     if wellbeing_question:
         # Accept short everyday answers but model the complete A1 sentence.
         wellbeing = {
