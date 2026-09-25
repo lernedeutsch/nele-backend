@@ -197,3 +197,41 @@ LESSON_FLOW = {
         }
     }
 }
+
+
+# Dialoge sind reine Lerninhalte. Die Ablauf-Logik liegt global in dialogue_engine.py.
+DIALOGUES = [
+    {
+        "id": "woher-kommst-du",
+        "title": "Woher kommst du?",
+        "aliases": ["Herkunft", "Dialog Herkunft"],
+        "intro": "Wir machen einen kurzen Dialog über Herkunft.",
+        "turns": [
+            {"role": "nele", "speaker": "Mia", "text": "Hallo! Woher kommst du?"},
+            {
+                "role": "student",
+                "prompt": "Du bist dran.",
+                "expected": "Ich komme aus Polen.",
+                "accepted": ["Ich komme aus Polen", "aus Polen", "Polen"],
+                "retry": "Fast. Antworte mit einem ganzen Satz: „Ich komme aus Polen.“"
+            },
+            {"role": "nele", "speaker": "Mia", "text": "Kommst du aus Polen?"},
+            {
+                "role": "student",
+                "prompt": "Antworte Mia.",
+                "expected": "Ja, ich komme aus Polen.",
+                "accepted": ["Ja", "Ja, ich komme aus Polen", "Ich komme aus Polen"],
+                "retry": "Du kannst sagen: „Ja, ich komme aus Polen.“"
+            },
+            {"role": "nele", "speaker": "Mia", "text": "Und woher kommt Anna? Anna kommt aus Österreich."},
+            {
+                "role": "student",
+                "prompt": "Antworte mit einem ganzen Satz.",
+                "expected": "Anna kommt aus Österreich.",
+                "accepted": ["Anna kommt aus Österreich"],
+                "retry": "Sag bitte: „Anna kommt aus Österreich.“"
+            }
+        ],
+        "complete": "Sehr gut! Du hast den Herkunftsdialog geschafft."
+    }
+]
