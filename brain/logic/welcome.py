@@ -114,6 +114,40 @@ def remember_new_daily_session(
 
 
 # ==========================================
+# KONTROLOWANA ROTACJA POWITAŃ
+# ==========================================
+
+def build_returning_user_greeting(
+    state,
+    name=""
+):
+    """Use varied, simple everyday German without repeating the last greeting."""
+
+    variants = [
+        ("hallo_wieder", "Hallo{name}! Schön, dich wiederzusehen. Wie geht es dir?"),
+        ("schoen_da", "Hallo{name}! Schön, dass du da bist. Wie geht's dir?"),
+        ("wie_gehts", "Hi{name}! Wie geht's dir heute?"),
+        ("wieder_da", "Hallo{name}! Schön, dass du wieder da bist. Wie geht es dir heute?"),
+    ]
+
+    last_key = str(
+        state.get("course_last_welcome_variant", "")
+    ).strip()
+
+    next_index = 0
+    for index, (key, _) in enumerate(variants):
+        if key == last_key:
+            next_index = (index + 1) % len(variants)
+            break
+
+    key, template = variants[next_index]
+    state["course_last_welcome_variant"] = key
+
+    name_part = f" {name}" if str(name or "").strip() else ""
+    return template.format(name=name_part)
+
+
+# ==========================================
 # AUTOMATYCZNE POWITANIE
 # ==========================================
 
@@ -344,21 +378,10 @@ def generate_welcome_reply(
     ] = "wellbeing"
 
 
-    if name:
-
-        answer = (
-            f"Hallo {name}! "
-            "Schön, dich wiederzusehen. "
-            "Wie geht es dir?"
-        )
-
-    else:
-
-        answer = (
-            "Hallo! "
-            "Schön, dich wiederzusehen. "
-            "Wie geht es dir?"
-        )
+    answer = build_returning_user_greeting(
+        state,
+        name=name or "",
+    )
 
 
     return save_and_return(
