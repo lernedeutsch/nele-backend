@@ -29,17 +29,17 @@ def a1_everyday_reply(text, last_question, state=None):
     # Content-led entry points. A learner may introduce a fact before Nele has
     # asked the matching question. These anchors let the new A1 bank take over
     # naturally instead of falling through to unrelated legacy topics.
-    name_match=re.search(r"\\b(?:ich heiße|ich heisse|mein name ist)\\s+([A-Za-zÄÖÜäöüß-]+)", raw, re.I)
+    name_match=re.search(r"\b(?:ich heiße|ich heisse|mein name ist)\s+([A-Za-zÄÖÜäöüß-]+)", raw, re.I)
     if name_match:
         facts["name"]=name_match.group(1)
         return f"Freut mich, {name_match.group(1)}! Woher kommst du?"
 
-    origin_match=re.search(r"\\bich komme aus\\s+(.+)$", raw, re.I)
+    origin_match=re.search(r"\bich komme aus\s+(.+)$", raw, re.I)
     if origin_match:
         facts["origin"]=origin_match.group(1).strip(" .")
         return "Wo wohnst du jetzt?"
 
-    if re.search(r"\\bich wohne (?:in|im|bei|mit)\\b", low):
+    if re.search(r"\bich wohne (?:in|im|bei|mit)\b", low):
         if any(x in low for x in ("wohnung", "haus")):
             facts["home_type"]="Wohnung" if "wohnung" in low else "Haus"
             return "Ist dein Zuhause groß oder klein?"
@@ -47,36 +47,36 @@ def a1_everyday_reply(text, last_question, state=None):
             return "Hast du Kinder?"
         return "Wohnst du in einem Haus oder in einer Wohnung?"
 
-    if re.search(r"\\bich habe\\b.*\\b(?:wohnzimmer|schlafzimmer|küche|kueche|bad|zimmer)\\b", low):
+    if re.search(r"\bich habe\\b.*\\b(?:wohnzimmer|schlafzimmer|küche|kueche|bad|zimmer)\b", low):
         return "Hast du ein Sofa im Wohnzimmer?"
-    if re.search(r"\\bich habe (?:ein|einen) sofa\\b", low):
+    if re.search(r"\bich habe (?:ein|einen) sofa\b", low):
         return "Wo steht dein Tisch?"
-    if re.search(r"\\b(?:der )?tisch steht\\b", low):
+    if re.search(r"\b(?:der )?tisch steht\b", low):
         return "Wohnst du allein oder mit deiner Familie?"
 
-    if re.search(r"\\bich habe (?:eine )?tochter\\b|\\bich habe (?:einen )?sohn\\b|\\bich habe kinder\\b", low):
+    if re.search(r"\bich habe (?:eine )?tochter\b|\\bich habe (?:einen )?sohn\b|\\bich habe kinder\b", low):
         return "Wie heißen deine Kinder?"
-    if re.search(r"\\bich habe (?:einen )?bruder\\b|\\bich habe (?:eine )?schwester\\b|\\bich habe geschwister\\b", low):
+    if re.search(r"\bich habe (?:einen )?bruder\b|\\bich habe (?:eine )?schwester\b|\\bich habe geschwister\b", low):
         return "Wo wohnen deine Geschwister?"
-    if re.search(r"\\bmeine eltern wohnen\\b", low):
+    if re.search(r"\bmeine eltern wohnen\b", low):
         return "Besuchst du sie oft?"
 
-    if re.search(r"\\bich arbeite\\b", low):
+    if re.search(r"\bich arbeite\b", low):
         return "Arbeitest du heute?"
-    if re.search(r"\\bich trinke morgens\\b", low):
+    if re.search(r"\bich trinke morgens\b", low):
         return "Was isst du zum Frühstück?"
-    if re.search(r"\\bich esse\\b", low) and any(x in low for x in ("brot","käse","kaese","frühstück","fruehstueck")):
+    if re.search(r"\bich esse\b", low) and any(x in low for x in ("brot","käse","kaese","frühstück","fruehstueck")):
         return "Magst du Obst?"
     if any(x in low for x in ("äpfel","aepfel","bananen")) and not low.startswith("ich kaufe"):
         return "Was trinkst du gern?"
 
-    if re.search(r"\\bich kaufe (?:nach der arbeit )?ein\\b", low):
+    if re.search(r"\bich kaufe (?:nach der arbeit )?ein\b", low):
         return "Wo kaufst du ein?"
     if low in {"im supermarkt","in der bäckerei","in der baeckerei"}:
         return "Was kaufst du heute?" if "supermarkt" in low else "Wie viel kostet ein Brot?"
-    if re.search(r"\\bich gehe nach hause\\b", low):
+    if re.search(r"\bich gehe nach hause\b", low):
         return "Lernst du heute Deutsch?"
-    if re.search(r"\\bich lerne deutsch\\b", low):
+    if re.search(r"\bich lerne deutsch\b", low):
         return "Um wie viel Uhr?"
     if "sprechen" in low and any(x in low for x in ("schwierig","schwer")):
         return "Dann üben wir Sprechen zusammen. Worüber möchtest du sprechen?"
