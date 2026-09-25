@@ -22,6 +22,35 @@ def _words(value):
     return re.findall(r"[A-Za-zÄÖÜäöüß0-9'-]+", _text(value))
 
 
+def _spelling_sequence(value):
+    """Return a canonical letter sequence only for explicit spelling forms."""
+    text = _text(value).lower()
+    tokens = re.findall(r"[a-zäöüß]", text)
+    if len(tokens) < 2:
+        return None
+
+    # Treat the input as spelling only when every lexical chunk is one letter.
+    # This accepts separators such as spaces, hyphens and en dashes without
+    # weakening normal sentence matching.
+    chunks = re.findall(r"[A-Za-zÄÖÜäöüß]+", text)
+    if not chunks or any(len(chunk) != 1 for chunk in chunks):
+        return None
+    return "".join(tokens)
+
+
+def _same_course_production(user_message, target):
+    if _same_course_production(user_message, target):
+        return True
+
+    learner_spelling = _spelling_sequence(user_message)
+    target_spelling = _spelling_sequence(target)
+    return bool(
+        learner_spelling
+        and target_spelling
+        and learner_spelling == target_spelling
+    )
+
+
 def _render_target(step, state):
     # Avoid importing generic_lesson_engine here (circular import). Generic
     # LESSON_FLOW targets are plain strings or simple {student fact} templates.
