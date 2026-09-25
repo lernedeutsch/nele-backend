@@ -2359,10 +2359,11 @@ def handle_alphabet_section(
             )
 
             if hint:
-
-                return (
-                    "Fast. Sag die Buchstaben einzeln, "
-                    f"zum Beispiel: „{hint}“"
+                return progressive_course_support(
+                    hint,
+                    state,
+                    first_hint="Sag deinen Namen Buchstabe für Buchstabe.",
+                    prefix="Fast. ",
                 )
 
             return (
