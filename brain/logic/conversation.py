@@ -49,6 +49,12 @@ from brain.logic.lesson_teaching import (
     handle_lesson_teaching
 )
 
+from brain.logic.personal_sentences import (
+    should_offer_personal_sentence_practice,
+    start_personal_sentence_practice,
+    note_personal_sentence_practice_started,
+)
+
 from brain.logic.lesson_review_training import (
     handle_lesson_review_training,
     is_lesson_review_training_active
@@ -684,6 +690,26 @@ def generate_conversation_reply(
     )
 
     if answer:
+
+        # Occasionally weave a learner-owned real-life sentence into course mode.
+        # Never do this on correction/support turns, and never replace lesson content.
+        personal_memory = state.setdefault("personal_sentences", {})
+        scheduler = personal_memory.setdefault("scheduler", {"turns_since_practice": 0})
+        scheduler["turns_since_practice"] = int(scheduler.get("turns_since_practice", 0) or 0) + 1
+        answer_low = str(answer or "").lower()
+        support_turn = any(marker in answer_low for marker in (
+            "fast.", "richtig:", "sag bitte", "noch einmal", "du kannst sagen"
+        ))
+        if should_offer_personal_sentence_practice(
+            state,
+            normal_turns=scheduler["turns_since_practice"],
+            learner_needs_support=support_turn,
+            has_active_error=bool(state.get("active_error_practice")),
+        ):
+            personal_prompt = start_personal_sentence_practice(state)
+            if personal_prompt:
+                note_personal_sentence_practice_started(state)
+                answer = f"{answer} {personal_prompt}"
 
         return return_with_feedback(
             answer,
