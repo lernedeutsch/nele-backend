@@ -494,7 +494,7 @@ def main():
             send_and_wait(
                 page,
                 "Monika",
-                "Buchstabe für Buchstabe",
+                "M – O – N – I – K – A",
             )
             send_and_wait(
                 page,
