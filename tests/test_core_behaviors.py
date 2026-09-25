@@ -623,11 +623,21 @@ class NeleCoreBehaviorTests(unittest.TestCase):
                     "lesson_teaching_step": 1,
                 }
 
-                reply = handle_greeting_section(answer, state)
+                first_reply = handle_greeting_section(answer, state)
 
-                self.assertIn("Guten Morgen", reply)
-                self.assertIn("noch einmal", reply)
+                self.assertIn("Begrüßung am Morgen", first_reply)
+                self.assertNotIn("Guten Morgen", first_reply)
                 self.assertEqual(state["lesson_teaching_step"], 1)
+
+                second_reply = handle_greeting_section(answer, state)
+
+                self.assertIn("Guten Morgen", second_reply)
+                self.assertEqual(state["lesson_teaching_step"], 1)
+
+                final_reply = handle_greeting_section("Guten Morgen", state)
+
+                self.assertIn("Was sagst du?", final_reply)
+                self.assertEqual(state["lesson_teaching_step"], 2)
 
 
     def test_onboarding_rejects_unrelated_learning_goal(self):
