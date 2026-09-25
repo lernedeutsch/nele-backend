@@ -117,3 +117,52 @@ def test_review_style_wrong_attempt_keeps_shared_target_until_spoken():
     # Only producing the target releases the learner back to review flow.
     assert handle_pending_course_model("Wie heißt du?", state) is None
     assert state.get("course_pending_speaking_model") is None
+
+
+def test_15_turn_support_cycle_reduces_after_successes_and_reuses_same_policy():
+    state = {}
+    targets = [
+        "Ich lerne heute Deutsch.",
+        "Ich spiele morgen Fußball.",
+        "Ich fahre am Montag nach Bonn.",
+        "Ich lese am Abend ein Buch.",
+        "Ich kaufe zwei Äpfel.",
+    ]
+    fragments = ["Deutsch", "Fußball", "Bonn", "Buch", "Äpfel"]
+
+    completed = 0
+    for target, fragment in zip(targets, fragments):
+        step = _step(target, [target, fragment])
+        assessment = assess_course_answer(fragment, step, state, answer_matches=False)
+        assert assessment["intercept"] is True
+        reply = build_course_support_reply(assessment, step, state)
+        assert target in reply
+        # one hesitant turn
+        assert handle_pending_course_model("hm", state) is not None
+        # then learner produces the sentence
+        assert handle_pending_course_model(target, state) is None
+        completed += 1
+
+    assert completed == 5
+    assert state.get("course_pending_speaking_model") is None
+    # Successful production must counteract escalation; help must not grow
+    # without bound across a long session.
+    assert state.get("course_speaking_support_level", 0) <= 1
+
+
+def test_repeated_independent_success_does_not_create_unwanted_model():
+    state = {"course_speaking_support_level": 3}
+    for target in (
+        "Ich trinke morgens Tee.",
+        "Ich wohne in Mainz.",
+        "Ich gehe heute einkaufen.",
+        "Ich habe einen Bruder.",
+        "Ich möchte Wasser.",
+    ):
+        step = _step(target)
+        result = assess_course_answer(target, step, state, answer_matches=True)
+        assert result["kind"] == "independent_success"
+        assert result["intercept"] is False
+        assert state.get("course_pending_speaking_model") is None
+
+    assert state["course_speaking_support_level"] == 0
