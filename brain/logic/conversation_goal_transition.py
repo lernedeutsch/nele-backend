@@ -10,14 +10,14 @@ ENGINE_VERSION = 1
 TOPIC_ORDER = ["today", "work", "hobby", "weather", "yesterday", "holiday", "shopping", "place"]
 
 TOPIC_GOALS = {
-    "today": {"min_turns": 5, "min_independent": 2},
-    "work": {"min_turns": 5, "min_independent": 2},
-    "hobby": {"min_turns": 5, "min_independent": 2},
-    "weather": {"min_turns": 5, "min_independent": 2},
-    "yesterday": {"min_turns": 5, "min_independent": 2},
-    "holiday": {"min_turns": 5, "min_independent": 2},
-    "shopping": {"min_turns": 5, "min_independent": 2},
-    "place": {"min_turns": 4, "min_independent": 1},
+    "today": {"min_turns": 3, "min_independent": 2},
+    "work": {"min_turns": 4, "min_independent": 2},
+    "hobby": {"min_turns": 3, "min_independent": 2},
+    "weather": {"min_turns": 3, "min_independent": 2},
+    "yesterday": {"min_turns": 3, "min_independent": 2},
+    "holiday": {"min_turns": 3, "min_independent": 2},
+    "shopping": {"min_turns": 3, "min_independent": 2},
+    "place": {"min_turns": 2, "min_independent": 1},
 }
 
 def _topic_turns(state, topic):
