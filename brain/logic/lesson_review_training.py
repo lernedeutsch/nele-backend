@@ -4,6 +4,10 @@
 # ==========================================
 
 from brain.logic.matcher import normalize
+from brain.logic.speaking_support import (
+    legacy_course_support,
+    handle_pending_course_model,
+)
 
 from brain.memory.lesson_review import (
     mark_lesson_review_completed,
@@ -571,6 +575,15 @@ def handle_a1_lesson_1_review(
     state
 ):
 
+    pending_before = bool(state.get("course_pending_speaking_model"))
+    pending_reply = handle_pending_course_model(user_message, state)
+    if pending_reply is not None:
+        return pending_reply
+    if pending_before:
+        # The learner has now produced the supported answer. Count the
+        # successful repair and continue through the same review step.
+        remember_correct_answer(state)
+
     step = state.get(
         "lesson_review_training_step",
         1
@@ -597,14 +610,14 @@ def handle_a1_lesson_1_review(
 
         else:
 
-            remember_wrong_answer(
-                state
+            remember_wrong_answer(state)
+            support = legacy_course_support(
+                user_message, "Guten Morgen", state, context="review"
             )
-
-            feedback = (
-                "Fast. Am Morgen sagt man "
-                "„Guten Morgen“."
-            )
+            if support:
+                return support
+            state["course_pending_speaking_model"] = "Guten Morgen"
+            return "Fast. Du kannst sagen: „Guten Morgen“. Sag es mal."
 
 
         state[
@@ -639,14 +652,18 @@ def handle_a1_lesson_1_review(
 
         else:
 
-            remember_wrong_answer(
-                state
+            remember_wrong_answer(state)
+            # Review uses the current learner name when available, but the
+            # speaking-support policy itself remains vocabulary-independent.
+            name = str(state.get("name") or "Moni").strip()
+            target = f"Ich heiße {name}."
+            support = legacy_course_support(
+                user_message, target, state, context="review"
             )
-
-            feedback = (
-                "Fast. Zum Beispiel: "
-                "„Ich heiße Moni.“"
-            )
+            if support:
+                return support
+            state["course_pending_speaking_model"] = target
+            return f"Fast. Du kannst sagen: „{target}“ Sag es mal."
 
 
         state[
@@ -681,14 +698,14 @@ def handle_a1_lesson_1_review(
 
         else:
 
-            remember_wrong_answer(
-                state
+            remember_wrong_answer(state)
+            support = legacy_course_support(
+                user_message, "Wie heißt du?", state, context="review"
             )
-
-            feedback = (
-                "Fast. Informell sagt man: "
-                "„Wie heißt du?“"
-            )
+            if support:
+                return support
+            state["course_pending_speaking_model"] = "Wie heißt du?"
+            return "Fast. Du kannst sagen: „Wie heißt du?“ Sag es mal."
 
 
         state[
@@ -723,14 +740,14 @@ def handle_a1_lesson_1_review(
 
         else:
 
-            remember_wrong_answer(
-                state
+            remember_wrong_answer(state)
+            support = legacy_course_support(
+                user_message, "Wie heißen Sie?", state, context="review"
             )
-
-            feedback = (
-                "Fast. Höflich sagt man: "
-                "„Wie heißen Sie?“"
-            )
+            if support:
+                return support
+            state["course_pending_speaking_model"] = "Wie heißen Sie?"
+            return "Fast. Du kannst sagen: „Wie heißen Sie?“ Sag es mal."
 
 
         state[
