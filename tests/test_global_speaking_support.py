@@ -226,3 +226,25 @@ def test_course_support_replies_stay_short_and_everyday():
         "course_speaking_support_level": 0,
     }
     assert handle_pending_course_model("hm", retry_state) == "Fast. Noch einmal."
+
+
+def test_render_target_uses_name_from_user_fact_memory():
+    state = {
+        "user_facts": {"name": "Moni"},
+        "course_speaking_support_level": 0,
+    }
+    step = {
+        "correct_answer": "Ich heiße {name}.",
+        "accepted": ["Moni"],
+    }
+
+    assessment = assess_course_answer(
+        "Moni",
+        step,
+        state,
+        answer_matches=True,
+    )
+
+    assert assessment["target"] == "Ich heiße Moni."
+    assert assessment["intercept"] is True
+    assert assessment["kind"] == "short_answer_expansion"
