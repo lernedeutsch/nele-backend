@@ -56,11 +56,19 @@ def choose_next_best_learning_action(
     action = ACTION_MAP.get(teacher_action.get("action"), "CONTINUE")
     reason = teacher_action.get("reason") or "normal_progress"
 
-    # Historical learner support must not overwrite a successful current
-    # conversational turn. Teacher Engine owns current-turn simplification and
-    # emits SIMPLIFY only when the learner is actually struggling now. This
-    # prevents correct short A1 answers from receiving "Kein Problem".
-    # Learner Model can still steer vocabulary/review choices below.
+    # Safety/teaching guard: global learner support outranks enrichment.
+    # A teacher action that already recognized a valid short answer as normal
+    # continuation may pass through; otherwise a learner who currently needs
+    # support should not be pushed into enrichment or advancement.
+    valid_short_answer = (
+        teacher_action.get("action") == "continue_conversation"
+        and teacher_action.get("reason") == "valid_expected_short_answer"
+    )
+    if learner_model.get("autonomy") == "needs_support" and not valid_short_answer and action in {
+        "REVIEW_WORD", "INTRODUCE_WORD", "ADVANCE", "CONTINUE"
+    }:
+        action = "SIMPLIFY"
+        reason = "learner_model_needs_support"
 
     # A recurring error requiring retrieval must not be displaced by curriculum.
     error_decision = error_result.get("decision") or {}
