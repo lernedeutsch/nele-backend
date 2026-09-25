@@ -204,6 +204,7 @@ DIALOGUES = [
     {
         "id": "woher-kommst-du",
         "title": "Woher kommst du?",
+        "section": "Woher kommen Sie?",
         "aliases": ["Herkunft", "Dialog Herkunft"],
         "intro": "Wir machen einen kurzen Dialog über Herkunft.",
         "turns": [
