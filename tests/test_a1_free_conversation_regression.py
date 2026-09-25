@@ -1281,6 +1281,28 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(result["reply"], reply)
 
 
+    def test_personal_sentence_practice_waits_during_lesson_handoff(self):
+        from brain.logic.personal_sentences import should_offer_personal_sentence_practice
+        state = {
+            "lesson_teaching_active": False,
+            "pending_new_learning": {
+                "type": "new_section",
+                "level": "A1",
+                "lesson": 1,
+                "section": "Ich stelle mich vor",
+            },
+            "last_question": "continue_new_learning",
+            "personal_sentences": {"items": {}, "recent_ids": [], "scheduler": {"turns_since_practice": 9}},
+        }
+        self.assertFalse(
+            should_offer_personal_sentence_practice(
+                state,
+                normal_turns=9,
+                learner_needs_support=False,
+                has_active_error=False,
+            )
+        )
+
     def test_recovery_does_not_override_understood_short_answer(self):
         from brain.logic.conversation_recovery import recover_reply
         result = recover_reply(
