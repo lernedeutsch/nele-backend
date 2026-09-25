@@ -281,13 +281,21 @@ def _social_a1_reply(text, free, state):
         _record_error(state, free, "wie_heisst_du", raw)
         return "Fast. Richtig: „Wie heißt du?“ Ich heiße Nele. Und du?"
 
-    # Wellbeing: the learner may ask first, not only answer Nele.
-    if low.strip(" ?!.") in {
-        "wie geht's", "wie gehts", "wie geht es dir", "wie geht's dir",
-        "wie gehts dir", "wie geht es ihnen", "wie geht's ihnen",
-        "wie gehts ihnen", "alles gut", "alles klar"
-    }:
+    # Wellbeing: a clear learner-led question must outrank stale topic context.
+    wellbeing_ask = low.strip(" ?!.")
+    if any(phrase in wellbeing_ask for phrase in (
+        "wie geht es dir", "wie geht's dir", "wie gehts dir",
+        "wie geht es ihnen", "wie geht's ihnen", "wie gehts ihnen",
+    )):
         return "Mir geht es gut, danke. Und dir?"
+
+    if wellbeing_ask in {"wie geht's", "wie gehts", "alles gut", "alles klar"}:
+        return "Mir geht es gut, danke. Und dir?"
+
+    # A clear tiredness statement is a learner-led topic change too.
+    if re.search(r"\b(?:ich\s+bin(?:\s+heute)?|heute\s+bin\s+ich)\s+müde\b", low):
+        free.setdefault("conversation_facts", {})["wellbeing"] = "müde"
+        return "Oh, du bist heute müde. War dein Tag anstrengend?"
 
     if low.strip(" ?!.") in {
         "wie geht du", "wie geht dir", "wie geht es du",
