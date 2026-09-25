@@ -74,14 +74,14 @@ def test_short_meaningful_answer_gets_speaking_turn_before_next_task():
     )
     reply=handle("Polen",state)
     assert "Ich komme aus Polen." in reply
-    assert state["a1_l2_tutor"]["pending_speaking_model"]=="Ich komme aus Polen."
+    assert state["course_pending_speaking_model"]=="Ich komme aus Polen."
     assert "Sag es mal" in reply
     # The next task must not be introduced before the learner says the model.
     assert state["a1_l2_tutor"]["turn"]==0
 
     reply2=handle("Ich komme aus Polen.",state)
     assert "Sehr gut!" in reply2
-    assert state["a1_l2_tutor"]["pending_speaking_model"] is None
+    assert state.get("course_pending_speaking_model") is None
     assert state["a1_l2_tutor"]["turn"]==1
 
 
