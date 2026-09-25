@@ -1,0 +1,48 @@
+import unittest
+
+from brain.logic.memory import complete_state, create_empty_state
+from brain.logic.personal_sentences import (
+    ensure_personal_sentence_memory,
+    handle_personal_sentence,
+)
+
+
+class PersonalSentencesTests(unittest.TestCase):
+    def test_known_sentence_is_recognized_and_recorded(self):
+        state = create_empty_state()
+        result = handle_personal_sentence(
+            "Ich kümmere mich darum.",
+            state,
+            mode="free",
+        )
+        self.assertIsNotNone(result)
+        self.assertIn("Danke", result["reply"])
+        item = state["personal_sentences"]["items"]["ich_kuemmere_mich_darum"]
+        self.assertEqual(item["successful_uses"], 1)
+        self.assertEqual(item["mastery"], 1)
+
+    def test_ascii_alias_is_recognized(self):
+        state = create_empty_state()
+        result = handle_personal_sentence(
+            "ich bringe ihnen sofort frische handtuecher",
+            state,
+            mode="course",
+        )
+        self.assertEqual(
+            result["item"]["id"],
+            "ich_bringe_ihnen_sofort_frische_handtuecher",
+        )
+
+    def test_progress_survives_state_completion(self):
+        state = create_empty_state()
+        handle_personal_sentence("Ich bin gleich fertig.", state)
+        restored = complete_state(dict(state))
+        memory = ensure_personal_sentence_memory(restored)
+        self.assertEqual(
+            memory["items"]["ich_bin_gleich_fertig"]["mastery"],
+            1,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
