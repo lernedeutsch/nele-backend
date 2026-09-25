@@ -226,7 +226,25 @@ def handle_pending_course_model(user_message, state):
     if level == 2:
         starter = " ".join(_words(target)[:2])
         return f"Fang so an: „{starter} …“" if starter else "Noch einmal."
-    return f"Sag: „{target}“"
+    if level == 3:
+        # First full model: hear/read the complete form once.
+        return f"Hör zu: „{target}“ Jetzt du."
+    if level == 4:
+        # Do not repeat the exact same instruction forever. For a single
+        # difficult word, split it into readable chunks; for a sentence,
+        # keep one clear model.
+        words = _words(target)
+        if len(words) == 1 and len(target) >= 6:
+            mid = max(2, len(target) // 2)
+            return f"Langsam: „{target[:mid]}-{target[mid:]}“. Jetzt zusammen: „{target}“"
+        return f"Noch einmal langsam: „{target}“"
+    # After several failed repetitions, do not trap an A1 learner in an
+    # endless ASR/pronunciation loop. Accept the practice attempt and let the
+    # lesson continue on the next turn.
+    state["course_pending_speaking_model"] = None
+    state["course_model_practice_exhausted"] = target
+    _set_support(state, 2)
+    return f"Das ist okay. Wir üben „{target}“ später noch einmal."
 
 
 def legacy_course_support(
