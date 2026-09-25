@@ -98,3 +98,22 @@ def test_shared_pending_model_reduces_help_after_success():
     assert handle_pending_course_model("Wie heißt du?", state) is None
     assert state.get("course_pending_speaking_model") is None
     assert state["course_speaking_support_level"] == 1
+
+
+def test_review_style_wrong_attempt_keeps_shared_target_until_spoken():
+    state = {}
+    reply = legacy_course_support(
+        "Wie heißen du?",
+        "Wie heißt du?",
+        state,
+        context="review",
+    )
+    assert reply is not None
+    assert state.get("course_pending_speaking_model") == "Wie heißt du?"
+    # Hesitation gets help and does not clear the target.
+    retry = handle_pending_course_model("weiß nicht", state)
+    assert retry is not None
+    assert state.get("course_pending_speaking_model") == "Wie heißt du?"
+    # Only producing the target releases the learner back to review flow.
+    assert handle_pending_course_model("Wie heißt du?", state) is None
+    assert state.get("course_pending_speaking_model") is None
