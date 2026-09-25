@@ -1848,9 +1848,10 @@ def handle_introduction_section(
                 "Guten Morgen"
             )
 
-            return (
-                "Wir treffen uns morgens. "
-                "Sag einfach: „Guten Morgen.“"
+            return progressive_course_support(
+                "Guten Morgen",
+                state,
+                first_hint="Wir treffen uns morgens. Wie begrüßt du mich?",
             )
 
 
@@ -1998,13 +1999,12 @@ def handle_introduction_section(
             )
 
             if hint:
-
-                return (
-                    "Fast. Buchstabiere deinen Namen "
-                    "Buchstabe für Buchstabe, zum Beispiel: "
-                    f"„{hint}“"
+                return progressive_course_support(
+                    hint,
+                    state,
+                    first_hint="Sag deinen Namen Buchstabe für Buchstabe.",
+                    prefix="Fast. ",
                 )
-
 
             return (
                 "Buchstabiere deinen Namen bitte "
