@@ -497,12 +497,17 @@ def main():
             send_and_wait(
                 page,
                 "wer bist du",
+                "wie heißt",
+            )
+            send_and_wait(
+                page,
+                "wer bist du",
                 "Wie heißt du?",
             )
             send_and_wait(
                 page,
                 "hm",
-                "Wie heißt du?",
+                "Fast. Noch einmal.",
             )
             send_and_wait(
                 page,
