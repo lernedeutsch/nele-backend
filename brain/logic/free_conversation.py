@@ -872,6 +872,57 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         return reply, meta
     free = state.setdefault("free_conversation", {})
 
+    # Priority -3: interpret short beginner answers through the exact
+    # question Nele asked. This shared contextual layer must run before the
+    # broad A1 content bank, otherwise nouns/times such as "Pizza", "8" or
+    # "Kochen" lose their local meaning and the conversation jumps topics.
+    contextual_reply = _short_answer_followup(
+        user_message,
+        free.get("last_question", ""),
+        free.setdefault("conversation_facts", {}),
+    )
+    if contextual_reply:
+        previous_question = free.get("last_question", "")
+        record_answer(state, user_message, previous_question)
+        _remember_question(free, contextual_reply)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
+        conversation_state = sync_conversation_state(
+            state, topic="everyday_a1", last_question=free.get("last_question", ""), level=level
+        )
+        topic_manager = update_topic_manager(
+            state, topic="everyday_a1", source="contextual_short_answer",
+            subtopic=conversation_state.get("subtopic"),
+        )
+        turn_plan = build_turn_plan(
+            teacher_policy={"action": "CONTINUE"},
+            topic="everyday_a1",
+            response_understanding={"confidence": "high"},
+        )
+        orchestration = record_orchestration(
+            state,
+            enforce_orchestration(build_orchestration_contract(
+                teacher_policy={"action": "CONTINUE"},
+                turn_plan=turn_plan,
+            )),
+        )
+        return contextual_reply, {
+            "conversation_mode": "free",
+            "course_level": level,
+            "topic": "everyday_a1",
+            "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
+            "conversation_orchestrator": orchestration,
+            "turn_plan": turn_plan,
+            "global_conversation_guard": {
+                "version": (state.get("global_conversation_guard_v1") or {}).get("version", 2),
+                "blocked": False,
+                "reason": "contextual_short_answer",
+            },
+            "contextual_short_answer": True,
+        }
+
     # Priority -2: the reusable A1 lessons 1-10 conversation router must run
     # before Topic Manager / Teacher Policy / recovery. Otherwise those older
     # systems can reinterpret a valid A1 fact and replace its natural follow-up.
