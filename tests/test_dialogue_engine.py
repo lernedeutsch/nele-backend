@@ -56,6 +56,18 @@ class DialogueEngineTests(unittest.TestCase):
         self.assertIn("Dialog ist fertig", reply)
         self.assertFalse(state["dialogue_active"])
 
+    def test_real_a12_dialogue_runs_end_to_end(self):
+        state = {}
+        opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+        self.assertIn("Woher kommst du", opening)
+        reply = handle_dialogue("Ich komme aus Polen", state)
+        self.assertIn("Kommst du aus Polen", reply)
+        reply = handle_dialogue("Ja", state)
+        self.assertIn("Anna kommt aus Österreich", reply)
+        reply = handle_dialogue("Anna kommt aus Österreich", state)
+        self.assertIn("Herkunftsdialog geschafft", reply)
+        self.assertFalse(state["dialogue_active"])
+
     @patch("brain.logic.dialogue_engine.get_dialogue", return_value=SAMPLE)
     def test_wrong_answer_does_not_advance(self, _):
         state = {}
