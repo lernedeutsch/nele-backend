@@ -11,6 +11,18 @@ from datetime import datetime, timezone
 # lesson or frontend change is required.
 PERSONAL_SENTENCES = [
     {
+        "id": "welches_wetter_magst_du_am_liebsten",
+        "text": "Welches Wetter magst du am liebsten?",
+        "category": "wetter",
+        "aliases": [
+            "welches wetter magst du am liebsten",
+            "was für wetter magst du am liebsten",
+            "was fuer wetter magst du am liebsten",
+        ],
+        "reply": "Ich mag sonniges, mildes Wetter. Und du? Welches Wetter magst du am liebsten?",
+        "practice_prompt": "Du möchtest jemanden nach seinem Lieblingswetter fragen. Was sagst du?",
+    },
+    {
         "id": "einen_moment_bitte",
         "text": "Einen Moment bitte.",
         "category": "hotel",
