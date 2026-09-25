@@ -265,40 +265,22 @@ def _social_a1_reply(text, free, state):
     low = _norm(raw)
     last = _norm(free.get("last_question", ""))
 
-    # A fresh learner question must outrank stale answer context. Otherwise a
-    # question such as "Woher kommst du?" can accidentally be treated as the
-    # answer to an older work/weather prompt.
-    learner_question = (
+    # A fresh learner question must not be interpreted as an answer to stale
+    # work/weather context. Only the generic router gets a blank previous
+    # question; all established answer handling remains unchanged.
+    learner_question = bool(
         raw.rstrip().endswith("?")
         or re.match(
-            r"^(?:wie|was|wo|woher|wohin|wann|warum|wer|welch\w*|arbeitest|machst|"
-            r"hast|bist|gehst|kommst|wohnst|magst|hörst|hoerst|kannst|willst|möchtest|moechtest)\b",
+            r"^(?:wie|was|wo|woher|wohin|wann|warum|wer|welch\\w*|arbeitest|machst|"
+            r"hast|bist|gehst|kommst|wohnst|magst|hörst|hoerst|kannst|willst|möchtest|moechtest)\\b",
             low,
         )
     )
-    routing_last_question = "" if learner_question else free.get("last_question", "")
- 
-    # Keep the semantic intent behind elliptical prompts such as "Und dir?".
-    # The visible last question alone is not enough to know that "gut" answers
-    # a wellbeing question.
-    pending_intent = free.get("pending_answer_intent")
-    if pending_intent == "wellbeing" and low in {
-        "prima", "super", "sehr gut", "gut", "ganz gut", "nicht schlecht",
-        "so lala", "es geht", "geht so", "nicht so gut", "schlecht",
-        "sehr schlecht", "müde",
-    }:
-        last = "wie geht es dir"
-        free.pop("pending_answer_intent", None)
-
-    # Natural greetings are valid conversation turns, never failures.
-    if low.strip(" ?!.,") in {"hallo", "hallo nele", "hi", "guten tag", "guten morgen", "guten abend"}:
-        free["pending_answer_intent"] = "wellbeing"
-        return "Hallo! Wie geht es dir heute?"
-
-    # Fresh learner-led questions are handled by the direct social/question
-    # handlers below. Do not run the generic everyday router here: it can
-    # reinterpret ordinary contextual answers and bypass the established
-    # short-answer teaching paths.
+    everyday_reply = a1_everyday_reply(
+        raw, "" if learner_question else free.get("last_question", ""), state
+    )
+    if everyday_reply:
+        return everyday_reply
 
     # ---- Questions the learner can ask Nele at any moment ----
     # Names: informal and polite variants.
@@ -416,8 +398,6 @@ def _social_a1_reply(text, free, state):
     # Clear learner questions can start these topics at any moment.
     everyday_questions = {
         "was machst du heute": "Heute spreche ich mit dir. Und was machst du heute?",
-        "wann fängst du an": "Ich habe keinen festen Arbeitstag. Und du? Wann fängst du an?",
-        "wann faengst du an": "Ich habe keinen festen Arbeitstag. Und du? Wann fängst du an?",
         "was machst du gern": "Ich spreche gern mit dir. Was machst du gern?",
         "was machst du gern in deiner freizeit": "Ich spreche gern mit dir. Und du? Was machst du gern in deiner Freizeit?",
         "hast du ein hobby": "Ja, ich mag Sprachen. Und du? Was ist dein Hobby?",
@@ -583,9 +563,12 @@ def _social_a1_reply(text, free, state):
         return f"Fast. Richtig: „{correct}!“ Sag es bitte noch einmal."
 
     # ---- Wie geht's? / Wie geht es dir/Ihnen? ----
-    wellbeing_question = any(x in last for x in (
+    pending_wellbeing = free.get("pending_answer_intent") == "wellbeing"
+    wellbeing_question = pending_wellbeing or any(x in last for x in (
         "wie geht's dir", "wie geht es dir", "wie geht es ihnen", "wie geht's ihnen"
     ))
+    if pending_wellbeing:
+        free.pop("pending_answer_intent", None)
     if wellbeing_question:
         # Accept short everyday answers but model the complete A1 sentence.
         wellbeing = {
