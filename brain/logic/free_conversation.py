@@ -296,8 +296,10 @@ def _social_a1_reply(text, free, state):
         return "Hallo! Wie geht es dir heute?"
 
     # A1 lessons 1-10: reusable natural conversation, not a fixed script.
+    # Only detach stale context for an actual learner-led question. Normal
+    # answers must continue through the richer contextual handlers below.
     everyday_reply = a1_everyday_reply(raw, routing_last_question, state)
-    if everyday_reply:
+    if learner_question and everyday_reply:
         return everyday_reply
 
     # ---- Questions the learner can ask Nele at any moment ----
