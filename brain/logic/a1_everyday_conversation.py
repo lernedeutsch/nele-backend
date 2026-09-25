@@ -26,6 +26,28 @@ def a1_everyday_reply(text, last_question, state=None):
     }
     if low in direct: return direct[low]
 
+    # Learner-led intent/content has priority over stale last_question context.
+    # Only genuinely short/dependent answers should continue the previous turn.
+    if re.fullmatch(r"(?:und\s+)?hast du (?:eine )?familie", low):
+        return "Ich habe keine Familie wie ein Mensch. Erzähl mir von deiner Familie."
+    if re.fullmatch(r"(?:kannst|könntest|koenntest) du mir helfen", low):
+        return "Ja, gern. Wobei brauchst du Hilfe?"
+    if re.search(r"\b(?:meine tochter|mein sohn) (?:heißt|heisst)\s+", low):
+        facts["child_type"] = "tochter" if "tochter" in low else "sohn"
+        return "Wie alt ist dein Kind?"
+    if re.search(r"\bheute ist das wetter\b|\bdas wetter ist heute\b", low):
+        return "Schön! Was machst du bei diesem Wetter?"
+    if re.search(r"\bich gehe (?:heute |später |spaeter )?einkaufen\b", low):
+        return "Was möchtest du kaufen?"
+    if re.search(r"\bich brauche\b", low) and any(x in low for x in ("milch","brot","äpfel","aepfel","gemüse","gemuese")):
+        return "Wo kaufst du das?"
+    if re.search(r"\bmorgen arbeite ich\b", low):
+        return "Wann fängst du morgen an?"
+    if re.search(r"\bdeutsch\b.*\b(?:schwierig|schwer)\b", low):
+        return "Was ist für dich beim Deutschlernen schwierig?"
+    if low in {"sprechen","das sprechen"} and "deutschlernen schwierig" in last:
+        return "Dann üben wir Sprechen zusammen. Worüber möchtest du sprechen?"
+
     # Content-led entry points. A learner may introduce a fact before Nele has
     # asked the matching question. These anchors let the new A1 bank take over
     # naturally instead of falling through to unrelated legacy topics.
