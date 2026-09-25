@@ -70,6 +70,20 @@ def validate_dialogues(level, lesson):
                 f"{level} lesson {lesson} dialogue {dialogue_id}: missing section mapping."
             )
 
+        register = str(dialogue.get("register") or "").strip().casefold()
+        if register and register not in {"informal", "formal", "mixed"}:
+            raise ContentValidationError(
+                f"{level} lesson {lesson} dialogue {dialogue_id}: invalid register."
+            )
+        if int(dialogue.get("max_turns", 8) or 8) < 1:
+            raise ContentValidationError(
+                f"{level} lesson {lesson} dialogue {dialogue_id}: max_turns must be positive."
+            )
+        if int(dialogue.get("max_variations", 2) or 2) < 0:
+            raise ContentValidationError(
+                f"{level} lesson {lesson} dialogue {dialogue_id}: max_variations cannot be negative."
+            )
+
         turns = dialogue.get("turns")
         if not isinstance(turns, list) or not turns:
             raise ContentValidationError(
@@ -91,6 +105,12 @@ def validate_dialogues(level, lesson):
                 )
             if role in {"student", "learner", "user", "du"}:
                 learner_turns += 1
+                expected_intent = turn.get("expected_intent") or turn.get("intent")
+                if expected_intent is not None:
+                    _require_text(
+                        expected_intent,
+                        f"{level} lesson {lesson} dialogue {dialogue_id} turn {t_index} intent",
+                    )
                 accepted = turn.get("accepted", [])
                 expected = turn.get("expected")
                 allow_any = turn.get("allow_any") is True
@@ -105,6 +125,20 @@ def validate_dialogues(level, lesson):
                     turn.get("text"),
                     f"{level} lesson {lesson} dialogue {dialogue_id} turn {t_index} text",
                 )
+
+        # A dialogue must alternate meaningfully: no two learner turns may occur
+        # without a teacher/partner turn between them.
+        previous_learner = False
+        for t_index, turn in enumerate(turns):
+            learner = str(turn.get("role") or "").strip().casefold() in {
+                "student", "learner", "user", "du"
+            }
+            if learner and previous_learner:
+                raise ContentValidationError(
+                    f"{level} lesson {lesson} dialogue {dialogue_id}: "
+                    f"consecutive learner turns near {t_index}."
+                )
+            previous_learner = learner
 
         if not learner_turns:
             raise ContentValidationError(
