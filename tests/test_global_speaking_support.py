@@ -166,3 +166,21 @@ def test_repeated_independent_success_does_not_create_unwanted_model():
         assert state.get("course_pending_speaking_model") is None
 
     assert state["course_speaking_support_level"] == 0
+
+def test_pending_spelling_accepts_equivalent_letter_separators_without_weakening_sentences():
+    for learner in ("m o n i k a", "M-O-N-I-K-A", "M – O – N – I – K – A"):
+        state = {
+            "course_pending_speaking_model": "M – O – N – I – K – A",
+            "course_speaking_support_level": 3,
+        }
+        assert handle_pending_course_model(learner, state) is None
+        assert state["course_pending_speaking_model"] is None
+        assert state["course_speaking_support_level"] == 2
+
+    state = {
+        "course_pending_speaking_model": "Ich heiße Monika.",
+        "course_speaking_support_level": 2,
+    }
+    assert handle_pending_course_model("ich-heiße-monika", state) is not None
+    assert state["course_pending_speaking_model"] == "Ich heiße Monika."
+
