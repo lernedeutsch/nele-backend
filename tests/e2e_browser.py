@@ -507,7 +507,7 @@ def main():
             send_and_wait(
                 page,
                 "hm",
-                "Fast. Noch einmal.",
+                "Sag: „Wie heißt du?“",
             )
             send_and_wait(
                 page,
