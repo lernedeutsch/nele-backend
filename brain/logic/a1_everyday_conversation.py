@@ -47,16 +47,16 @@ def a1_everyday_reply(text, last_question, state=None):
             return "Hast du Kinder?"
         return "Wohnst du in einem Haus oder in einer Wohnung?"
 
-    if re.search(r"\bich habe\\b.*\\b(?:wohnzimmer|schlafzimmer|küche|kueche|bad|zimmer)\b", low):
+    if re.search(r"\bich habe\b.*\b(?:wohnzimmer|schlafzimmer|küche|kueche|bad|zimmer)\b", low):
         return "Hast du ein Sofa im Wohnzimmer?"
     if re.search(r"\bich habe (?:ein|einen) sofa\b", low):
         return "Wo steht dein Tisch?"
     if re.search(r"\b(?:der )?tisch steht\b", low):
         return "Wohnst du allein oder mit deiner Familie?"
 
-    if re.search(r"\bich habe (?:eine )?tochter\b|\\bich habe (?:einen )?sohn\b|\\bich habe kinder\b", low):
+    if re.search(r"\bich habe (?:eine )?tochter\b|\bich habe (?:einen )?sohn\b|\bich habe kinder\b", low):
         return "Wie heißen deine Kinder?"
-    if re.search(r"\bich habe (?:einen )?bruder\b|\\bich habe (?:eine )?schwester\b|\\bich habe geschwister\b", low):
+    if re.search(r"\bich habe (?:einen )?bruder\b|\bich habe (?:eine )?schwester\b|\bich habe geschwister\b", low):
         return "Wo wohnen deine Geschwister?"
     if re.search(r"\bmeine eltern wohnen\b", low):
         return "Besuchst du sie oft?"
