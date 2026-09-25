@@ -200,7 +200,7 @@ LESSON_FLOW = {
 
 
 # Dialoge sind reine Lerninhalte. Die Ablauf-Logik liegt global in dialogue_engine.py.
-DIALOGUES = [
+LESSON_DIALOGUES = [
     {
         "id": "woher-kommst-du",
         "title": "Woher kommst du?",
