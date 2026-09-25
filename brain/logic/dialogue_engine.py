@@ -5,6 +5,14 @@ owns HOW a dialogue is practised; lesson content owns WHAT is practised.
 """
 from brain.logic.lesson_loader import load_lesson_module
 from brain.logic.matcher import normalize
+from brain.logic.dialogue_knowledge import accepted_patterns, infer_intent, render_pattern
+from brain.logic.dialogue_state_engine import (
+    clear_semantic_state,
+    initialise_dialogue_state,
+    mark_intent_complete,
+    record_exchange,
+    within_turn_limit,
+)
 
 
 def _text(value):
@@ -65,23 +73,21 @@ def _turns(dialogue):
     return [turn for turn in turns if isinstance(turn, dict)]
 
 
-def _accepted(turn):
-    values = turn.get("accepted", [])
-    if isinstance(values, str):
-        values = [values]
-    expected = turn.get("expected")
-    if expected:
-        values = list(values) + [expected]
-    return {_norm(value) for value in values if _norm(value)}
+def _accepted(turn, slots=None):
+    return {
+        _norm(render_pattern(value, slots or {}))
+        for value in accepted_patterns(turn)
+        if _norm(render_pattern(value, slots or {}))
+    }
 
 
-def answer_matches_dialogue_turn(user_message, turn):
+def answer_matches_dialogue_turn(user_message, turn, slots=None):
     message = _norm(user_message)
     if not message:
         return False
     if turn.get("allow_any") is True:
         return True
-    accepted = _accepted(turn)
+    accepted = _accepted(turn, slots)
     if message in accepted:
         return True
     contains_all = turn.get("contains_all", [])
@@ -134,6 +140,8 @@ def start_dialogue(level, lesson, dialogue_id, state):
     state["dialogue_turn"] = index
     state["last_activity"] = "dialogue"
     state["last_activity_detail"] = _text(dialogue.get("title") or dialogue_id)
+    state["dialogue_slots"] = dict(dialogue.get("slots", {}) or {})
+    initialise_dialogue_state(state, dialogue)
 
     intro = _text(dialogue.get("intro"))
     prompt = ""
@@ -150,8 +158,10 @@ def clear_dialogue(state):
         "dialogue_lesson": None,
         "dialogue_id": None,
         "dialogue_turn": 0,
+        "dialogue_slots": {},
     }.items():
         state[key] = value
+    clear_semantic_state(state)
 
 
 def handle_dialogue(user_message, state):
@@ -173,7 +183,13 @@ def handle_dialogue(user_message, state):
         clear_dialogue(state)
         return _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."
 
-    if not answer_matches_dialogue_turn(user_message, turn):
+    if not within_turn_limit(state, dialogue):
+        complete = _text(dialogue.get("complete")) or "Sehr gut. Wir gehen jetzt weiter."
+        clear_dialogue(state)
+        return complete
+
+    record_exchange(state)
+    if not answer_matches_dialogue_turn(user_message, turn, state.get("dialogue_slots")):
         expected = _text(turn.get("expected"))
         retry = _text(turn.get("retry"))
         if retry:
@@ -182,6 +198,7 @@ def handle_dialogue(user_message, state):
             return f"Fast. Sag bitte: „{expected}“"
         return "Fast. Versuch es bitte noch einmal."
 
+    mark_intent_complete(state, infer_intent(turn))
     success = _text(turn.get("success"))
     next_index, spoken = _advance_to_learner(turns, int(state.get("dialogue_turn", 0)) + 1)
 
