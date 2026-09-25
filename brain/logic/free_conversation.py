@@ -673,6 +673,26 @@ def _short_answer_followup(text, last_question, memory):
     if not low or len(_words(low)) > 5:
         return None
 
+    # Work start time: acknowledge the learner's short time answer and keep
+    # the work thread. A bare number is meaningful because of the last question.
+    if "wann fängst du an" in question or "wann faengst du an" in question:
+        match = re.fullmatch(r"(?:um\s+)?(\d{1,2})(?::(\d{2}))?(?:\s+uhr)?", low)
+        if match:
+            hour = match.group(1)
+            minute = match.group(2)
+            time_value = f"{hour}:{minute}" if minute else hour
+            memory["work_start"] = time_value
+            return f"Du kannst sagen: „Ich fange um {time_value} Uhr an.“ Was machst du bei der Arbeit?"
+
+    # A yes/no answer after the cooking follow-up belongs to the cooking
+    # subthread; do not let the broad work router restart the work interview.
+    if "kochst du jeden tag bei der arbeit" in question and low in {"ja", "ja genau", "ja natürlich", "ja natuerlich"}:
+        memory["work_activity"] = "kochen"
+        return "Ja, genau. Was kochst du gern bei der Arbeit?"
+    if "kochst du jeden tag bei der arbeit" in question and low in {"nein", "nein nicht jeden tag"}:
+        memory["work_activity"] = "kochen"
+        return "Verstehe. Was kochst du gern bei der Arbeit?"
+
     # Arbeit: "Bis wann arbeitest du?" -> "Bis 2."
     if "bis wann arbeitest du" in question:
         match = re.fullmatch(r"(?:bis\s+)?(\d{1,2})(?::(\d{2}))?(?:\s+uhr)?", low)
