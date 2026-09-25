@@ -43,10 +43,26 @@ def classify_recovery(quality, *, user_message=None, response_understanding=None
         return "learner_did_not_understand"
     if understood.get("understood") is False or understood.get("confidence") == "low":
         return "nele_uncertain"
-    if "response_alignment_warning" in issues:
-        return "answer_mismatch"
+    # A short, meaningful beginner answer must not be treated as a
+    # conversation failure merely because the generated reply does not repeat
+    # the learner's exact word. Response alignment is a lexical diagnostic,
+    # while Response Understanding is the authoritative semantic signal.
+    #
+    # Examples: "gut", "müde", "Pizza", "Polen", "8 Uhr", "ja", "nein".
+    # If these are understood with medium/high confidence, Recovery must not
+    # override a valid conversational continuation.
+    meaning = _meaning(understood)
+    confident_meaning = (
+        bool(meaning)
+        and understood.get("understood") is not False
+        and understood.get("confidence") in {"medium", "high"}
+    )
     if "topic_alignment_warning" in issues:
         return "topic_drift"
+    if "response_alignment_warning" in issues:
+        if confident_meaning:
+            return None
+        return "answer_mismatch"
     return None
 
 def _content_recovery(meaning, topic):

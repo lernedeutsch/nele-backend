@@ -1281,6 +1281,63 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(result["reply"], reply)
 
 
+    def test_personal_sentence_practice_waits_during_lesson_handoff(self):
+        from brain.logic.personal_sentences import should_offer_personal_sentence_practice
+        state = {
+            "lesson_teaching_active": False,
+            "pending_new_learning": {
+                "type": "new_section",
+                "level": "A1",
+                "lesson": 1,
+                "section": "Ich stelle mich vor",
+            },
+            "last_question": "continue_new_learning",
+            "personal_sentences": {"items": {}, "recent_ids": [], "scheduler": {"turns_since_practice": 9}},
+        }
+        self.assertFalse(
+            should_offer_personal_sentence_practice(
+                state,
+                normal_turns=9,
+                learner_needs_support=False,
+                has_active_error=False,
+            )
+        )
+
+    def test_recovery_does_not_override_understood_short_answer(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Was machst du heute?",
+            {"issues": ["response_alignment_warning"], "changed": False},
+            topic="today",
+            action="CONTINUE",
+            response_understanding={
+                "understood": True,
+                "confidence": "medium",
+                "intent": "short_content",
+                "canonical": "gut",
+            },
+            safe_question="Wie ist dein Tag heute?",
+            user_message="gut",
+        )
+        self.assertFalse(result["recovered"])
+        self.assertIsNone(result["recovery_reason"])
+        self.assertEqual(result["reply"], "Was machst du heute?")
+
+    def test_free_conversation_gut_never_triggers_recovery(self):
+        state = {"free_conversation": {
+            "last_question": "Wie geht es dir?",
+            "recent_questions": ["Wie geht es dir?"],
+            "conversation_facts": {},
+        }}
+        reply, meta = _turn(state, "gut")
+        self.assertNotIn("Kein Problem", reply)
+        # Core A1 social replies intentionally return before Recovery; the
+        # important regression is that "gut" is accepted and continued
+        # naturally instead of entering a failure path.
+        self.assertIn("Was machst du heute?", reply)
+        self.assertTrue(meta["response_understanding"]["understood"])
+        self.assertIn(meta["response_understanding"]["confidence"], {"medium", "high"})
+
     def test_recovery_v2_classifies_learner_not_understanding(self):
         from brain.logic.conversation_recovery import classify_recovery
         reason = classify_recovery(

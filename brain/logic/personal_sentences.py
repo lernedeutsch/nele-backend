@@ -299,6 +299,11 @@ def should_offer_personal_sentence_practice(
     if (
         not state
         or state.get("lesson_teaching_active")
+        # A completed section can temporarily set lesson_teaching_active=False
+        # while pending_new_learning already points at the next section. That is
+        # still an active lesson handoff, not a safe boundary for Meine Sätze.
+        or state.get("pending_new_learning")
+        or state.get("last_question") == "continue_new_learning"
         or learner_needs_support
         or has_active_error
     ):
