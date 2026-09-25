@@ -276,11 +276,6 @@ def _social_a1_reply(text, free, state):
             low,
         )
     )
-    # A question-looking answer can still be the expected answer to the
-    # current prompt (for example a practiced question). Keep context only
-    # when Response Understanding says this turn is answering that prompt.
-    if learner_question and response_understanding.get("intent") in {"short_content", "yes_no", "time"}:
-        learner_question = False
     routing_last_question = "" if learner_question else free.get("last_question", "")
 
     # Keep the semantic intent behind elliptical prompts such as "Und dir?".
