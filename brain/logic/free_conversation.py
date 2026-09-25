@@ -888,16 +888,29 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
         level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
+        previous_topic = free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic") or "today"
+        question_low = _norm(previous_question)
+        if "arbeit" in question_low or "kochst du" in question_low:
+            active_topic = "work"
+        elif any(x in question_low for x in ("isst du", "essen", "trinkst du", "frühstück", "fruehstueck")):
+            active_topic = "food"
+        else:
+            active_topic = previous_topic
+        free["last_topic"] = active_topic
+        vocabulary_context = build_personalized_conversation_vocabulary(
+            user_message, state=state, topic=active_topic, limit=8,
+        )
+        free["vocabulary_context"] = vocabulary_context
         conversation_state = sync_conversation_state(
-            state, topic="everyday_a1", last_question=free.get("last_question", ""), level=level
+            state, topic=active_topic, last_question=free.get("last_question", ""), level=level
         )
         topic_manager = update_topic_manager(
-            state, topic="everyday_a1", source="contextual_short_answer",
+            state, topic=active_topic, source="contextual_short_answer",
             subtopic=conversation_state.get("subtopic"),
         )
         turn_plan = build_turn_plan(
             teacher_policy={"action": "CONTINUE"},
-            topic="everyday_a1",
+            topic=active_topic,
             response_understanding={"confidence": "high"},
         )
         orchestration = record_orchestration(
@@ -910,7 +923,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         return contextual_reply, {
             "conversation_mode": "free",
             "course_level": level,
-            "topic": "everyday_a1",
+            "topic": active_topic,
+            "vocabulary": vocabulary_context,
             "conversation_state": conversation_state,
             "topic_manager": topic_manager,
             "conversation_orchestrator": orchestration,
