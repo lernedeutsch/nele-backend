@@ -50,6 +50,8 @@ from brain.logic.generic_lesson_engine import (
 from brain.logic.speaking_support import (
     legacy_course_support,
     handle_pending_course_model,
+    progressive_course_support,
+    register_course_success,
 )
 
 
@@ -1455,12 +1457,14 @@ def handle_greeting_section(
                     "Guten Morgen"
                 )
 
-            return (
-                "Fast. Am Morgen sagt man: "
-                "„Guten Morgen.“ "
-                "Sag es bitte noch einmal."
+            return progressive_course_support(
+                "Guten Morgen", state,
+                first_hint="Denk an die Begrüßung am Morgen.",
+                prefix="Fast. ",
             )
 
+
+        register_course_success(state)
 
         state[
             "lesson_teaching_step"
@@ -1494,11 +1498,14 @@ def handle_greeting_section(
                     "Guten Tag"
                 )
 
-            return (
-                "Fast. Richtig: „Guten Tag.“ "
-                "Sag es bitte noch einmal."
+            return progressive_course_support(
+                "Guten Tag", state,
+                first_hint="Denk an die Begrüßung am Tag.",
+                prefix="Fast. ",
             )
 
+
+        register_course_success(state)
 
         state[
             "lesson_teaching_step"
@@ -1532,12 +1539,14 @@ def handle_greeting_section(
                     "Guten Abend"
                 )
 
-            return (
-                "Fast. Am Abend sagt man: "
-                "„Guten Abend.“ "
-                "Sag es bitte noch einmal."
+            return progressive_course_support(
+                "Guten Abend", state,
+                first_hint="Denk an die Begrüßung am Abend.",
+                prefix="Fast. ",
             )
 
+
+        register_course_success(state)
 
         state[
             "lesson_teaching_step"
@@ -1571,11 +1580,14 @@ def handle_greeting_section(
                     "Hallo"
                 )
 
-            return (
-                "Fast. Richtig: „Hallo.“ "
-                "Sag es bitte noch einmal."
+            return progressive_course_support(
+                "Hallo", state,
+                first_hint="Wie begrüßt du einen Freund?",
+                prefix="Fast. ",
             )
 
+
+        register_course_success(state)
 
         state[
             "lesson_teaching_step"
@@ -1624,11 +1636,14 @@ def handle_greeting_section(
                     "Tschüss"
                 )
 
-            return (
-                "Fast. Richtig: „Tschüss.“ "
-                "Sag es bitte noch einmal."
+            return progressive_course_support(
+                "Tschüss", state,
+                first_hint="Was sagst du zu einem Freund beim Gehen?",
+                prefix="Fast. ",
             )
 
+
+        register_course_success(state)
 
         state[
             "lesson_teaching_step"
@@ -1658,11 +1673,14 @@ def handle_greeting_section(
                 "Guten Morgen"
             )
 
-            return (
-                "Fast. Wir treffen uns morgens. "
-                "Antworte einfach: „Guten Morgen.“"
+            return progressive_course_support(
+                "Guten Morgen", state,
+                first_hint="Wir treffen uns morgens. Wie begrüßt du mich?",
+                prefix="Fast. ",
             )
 
+
+        register_course_success(state)
 
         next_section = complete_active_section(
             state
