@@ -2,6 +2,7 @@ from brain.logic.speaking_support import (
     assess_course_answer,
     build_course_support_reply,
     handle_pending_course_model,
+    legacy_course_support,
 )
 
 
@@ -69,3 +70,31 @@ def test_unknown_short_word_is_not_invented_into_a_sentence():
     result = assess_course_answer("Gitarre", step, state, answer_matches=False)
     assert result["intercept"] is False
     assert result["semantic_short"] is False
+
+
+def test_legacy_lesson_and_future_lesson_share_pending_model_contract():
+    legacy_state = {}
+    legacy_reply = legacy_course_support(
+        "heiße",
+        "Ich heiße Lena.",
+        legacy_state,
+        context="name",
+    )
+    assert legacy_reply is not None
+    assert legacy_state["course_pending_speaking_model"] == "Ich heiße Lena."
+
+    future_state = {"lesson_teaching_level": "A1", "lesson_teaching_lesson": 30}
+    future_step = _step("Ich schwimme am Samstag.", ["Ich schwimme am Samstag.", "Samstag"])
+    result = assess_course_answer("Samstag", future_step, future_state, answer_matches=False)
+    build_course_support_reply(result, future_step, future_state)
+    assert future_state["course_pending_speaking_model"] == "Ich schwimme am Samstag."
+
+
+def test_shared_pending_model_reduces_help_after_success():
+    state = {
+        "course_pending_speaking_model": "Wie heißt du?",
+        "course_speaking_support_level": 2,
+    }
+    assert handle_pending_course_model("Wie heißt du?", state) is None
+    assert state.get("course_pending_speaking_model") is None
+    assert state["course_speaking_support_level"] == 1
