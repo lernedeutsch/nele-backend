@@ -1,6 +1,10 @@
 import unittest
 
-from brain.logic.content_validation import validate_all_learning_content, validate_lesson
+from brain.logic.content_validation import (
+    get_existing_lesson_numbers,
+    validate_all_learning_content,
+    validate_lesson,
+)
 from brain.logic.personal_sentences import validate_personal_sentence_catalog
 
 
@@ -8,9 +12,15 @@ class LearningContentGateTests(unittest.TestCase):
     def test_personal_sentence_catalog_is_valid(self):
         self.assertTrue(validate_personal_sentence_catalog())
 
-    def test_all_publishable_a1_lessons_pass_gate(self):
+    def test_every_numeric_a1_module_is_seen_by_gate(self):
+        lessons = get_existing_lesson_numbers("A1")
+        self.assertTrue(lessons)
+        self.assertIn(1, lessons)
+        self.assertIn(2, lessons)
+
+    def test_all_existing_a1_lessons_pass_gate(self):
         result = validate_all_learning_content("A1")
-        self.assertTrue(result["lessons"])
+        self.assertEqual(result["lessons"], get_existing_lesson_numbers("A1"))
 
     def test_known_lessons_load_through_production_loader(self):
         self.assertTrue(validate_lesson("A1", 1))
