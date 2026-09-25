@@ -39,7 +39,7 @@ def _spelling_sequence(value):
 
 
 def _same_course_production(user_message, target):
-    if _same_course_production(user_message, target):
+    if _norm(user_message) == _norm(target):
         return True
 
     learner_spelling = _spelling_sequence(user_message)
@@ -199,7 +199,7 @@ def handle_pending_course_model(user_message, state):
     if not target:
         return None
 
-    if _norm(user_message) == _norm(target):
+    if _same_course_production(user_message, target):
         state["course_pending_speaking_model"] = None
         _set_support(state, max(0, _support_level(state) - 1))
         # Returning None lets the normal lesson matcher process this same
