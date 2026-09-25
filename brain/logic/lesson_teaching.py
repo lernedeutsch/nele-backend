@@ -1855,7 +1855,9 @@ def handle_introduction_section(
             )
 
 
-        register_course_success(state)\n\n        state[
+        register_course_success(state)
+
+        state[
             "lesson_teaching_step"
         ] = 2
 
@@ -1905,7 +1907,9 @@ def handle_introduction_section(
             )
 
 
-        register_course_success(state)\n\n        state[
+        register_course_success(state)
+
+        state[
             "lesson_teaching_step"
         ] = 3
 
@@ -1964,7 +1968,9 @@ def handle_introduction_section(
             )
 
 
-        register_course_success(state)\n\n        state[
+        register_course_success(state)
+
+        state[
             "lesson_teaching_step"
         ] = 4
 
@@ -2012,7 +2018,9 @@ def handle_introduction_section(
             )
 
 
-        register_course_success(state)\n\n        state[
+        register_course_success(state)
+
+        state[
             "lesson_teaching_step"
         ] = 5
 
@@ -2056,7 +2064,9 @@ def handle_introduction_section(
             )
 
 
-        register_course_success(state)\n\n        next_section = complete_active_section(
+        register_course_success(state)
+
+        next_section = complete_active_section(
             state
         )
 
@@ -2237,7 +2247,9 @@ def handle_alphabet_section(
                 "Hör zu: A. Sag bitte: „A“."
             )
 
-        register_course_success(state)\n\n        state["lesson_teaching_step"] = 2
+        register_course_success(state)
+
+        state["lesson_teaching_step"] = 2
 
         return (
             "Sehr gut. Jetzt B. Sag: B."
@@ -2261,7 +2273,9 @@ def handle_alphabet_section(
                 "Hör zu: B. Sag bitte: „B“."
             )
 
-        register_course_success(state)\n\n        state["lesson_teaching_step"] = 3
+        register_course_success(state)
+
+        state["lesson_teaching_step"] = 3
 
         return (
             "Sehr gut. Wie heißt dieser Buchstabe: M?"
@@ -2285,7 +2299,9 @@ def handle_alphabet_section(
                 "Das ist M. Sag bitte: „M“."
             )
 
-        register_course_success(state)\n\n        state["lesson_teaching_step"] = 4
+        register_course_success(state)
+
+        state["lesson_teaching_step"] = 4
 
         return (
             "Genau! Welche drei Umlaute gibt es?"
@@ -2310,7 +2326,9 @@ def handle_alphabet_section(
                 "Sag sie bitte noch einmal."
             )
 
-        register_course_success(state)\n\n        state["lesson_teaching_step"] = 5
+        register_course_success(state)
+
+        state["lesson_teaching_step"] = 5
 
         return (
             "Sehr gut! Wie heißt dieses Zeichen: ß?"
@@ -2334,7 +2352,9 @@ def handle_alphabet_section(
                 "Sag bitte: „Eszett“."
             )
 
-        register_course_success(state)\n\n        state["lesson_teaching_step"] = 6
+        register_course_success(state)
+
+        state["lesson_teaching_step"] = 6
 
         return (
             "Genau. Buchstabiere bitte deinen Namen."
@@ -2371,7 +2391,9 @@ def handle_alphabet_section(
                 "Buchstabe für Buchstabe."
             )
 
-        register_course_success(state)\n\n        next_section = complete_active_section(
+        register_course_success(state)
+
+        next_section = complete_active_section(
             state
         )
 
