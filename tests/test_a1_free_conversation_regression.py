@@ -1534,7 +1534,6 @@ class GeneratedTests(unittest.TestCase):
         self.assertFalse(result["topic_transition"]["transition"])
         self.assertIn("topic_transition_blocked", result["conflicts"])
 
-
     def test_wellbeing_short_answer_survives_und_dir_ellipsis(self):
         state = {}
         generate_free_welcome(state)
