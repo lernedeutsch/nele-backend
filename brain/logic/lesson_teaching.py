@@ -47,6 +47,8 @@ from brain.logic.generic_lesson_engine import (
     is_generic_lesson_active
 )
 
+from brain.logic.personal_sentences import handle_personal_sentence_practice
+
 from brain.logic.speaking_support import (
     legacy_course_support,
     handle_pending_course_model,
@@ -2426,6 +2428,11 @@ def handle_lesson_teaching(
 
     if state is None:
         return None
+
+    # Shared Meine Sätze practice has priority while one personal sentence is active.
+    personal_practice = handle_personal_sentence_practice(user_message, state)
+    if personal_practice:
+        return personal_practice.get("reply")
 
 
     if not is_lesson_teaching_active(
