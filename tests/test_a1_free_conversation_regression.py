@@ -1281,6 +1281,38 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(result["reply"], reply)
 
 
+    def test_recovery_does_not_override_understood_short_answer(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Was machst du heute?",
+            {"issues": ["response_alignment_warning"], "changed": False},
+            topic="today",
+            action="CONTINUE",
+            response_understanding={
+                "understood": True,
+                "confidence": "medium",
+                "intent": "short_content",
+                "canonical": "gut",
+            },
+            safe_question="Wie ist dein Tag heute?",
+            user_message="gut",
+        )
+        self.assertFalse(result["recovered"])
+        self.assertIsNone(result["recovery_reason"])
+        self.assertEqual(result["reply"], "Was machst du heute?")
+
+    def test_free_conversation_gut_never_triggers_recovery(self):
+        state = {"free_conversation": {
+            "last_question": "Wie geht es dir?",
+            "recent_questions": ["Wie geht es dir?"],
+            "conversation_facts": {},
+        }}
+        reply, meta = _turn(state, "gut")
+        self.assertNotIn("Kein Problem", reply)
+        self.assertFalse(meta["conversation_recovery"]["recovered"])
+        self.assertTrue(meta["response_understanding"]["understood"])
+        self.assertIn(meta["response_understanding"]["confidence"], {"medium", "high"})
+
     def test_recovery_v2_classifies_learner_not_understanding(self):
         from brain.logic.conversation_recovery import classify_recovery
         reason = classify_recovery(
