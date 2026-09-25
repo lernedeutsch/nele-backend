@@ -32,6 +32,9 @@ jobs:
       - name: Run backend tests
         run: python -m unittest discover -s tests -p "test_*.py"
 
+      - name: Live Nele smoke test
+        run: python test_nele_live.py
+
   e2e:
     runs-on: ubuntu-latest
 
