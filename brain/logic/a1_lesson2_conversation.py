@@ -2,6 +2,11 @@
 
 import re
 from brain.memory.error_memory import remember_error
+from brain.logic.speaking_support import (
+    handle_pending_course_model,
+    progressive_course_support,
+    register_course_success,
+)
 
 COUNTRIES = {
     "polen": {"name":"Polen","aus":"aus Polen","m":"Pole","f":"Polin","aliases":["polen"],"typos":["polen"]},
@@ -113,60 +118,54 @@ def classify(user_message, task):
             return {"status":"NATIONALITY_ERROR","correct":expected}
     return {"status":"UNCLEAR","correct":expected}
 
-def _sentence_starter(correct):
-    words=str(correct or "").strip().split()
-    if len(words) < 2:
-        return ""
-    return " ".join(words[:2]) + " …"
-
-
-def _support_prompt(task, support_level):
-    correct=str(task.get("expected","") or "").strip()
-    prompt=str(task.get("prompt","") or "").strip()
-    if support_level <= 1:
-        # First rescue: make the communicative intention easier without
-        # giving away the whole sentence.
-        if task.get("kind")=="origin":
-            return "Denk an: „aus …“ Versuch es noch einmal."
-        if task.get("kind")=="kommen":
-            return "Welche Form von „kommen“ passt hier? Versuch es noch einmal."
-        if task.get("kind")=="number":
-            return "Denk an die Zahl. Sag nur das deutsche Zahlwort."
-        return "Versuch es noch einmal."
-    if support_level == 2:
-        starter=_sentence_starter(correct)
-        if starter:
-            return "Fang so an: „%s“" % starter
-        return "Ich helfe dir: Der Anfang ist „%s …“" % (correct[:1] if correct else "")
-    return "Du kannst sagen: „%s“ Sag es mal." % correct
+def _first_support_hint(task):
+    kind = task.get("kind")
+    if kind == "origin":
+        return "Denk an: „aus …“ Versuch es noch einmal."
+    if kind == "kommen":
+        return "Welche Form von „kommen“ passt hier? Versuch es noch einmal."
+    if kind == "number":
+        return "Denk an die Zahl. Sag nur das deutsche Zahlwort."
+    return "Versuch es noch einmal."
 
 
 def _correction(result, user_message, task, state):
-    status=result["status"]; correct=result["correct"]; m=_mem(state)
-    if status=="CORRECT_SHORT":
-        m["support_level"]=max(0,m["support_level"]-1)
+    status = result["status"]
+    correct = result["correct"]
+    m = _mem(state)
+
+    if status == "CORRECT_SHORT":
+        register_course_success(state)
         if " " in str(correct).strip():
-            state["course_pending_speaking_model"]=correct
+            state["course_pending_speaking_model"] = correct
             return "Genau. Du kannst auch sagen: „%s“ Sag es mal." % correct
         return "Genau."
-    if status=="CORRECT_WITH_TYPO":
-        m["support_level"]=max(0,m["support_level"]-1)
-        state["course_pending_speaking_model"]=correct
+
+    if status == "CORRECT_WITH_TYPO":
+        register_course_success(state)
+        state["course_pending_speaking_model"] = correct
         return "Fast. Sag: „%s“" % correct
-    if status=="CORRECT_FULL":
-        m["support_level"]=max(0,m["support_level"]-1); return None
-    if status=="UNCLEAR":
-        m["support_level"]=min(4,m["support_level"]+1)
-        return _support_prompt(task,m["support_level"])
-    _remember_error(state,status,user_message,correct,task.get("prompt",""))
-    m["support_level"]=min(4,m["support_level"]+1)
-    attempts=m["errors"][status]["attempts"]
-    if attempts==1:
-        return "Fast. "+_support_prompt(task,1)
-    if attempts==2:
-        return _support_prompt(task,2)
-    state["course_pending_speaking_model"]=correct
-    return _support_prompt(task,3)
+
+    if status == "CORRECT_FULL":
+        register_course_success(state)
+        return None
+
+    if status != "UNCLEAR":
+        _remember_error(
+            state,
+            status,
+            user_message,
+            correct,
+            task.get("prompt", ""),
+        )
+
+    prefix = "Fast. " if status != "UNCLEAR" else ""
+    return progressive_course_support(
+        correct,
+        state,
+        first_hint=_first_support_hint(task),
+        prefix=prefix,
+    )
 
 def _set_task(state, task):
     m=_mem(state); m["task"]=task
@@ -248,9 +247,6 @@ def handle(user_message,state):
         if correction: return correction+" "+nxt
         return "Genau! "+nxt
     correction=_correction(result,user_message,task,state)
-    # keep same learning target for self-correction; after repeated attempts next turn can move on.
-    if m["support_level"]>=4:
-        m["turn"]+=1
-        nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
-        return correction+" "+nxt
+    # Keep the same target until the learner succeeds. The global speaking
+    # engine now owns escalation and decides when to expose the full model.
     return correction
