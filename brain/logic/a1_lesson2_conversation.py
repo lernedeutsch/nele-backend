@@ -38,6 +38,7 @@ def _mem(state):
     m=state.setdefault("a1_l2_tutor",{})
     m.setdefault("turn",0); m.setdefault("recent_intents",[]); m.setdefault("recent_questions",[])
     m.setdefault("errors",{}); m.setdefault("mastery",{}); m.setdefault("support_level",0)
+    m.setdefault("pending_speaking_model",None)
     return m
 
 def _remember_error(state, kind, wrong, correct, context):
@@ -112,27 +113,60 @@ def classify(user_message, task):
             return {"status":"NATIONALITY_ERROR","correct":expected}
     return {"status":"UNCLEAR","correct":expected}
 
+def _sentence_starter(correct):
+    words=str(correct or "").strip().split()
+    if len(words) < 2:
+        return ""
+    return " ".join(words[:2]) + " …"
+
+
+def _support_prompt(task, support_level):
+    correct=str(task.get("expected","") or "").strip()
+    prompt=str(task.get("prompt","") or "").strip()
+    if support_level <= 1:
+        # First rescue: make the communicative intention easier without
+        # giving away the whole sentence.
+        if task.get("kind")=="origin":
+            return "Denk an: „aus …“ Versuch es noch einmal."
+        if task.get("kind")=="kommen":
+            return "Welche Form von „kommen“ passt hier? Versuch es noch einmal."
+        if task.get("kind")=="number":
+            return "Denk an die Zahl. Sag nur das deutsche Zahlwort."
+        return "Versuch es noch einmal."
+    if support_level == 2:
+        starter=_sentence_starter(correct)
+        if starter:
+            return "Fang so an: „%s“" % starter
+        return "Ich helfe dir: Der Anfang ist „%s …“" % (correct[:1] if correct else "")
+    return "Du kannst sagen: „%s“ Sag es mal." % correct
+
+
 def _correction(result, user_message, task, state):
     status=result["status"]; correct=result["correct"]; m=_mem(state)
     if status=="CORRECT_SHORT":
         m["support_level"]=max(0,m["support_level"]-1)
-        return ("Genau. Sag auch: „%s“" % correct) if " " in str(correct).strip() else "Genau."
+        if " " in str(correct).strip():
+            m["pending_speaking_model"]=correct
+            return "Genau. Du kannst auch sagen: „%s“ Sag es mal." % correct
+        return "Genau."
     if status=="CORRECT_WITH_TYPO":
         m["support_level"]=max(0,m["support_level"]-1)
-        return "Fast. Richtig: „%s“" % correct
+        m["pending_speaking_model"]=correct
+        return "Fast. Sag: „%s“" % correct
     if status=="CORRECT_FULL":
         m["support_level"]=max(0,m["support_level"]-1); return None
     if status=="UNCLEAR":
         m["support_level"]=min(4,m["support_level"]+1)
-        return "Sag: „%s“" % correct
+        return _support_prompt(task,m["support_level"])
     _remember_error(state,status,user_message,correct,task.get("prompt",""))
     m["support_level"]=min(4,m["support_level"]+1)
     attempts=m["errors"][status]["attempts"]
     if attempts==1:
-        return "Fast. Sag: „%s“" % correct
+        return "Fast. "+_support_prompt(task,1)
     if attempts==2:
-        return "Fast. Richtig ist: „%s“" % correct
-    return "Richtig heißt es: „%s“" % correct
+        return _support_prompt(task,2)
+    m["pending_speaking_model"]=correct
+    return _support_prompt(task,3)
 
 def _set_task(state, task):
     m=_mem(state); m["task"]=task
@@ -193,6 +227,20 @@ def current_prompt(state):
 def handle(user_message,state):
     m=_mem(state); task=m.get("task")
     if not task: return _set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
+
+    # When Nele has just expanded a meaningful short answer into a model,
+    # give the learner a real speaking turn before introducing a new task.
+    pending=str(m.get("pending_speaking_model") or "").strip()
+    if pending:
+        if _norm(user_message)==_norm(pending):
+            m["pending_speaking_model"]=None
+            m["support_level"]=max(0,m["support_level"]-1)
+            m["turn"]+=1
+            nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
+            return "Sehr gut! "+nxt
+        # Do not punish a hesitant attempt. One short cue, same target.
+        return "Fast. Sag noch einmal: „%s“" % pending
+
     result=classify(user_message,task)
     m["last_result"]=result
     if result["status"] in {"CORRECT_FULL","CORRECT_SHORT","CORRECT_WITH_TYPO"}:
@@ -200,6 +248,10 @@ def handle(user_message,state):
         if task.get("intent")=="ERROR_REVIEW":
             for item in m["errors"].values(): item["resolved"]=True
         correction=_correction(result,user_message,task,state)
+        # A meaningful short answer is success, not an error. If we model
+        # a fuller sentence, stop here and let the learner actually say it.
+        if m.get("pending_speaking_model"):
+            return correction
         m["turn"]+=1
         nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
         if correction: return correction+" "+nxt
