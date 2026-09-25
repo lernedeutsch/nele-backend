@@ -469,9 +469,21 @@ def main():
                 "Ich heiße Monika",
                 "Frag mich",
             )
+            # A semantic but incorrect attempt gets the smallest useful cue
+            # first. Repeated difficulty escalates support progressively.
             send_and_wait(
                 page,
                 "wer bist du",
+                "Fang so an",
+            )
+            send_and_wait(
+                page,
+                "wer bist du",
+                "wie heißt",
+            )
+            send_and_wait(
+                page,
+                "hm",
                 "Wie heißt du?",
             )
             send_and_wait(
