@@ -63,10 +63,10 @@ def execute_learning_action(
         return result
 
     if action == "SIMPLIFY":
-        # SIMPLIFY is explicit learner support. Keep the stable supportive
-        # prefix here; ordinary statements only reach this action when Teacher
-        # Policy has actually classified the turn as needing simplification.
-        result["reply"] = f"Kein Problem. {fallback_question}".strip()
+        # SIMPLIFY means making the next turn easier. Do not attach a generic
+        # emotional reaction here: this executor cannot know whether the
+        # learner expressed a problem or simply made an ordinary statement.
+        result["reply"] = fallback_question
         result["expects_outcome"] = "answer_with_support"
         return result
 
