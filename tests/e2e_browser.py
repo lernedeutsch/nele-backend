@@ -111,6 +111,7 @@ def send_and_wait(page, message, expected, timeout=15000):
     before = page.locator(
         ".message-nele"
     ).count()
+    expected_values = expected if isinstance(expected, (list, tuple)) else [expected]
 
     page.fill(
         "#message-input",
@@ -135,7 +136,7 @@ def send_and_wait(page, message, expected, timeout=15000):
             }""",
             arg={
                 "before": before,
-                "expected": expected,
+                "expected": expected_values,
             },
             timeout=timeout,
         )
@@ -507,7 +508,7 @@ def main():
             send_and_wait(
                 page,
                 "hm",
-                "Sag: „Wie heißt du?“",
+                ["Sag: „Wie heißt du?“", "Noch einmal langsam: „Wie heißt du?“"],
             )
             send_and_wait(
                 page,
