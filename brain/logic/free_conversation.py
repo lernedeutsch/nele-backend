@@ -277,9 +277,7 @@ def _social_a1_reply(text, free, state):
         )
     )
     routing_last_question = "" if learner_question else free.get("last_question", "")
-    # Expose only the routing decision to the caller; keep legacy answer paths untouched.
-    free["_learner_question_turn"] = bool(learner_question)
-
+ 
     # Keep the semantic intent behind elliptical prompts such as "Und dir?".
     # The visible last question alone is not enough to know that "gut" answers
     # a wellbeing question.
@@ -297,13 +295,10 @@ def _social_a1_reply(text, free, state):
         free["pending_answer_intent"] = "wellbeing"
         return "Hallo! Wie geht es dir heute?"
 
-    # A1 lessons 1-10: reusable natural conversation, not a fixed script.
-    # Only detach stale context for an actual learner-led question. Normal
-    # answers must continue through the richer contextual handlers below.
-    if learner_question:
-        everyday_reply = a1_everyday_reply(raw, routing_last_question, state)
-        if everyday_reply:
-            return everyday_reply
+    # Fresh learner-led questions are handled by the direct social/question
+    # handlers below. Do not run the generic everyday router here: it can
+    # reinterpret ordinary contextual answers and bypass the established
+    # short-answer teaching paths.
 
     # ---- Questions the learner can ask Nele at any moment ----
     # Names: informal and polite variants.
@@ -1092,7 +1087,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         }
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
-    free.pop("_learner_question_turn", None)
     social_reply = _social_a1_reply(user_message, free, state)
     if social_reply:
         # Store its final question as conversational context for the next turn.
