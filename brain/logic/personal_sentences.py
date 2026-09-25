@@ -5,6 +5,7 @@ while exposure/mastery is stored per learner inside the existing persistent stat
 so PostgreSQL keeps it across browser restarts.
 """
 import re
+from difflib import SequenceMatcher
 from datetime import datetime, timezone
 
 # To add another sentence, append one small dictionary here. No router,
@@ -142,10 +143,32 @@ def find_personal_sentence(user_message):
     value = _norm(user_message)
     if not value:
         return None
+
+    # Exact forms stay authoritative.
     for item in PERSONAL_SENTENCES:
         candidates = [item["text"], *item.get("aliases", [])]
         if any(value == _norm(candidate) for candidate in candidates):
             return item
+
+    # Learners often make one small article/ending/spelling error. Accept only
+    # very close whole-sentence matches so Meine Sätze remains precise and does
+    # not hijack unrelated conversation.
+    value_words = value.split()
+    if len(value_words) >= 3:
+        best_item = None
+        best_ratio = 0.0
+        for item in PERSONAL_SENTENCES:
+            for candidate in [item["text"], *item.get("aliases", [])]:
+                candidate_norm = _norm(candidate)
+                candidate_words = candidate_norm.split()
+                if abs(len(candidate_words) - len(value_words)) > 1:
+                    continue
+                ratio = SequenceMatcher(None, value, candidate_norm).ratio()
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    best_item = item
+        if best_ratio >= 0.88:
+            return best_item
     return None
 
 def record_personal_sentence_use(state, item, mode="free"):
