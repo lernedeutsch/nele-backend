@@ -106,13 +106,10 @@ def recover_reply(reply, quality, *, topic=None, action=None,
         "action": action,
     }
 
-    if action not in {"CONTINUE", "ADVANCE"} or (quality or {}).get("changed"):
-        return result
-
-    # A learner-led topic change is not an error. The normal Topic Manager /
-    # generated question should stand; Recovery must not pull them backwards.
-    if reason == "learner_topic_change":
-        result["strategy"] = "accept_topic_change"
+    # Correction/model/review actions are authoritative. SIMPLIFY is the one
+    # pedagogical action where Recovery may add comprehension support because
+    # the learner explicitly signalled that the question was not understood.
+    if action not in {"CONTINUE", "ADVANCE", "SIMPLIFY"} or (quality or {}).get("changed"):
         return result
 
     if reason == "learner_did_not_understand":
@@ -123,6 +120,12 @@ def recover_reply(reply, quality, *, topic=None, action=None,
                 recovered=True,
                 strategy="simplify_for_learner",
             )
+        return result
+
+    # A learner-led topic change is not an error. The normal Topic Manager /
+    # generated question should stand; Recovery must not pull them backwards.
+    if reason == "learner_topic_change":
+        result["strategy"] = "accept_topic_change"
         return result
 
     if reason == "nele_uncertain":

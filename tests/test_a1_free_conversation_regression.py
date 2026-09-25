@@ -635,7 +635,10 @@ class GeneratedTests(unittest.TestCase):
             {"action": "SIMPLIFY"},
             fallback_question="Arbeitest du heute?",
         )
-        self.assertEqual(result["reply"], "Kein Problem. Arbeitest du heute?")
+        # The executor is intentionally neutral: it does not know whether
+        # SIMPLIFY came from explicit learner struggle. Recovery adds a natural
+        # support phrase when the learner actually says they do not understand.
+        self.assertEqual(result["reply"], "Arbeitest du heute?")
         self.assertEqual(result["expects_outcome"], "answer_with_support")
 
 
