@@ -7,6 +7,7 @@ from brain.logic.matcher import normalize
 from brain.logic.speaking_support import (
     legacy_course_support,
     handle_pending_course_model,
+    register_course_success,
 )
 
 from brain.memory.lesson_review import (
@@ -607,6 +608,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
+            register_course_success(state)
 
             feedback = (
                 "Richtig! „Guten Morgen“ passt."
@@ -649,6 +651,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
+            register_course_success(state)
 
             feedback = (
                 "Sehr gut!"
@@ -699,6 +702,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
+            register_course_success(state)
 
             feedback = (
                 "Genau! „Wie heißt du?“"
@@ -741,6 +745,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
+            register_course_success(state)
 
             feedback = (
                 "Richtig! „Wie heißen Sie?“"
@@ -783,6 +788,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
+            register_course_success(state)
 
             feedback = (
                 "Perfekt! Ä, Ö und Ü."
@@ -824,6 +830,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
+            register_course_success(state)
 
             feedback = (
                 "Richtig! Das ist das Eszett."
