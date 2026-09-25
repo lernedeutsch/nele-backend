@@ -102,6 +102,7 @@ PERSONAL_SENTENCES = [
     },
 ]
 
+
 def get_personal_sentence_catalog():
     """Return a safe copy for tests, dashboards and future UI."""
     return [dict(item) for item in PERSONAL_SENTENCES]
@@ -133,11 +134,13 @@ def _norm(value):
     value = re.sub(r"[.!?,;:]+$", "", value)
     return re.sub(r"\s+", " ", value).strip()
 
+
 def ensure_personal_sentence_memory(state):
     memory = state.setdefault("personal_sentences", {})
     memory.setdefault("items", {})
     memory.setdefault("recent_ids", [])
     return memory
+
 
 def find_personal_sentence(user_message):
     value = _norm(user_message)
@@ -171,6 +174,7 @@ def find_personal_sentence(user_message):
             return best_item
     return None
 
+
 def record_personal_sentence_use(state, item, mode="free"):
     memory = ensure_personal_sentence_memory(state)
     items = memory["items"]
@@ -192,6 +196,7 @@ def record_personal_sentence_use(state, item, mode="free"):
     recent.append(item["id"])
     del recent[:-12]
     return progress
+
 
 def handle_personal_sentence(user_message, state, mode="free"):
     item = find_personal_sentence(user_message)
@@ -275,6 +280,7 @@ def handle_personal_sentence_practice(user_message, state):
             "correct": False,
             "item": item,
         }
+
     return {
         "reply": f'Fast. Du kannst sagen: „{item["text"]}“ Sag den Satz bitte einmal.',
         "correct": False,
@@ -282,17 +288,32 @@ def handle_personal_sentence_practice(user_message, state):
     }
 
 
-def should_offer_personal_sentence_practice(state, *, normal_turns=0, learner_needs_support=False, has_active_error=False):
-    """Return True only at calm course boundaries; never displace correction/support."""
-    if not state or learner_needs_support or has_active_error:
+def should_offer_personal_sentence_practice(
+    state,
+    *,
+    normal_turns=0,
+    learner_needs_support=False,
+    has_active_error=False,
+):
+    """Return True only at calm course boundaries; never interrupt an active lesson."""
+    if (
+        not state
+        or state.get("lesson_teaching_active")
+        or learner_needs_support
+        or has_active_error
+    ):
         return False
+
     if state.get("personal_sentence_practice"):
         return False
+
     memory = ensure_personal_sentence_memory(state)
     scheduler = memory.setdefault("scheduler", {"turns_since_practice": 0})
     scheduler["turns_since_practice"] = max(
-        int(scheduler.get("turns_since_practice", 0) or 0), int(normal_turns or 0)
+        int(scheduler.get("turns_since_practice", 0) or 0),
+        int(normal_turns or 0),
     )
+
     # Keep personal material occasional: at most one insertion after 5 normal turns.
     return scheduler["turns_since_practice"] >= 5
 
