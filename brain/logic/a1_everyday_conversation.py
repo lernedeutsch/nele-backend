@@ -41,8 +41,15 @@ def a1_everyday_reply(text, last_question, state=None):
         return "Was möchtest du kaufen?"
     if re.search(r"\bich brauche\b", low) and any(x in low for x in ("milch","brot","äpfel","aepfel","gemüse","gemuese")):
         return "Wo kaufst du das?"
+    if re.search(r"\b(?:nein[, ]+)?heute arbeite ich nicht\b|\bich arbeite heute nicht\b", low):
+        return "Was machst du heute?"
     if re.search(r"\bmorgen arbeite ich\b", low):
         return "Wann fängst du morgen an?"
+    if (
+        ("wann fängst du morgen an" in last or "wann faengst du morgen an" in last)
+        and re.fullmatch(r"(?:um\s+)?(?:[01]?\d|2[0-3])(?:(?::|\.)[0-5]\d)?(?:\s*uhr)?", low)
+    ):
+        return "Und wann bist du morgen fertig?"
     if re.search(r"\bdeutsch\b.*\b(?:schwierig|schwer)\b", low):
         return "Was ist für dich beim Deutschlernen schwierig?"
     if low in {"sprechen","das sprechen"} and "deutschlernen schwierig" in last:
