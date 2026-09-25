@@ -3,7 +3,10 @@ import unittest
 from brain.logic.memory import complete_state, create_empty_state
 from brain.logic.personal_sentences import (
     ensure_personal_sentence_memory,
-    handle_personal_sentence,\n    get_personal_sentence_catalog,\n    validate_personal_sentence_catalog,\n)
+    handle_personal_sentence,
+    get_personal_sentence_catalog,
+    validate_personal_sentence_catalog,
+)
 
 
 class PersonalSentencesTests(unittest.TestCase):
