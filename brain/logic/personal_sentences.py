@@ -165,3 +165,71 @@ def handle_personal_sentence(user_message, state, mode="free"):
             }
         },
     }
+
+
+def choose_personal_sentence_for_practice(state, category=None):
+    """Choose a due learner sentence, prioritising low mastery and avoiding loops."""
+    memory = ensure_personal_sentence_memory(state)
+    progress_items = memory.get("items", {})
+    recent = set(memory.get("recent_ids", [])[-3:])
+    candidates = [
+        item for item in PERSONAL_SENTENCES
+        if (not category or item.get("category") == category)
+    ]
+    if not candidates:
+        return None
+
+    def score(item):
+        progress = progress_items.get(item["id"], {})
+        mastery = int(progress.get("mastery", 0) or 0)
+        seen = int(progress.get("seen", 0) or 0)
+        recent_penalty = 10 if item["id"] in recent else 0
+        return (mastery + recent_penalty, seen, item["id"])
+
+    return min(candidates, key=score)
+
+
+def start_personal_sentence_practice(state, category=None):
+    """Start one short contextual practice turn for a learner sentence."""
+    item = choose_personal_sentence_for_practice(state, category=category)
+    if not item:
+        return None
+    state["personal_sentence_practice"] = {"id": item["id"], "attempts": 0}
+    return item.get("practice_prompt") or f'Sag bitte: „{item["text"]}“'
+
+
+def handle_personal_sentence_practice(user_message, state):
+    """Evaluate an active practice turn and update mastery without endless repetition."""
+    active = state.get("personal_sentence_practice") or {}
+    sentence_id = active.get("id")
+    if not sentence_id:
+        return None
+    item = next((x for x in PERSONAL_SENTENCES if x["id"] == sentence_id), None)
+    if not item:
+        state.pop("personal_sentence_practice", None)
+        return None
+
+    if find_personal_sentence(user_message) == item:
+        progress = record_personal_sentence_use(state, item, mode="course")
+        state.pop("personal_sentence_practice", None)
+        return {
+            "reply": f'Sehr gut! „{item["text"]}“',
+            "correct": True,
+            "item": item,
+            "progress": progress,
+        }
+
+    attempts = int(active.get("attempts", 0) or 0) + 1
+    active["attempts"] = attempts
+    if attempts >= 2:
+        state.pop("personal_sentence_practice", None)
+        return {
+            "reply": f'Du kannst sagen: „{item["text"]}“ Wir üben den Satz später noch einmal.',
+            "correct": False,
+            "item": item,
+        }
+    return {
+        "reply": f'Fast. Du kannst sagen: „{item["text"]}“ Sag den Satz bitte einmal.',
+        "correct": False,
+        "item": item,
+    }
