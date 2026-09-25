@@ -265,10 +265,22 @@ def _social_a1_reply(text, free, state):
     low = _norm(raw)
     last = _norm(free.get("last_question", ""))
 
-    # A1 lessons 1-10: reusable natural conversation, not a fixed script.
-    everyday_reply = a1_everyday_reply(raw, free.get("last_question", ""), state)
-    if everyday_reply:
-        return everyday_reply
+    # A1 lessons 1-10 bank is supplementary. Legacy contextual handlers below
+    # must keep priority for short beginner answers (Pizza, bis 2, um 8 Uhr,
+    # ja/nein), otherwise the bank can steal an established subthread.
+    # Learner-led direct questions are still safe to answer here.
+    learner_led_bank_question = bool(
+        raw.rstrip().endswith("?")
+        or re.match(
+            r"^(?:wie|was|wo|woher|wohin|wann|warum|wer|welch\\w*|arbeitest|machst|"
+            r"hast|bist|gehst|kommst|wohnst|magst|hörst|hoerst|kannst|willst|möchtest|moechtest)\\b",
+            low,
+        )
+    )
+    if learner_led_bank_question:
+        everyday_reply = a1_everyday_reply(raw, "", state)
+        if everyday_reply:
+            return everyday_reply
 
     # ---- Questions the learner can ask Nele at any moment ----
     # Names: informal and polite variants.
