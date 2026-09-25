@@ -34,6 +34,20 @@ def get_existing_lesson_numbers(level="A1"):
     return sorted(set(result))
 
 
+def _validate_dialogue_slots(dialogue, level, lesson):
+    # Local import avoids a module cycle: dialogue_importer reuses
+    # ContentValidationError from this validation gate.
+    from brain.logic.dialogue_importer import validate_imported_slots
+    try:
+        validate_imported_slots(dialogue)
+    except ContentValidationError:
+        raise
+    except Exception as error:
+        raise ContentValidationError(
+            f"{level} lesson {lesson} dialogue {dialogue.get('id')}: slot validation failed: {error}"
+        ) from error
+
+
 def validate_dialogues(level, lesson):
     module = load_lesson_module(level, lesson)
     dialogues = getattr(module, "LESSON_DIALOGUES", None) if module else None
@@ -144,6 +158,8 @@ def validate_dialogues(level, lesson):
             raise ContentValidationError(
                 f"{level} lesson {lesson} dialogue {dialogue_id}: no learner turns."
             )
+
+        _validate_dialogue_slots(dialogue, level, lesson)
     return True
 
 
