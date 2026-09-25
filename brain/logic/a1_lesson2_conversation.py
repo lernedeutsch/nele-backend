@@ -72,6 +72,7 @@ def _number_from(text):
 def classify(user_message, task):
     raw=str(user_message or "").strip(); n=_norm(raw)
     expected=task.get("expected",""); kind=task.get("kind")
+    require_word = bool(task.get("require_word"))
     if not n: return {"status":"UNCLEAR","correct":expected}
     if kind=="origin":
         key,c=_country_from(n)
@@ -90,19 +91,31 @@ def classify(user_message, task):
             return {"status":"ARTICLE_ERROR","correct":expected}
         if c["aus"]=="aus den USA" and "aus usa" in n:
             return {"status":"ARTICLE_ERROR","correct":expected}
-        if c["aus"]=="aus den Niederlanden" and "aus niederlanden" in n:
+        if c["aus"]=="aus den Niederlanden" and ("aus niederlanden" in n or "aus der niederlanden" in n):
             return {"status":"ARTICLE_ERROR","correct":expected}
         if _norm(expected)==n: return {"status":"CORRECT_FULL","correct":expected}
     if kind=="kommen":
         pron=task["pronoun"]; form=task["form"]
         if n==form or _norm(expected)==n: return {"status":"CORRECT_FULL","correct":expected}
         tokens=n.split()
-        if form in tokens: return {"status":"CORRECT_FULL","correct":expected}
+        # A full-sentence gap task is correct only when the supplied form occurs
+        # inside the complete sentence requested by the prompt. A fragment such
+        # as "Thomas kommt aus" must not pass merely because it contains "kommt".
+        if task.get("full_sentence_expected"):
+            full_expected = _norm(task.get("full_sentence_expected"))
+            if n == full_expected:
+                return {"status":"CORRECT_FULL","correct":expected}
+            if form in tokens:
+                return {"status":"INCOMPLETE_ANSWER","correct":full_expected}
+        elif form in tokens:
+            return {"status":"CORRECT_FULL","correct":expected}
         if n in KOMMEN.values() or any(x in tokens for x in KOMMEN.values()):
             return {"status":"CONJUGATION_ERROR","correct":expected}
     if kind=="number":
         num,typo=_number_from(n)
         if num==task["number"]:
+            if require_word and n.isdigit():
+                return {"status":"NUMBER_WORD_REQUIRED","correct":expected}
             return {"status":"CORRECT_WITH_TYPO" if typo else ("CORRECT_SHORT" if n.isdigit() else "CORRECT_FULL"),"correct":expected}
         if num is not None: return {"status":"NUMBER_ERROR","correct":expected}
     if kind=="nationality":
@@ -125,7 +138,12 @@ def _first_support_hint(task):
     if kind == "kommen":
         return "Welche Form von „kommen“ passt hier? Versuch es noch einmal."
     if kind == "number":
-        return "Denk an die Zahl. Sag nur das deutsche Zahlwort."
+        return "Schreib die Zahl als deutsches Wort. Versuch es noch einmal."
+    if kind == "nationality":
+        country = task.get("country")
+        if country and country in COUNTRIES:
+            c = COUNTRIES[country]
+            return f"„{c['name']}“ ist das Land. Gesucht ist die Nationalität. Versuch es noch einmal."
     return "Versuch es noch einmal."
 
 
@@ -207,10 +225,11 @@ def _next_task(state, section):
         nat=c[gender]
         return {"intent":"COUNTRY_TO_NATIONALITY","kind":"nationality","country":key,"expected":nat,"prompt":f"{person} kommt {c['aus']}. Ist {person} {nat}?"}
     if mode==3:
-        return {"intent":"COMPLETE_KOMMEN","kind":"kommen","pronoun":"sie" if gender=="f" else "er","form":"kommt","expected":"kommt","prompt":f"Ergänze: „{person} ___ {c['aus']}.“"}
+        full = f"{person} kommt {c['aus']}."
+        return {"intent":"COMPLETE_KOMMEN","kind":"kommen","pronoun":"sie" if gender=="f" else "er","form":"kommt","expected":"kommt","full_sentence_expected":full,"prompt":f"Ergänze: „{person} ___ {c['aus']}.“"}
     if mode==4:
         n=(t*2%20)+1
-        return {"intent":"MIXED_REVIEW","kind":"number","number":n,"expected":NUMBERS[n],"prompt":f"{person} ist {n} Jahre alt und kommt {c['aus']}. Wie alt ist {person}? Schreib die Zahl auf Deutsch."}
+        return {"intent":"MIXED_REVIEW","kind":"number","number":n,"expected":NUMBERS[n],"require_word":True,"prompt":f"{person} ist {n} Jahre alt und kommt {c['aus']}. Wie alt ist {person}? Schreib die Zahl auf Deutsch."}
     return {"intent":"ROLEPLAY_FORMAL","kind":"origin","expected":f"Ich komme {c['aus']}.","prompt":f"Wir spielen ein formelles Gespräch. Ich frage: „Woher kommen Sie?“ Antworte mit {c['name']}."}
 
 def start(section,state):
