@@ -730,6 +730,10 @@ def finish_error_practice(
         "error_practice_used_hint"
     ] = False
 
+    state[
+        "error_practice_transfer_attempts"
+    ] = 0
+
 
     state[
         "error_practice_example_wrong"
@@ -1232,6 +1236,10 @@ def start_error_practice(
         "error_practice_used_hint"
     ] = False
 
+    state[
+        "error_practice_transfer_attempts"
+    ] = 0
+
 
     label = get_error_practice_label(
         error_type
@@ -1486,6 +1494,19 @@ def handle_error_practice_step_one(
     )
 
 
+def build_error_transfer_prompt(context, correct_sentence):
+    context = str(context or "").strip()
+    if context:
+        return (
+            f"{context}\n\n"
+            "Jetzt ohne Auswahl: Was sagst du?"
+        )
+
+    # If old memory has no context, use a neutral production cue. Do not
+    # expose the target sentence again: this turn measures recall.
+    return "Jetzt ohne Hilfe: Sag den richtigen Satz noch einmal."
+
+
 # ==========================================
 # KROK 2
 # SAMODZIELNE POWIEDZENIE ZDANIA
@@ -1527,6 +1548,30 @@ def handle_error_practice_step_two(
         )
     ):
 
+        # Repeating a sentence that Nele has just shown is useful, but it
+        # is not yet evidence of independent speaking. Remove the model
+        # and ask for the same communicative act once more from context.
+        state["error_practice_step"] = 3
+        context = state.get("error_practice_example_context")
+        return (
+            "Sehr gut. "
+            + build_error_transfer_prompt(context, correct_sentence)
+        )
+
+
+def handle_error_practice_step_three(
+    user_message,
+    state,
+    summary
+):
+    correct_sentence = summary.get("last_correct")
+    wrong_sentence = summary.get("last_wrong")
+
+    if is_equivalent_correct_answer(
+        user_message,
+        correct_sentence,
+        state.get("error_practice_type")
+    ):
         error_type = state.get(
             "error_practice_type"
         )
@@ -1858,6 +1903,26 @@ def handle_error_practice_step_two(
 
 
     # ======================================
+    # NIEUDANA PRÓBA TRANSFERU
+    # ======================================
+
+    attempts = int(state.get("error_practice_transfer_attempts", 0) or 0) + 1
+    state["error_practice_transfer_attempts"] = attempts
+    state["error_practice_used_hint"] = True
+
+    if attempts == 1:
+        starter = " ".join(str(correct_sentence or "").split()[:2]).strip()
+        if starter:
+            return f"Fast. Fang so an: „{starter} …“"
+        return "Fast. Versuch es noch einmal."
+
+    # After a failed independent attempt, scaffold again instead of
+    # marking the learner as mastered.
+    state["error_practice_step"] = 2
+    return f"Ich helfe dir noch einmal: „{correct_sentence}“ Sag es mal."
+
+
+    # ======================================
     # ZŁA ODPOWIEDŹ
     # ======================================
 
@@ -2018,6 +2083,15 @@ def handle_error_practice(
     if step == 2:
 
         return handle_error_practice_step_two(
+            user_message,
+            state,
+            summary
+        )
+
+
+    if step == 3:
+
+        return handle_error_practice_step_three(
             user_message,
             state,
             summary
