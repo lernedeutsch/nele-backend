@@ -22,6 +22,7 @@ from brain.logic.learner_identity import normalize_learner_id
 from brain.logic.session_service import start_conversation_session
 from brain.logic.pronunciation_audio import transcribe_audio
 from brain.logic.conversation_output import remember_nele_output
+from brain.logic.personal_sentences import handle_personal_sentence
 from brain.nele3_upgrade import UPGRADE_VERSION
 from brain.nele3_upgrade.api import nele3_api
 from brain.nele3_upgrade.router import handle_upgrade_message
@@ -390,6 +391,19 @@ def create_nele_reply(
             remember_nele_output(answer, state)
             save_conversation_state(session_id)
             return answer, meta or {}
+
+        # Meine Sätze are also understood in course mode. This is a global
+        # learner layer, not content hard-coded into one lesson.
+        personal = handle_personal_sentence(
+            user_message,
+            state,
+            mode="course",
+        )
+        if personal:
+            answer = personal["reply"]
+            remember_nele_output(answer, state)
+            save_conversation_state(session_id)
+            return answer, personal.get("meta", {})
 
         handled, answer, meta = handle_upgrade_message(
             user_message,
