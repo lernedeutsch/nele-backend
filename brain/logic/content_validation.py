@@ -60,6 +60,15 @@ def validate_dialogues(level, lesson):
             dialogue.get("title"),
             f"{level} lesson {lesson} dialogue {dialogue_id} title",
         )
+        sections = dialogue.get("sections", dialogue.get("section", []))
+        if isinstance(sections, str):
+            sections = [sections]
+        if not isinstance(sections, list) or not any(
+            isinstance(value, str) and value.strip() for value in sections
+        ):
+            raise ContentValidationError(
+                f"{level} lesson {lesson} dialogue {dialogue_id}: missing section mapping."
+            )
 
         turns = dialogue.get("turns")
         if not isinstance(turns, list) or not turns:
