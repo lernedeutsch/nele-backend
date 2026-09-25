@@ -276,6 +276,11 @@ def _social_a1_reply(text, free, state):
             low,
         )
     )
+    # A question-looking answer can still be the expected answer to the
+    # current prompt (for example a practiced question). Keep context only
+    # when Response Understanding says this turn is answering that prompt.
+    if learner_question and response_understanding.get("intent") in {"short_content", "yes_no", "time"}:
+        learner_question = False
     routing_last_question = "" if learner_question else free.get("last_question", "")
 
     # Keep the semantic intent behind elliptical prompts such as "Und dir?".
@@ -292,6 +297,7 @@ def _social_a1_reply(text, free, state):
 
     # Natural greetings are valid conversation turns, never failures.
     if low.strip(" ?!.,") in {"hallo", "hallo nele", "hi", "guten tag", "guten morgen", "guten abend"}:
+        free["pending_answer_intent"] = "wellbeing"
         return "Hallo! Wie geht es dir heute?"
 
     # A1 lessons 1-10: reusable natural conversation, not a fixed script.
