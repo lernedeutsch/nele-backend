@@ -146,12 +146,12 @@ def _correction(result, user_message, task, state):
     if status=="CORRECT_SHORT":
         m["support_level"]=max(0,m["support_level"]-1)
         if " " in str(correct).strip():
-            m["pending_speaking_model"]=correct
+            state["course_pending_speaking_model"]=correct
             return "Genau. Du kannst auch sagen: „%s“ Sag es mal." % correct
         return "Genau."
     if status=="CORRECT_WITH_TYPO":
         m["support_level"]=max(0,m["support_level"]-1)
-        m["pending_speaking_model"]=correct
+        state["course_pending_speaking_model"]=correct
         return "Fast. Sag: „%s“" % correct
     if status=="CORRECT_FULL":
         m["support_level"]=max(0,m["support_level"]-1); return None
@@ -165,7 +165,7 @@ def _correction(result, user_message, task, state):
         return "Fast. "+_support_prompt(task,1)
     if attempts==2:
         return _support_prompt(task,2)
-    m["pending_speaking_model"]=correct
+    state["course_pending_speaking_model"]=correct
     return _support_prompt(task,3)
 
 def _set_task(state, task):
@@ -228,18 +228,9 @@ def handle(user_message,state):
     m=_mem(state); task=m.get("task")
     if not task: return _set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
 
-    # When Nele has just expanded a meaningful short answer into a model,
-    # give the learner a real speaking turn before introducing a new task.
-    pending=str(m.get("pending_speaking_model") or "").strip()
-    if pending:
-        if _norm(user_message)==_norm(pending):
-            m["pending_speaking_model"]=None
-            m["support_level"]=max(0,m["support_level"]-1)
-            m["turn"]+=1
-            nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
-            return "Sehr gut! "+nxt
-        # Do not punish a hesitant attempt. One short cue, same target.
-        return "Fast. Sag noch einmal: „%s“" % pending
+    shared_pending = handle_pending_course_model(user_message, state)
+    if shared_pending is not None:
+        return shared_pending
 
     result=classify(user_message,task)
     m["last_result"]=result
@@ -250,7 +241,7 @@ def handle(user_message,state):
         correction=_correction(result,user_message,task,state)
         # A meaningful short answer is success, not an error. If we model
         # a fuller sentence, stop here and let the learner actually say it.
-        if m.get("pending_speaking_model"):
+        if state.get("course_pending_speaking_model"):
             return correction
         m["turn"]+=1
         nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
