@@ -172,7 +172,7 @@ def build_course_support_reply(assessment, step, state):
         state["course_pending_speaking_model"] = target
         # Keep the learner on the same lesson step. Advancement happens only
         # after the learner has had a turn to produce the model.
-        return f"Genau. Du kannst auch sagen: „{target}“ Sag es mal."
+        return f"Genau. Sag: „{target}“"
     return None
 
 
@@ -188,15 +188,15 @@ def progressive_course_support(target, state, *, first_hint=None, prefix=""):
     _set_support(state, level)
 
     if level <= 1:
-        reply = _text(first_hint) or "Versuch es noch einmal."
+        reply = _text(first_hint) or "Noch einmal."
         return (prefix + reply).strip()
     if level == 2:
         starter = " ".join(_words(target)[:2])
-        reply = f"Fang so an: „{starter} …“" if starter else "Versuch es noch einmal."
+        reply = f"Fang so an: „{starter} …“" if starter else "Noch einmal."
         return (prefix + reply).strip()
 
     state["course_pending_speaking_model"] = target
-    reply = f"Du kannst sagen: „{target}“ Sag es mal."
+    reply = f"Sag: „{target}“"
     return (prefix + reply).strip()
 
 
@@ -220,11 +220,11 @@ def handle_pending_course_model(user_message, state):
     level = min(5, _support_level(state) + 1)
     _set_support(state, level)
     if level <= 1:
-        return "Fast. Versuch es noch einmal."
+        return "Fast. Noch einmal."
     if level == 2:
         starter = " ".join(_words(target)[:2])
-        return f"Fang so an: „{starter} …“" if starter else "Versuch es noch einmal."
-    return f"Du kannst sagen: „{target}“ Sag es mal."
+        return f"Fang so an: „{starter} …“" if starter else "Noch einmal."
+    return f"Sag: „{target}“"
 
 
 def legacy_course_support(
@@ -255,7 +255,7 @@ def legacy_course_support(
     # that the learner knows what they mean but may lack the construction.
     if len(learner_tokens) <= 2 and set(learner_tokens).issubset(set(target_tokens)):
         state["course_pending_speaking_model"] = target
-        return f"Genau. Du kannst sagen: „{target}“ Sag es mal."
+        return f"Genau. Sag: „{target}“"
 
     # For a malformed attempt that shares meaningful material with the target,
     # begin with a small cue instead of immediately exposing the whole answer.
@@ -273,15 +273,15 @@ def legacy_course_support(
             return (
                 f"Fast. Fang so an: „{starter} …“"
                 if starter
-                else "Fast. Versuch es noch einmal."
+                else "Fast. Noch einmal."
             )
 
         if level <= 1:
-            return "Fast. Versuch es noch einmal."
+            return "Fast. Noch einmal."
         if level == 2:
             starter = " ".join(target_tokens[:2])
             return f"Fang so an: „{starter} …“"
         state["course_pending_speaking_model"] = target
-        return f"Du kannst sagen: „{target}“ Sag es mal."
+        return f"Sag: „{target}“"
 
     return None
