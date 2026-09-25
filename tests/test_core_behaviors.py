@@ -22,7 +22,7 @@ from brain.nele3_upgrade.content import (
     WORK_GERMAN,
     PRONUNCIATION_TARGETS,
 )
-from brain.logic.welcome import generate_welcome_reply
+from brain.logic.welcome import generate_welcome_reply, build_returning_user_greeting
 from brain.logic.response_engine import (
     _shorten_session_restart_prompt,
     get_last_lesson_recap_data,
@@ -1301,3 +1301,18 @@ def test_free_speaking_everyday_a1_topics_and_errors():
 
     reply, _ = generate_free_conversation_reply("Meer", state)
     assert "Meer" in reply
+
+def test_course_welcome_rotates_without_repeating_last_variant():
+    state = {}
+    first = build_returning_user_greeting(state, "Moni")
+    first_key = state["course_last_welcome_variant"]
+    second = build_returning_user_greeting(state, "Moni")
+    second_key = state["course_last_welcome_variant"]
+
+    assert first != second
+    assert first_key != second_key
+    assert "Moni" in first
+    assert "Moni" in second
+    assert ("Wie geht" in first) or ("Wie geht's" in first)
+    assert ("Wie geht" in second) or ("Wie geht's" in second)
+
