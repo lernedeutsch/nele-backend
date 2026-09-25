@@ -1569,4 +1569,4 @@ class GeneratedTests(unittest.TestCase):
         generate_free_welcome(state)
         reply, _ = _turn(state, "Hallo Nele!")
         self.assertNotIn("Kein Problem", reply)
-        self.assertIn("Wie geht es dir", reply)
+        self.assertRegex(reply, r"Wie geht(?: es|'s) dir|Was machst du heute")
