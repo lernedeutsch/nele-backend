@@ -156,3 +156,43 @@ def handle_pending_course_model(user_message, state):
         starter = " ".join(_words(target)[:2])
         return f"Fang so an: „{starter} …“" if starter else "Versuch es noch einmal."
     return f"Du kannst sagen: „{target}“ Sag es mal."
+
+
+def legacy_course_support(user_message, target, state, *, context=None):
+    """Adapter for older course steps that predate LESSON_FLOW metadata.
+
+    It uses only the current target and learner attempt. No vocabulary-specific
+    cases are encoded here. Returns support only for a plausible partial
+    production; unrelated answers remain owned by the legacy validator.
+    """
+    target = _text(target)
+    learner = _norm(user_message)
+    if not target or not learner:
+        return None
+
+    target_tokens = _words(_norm(target))
+    learner_tokens = _words(learner)
+    if not learner_tokens:
+        return None
+
+    # A one/two-token fragment that is literally part of the target is evidence
+    # that the learner knows what they mean but may lack the construction.
+    if len(learner_tokens) <= 2 and set(learner_tokens).issubset(set(target_tokens)):
+        state["course_pending_speaking_model"] = target
+        return f"Genau. Du kannst sagen: „{target}“ Sag es mal."
+
+    # For a malformed attempt that shares meaningful material with the target,
+    # begin with a small cue instead of immediately exposing the whole answer.
+    shared = set(learner_tokens) & set(target_tokens)
+    if shared:
+        level = min(5, _support_level(state) + 1)
+        _set_support(state, level)
+        if level <= 1:
+            return "Fast. Versuch es noch einmal."
+        if level == 2:
+            starter = " ".join(target_tokens[:2])
+            return f"Fang so an: „{starter} …“"
+        state["course_pending_speaking_model"] = target
+        return f"Du kannst sagen: „{target}“ Sag es mal."
+
+    return None
