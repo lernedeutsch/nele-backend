@@ -265,10 +265,22 @@ def _social_a1_reply(text, free, state):
     low = _norm(raw)
     last = _norm(free.get("last_question", ""))
 
-    # A1 lessons 1-10: reusable natural conversation, not a fixed script.
-    everyday_reply = a1_everyday_reply(raw, free.get("last_question", ""), state)
-    if everyday_reply:
-        return everyday_reply
+    # A1 lessons 1-10 bank is supplementary. Legacy contextual handlers below
+    # must keep priority for short beginner answers (Pizza, bis 2, um 8 Uhr,
+    # ja/nein), otherwise the bank can steal an established subthread.
+    # Learner-led direct questions are still safe to answer here.
+    learner_led_bank_question = bool(
+        raw.rstrip().endswith("?")
+        or re.match(
+            r"^(?:wie|was|wo|woher|wohin|wann|warum|wer|welch\\w*|arbeitest|machst|"
+            r"hast|bist|gehst|kommst|wohnst|magst|hörst|hoerst|kannst|willst|möchtest|moechtest)\\b",
+            low,
+        )
+    )
+    if learner_led_bank_question:
+        everyday_reply = a1_everyday_reply(raw, "", state)
+        if everyday_reply:
+            return everyday_reply
 
     # ---- Questions the learner can ask Nele at any moment ----
     # Names: informal and polite variants.
@@ -872,25 +884,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         return reply, meta
     free = state.setdefault("free_conversation", {})
 
-    # Priority -2: the reusable A1 lessons 1-10 conversation router must run
-    # before Topic Manager / Teacher Policy / recovery. Otherwise those older
-    # systems can reinterpret a valid A1 fact and replace its natural follow-up.
-    a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
-    if a1_reply:
-        _remember_question(free, a1_reply)
-        free["last_user_message"] = str(user_message or "").strip()
-        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
-        level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
-        conversation_state = sync_conversation_state(
-            state, topic="everyday_a1", last_question=free.get("last_question", ""), level=level
-        )
-        return a1_reply, {
-            "conversation_mode": "free",
-            "course_level": level,
-            "topic": "everyday_a1",
-            "conversation_state": conversation_state,
-            "a1_everyday_router": True,
-        }
+    # The A1 lessons 1-10 bank is consulted inside the shared social/conversation
+    # flow below. Do not return early here: every turn must pass through learner
+    # understanding, teaching policy, contextual short-answer handling and the
+    # global conversation guard.
 
     # First evaluate whether the previous pedagogical action worked. The
     # resulting signal is available to Learner Model before the next policy.
