@@ -98,6 +98,13 @@ from brain.logic.a1_lesson2_conversation import (
 )
 
 
+from brain.logic.speaking_support import (
+    assess_course_answer,
+    build_course_support_reply,
+    handle_pending_course_model,
+)
+
+
 # ==========================================
 # TEXT
 # ==========================================
@@ -1521,6 +1528,10 @@ def handle_generic_lesson_teaching(
     if str(state.get("lesson_teaching_level") or "").upper() == "A1" and int(state.get("lesson_teaching_lesson") or 0) == 2:
         return handle_a1_lesson2_conversation(user_message, state)
 
+    pending_reply = handle_pending_course_model(user_message, state)
+    if pending_reply is not None:
+        return pending_reply
+
 
     level = state.get(
         "lesson_teaching_level"
@@ -1572,11 +1583,25 @@ def handle_generic_lesson_teaching(
         )
 
 
-    if not answer_matches_step(
+    support = assess_course_answer(
         user_message,
         step,
-        state
-    ):
+        state,
+        answer_matches=answer_matches_step(
+            user_message,
+            step,
+            state
+        ),
+    )
+
+    if support.get("intercept"):
+        return build_course_support_reply(
+            support,
+            step,
+            state,
+        )
+
+    if not support.get("answer_matches"):
 
         remember_generic_mistake(
             state,
