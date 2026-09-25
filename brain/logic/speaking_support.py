@@ -136,6 +136,35 @@ def build_course_support_reply(assessment, step, state):
     return None
 
 
+
+def progressive_course_support(target, state, *, first_hint=None, prefix=""):
+    """Return the next global support rung for a known course target.
+
+    Lesson modules may supply a pedagogical first hint (WHAT is being learned),
+    while this shared engine owns escalation (HOW much help is revealed).
+    """
+    target = _text(target)
+    level = min(5, _support_level(state) + 1)
+    _set_support(state, level)
+
+    if level <= 1:
+        reply = _text(first_hint) or "Versuch es noch einmal."
+        return (prefix + reply).strip()
+    if level == 2:
+        starter = " ".join(_words(target)[:2])
+        reply = f"Fang so an: „{starter} …“" if starter else "Versuch es noch einmal."
+        return (prefix + reply).strip()
+
+    state["course_pending_speaking_model"] = target
+    reply = f"Du kannst sagen: „{target}“ Sag es mal."
+    return (prefix + reply).strip()
+
+
+def register_course_success(state):
+    """Fade global speaking support after an independent/accepted success."""
+    _set_support(state, max(0, _support_level(state) - 1))
+
+
 def handle_pending_course_model(user_message, state):
     target = _text((state or {}).get("course_pending_speaking_model"))
     if not target:
