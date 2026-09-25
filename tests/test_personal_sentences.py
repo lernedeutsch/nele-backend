@@ -3,11 +3,16 @@ import unittest
 from brain.logic.memory import complete_state, create_empty_state
 from brain.logic.personal_sentences import (
     ensure_personal_sentence_memory,
-    handle_personal_sentence,
-)
+    handle_personal_sentence,\n    get_personal_sentence_catalog,\n    validate_personal_sentence_catalog,\n)
 
 
 class PersonalSentencesTests(unittest.TestCase):
+    def test_catalogue_is_valid_and_extendable(self):
+        self.assertTrue(validate_personal_sentence_catalog())
+        catalogue = get_personal_sentence_catalog()
+        self.assertGreaterEqual(len(catalogue), 6)
+        self.assertTrue(all(item.get("practice_prompt") for item in catalogue))
+
     def test_known_sentence_is_recognized_and_recorded(self):
         state = create_empty_state()
         result = handle_personal_sentence(
