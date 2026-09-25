@@ -158,7 +158,14 @@ def handle_pending_course_model(user_message, state):
     return f"Du kannst sagen: „{target}“ Sag es mal."
 
 
-def legacy_course_support(user_message, target, state, *, context=None):
+def legacy_course_support(
+    user_message,
+    target,
+    state,
+    *,
+    context=None,
+    semantic_attempt=False,
+):
     """Adapter for older course steps that predate LESSON_FLOW metadata.
 
     It uses only the current target and learner attempt. No vocabulary-specific
@@ -184,7 +191,7 @@ def legacy_course_support(user_message, target, state, *, context=None):
     # For a malformed attempt that shares meaningful material with the target,
     # begin with a small cue instead of immediately exposing the whole answer.
     shared = set(learner_tokens) & set(target_tokens)
-    if shared:
+    if shared or semantic_attempt:
         level = min(5, _support_level(state) + 1)
         _set_support(state, level)
         if level <= 1:
