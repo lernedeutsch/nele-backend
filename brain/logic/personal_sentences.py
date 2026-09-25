@@ -233,3 +233,25 @@ def handle_personal_sentence_practice(user_message, state):
         "correct": False,
         "item": item,
     }
+
+
+def should_offer_personal_sentence_practice(state, *, normal_turns=0, learner_needs_support=False, has_active_error=False):
+    """Return True only at calm course boundaries; never displace correction/support."""
+    if not state or learner_needs_support or has_active_error:
+        return False
+    if state.get("personal_sentence_practice"):
+        return False
+    memory = ensure_personal_sentence_memory(state)
+    scheduler = memory.setdefault("scheduler", {"turns_since_practice": 0})
+    scheduler["turns_since_practice"] = max(
+        int(scheduler.get("turns_since_practice", 0) or 0), int(normal_turns or 0)
+    )
+    # Keep personal material occasional: at most one insertion after 5 normal turns.
+    return scheduler["turns_since_practice"] >= 5
+
+
+def note_personal_sentence_practice_started(state):
+    memory = ensure_personal_sentence_memory(state)
+    scheduler = memory.setdefault("scheduler", {})
+    scheduler["turns_since_practice"] = 0
+    scheduler["last_started_at"] = datetime.now(timezone.utc).isoformat()
