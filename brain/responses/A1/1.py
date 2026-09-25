@@ -590,7 +590,7 @@ ALPHABET_RESPONSES = [
 # 9. MINI-DIALOGI
 # ==========================================
 
-DIALOGUES = [
+LEGACY_DIALOGUE_RESPONSES = [
 
     {
         "patterns": [
@@ -669,6 +669,50 @@ LESSON_RESPONSES = (
     + WELLBEING
     + DU_SIE
     + ALPHABET_RESPONSES
-    + DIALOGUES
+    + LEGACY_DIALOGUE_RESPONSES
     + THANKS
 )
+
+
+# Structured dialogues use the shared dialogue engine. Keep the legacy
+# trigger/response records above in LESSON_RESPONSES, not in DIALOGUES.
+DIALOGUES = [
+    {
+        "id": "lektion1-informell",
+        "title": "Informell: Hallo!",
+        "section": "Wir begrüßen uns",
+        "turns": [
+            {"role": "nele", "text": "Hallo! Wie heißt du?"},
+            {
+                "role": "student",
+                "expected": "Ich heiße Anna.",
+                "accepted": ["Ich heiße Anna", "Ich heisse Anna", "Mein Name ist Anna"],
+            },
+            {"role": "nele", "text": "Freut mich! Wie geht es dir?"},
+            {
+                "role": "student",
+                "expected": "Mir geht es gut.",
+                "accepted": ["Mir geht es gut", "Gut", "Sehr gut"],
+            },
+        ],
+    },
+    {
+        "id": "lektion1-formell",
+        "title": "Formell: Guten Tag",
+        "section": "Ich stelle mich vor",
+        "turns": [
+            {"role": "nele", "text": "Guten Tag. Wie heißen Sie?"},
+            {
+                "role": "student",
+                "expected": "Ich heiße Anna.",
+                "accepted": ["Ich heiße Anna", "Ich heisse Anna", "Mein Name ist Anna"],
+            },
+            {"role": "nele", "text": "Freut mich. Wie geht es Ihnen?"},
+            {
+                "role": "student",
+                "expected": "Mir geht es gut, danke.",
+                "accepted": ["Mir geht es gut", "Gut, danke", "Sehr gut, danke"],
+            },
+        ],
+    },
+]
