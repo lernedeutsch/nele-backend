@@ -27,8 +27,11 @@ class SingleConversationControllerTests(unittest.TestCase):
         state = {}
         start_generic_lesson_teaching("Woher kommen Sie?", state)
         reply = handle_generic_lesson_teaching("Polen", state)
-        self.assertIn("Sehr gut", reply)
-        self.assertEqual(state["lesson_teaching_step"], 2)
+        # A meaningful short answer is accepted, then the shared speaking
+        # support asks for the preferred full A1 sentence before advancing.
+        self.assertIn("Ich komme aus Polen", reply)
+        self.assertEqual(state["lesson_teaching_step"], 1)
+        self.assertEqual(state.get("course_pending_speaking_model"), "Ich komme aus Polen.")
         self.assertNotIn("a1_l2_tutor", state)
 
     def test_active_dialogue_has_priority_over_lesson_flow(self):
