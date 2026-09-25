@@ -700,16 +700,7 @@ def generate_conversation_reply(
         support_turn = any(marker in answer_low for marker in (
             "fast.", "richtig:", "sag bitte", "noch einmal", "du kannst sagen"
         ))
-        # Do not start Meine Sätze while a lesson flow is still handing off
-        # between sections. A boundary reply may temporarily mark the current
-        # section inactive even though the next lesson section is about to start;
-        # inserting a personal exercise there leaves stale practice state that
-        # can consume the next section's first answer.
-        lesson_handoff = any(marker in answer_low for marker in (
-            "als nächstes", "als naechstes", "möchtest du weitermachen",
-            "moechtest du weitermachen", "jetzt stellen wir uns vor",
-        ))
-        if (not lesson_handoff) and should_offer_personal_sentence_practice(
+        if should_offer_personal_sentence_practice(
             state,
             normal_turns=scheduler["turns_since_practice"],
             learner_needs_support=support_turn,
