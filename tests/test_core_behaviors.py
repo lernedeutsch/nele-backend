@@ -856,6 +856,18 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             step_one,
         )
 
+        transfer = handle_error_practice(
+            "Y",
+            state,
+        )
+        self.assertIn(
+            "ohne Auswahl",
+            transfer,
+        )
+        self.assertTrue(
+            state.get("error_practice_active", False)
+        )
+
         finished = handle_error_practice(
             "Y",
             state,
@@ -920,6 +932,15 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             step_one,
         )
 
+        transfer = handle_error_practice(
+            "Guten Abend",
+            state,
+        )
+        self.assertIn(
+            "ohne Auswahl",
+            transfer,
+        )
+
         finished = handle_error_practice(
             "Guten Abend",
             state,
@@ -976,6 +997,37 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertIsNone(
             reopened
         )
+
+
+
+
+    def test_error_practice_requires_independent_transfer_before_mastery(self):
+        state = {}
+        context = "Du möchtest jemanden informell nach dem Namen fragen. Was sagst du?"
+        remember_error(
+            state,
+            "grammar",
+            "Wie heißen du?",
+            "Wie heißt du?",
+            context=context,
+        )
+
+        start_error_practice(state, "grammar")
+        model_prompt = handle_error_practice("2", state)
+        self.assertIn("Sag jetzt:", model_prompt)
+
+        transfer_prompt = handle_error_practice("Wie heißt du?", state)
+        self.assertIn("ohne Auswahl", transfer_prompt)
+        self.assertEqual(state.get("error_practice_step"), 3)
+        self.assertTrue(state.get("error_practice_active", False))
+
+        hint = handle_error_practice("weiß nicht", state)
+        self.assertIn("Fang so an", hint)
+        self.assertTrue(state.get("error_practice_active", False))
+
+        retry_model = handle_error_practice("noch nicht", state)
+        self.assertIn("Ich helfe dir noch einmal", retry_model)
+        self.assertEqual(state.get("error_practice_step"), 2)
 
 
     def test_stale_category_flag_with_only_ignored_pending_example_is_not_due(self):
