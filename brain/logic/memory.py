@@ -166,7 +166,15 @@ def create_empty_state():
 
         "personalization_exercise": None,
 
-        # ==================================\n        # MEINE SÄTZE – OSOBISTA WARSTWA JĘZYKOWA\n        # ==================================\n\n        "personal_sentences": {\n            "items": {},\n            "recent_ids": []\n        }\n    }
+        # ==================================
+        # MEINE SÄTZE – OSOBISTA WARSTWA JĘZYKOWA
+        # ==================================
+
+        "personal_sentences": {
+            "items": {},
+            "recent_ids": []
+        },
+    }
 
 
 # ==========================================
