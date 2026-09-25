@@ -44,7 +44,28 @@ def _mem(state):
     m.setdefault("turn",0); m.setdefault("recent_intents",[]); m.setdefault("recent_questions",[])
     m.setdefault("errors",{}); m.setdefault("mastery",{}); m.setdefault("support_level",0)
     m.setdefault("pending_speaking_model",None)
+    # A session should sample the country bank, not exhaust it. The bank stays
+    # large so future sessions can vary naturally.
+    m.setdefault("session_country_keys",[])
+    m.setdefault("session_country_cursor",0)
     return m
+
+SESSION_COUNTRY_LIMIT = 5
+
+def _session_country(state):
+    m=_mem(state)
+    keys=m.get("session_country_keys") or []
+    if not keys:
+        all_keys=list(COUNTRIES.keys())
+        # Deterministic rotation keeps tests stable while varying sessions via
+        # the current tutor turn/state. Only a small sample is used per session.
+        offset=(int(m.get("country_rotation_seed",0) or 0)) % len(all_keys)
+        keys=(all_keys[offset:]+all_keys[:offset])[:SESSION_COUNTRY_LIMIT]
+        m["session_country_keys"]=keys
+    cursor=int(m.get("session_country_cursor",0) or 0)
+    key=keys[cursor % len(keys)]
+    m["session_country_cursor"]=cursor+1
+    return key, COUNTRIES[key]
 
 def _remember_error(state, kind, wrong, correct, context):
     m=_mem(state); item=m["errors"].setdefault(kind,{"attempts":0,"resolved":False,"review_due":None})
@@ -214,7 +235,7 @@ def _next_task(state, section):
         country=list(COUNTRIES.values())[(t*2)%len(COUNTRIES)]["aus"]
         return {"intent":"PRACTICE_KOMMEN","kind":"kommen","pronoun":pron,"form":form,"expected":form,"prompt":f"Ergänze: „{pron} ___ {country}.“"}
     # Herkunft / Länder / Nationalitäten: rotate genuinely different acts.
-    key=list(COUNTRIES.keys())[(t*5)%len(COUNTRIES)]; c=COUNTRIES[key]
+    key,c=_session_country(state)
     person,gender=PEOPLE[t%len(PEOPLE)]
     mode=t%6
     if mode==0:
@@ -233,7 +254,12 @@ def _next_task(state, section):
     return {"intent":"ROLEPLAY_FORMAL","kind":"origin","expected":f"Ich komme {c['aus']}.","prompt":f"Wir spielen ein formelles Gespräch. Ich frage: „Woher kommen Sie?“ Antworte mit {c['name']}."}
 
 def start(section,state):
-    m=_mem(state); m["section"]=section; m["turn"]=0; m["task"]=None
+    m=_mem(state)
+    previous_seed=int(m.get("country_rotation_seed",0) or 0)
+    m["section"]=section; m["turn"]=0; m["task"]=None
+    m["country_rotation_seed"]=previous_seed+SESSION_COUNTRY_LIMIT
+    m["session_country_keys"]=[]
+    m["session_country_cursor"]=0
     state["lesson_teaching_active"]=True; state["lesson_teaching_level"]="A1"; state["lesson_teaching_lesson"]=2
     state["lesson_teaching_section"]=section; state["lesson_teaching_step"]=1
     return _set_task(state,_next_task(state,section))
