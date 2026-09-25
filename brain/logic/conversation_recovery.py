@@ -106,15 +106,9 @@ def recover_reply(reply, quality, *, topic=None, action=None,
         "action": action,
     }
 
-    if action not in {"CONTINUE", "ADVANCE"} or (quality or {}).get("changed"):
-        return result
-
-    # A learner-led topic change is not an error. The normal Topic Manager /
-    # generated question should stand; Recovery must not pull them backwards.
-    if reason == "learner_topic_change":
-        result["strategy"] = "accept_topic_change"
-        return result
-
+    # Explicit learner struggle is a recovery signal even when Teacher Policy
+    # selected SIMPLIFY. The executor stays semantically neutral; Recovery owns
+    # the natural support phrase because it has the learner-message context.
     if reason == "learner_did_not_understand":
         fallback = safe_question or SAFE_TOPIC_QUESTIONS.get(topic)
         if fallback:
@@ -123,6 +117,15 @@ def recover_reply(reply, quality, *, topic=None, action=None,
                 recovered=True,
                 strategy="simplify_for_learner",
             )
+        return result
+
+    if action not in {"CONTINUE", "ADVANCE"} or (quality or {}).get("changed"):
+        return result
+
+    # A learner-led topic change is not an error. The normal Topic Manager /
+    # generated question should stand; Recovery must not pull them backwards.
+    if reason == "learner_topic_change":
+        result["strategy"] = "accept_topic_change"
         return result
 
     if reason == "nele_uncertain":
