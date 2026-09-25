@@ -594,6 +594,11 @@ def main():
             send_and_wait(
                 page,
                 "Monika",
+                "M O …",
+            )
+            send_and_wait(
+                page,
+                "Monika",
                 "M – O – N – I – K – A",
             )
             final_reply = send_and_wait(
