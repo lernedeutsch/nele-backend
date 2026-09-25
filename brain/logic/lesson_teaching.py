@@ -49,6 +49,7 @@ from brain.logic.generic_lesson_engine import (
 
 from brain.logic.speaking_support import (
     legacy_course_support,
+    handle_pending_course_model,
 )
 
 
@@ -2391,6 +2392,23 @@ def handle_lesson_teaching(
     ):
 
         return None
+
+
+    # Global speaking-support contract for legacy A1 sections too.
+    # A pending model must be resolved before the lesson step can advance.
+    if not is_generic_lesson_active(
+        state
+    ):
+        pending_before = state.get("course_pending_speaking_model")
+        if pending_before:
+            pending_reply = handle_pending_course_model(
+                user_message,
+                state
+            )
+            if pending_reply is not None:
+                return pending_reply
+            # The learner produced the requested model. Continue processing
+            # the same utterance in the active legacy step exactly once.
 
 
     if is_generic_lesson_active(
