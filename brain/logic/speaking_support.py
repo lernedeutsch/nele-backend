@@ -194,6 +194,19 @@ def legacy_course_support(
     if shared or semantic_attempt:
         level = min(5, _support_level(state) + 1)
         _set_support(state, level)
+
+        # If the lesson has already recognized the learner's intended meaning,
+        # do not answer with an empty "try again". Give the smallest useful
+        # construction cue. The lesson still owns WHAT the target means; this
+        # engine owns HOW much of that target to reveal.
+        if semantic_attempt and level <= 1:
+            starter = target_tokens[0] if target_tokens else ""
+            return (
+                f"Fast. Fang so an: „{starter} …“"
+                if starter
+                else "Fast. Versuch es noch einmal."
+            )
+
         if level <= 1:
             return "Fast. Versuch es noch einmal."
         if level == 2:
