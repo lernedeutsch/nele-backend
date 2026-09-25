@@ -32,6 +32,17 @@ jobs:
       - name: Run backend tests
         run: python -m unittest discover -s tests -p "test_*.py"
 
+  live-nele:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install requests
+        run: pip install requests
       - name: Live Nele smoke test
         run: python test_nele_live.py
 
