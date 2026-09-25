@@ -561,7 +561,7 @@ def main():
             send_and_wait(
                 page,
                 "Monika",
-                "Buchstaben einzeln",
+                "M – O – N – I – K – A",
             )
             final_reply = send_and_wait(
                 page,
