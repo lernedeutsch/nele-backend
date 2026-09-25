@@ -164,6 +164,28 @@ def a1_everyday_reply(text, last_question, state=None):
     if "besuchst du sie oft" in last:
         return "Was machst du beruflich?"
 
+    # Contextual short answers must keep the meaning of the question.
+    # This belongs in the reusable A1 router so numbers/nouns are not treated
+    # as unrelated new topics by later generic systems.
+    if "wann fängst du an" in last or "wann faengst du an" in last:
+        m = re.search(r"\b(?:um\s+)?(\d{1,2})(?:\s*uhr)?\b", low)
+        if m:
+            hour = m.group(1)
+            facts["work_start"] = hour
+            return f"Du kannst sagen: „Ich fange um {hour} Uhr an.“ Was machst du bei der Arbeit?"
+    if "bis wann arbeitest du" in last:
+        m = re.search(r"\b(?:bis\s+)?(\d{1,2})(?:\s*uhr)?\b", low)
+        if m:
+            hour = m.group(1)
+            facts["work_end"] = hour
+            return f"Du kannst sagen: „Ich arbeite bis {hour} Uhr.“ Was machst du danach?"
+    if any(q in last for q in ("was isst du gern", "was hast du gegessen", "was möchtest du essen")):
+        foods = {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}
+        if low in foods:
+            food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
+            facts["food"] = food
+            return f"Du kannst sagen: „Ich esse gern {food}.“ Isst du das oft?"
+
     # Work -> time -> breakfast.
     if "was machst du beruflich" in last:
         return "Wo arbeitest du?"
