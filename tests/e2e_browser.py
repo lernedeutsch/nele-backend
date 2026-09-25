@@ -339,7 +339,7 @@ def main():
             # ----------------------------------
             # LEKTION 1 / BEGRÜSSUNGEN + FEHLER
             # ----------------------------------
-            send_and_wait(page, "Gute Morgen", "Guten Morgen")
+            send_and_wait(page, "Gute Morgen", "Begrüßung am Morgen")
             send_and_wait(page, "Guten Nacht", "Guten Morgen")
             send_and_wait(page, "h", "Guten Morgen")
             send_and_wait(page, "k", "Guten Morgen")
