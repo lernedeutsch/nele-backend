@@ -36,11 +36,11 @@ def get_existing_lesson_numbers(level="A1"):
 
 def validate_dialogues(level, lesson):
     module = load_lesson_module(level, lesson)
-    dialogues = getattr(module, "DIALOGUES", None) if module else None
+    dialogues = getattr(module, "LESSON_DIALOGUES", None) if module else None
     if dialogues is None:
         return True
     if not isinstance(dialogues, list):
-        raise ContentValidationError(f"{level} lesson {lesson}: DIALOGUES must be a list.")
+        raise ContentValidationError(f"{level} lesson {lesson}: LESSON_DIALOGUES must be a list.")
 
     seen_ids = set()
     for d_index, dialogue in enumerate(dialogues):
