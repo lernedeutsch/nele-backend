@@ -26,6 +26,7 @@ from brain.logic.conversation_orchestrator import build_turn_plan, build_orchest
 from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, record_turn_plan_compliance
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 from brain.logic.personal_sentences import handle_personal_sentence
+from brain.logic.a1_everyday_conversation import a1_everyday_reply
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -263,6 +264,11 @@ def _social_a1_reply(text, free, state):
     raw = str(text or "").strip()
     low = _norm(raw)
     last = _norm(free.get("last_question", ""))
+
+    # A1 lessons 1-10: reusable natural conversation, not a fixed script.
+    everyday_reply = a1_everyday_reply(raw, free.get("last_question", ""), state)
+    if everyday_reply:
+        return everyday_reply
 
     # ---- Questions the learner can ask Nele at any moment ----
     # Names: informal and polite variants.
