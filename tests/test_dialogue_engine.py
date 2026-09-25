@@ -1,0 +1,69 @@
+import unittest
+from unittest.mock import patch
+
+from brain.logic.dialogue_engine import (
+    answer_matches_dialogue_turn,
+    handle_dialogue,
+    start_dialogue,
+)
+
+
+SAMPLE = {
+    "id": "street",
+    "title": "Auf der Straße",
+    "intro": "Wir spielen einen kurzen Dialog.",
+    "turns": [
+        {"role": "nele", "speaker": "Mia", "text": "Hallo! Woher kommst du?"},
+        {
+            "role": "student",
+            "prompt": "Du bist dran.",
+            "expected": "Ich komme aus Polen.",
+            "accepted": ["Ich komme aus Polen", "aus Polen"],
+            "retry": "Sag: „Ich komme aus Polen.“",
+        },
+        {"role": "nele", "speaker": "Mia", "text": "Kommst du aus Polen?"},
+        {
+            "role": "student",
+            "expected": "Ja, ich komme aus Polen.",
+            "accepted": ["ja ich komme aus Polen", "ja"],
+        },
+    ],
+    "complete": "Sehr gut! Der Dialog ist fertig.",
+}
+
+
+class DialogueEngineTests(unittest.TestCase):
+    def test_accepts_natural_variant(self):
+        self.assertTrue(
+            answer_matches_dialogue_turn(
+                "aus Polen",
+                SAMPLE["turns"][1],
+            )
+        )
+
+    @patch("brain.logic.dialogue_engine.get_dialogue", return_value=SAMPLE)
+    def test_dialogue_advances_and_finishes(self, _):
+        state = {}
+        opening = start_dialogue("A1", 2, "street", state)
+        self.assertIn("Woher kommst du", opening)
+        self.assertTrue(state["dialogue_active"])
+
+        reply = handle_dialogue("Ich komme aus Polen", state)
+        self.assertIn("Kommst du aus Polen", reply)
+        self.assertEqual(state["dialogue_turn"], 3)
+
+        reply = handle_dialogue("ja", state)
+        self.assertIn("Dialog ist fertig", reply)
+        self.assertFalse(state["dialogue_active"])
+
+    @patch("brain.logic.dialogue_engine.get_dialogue", return_value=SAMPLE)
+    def test_wrong_answer_does_not_advance(self, _):
+        state = {}
+        start_dialogue("A1", 2, "street", state)
+        reply = handle_dialogue("Berlin", state)
+        self.assertIn("Ich komme aus Polen", reply)
+        self.assertEqual(state["dialogue_turn"], 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
