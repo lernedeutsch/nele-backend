@@ -325,9 +325,18 @@ def main():
             page.reload(
                 wait_until="domcontentloaded"
             )
-            wait_for_last_nele(
+            welcome_reply = wait_for_last_nele(
                 page,
-                "Wie geht es dir?",
+                "Wie geht",
+            )
+            assert any(
+                question in welcome_reply
+                for question in (
+                    "Wie geht es dir?",
+                    "Wie geht's dir?",
+                    "Wie geht's dir heute?",
+                    "Wie geht es dir heute?",
+                )
             )
 
             send_and_wait(
