@@ -120,24 +120,39 @@ def send_and_wait(page, message, expected, timeout=15000):
         "#send-btn"
     )
 
-    page.wait_for_function(
-        """data => {
-            const items = [
-                ...document.querySelectorAll('.message-nele')
-            ];
-            if (items.length <= data.before) {
-                return false;
-            }
-            return items[items.length - 1]
-                .innerText
-                .includes(data.expected);
-        }""",
-        arg={
-            "before": before,
-            "expected": expected,
-        },
-        timeout=timeout,
-    )
+    try:
+        page.wait_for_function(
+            """data => {
+                const items = [
+                    ...document.querySelectorAll('.message-nele')
+                ];
+                if (items.length <= data.before) {
+                    return false;
+                }
+                return items[items.length - 1]
+                    .innerText
+                    .includes(data.expected);
+            }""",
+            arg={
+                "before": before,
+                "expected": expected,
+            },
+            timeout=timeout,
+        )
+    except Exception:
+        nele_messages = page.locator(".message-nele").all_inner_texts()
+        user_messages = page.locator(".message-user").all_inner_texts()
+        print(
+            "E2E WAIT DIAGNOSTIC:",
+            {
+                "sent": message,
+                "expected": expected,
+                "nele_tail": nele_messages[-5:],
+                "user_tail": user_messages[-5:],
+            },
+            flush=True,
+        )
+        raise
 
     return page.locator(
         ".message-nele"
