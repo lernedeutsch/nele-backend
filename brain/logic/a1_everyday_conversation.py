@@ -61,6 +61,33 @@ def a1_everyday_reply(text, last_question, state=None):
     if re.search(r"\bmeine eltern wohnen\b", low):
         return "Besuchst du sie oft?"
 
+    # Keep learner content anchored to the active A1 subthread. Short pronoun
+    # answers such as "Sie heißt Lena" or "Sie ist zwölf Jahre alt" carry
+    # meaning through the previous question; without that context they used to
+    # fall through to unrelated generic topics.
+    if ("groß oder klein" in last or "gross oder klein" in last) and re.search(
+        r"\b(?:sie|es|mein(?:e)?\s+(?:wohnung|haus|zuhause))\b.*\b(?:klein|groß|gross)\b",
+        low,
+    ):
+        return "Welche Zimmer hast du?"
+
+    if ("wie heißen deine kinder" in last or "wie heissen deine kinder" in last) and re.search(
+        r"\b(?:sie|er|meine tochter|mein sohn)\s+(?:heißt|heisst)\b",
+        low,
+    ):
+        return "Wie alt ist dein Kind?"
+
+    if (
+        "wie alt ist dein kind" in last
+        or "wie alt sind sie" in last
+        or "wie alt ist deine tochter" in last
+        or "wie alt ist dein sohn" in last
+    ) and (
+        re.search(r"\b(?:sie|er|mein(?:e)?\s+(?:tochter|sohn))\s+ist\b.*\bjahre?\s+alt\b", low)
+        or re.search(r"\b\d{1,2}\s+jahre?\b", low)
+    ):
+        return "Hast du Geschwister?"
+
     if re.search(r"\bich arbeite\b", low):
         return "Arbeitest du heute?"
     if re.search(r"\bich trinke morgens\b", low):
