@@ -527,6 +527,11 @@ def main():
             send_and_wait(
                 page,
                 "Wie heißt du",
+                "Fang so an: „wie heißen",
+            )
+            send_and_wait(
+                page,
+                "Wie heißt du",
                 "Wie heißen Sie?",
             )
             send_and_wait(
