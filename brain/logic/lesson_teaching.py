@@ -48,6 +48,7 @@ from brain.logic.generic_lesson_engine import (
 )
 
 from brain.logic.personal_sentences import handle_personal_sentence_practice
+from brain.logic.dialogue_engine import handle_dialogue, is_dialogue_active
 
 from brain.logic.speaking_support import (
     legacy_course_support,
@@ -2433,6 +2434,12 @@ def handle_lesson_teaching(
     personal_practice = handle_personal_sentence_practice(user_message, state)
     if personal_practice:
         return personal_practice.get("reply")
+
+    # A started dialogue owns the conversation until it is completed.
+    if is_dialogue_active(state):
+        dialogue_reply = handle_dialogue(user_message, state)
+        if dialogue_reply is not None:
+            return dialogue_reply
 
 
     if not is_lesson_teaching_active(
