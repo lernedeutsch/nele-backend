@@ -105,8 +105,11 @@ def a1_everyday_reply(text, last_question, state=None):
         return "Was isst du zum Frühstück?"
     if re.search(r"\bich esse\b", low) and any(x in low for x in ("brot","käse","kaese","frühstück","fruehstueck")):
         return "Magst du Obst?"
+    # Shopping context outranks generic food associations. A product list can
+    # contain fruit, but after "Was kaufst du heute?" it is still a shopping
+    # answer and must stay in the shopping subthread.
     if "was kaufst du heute" in last:
-        return "Kaufst du Brot im Supermarkt oder in der Bäckerei?"
+        return "Wo kaufst du Brot?"
     if any(x in low for x in ("äpfel","aepfel","bananen")) and not low.startswith("ich kaufe"):
         return "Was trinkst du gern?"
 
