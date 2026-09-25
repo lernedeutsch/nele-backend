@@ -91,13 +91,6 @@ from brain.nele3_upgrade.state import (
     set_pending_recommendation
 )
 
-from brain.logic.a1_lesson2_conversation import (
-    start as start_a1_lesson2_conversation,
-    handle as handle_a1_lesson2_conversation,
-    current_prompt as get_a1_lesson2_current_prompt,
-)
-
-
 from brain.logic.speaking_support import (
     assess_course_answer,
     build_course_support_reply,
@@ -1054,14 +1047,6 @@ def start_generic_lesson_teaching(
     if state is None:
         return None
 
-    # A1.2 uses the generative tutor while retaining the shared
-    # lesson progress/error-memory infrastructure.
-    current_level = str(get_current_level(state) or "A1").upper()
-    current_lesson = get_current_lesson(state)
-    if current_level == "A1" and int(current_lesson or 0) == 2:
-        return start_a1_lesson2_conversation(section, state)
-
-
     level = get_current_level(
         state
     )
@@ -1172,10 +1157,6 @@ def get_generic_current_prompt(
     ):
 
         return ""
-
-    if str(state.get("lesson_teaching_level") or "").upper() == "A1" and int(state.get("lesson_teaching_lesson") or 0) == 2:
-        return get_a1_lesson2_current_prompt(state)
-
 
     level = state.get(
         "lesson_teaching_level"
@@ -1524,9 +1505,6 @@ def handle_generic_lesson_teaching(
     ):
 
         return None
-
-    if str(state.get("lesson_teaching_level") or "").upper() == "A1" and int(state.get("lesson_teaching_lesson") or 0) == 2:
-        return handle_a1_lesson2_conversation(user_message, state)
 
     pending_reply = handle_pending_course_model(user_message, state)
     if pending_reply is not None:
