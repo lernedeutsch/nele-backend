@@ -17,7 +17,7 @@ def _text(value):
 
 def _slug(value):
     value = _text(value).casefold()
-    value = value.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    value = value.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss").replace("é", "e").replace("è", "e").replace("ê", "e")
     value = re.sub(r"[^a-z0-9]+", "-", value).strip("-")
     return value or "dialogue"
 
