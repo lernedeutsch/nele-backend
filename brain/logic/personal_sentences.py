@@ -7,6 +7,8 @@ so PostgreSQL keeps it across browser restarts.
 import re
 from datetime import datetime, timezone
 
+# To add another sentence, append one small dictionary here. No router,
+# lesson or frontend change is required.
 PERSONAL_SENTENCES = [
     {
         "id": "einen_moment_bitte",
@@ -62,6 +64,31 @@ PERSONAL_SENTENCES = [
         "practice_prompt": "Du bist heute sehr beschäftigt. Wie sagst du das auf Deutsch?",
     },
 ]
+
+def get_personal_sentence_catalog():
+    """Return a safe copy for tests, dashboards and future UI."""
+    return [dict(item) for item in PERSONAL_SENTENCES]
+
+
+def validate_personal_sentence_catalog():
+    """Fail fast on duplicate IDs/texts or incomplete catalogue entries."""
+    ids = set()
+    texts = set()
+    for item in PERSONAL_SENTENCES:
+        sentence_id = str(item.get("id") or "").strip()
+        text = str(item.get("text") or "").strip()
+        reply = str(item.get("reply") or "").strip()
+        if not sentence_id or not text or not reply:
+            raise ValueError("Each Meine Sätze item needs id, text and reply.")
+        norm_text = _norm(text)
+        if sentence_id in ids:
+            raise ValueError(f"Duplicate Meine Sätze id: {sentence_id}")
+        if norm_text in texts:
+            raise ValueError(f"Duplicate Meine Sätze text: {text}")
+        ids.add(sentence_id)
+        texts.add(norm_text)
+    return True
+
 
 def _norm(value):
     value = str(value or "").strip().lower()
