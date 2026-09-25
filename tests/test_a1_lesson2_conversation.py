@@ -112,3 +112,23 @@ def test_short_answer_is_accepted_before_expansion():
     assert reply.startswith("Genau.")
     assert "Fast" not in reply
     assert "Richtig ist" not in reply
+
+
+def test_mixed_review_requires_number_word():
+    t=task("number","neun",number=9,require_word=True,intent="MIXED_REVIEW")
+    assert classify("9",t)["status"]=="NUMBER_WORD_REQUIRED"
+    assert classify("neun",t)["status"]=="CORRECT_FULL"
+
+
+def test_incomplete_gap_sentence_is_not_accepted():
+    t=task(
+        "kommen","kommt",pronoun="er",form="kommt",
+        full_sentence_expected="Thomas kommt aus Österreich."
+    )
+    assert classify("Thomas kommt aus",t)["status"]=="INCOMPLETE_ANSWER"
+    assert classify("Thomas kommt aus Österreich.",t)["status"]=="CORRECT_FULL"
+
+
+def test_wrong_netherlands_article_is_detected():
+    t=task("origin","Max kommt aus den Niederlanden.")
+    assert classify("Max kommt aus der Niederlanden",t)["status"]=="ARTICLE_ERROR"
