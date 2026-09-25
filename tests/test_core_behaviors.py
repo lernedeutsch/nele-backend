@@ -41,6 +41,8 @@ from brain.logic.lesson_teaching import (
     is_day_greeting,
     is_evening_greeting,
     is_relevant_greeting_mistake,
+    handle_alphabet_section,
+    handle_introduction_section,
 )
 from brain.logic.error_practice import (
     is_relevant_error_example,
@@ -62,6 +64,28 @@ from brain.memory.error_review import (
 
 
 class NeleCoreBehaviorTests(unittest.TestCase):
+
+
+    def test_lesson1_successes_fade_global_speaking_help(self):
+        intro_state = {
+            "lesson_teaching_step": 1,
+            "course_speaking_support_level": 3,
+        }
+        handle_introduction_section("Guten Morgen", intro_state)
+        self.assertEqual(intro_state["course_speaking_support_level"], 2)
+
+        alphabet_state = {
+            "lesson_teaching_step": 1,
+            "course_speaking_support_level": 3,
+        }
+        handle_alphabet_section("A", alphabet_state)
+        self.assertEqual(alphabet_state["course_speaking_support_level"], 2)
+
+        handle_alphabet_section("B", alphabet_state)
+        self.assertEqual(alphabet_state["course_speaking_support_level"], 1)
+
+        handle_alphabet_section("M", alphabet_state)
+        self.assertEqual(alphabet_state["course_speaking_support_level"], 0)
 
     def test_first_a1_welcome_is_short(self):
         state = {
