@@ -19,6 +19,10 @@ from brain.memory.daily_learning import (
     mark_exercise_completed_today
 )
 
+from brain.memory.user_facts import (
+    get_user_fact
+)
+
 
 # ==========================================
 # DAILY LEARNING MEMORY
@@ -580,9 +584,9 @@ def handle_a1_lesson_1_review(
     if pending_reply is not None:
         return pending_reply
     if pending_before:
-        # The learner has now produced the supported answer. Count the
-        # successful repair and continue through the same review step.
-        remember_correct_answer(state)
+        # The learner has now produced the supported answer. Continue through
+        # the same review step; that step records the success exactly once.
+        pass
 
     step = state.get(
         "lesson_review_training_step",
@@ -655,7 +659,11 @@ def handle_a1_lesson_1_review(
             remember_wrong_answer(state)
             # Review uses the current learner name when available, but the
             # speaking-support policy itself remains vocabulary-independent.
-            name = str(state.get("name") or "Moni").strip()
+            name = str(
+                get_user_fact(state, "name")
+                or state.get("name")
+                or "Moni"
+            ).strip()
             target = f"Ich heiße {name}."
             support = legacy_course_support(
                 user_message, target, state, context="review"
