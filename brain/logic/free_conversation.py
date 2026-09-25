@@ -25,6 +25,7 @@ from brain.logic.conversation_recovery import recover_reply
 from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration
 from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, record_turn_plan_compliance
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
+from brain.logic.personal_sentences import handle_personal_sentence
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -813,6 +814,18 @@ def generate_free_welcome(state, session_id=None):
     return OPENERS[index]
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
+    # Personal real-life sentences have priority in free conversation. Their
+    # progress lives in the same learner state and is persisted by the caller.
+    personal = handle_personal_sentence(user_message, state, mode="free")
+    if personal:
+        reply = personal["reply"]
+        free = state.setdefault("free_conversation", {})
+        _remember_question(free, reply)
+        meta = {
+            "conversation_mode": "free",
+            **personal.get("meta", {}),
+        }
+        return reply, meta
     # First evaluate whether the previous pedagogical action worked. The
     # resulting signal is available to Learner Model before the next policy.
     learning_outcome = evaluate_learning_outcome(user_message, state)
