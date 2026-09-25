@@ -34,8 +34,10 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
         self.assertEqual(state["dialogue_id"], "woher-kommst-du")
         self.assertIsNone(state["pending_new_learning"])
 
-        reply = handle_dialogue("Ich komme aus Polen", state)
+        # Natural short answer is semantically accepted.
+        reply = handle_dialogue("Polen", state)
         self.assertIn("Kommst du aus Polen", reply)
+        self.assertIn("give_origin", state["dialogue_completed_intents"])
 
         reply = handle_dialogue("Ja", state)
         self.assertIn("Anna kommt aus Österreich", reply)
@@ -43,6 +45,23 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
         reply = handle_dialogue("Anna kommt aus Österreich", state)
         self.assertIn("Herkunftsdialog geschafft", reply)
         self.assertFalse(state["dialogue_active"])
+
+    def test_unrelated_answer_does_not_advance_origin_dialogue(self):
+        from brain.logic.dialogue_engine import start_dialogue
+        state = {}
+        start_dialogue("A1", 2, "woher-kommst-du", state)
+        reply = handle_dialogue("Ich kaufe Brot", state)
+        self.assertIn("Ich komme aus Polen", reply)
+        self.assertEqual(state["dialogue_turn"], 1)
+        self.assertNotIn("give_origin", state["dialogue_completed_intents"])
+
+    def test_origin_dialogue_has_semantic_contract(self):
+        from brain.logic.dialogue_engine import get_dialogue
+        dialogue = get_dialogue("A1", 2, "woher-kommst-du")
+        self.assertEqual(dialogue["topic"], "Herkunft")
+        self.assertEqual(dialogue["register"], "informal")
+        self.assertEqual(dialogue["max_variations"], 2)
+        self.assertIn("combine_unrelated_topics", dialogue["forbidden_variations"])
 
 
 if __name__ == "__main__":
