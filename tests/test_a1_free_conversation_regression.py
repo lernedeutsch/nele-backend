@@ -1533,3 +1533,40 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertFalse(result["topic_transition"]["transition"])
         self.assertIn("topic_transition_blocked", result["conflicts"])
+
+
+    def test_wellbeing_short_answer_survives_und_dir_ellipsis(self):
+        state = {}
+        generate_free_welcome(state)
+        reply, _ = _turn(state, "Wie geht es dir heute?")
+        self.assertIn("Und dir?", reply)
+        reply, _ = _turn(state, "gut")
+        self.assertIn("Das freut mich", reply)
+        self.assertNotIn("Kein Problem", reply)
+
+    def test_fresh_learner_question_outranks_stale_work_context(self):
+        state = {"free_conversation": {
+            "last_question": "Was machst du bei der Arbeit?",
+            "recent_questions": ["Was machst du bei der Arbeit?"],
+            "conversation_facts": {},
+        }}
+        reply, _ = _turn(state, "Woher kommst du?")
+        self.assertIn("Ich bin Nele", reply)
+        self.assertNotEqual(reply.strip(), "Was machst du bei der Arbeit?")
+
+    def test_weekend_question_outranks_stale_weather_context(self):
+        state = {"free_conversation": {
+            "last_question": "Wie ist das Wetter bei dir?",
+            "recent_questions": ["Wie ist das Wetter bei dir?"],
+            "conversation_facts": {"weather": "warm"},
+        }}
+        reply, _ = _turn(state, "Was machst du gern am Wochenende?")
+        self.assertIn("Am Wochenende", reply)
+        self.assertNotIn("Magst du das Wetter heute?", reply)
+
+    def test_greeting_is_not_treated_as_failure(self):
+        state = {}
+        generate_free_welcome(state)
+        reply, _ = _turn(state, "Hallo Nele!")
+        self.assertNotIn("Kein Problem", reply)
+        self.assertIn("Wie geht es dir", reply)
