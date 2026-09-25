@@ -63,3 +63,52 @@ def test_short_number_does_not_call_word_a_full_sentence():
     state["a1_l2_tutor"]["task"]=task("number","neun",number=9,intent="NUMBER_PRODUCTION")
     reply=handle("9",state)
     assert "Als ganzer Satz" not in reply
+
+
+def test_short_meaningful_answer_gets_speaking_turn_before_next_task():
+    state={}
+    start("Woher kommen Sie?",state)
+    state["a1_l2_tutor"]["task"]=task(
+        "origin","Ich komme aus Polen.",
+        intent="ASK_USER_ORIGIN",prompt="Woher kommst du?"
+    )
+    reply=handle("Polen",state)
+    assert "Ich komme aus Polen." in reply
+    assert state["a1_l2_tutor"]["pending_speaking_model"]=="Ich komme aus Polen."
+    assert "Sag es mal" in reply
+    # The next task must not be introduced before the learner says the model.
+    assert state["a1_l2_tutor"]["turn"]==0
+
+    reply2=handle("Ich komme aus Polen.",state)
+    assert "Sehr gut!" in reply2
+    assert state["a1_l2_tutor"]["pending_speaking_model"] is None
+    assert state["a1_l2_tutor"]["turn"]==1
+
+
+def test_unclear_answer_uses_progressive_scaffolding_not_immediate_solution():
+    state={}
+    start("Woher kommen Sie?",state)
+    state["a1_l2_tutor"]["task"]=task(
+        "origin","Ich komme aus Polen.",
+        intent="ASK_USER_ORIGIN",prompt="Woher kommst du?"
+    )
+    first=handle("weiß nicht",state)
+    assert "Ich komme aus Polen." not in first
+    assert "Versuch" in first
+
+    second=handle("keine Ahnung",state)
+    assert "Fang so an" in second
+    assert "Ich komme" in second
+
+
+def test_short_answer_is_accepted_before_expansion():
+    state={}
+    start("Woher kommen Sie?",state)
+    state["a1_l2_tutor"]["task"]=task(
+        "origin","Ich komme aus Polen.",
+        intent="ASK_USER_ORIGIN",prompt="Woher kommst du?"
+    )
+    reply=handle("Polen",state)
+    assert reply.startswith("Genau.")
+    assert "Fast" not in reply
+    assert "Richtig ist" not in reply
