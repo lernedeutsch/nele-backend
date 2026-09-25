@@ -872,12 +872,24 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         return reply, meta
     free = state.setdefault("free_conversation", {})
 
-    # Priority -2: the reusable A1 lessons 1-10 conversation router must run
-    # before Topic Manager / Teacher Policy / recovery. Otherwise those older
-    # systems can reinterpret a valid A1 fact and replace its natural follow-up.
+    # Priority -2: the reusable A1 lessons 1-10 conversation router may
+    # choose the natural reply, but it must still pass through the global
+    # conversation guard/state bookkeeping. Fast paths must not bypass the
+    # same safety contract used by the rest of free conversation.
     a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
     if a1_reply:
-        _remember_question(free, a1_reply)
+        previous_question = free.get("last_question", "")
+        record_answer(state, user_message, previous_question)
+        parts = re.findall(r"[^.!?]*[?]", a1_reply)
+        next_question = parts[-1].strip() if parts else ""
+        if next_question:
+            guard = select_question(state, next_question, [])
+            guarded_question = guard.get("selected") or next_question
+            a1_reply = replace_final_question(a1_reply, next_question, guarded_question)
+            _remember_question(free, guarded_question)
+        else:
+            guard = {"version": 2, "blocked": False, "reason": "no_question"}
+            _remember_question(free, a1_reply)
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
         level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
@@ -889,6 +901,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "course_level": level,
             "topic": "everyday_a1",
             "conversation_state": conversation_state,
+            "global_conversation_guard": guard,
             "a1_everyday_router": True,
         }
 
