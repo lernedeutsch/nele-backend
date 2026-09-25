@@ -36,6 +36,9 @@ jobs:
       - name: Compile production code
         run: python -m compileall -q brain memory server speech tests
 
+      - name: Validate Nele learning content
+        run: python -m brain.logic.content_validation
+
       - name: Run backend tests
         run: python -m unittest discover -s tests -p "test_*.py"
 
