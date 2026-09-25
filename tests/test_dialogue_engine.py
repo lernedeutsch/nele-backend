@@ -5,6 +5,7 @@ from brain.logic.dialogue_engine import (
     answer_matches_dialogue_turn,
     handle_dialogue,
     start_dialogue,
+    start_dialogue_for_section,
 )
 
 
@@ -55,6 +56,12 @@ class DialogueEngineTests(unittest.TestCase):
         reply = handle_dialogue("ja", state)
         self.assertIn("Dialog ist fertig", reply)
         self.assertFalse(state["dialogue_active"])
+
+    def test_real_a12_dialogue_is_selected_from_section(self):
+        state = {}
+        opening = start_dialogue_for_section("A1", 2, "Woher kommen Sie?", state)
+        self.assertIn("Woher kommst du", opening)
+        self.assertEqual(state["dialogue_id"], "woher-kommst-du")
 
     def test_real_a12_dialogue_runs_end_to_end(self):
         state = {}
