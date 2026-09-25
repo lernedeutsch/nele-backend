@@ -54,7 +54,14 @@ def a1_everyday_reply(text, last_question, state=None):
     if re.search(r"\b(?:der )?tisch steht\b", low):
         return "Wohnst du allein oder mit deiner Familie?"
 
-    if re.search(r"\bich habe (?:eine )?tochter\b|\bich habe (?:einen )?sohn\b|\bich habe kinder\b", low):
+    if re.search(r"\bich habe (?:eine )?tochter\b", low):
+        facts["child_type"] = "tochter"
+        return "Wie heißt deine Tochter?"
+    if re.search(r"\bich habe (?:einen )?sohn\b", low):
+        facts["child_type"] = "sohn"
+        return "Wie heißt dein Sohn?"
+    if re.search(r"\bich habe kinder\b", low):
+        facts["child_type"] = "kinder"
         return "Wie heißen deine Kinder?"
     if re.search(r"\bich habe (?:einen )?bruder\b|\bich habe (?:eine )?schwester\b|\bich habe geschwister\b", low):
         return "Wo wohnen deine Geschwister?"
@@ -71,11 +78,15 @@ def a1_everyday_reply(text, last_question, state=None):
     ):
         return "Welche Zimmer hast du?"
 
-    if ("wie heißen deine kinder" in last or "wie heissen deine kinder" in last) and re.search(
+    if any(q in last for q in ("wie heißen deine kinder", "wie heissen deine kinder", "wie heißt deine tochter", "wie heisst deine tochter", "wie heißt dein sohn", "wie heisst dein sohn")) and re.search(
         r"\b(?:sie|er|meine tochter|mein sohn)\s+(?:heißt|heisst)\b",
         low,
     ):
-        return "Wie alt ist dein Kind?"
+        if facts.get("child_type") == "tochter":
+            return "Wie alt ist deine Tochter?"
+        if facts.get("child_type") == "sohn":
+            return "Wie alt ist dein Sohn?"
+        return "Wie alt sind deine Kinder?"
 
     if (
         "wie alt ist dein kind" in last
@@ -94,6 +105,8 @@ def a1_everyday_reply(text, last_question, state=None):
         return "Was isst du zum Frühstück?"
     if re.search(r"\bich esse\b", low) and any(x in low for x in ("brot","käse","kaese","frühstück","fruehstueck")):
         return "Magst du Obst?"
+    if "was kaufst du heute" in last:
+        return "Kaufst du Brot im Supermarkt oder in der Bäckerei?"
     if any(x in low for x in ("äpfel","aepfel","bananen")) and not low.startswith("ich kaufe"):
         return "Was trinkst du gern?"
 
