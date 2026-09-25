@@ -20,7 +20,7 @@ PERSONAL_SENTENCES = [
             "was für wetter magst du am liebsten",
             "was fuer wetter magst du am liebsten",
         ],
-        "reply": "Ich mag sonniges, mildes Wetter. Und du? Welches Wetter magst du am liebsten?",
+        "reply": "Ich mag sonniges, mildes Wetter. Und du?",
         "practice_prompt": "Du möchtest jemanden nach seinem Lieblingswetter fragen. Was sagst du?",
     },
     {
@@ -28,7 +28,7 @@ PERSONAL_SENTENCES = [
         "text": "Arbeitest du heute?",
         "category": "arbeit",
         "aliases": ["arbeitest du heute"],
-        "reply": "Ja, ich bin heute für dein Deutschtraining da. Und du? Arbeitest du heute?",
+        "reply": "Ja, heute habe ich einiges zu tun. Und du?",
         "practice_prompt": "Du möchtest jemanden fragen, ob er heute arbeitet. Was sagst du?",
     },
     {
@@ -36,7 +36,7 @@ PERSONAL_SENTENCES = [
         "text": "Arbeitest du am Sonntag?",
         "category": "arbeit",
         "aliases": ["arbeitest du am sonntag"],
-        "reply": "Ja, auch am Sonntag bin ich für dein Deutschtraining da. Und du? Arbeitest du am Sonntag?",
+        "reply": "Nein, am Sonntag habe ich frei. Und du?",
         "practice_prompt": "Du möchtest jemanden fragen, ob er am Sonntag arbeitet. Was sagst du?",
     },
     {
@@ -44,7 +44,7 @@ PERSONAL_SENTENCES = [
         "text": "Wann hast du frei?",
         "category": "arbeit",
         "aliases": ["wann hast du frei", "wann hast du einen freien tag"],
-        "reply": "Ich bin immer für dein Deutschtraining da. Und wann hast du frei?",
+        "reply": "Am Sonntag habe ich meistens frei. Und du?",
         "practice_prompt": "Du möchtest jemanden fragen, wann er frei hat. Was sagst du?",
     },
     {
