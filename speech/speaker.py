@@ -1,5 +1,6 @@
 import math
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -297,6 +298,36 @@ class Speaker:
                     f"{self.piper}"
                 )
 
+    @staticmethod
+    def normalize_text_for_speech(text):
+        """
+        Build a speech-only version of Nele's visible text.
+
+        Lesson placeholders such as _, __ or ___ are visual teaching
+        controls, not words. They must remain visible in the chat but
+        must never be sent literally to Piper, where they can be spoken
+        as "Unterstrich".
+
+        Keep this normalization generic: it applies to every lesson and
+        every sentence instead of special-casing individual exercises.
+        """
+        text = str(text or "")
+
+        # Remove one or more underscores wherever they are used as a
+        # pedagogical blank. A surrounding gap is retained so adjacent
+        # words cannot accidentally be joined.
+        text = re.sub(r"_+", " ", text)
+
+        # Normalize whitespace created by removed placeholders while
+        # preserving normal punctuation and the learner-facing wording.
+        text = re.sub(r"[ \\t]+", " ", text)
+        text = re.sub(r" +([,.;:!?])", r"\\1", text)
+        text = re.sub(r"\\n[ \\t]+", "\\n", text)
+        text = re.sub(r"[ \\t]+\\n", "\\n", text)
+        text = re.sub(r"\\n{3,}", "\\n\\n", text)
+
+        return text.strip()
+
     def create_wav(
         self,
         text,
@@ -312,7 +343,7 @@ class Speaker:
         dla endpointu /tts.
         """
 
-        text = str(text).strip()
+        text = self.normalize_text_for_speech(text)
 
         if not text:
             raise ValueError(
