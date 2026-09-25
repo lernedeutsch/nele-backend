@@ -8,6 +8,7 @@ from brain.logic.matcher import normalize
 from brain.logic.lesson_teaching import (
     start_lesson_teaching
 )
+from brain.logic.dialogue_engine import start_dialogue_for_section
 
 from brain.memory.lesson_progress import (
     set_current_section
@@ -354,6 +355,17 @@ def start_new_learning(
     # ======================================
     # FAKTYCZNE ROZPOCZĘCIE NAUCZANIA
     # ======================================
+
+    # If this lesson section owns a reusable dialogue, start it automatically.
+    # No dialogue ID is hard-coded here: lesson content declares the mapping.
+    dialogue_answer = start_dialogue_for_section(
+        level or get_current_level(state),
+        lesson or get_current_lesson(state),
+        section,
+        state,
+    )
+    if dialogue_answer:
+        return dialogue_answer
 
     teaching_answer = (
         start_lesson_teaching(
