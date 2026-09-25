@@ -93,10 +93,13 @@ def choose_teacher_action(
             "continue_conversation": True,
         }
 
-    # Historical learner support may make the NEXT question simpler, but it
-    # must never turn a valid current answer into "Kein Problem". Only an
-    # explicit current-turn struggle triggers SIMPLIFY here.
-    if struggle:
+    # Historical support still matters for genuinely open/long answers.
+    # Expected short answers were already accepted above, so a correct "ja",
+    # "nein", place, time or short content reply is not punished.
+    if struggle or (
+        (learner_support >= 3 or learner_autonomy == "needs_support")
+        and expected not in {"yes_no", "place", "time", "short_content"}
+    ):
         return {
             "action": "simplify_next_question",
             "reason": "current_turn_struggle",
