@@ -393,6 +393,36 @@ def _social_a1_reply(text, free, state):
     if everyday_key in everyday_questions:
         return everyday_questions[everyday_key]
 
+    # Learner-led free-time questions outrank stale conversation context.
+    # Match natural variants instead of hard-coding one exact sentence.
+    if re.fullmatch(
+        r"was\s+machst\s+du\s+gern(?:e)?(?:\s+(?:am|an)\s+(?:wochenende|wochenenden))?",
+        everyday_key,
+    ):
+        if "wochenend" in everyday_key:
+            return "Am Wochenende höre ich gern Musik und spreche mit dir. Und du?"
+        return "Ich spreche gern mit dir. Und du?"
+
+    # A clear learner statement with "gern" is meaningful new content. React
+    # to that content before generic teacher/fallback logic can revive an old
+    # topic and produce an unrelated "Kein Problem" response.
+    gern_statement = re.fullmatch(r"ich\s+(.+?)\s+gern(?:e)?(?:\s+(.+))?", everyday_key)
+    if gern_statement:
+        activity = gern_statement.group(1).strip()
+        detail = (gern_statement.group(2) or "").strip()
+        if activity in {"lerne", "lern"} and ("deutsch" in detail or not detail):
+            free.setdefault("conversation_facts", {})["learning"] = "Deutsch"
+            return "Schön! Lernst du jeden Tag Deutsch?"
+        if activity in {"höre", "hoere"} and "musik" in detail:
+            return "Schön! Welche Musik hörst du gern?"
+        if activity in {"lese", "les"}:
+            return "Schön! Was liest du gern?"
+        if activity in {"koche", "koch"}:
+            return "Schön! Was kochst du gern?"
+        if activity in {"schwimme", "schwimm"}:
+            return "Schön! Wo schwimmst du gern?"
+        return "Schön! Was machst du sonst noch gern?"
+
     # Common A1 verb/conjugation errors in the five everyday topics.
     everyday_errors = [
         (r"^ich\s+arbeiten(?:\s+(.+))?$", "ich_arbeite",
