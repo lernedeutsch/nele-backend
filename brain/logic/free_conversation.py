@@ -265,9 +265,7 @@ def _social_a1_reply(text, free, state):
     low = _norm(raw)
     last = _norm(free.get("last_question", ""))
 
-    # A fresh learner question must not be interpreted as an answer to stale
-    # work/weather context. Only the generic router gets a blank previous
-    # question; all established answer handling remains unchanged.
+    # A fresh learner question must outrank stale answer context.
     learner_question = bool(
         raw.rstrip().endswith("?")
         or re.match(
@@ -276,9 +274,8 @@ def _social_a1_reply(text, free, state):
             low,
         )
     )
-    everyday_reply = a1_everyday_reply(
-        raw, "" if learner_question else free.get("last_question", ""), state
-    )
+    # A1 lessons 1-10: reusable natural conversation, not a fixed script.
+    everyday_reply = a1_everyday_reply(raw, "" if learner_question else free.get("last_question", ""), state)
     if everyday_reply:
         return everyday_reply
 
@@ -886,10 +883,31 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             **personal.get("meta", {}),
         }
         return reply, meta
+    free = state.setdefault("free_conversation", {})
+
+    # Priority -2: the reusable A1 lessons 1-10 conversation router must run
+    # before Topic Manager / Teacher Policy / recovery. Otherwise those older
+    # systems can reinterpret a valid A1 fact and replace its natural follow-up.
+    a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
+    if a1_reply:
+        _remember_question(free, a1_reply)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
+        conversation_state = sync_conversation_state(
+            state, topic="everyday_a1", last_question=free.get("last_question", ""), level=level
+        )
+        return a1_reply, {
+            "conversation_mode": "free",
+            "course_level": level,
+            "topic": "everyday_a1",
+            "conversation_state": conversation_state,
+            "a1_everyday_router": True,
+        }
+
     # First evaluate whether the previous pedagogical action worked. The
     # resulting signal is available to Learner Model before the next policy.
     learning_outcome = evaluate_learning_outcome(user_message, state)
-    free = state.setdefault("free_conversation", {})
     progress = state.setdefault("student_progress", {})
     level = str(progress.get("current_level", "A1.1") or "A1.1")
 
