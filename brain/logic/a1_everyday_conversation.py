@@ -45,9 +45,22 @@ def a1_everyday_reply(text, last_question, state=None):
         return "Was machst du heute?"
     if re.search(r"\bmorgen arbeite ich\b", low):
         return "Wann fängst du morgen an?"
+    # Time answers may arrive as digits or as ordinary spoken German.
+    # Treat both forms as the same contextual answer so ASR/text input such as
+    # "um acht Uhr" stays in the active work-time subthread.
+    german_hours = (
+        "null|ein|eins|zwei|drei|vier|fünf|fuenf|sechs|sieben|acht|neun|zehn|"
+        "elf|zwölf|zwoelf|dreizehn|vierzehn|fünfzehn|fuenfzehn|sechzehn|"
+        "siebzehn|achtzehn|neunzehn|zwanzig|einundzwanzig|zweiundzwanzig|"
+        "dreiundzwanzig"
+    )
+    time_answer = re.fullmatch(
+        rf"(?:um\s+)?(?:(?:[01]?\d|2[0-3])(?:(?::|\.)[0-5]\d)?|(?:{german_hours}))(?:\s*uhr)?",
+        low,
+    )
     if (
         ("wann fängst du morgen an" in last or "wann faengst du morgen an" in last)
-        and re.fullmatch(r"(?:um\s+)?(?:[01]?\d|2[0-3])(?:(?::|\.)[0-5]\d)?(?:\s*uhr)?", low)
+        and time_answer
     ):
         return "Und wann bist du morgen fertig?"
     if re.search(r"\bdeutsch\b.*\b(?:schwierig|schwer)\b", low):
