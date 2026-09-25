@@ -47,6 +47,10 @@ from brain.logic.generic_lesson_engine import (
     is_generic_lesson_active
 )
 
+from brain.logic.speaking_support import (
+    legacy_course_support,
+)
+
 
 # ==========================================
 # TEXT BEREINIGEN
@@ -1858,6 +1862,15 @@ def handle_introduction_section(
                 state
             ) or "Moni"
 
+            support = legacy_course_support(
+                user_message,
+                f"Ich heiße {name}.",
+                state,
+                context="name",
+            )
+            if support:
+                return support
+
             remember_lesson_mistake(
                 state,
                 "grammar",
@@ -1903,6 +1916,15 @@ def handle_introduction_section(
         if not is_informal_name_question(
             user_message
         ):
+
+            support = legacy_course_support(
+                user_message,
+                "Wie heißt du?",
+                state,
+                context="question",
+            )
+            if support:
+                return support
 
             remember_lesson_mistake(
                 state,
@@ -1987,6 +2009,15 @@ def handle_introduction_section(
         if not is_formal_name_question(
             user_message
         ):
+
+            support = legacy_course_support(
+                user_message,
+                "Wie heißen Sie?",
+                state,
+                context="question",
+            )
+            if support:
+                return support
 
             remember_lesson_mistake(
                 state,
