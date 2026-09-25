@@ -184,3 +184,22 @@ def test_pending_spelling_accepts_equivalent_letter_separators_without_weakening
     assert handle_pending_course_model("ich-heiße-monika", state) is not None
     assert state["course_pending_speaking_model"] == "Ich heiße Monika."
 
+def test_accepted_semantic_fragment_still_practises_multiword_target():
+    state = {}
+    step = _step(
+        "Ich komme aus Polen.",
+        ["Ich komme aus Polen.", "Polen"],
+    )
+    result = assess_course_answer("Polen", step, state, answer_matches=True)
+    assert result["answer_matches"] is True
+    assert result["intercept"] is True
+    assert result["kind"] == "short_answer_expansion"
+
+
+def test_natural_short_answer_is_not_forced_into_full_sentence():
+    state = {"course_speaking_support_level": 2}
+    step = _step("Ja, ich arbeite heute.", ["Ja", "Ja, ich arbeite heute."])
+    result = assess_course_answer("ja", step, state, answer_matches=True)
+    assert result["intercept"] is False
+    assert result["kind"] == "natural_short_success"
+
