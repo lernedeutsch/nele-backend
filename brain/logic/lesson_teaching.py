@@ -1917,11 +1917,16 @@ def handle_introduction_section(
             user_message
         ):
 
+            semantic_attempt = normalize(user_message).strip(" .?!„“\"'") in {
+                "wer bist du",
+                "wer sind sie",
+            }
             support = legacy_course_support(
                 user_message,
                 "Wie heißt du?",
                 state,
                 context="question",
+                semantic_attempt=semantic_attempt,
             )
             if support:
                 return support
