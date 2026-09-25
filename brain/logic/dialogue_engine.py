@@ -23,6 +23,28 @@ def load_dialogues(level="A1", lesson=1):
     return data if isinstance(data, list) else []
 
 
+def get_dialogue_for_section(level, lesson, section):
+    wanted = _norm(section)
+    if not wanted:
+        return None
+    for dialogue in load_dialogues(level, lesson):
+        if not isinstance(dialogue, dict):
+            continue
+        sections = dialogue.get("sections", dialogue.get("section", []))
+        if isinstance(sections, str):
+            sections = [sections]
+        if any(_norm(value) == wanted for value in sections if value):
+            return dialogue
+    return None
+
+
+def start_dialogue_for_section(level, lesson, section, state):
+    dialogue = get_dialogue_for_section(level, lesson, section)
+    if dialogue is None:
+        return None
+    return start_dialogue(level, lesson, dialogue.get("id"), state)
+
+
 def get_dialogue(level, lesson, dialogue_id):
     wanted = _norm(dialogue_id)
     for dialogue in load_dialogues(level, lesson):
