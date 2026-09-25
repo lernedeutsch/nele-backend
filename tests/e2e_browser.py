@@ -130,9 +130,8 @@ def send_and_wait(page, message, expected, timeout=15000):
                 if (items.length <= data.before) {
                     return false;
                 }
-                return items[items.length - 1]
-                    .innerText
-                    .includes(data.expected);
+                const text = items[items.length - 1].innerText;
+                return data.expected.some(value => text.includes(value));
             }""",
             arg={
                 "before": before,
