@@ -14,6 +14,13 @@ TOPIC_ALIASES = {
     "gestern": "yesterday", "yesterday": "yesterday",
     "alltag": "today", "today": "today",
     "shopping": "shopping", "place": "place",
+    "familie": "family", "family": "family",
+    "freunde": "friends", "friends": "friends",
+    "wohnung": "housing", "haus": "housing", "housing": "housing",
+    "wochenende": "weekend", "weekend": "weekend",
+    "verkehr": "transport", "transport": "transport",
+    "handy": "technology", "internet": "technology", "technology": "technology",
+    "gesundheit": "health", "health": "health",
 }
 
 CONTEXTUAL_SUBTOPICS = {
