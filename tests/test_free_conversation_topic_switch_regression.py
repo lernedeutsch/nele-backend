@@ -59,5 +59,25 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertIn("Wann", reply)
 
 
+    def test_free_wellbeing_uses_shared_extended_vocabulary(self):
+        state = self.fresh_state()
+        state["free_conversation"]["last_question"] = "Wie geht es dir heute?"
+        reply = turn(state, "gestresst")
+        self.assertIn("gestresst", reply.lower())
+        self.assertNotIn("Wie geht es dir", reply)
+
+    def test_free_wellbeing_uses_shared_correction_engine(self):
+        state = self.fresh_state()
+        state["free_conversation"]["last_question"] = "Wie geht es dir heute?"
+        reply = turn(state, "mir geht gut")
+        self.assertIn("Mir geht es gut", reply)
+
+    def test_free_wellbeing_preserves_natural_bad_model(self):
+        state = self.fresh_state()
+        state["free_conversation"]["last_question"] = "Wie geht es dir heute?"
+        reply = turn(state, "schlecht")
+        self.assertIn("Mir geht es schlecht", reply)
+
+
 if __name__ == "__main__":
     unittest.main()
