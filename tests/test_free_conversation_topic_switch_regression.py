@@ -87,5 +87,38 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertIn("Mir geht es schlecht", reply)
 
 
+
+    def test_explicit_wellbeing_update_outranks_stale_topic(self):
+        state = {"student_progress": {"current_level": "A1.1"}, "conversation_mode": "free"}
+        free = state.setdefault("free_conversation", {})
+        free["last_question"] = "Was machst du heute?"
+        free["turn_count"] = 3
+        from brain.logic.free_conversation import generate_free_conversation_reply
+        reply, meta = generate_free_conversation_reply("gestresst", state)
+        self.assertTrue(meta.get("shared_wellbeing"))
+        self.assertIn("gestresst", reply.lower())
+        self.assertNotIn("Was machst du heute?", reply)
+
+    def test_malformed_explicit_wellbeing_uses_shared_correction_after_other_topic(self):
+        state = {"student_progress": {"current_level": "A1.1"}, "conversation_mode": "free"}
+        free = state.setdefault("free_conversation", {})
+        free["last_question"] = "Was machst du heute?"
+        free["turn_count"] = 3
+        from brain.logic.free_conversation import generate_free_conversation_reply
+        reply, meta = generate_free_conversation_reply("mir geht gut", state)
+        self.assertTrue(meta.get("shared_wellbeing"))
+        self.assertIn("Mir geht es gut", reply)
+
+    def test_learner_led_dialogue_question_can_switch_mid_conversation(self):
+        state = {"student_progress": {"current_level": "A1.1"}, "conversation_mode": "free"}
+        free = state.setdefault("free_conversation", {})
+        free["last_question"] = "Hörst du gern Musik?"
+        free["turn_count"] = 5
+        from brain.logic.free_conversation import generate_free_conversation_reply
+        reply, meta = generate_free_conversation_reply("Wie komme ich zum Bahnhof?", state)
+        self.assertTrue(meta.get("dialogue_knowledge"))
+        self.assertEqual(state.get("dialogue_id"), "a1-l15-weg-bahnhof")
+        self.assertNotIn("Musik", reply)
+
 if __name__ == "__main__":
     unittest.main()
