@@ -449,8 +449,27 @@ WELLBEING_MODEL_SENTENCES = {
 }
 
 
-def get_wellbeing_model_sentence(wellbeing_type):
-    return WELLBEING_MODEL_SENTENCES.get(wellbeing_type)
+def get_wellbeing_model_sentence(wellbeing_type, user_message=""):
+    message = clean_wellbeing_message(user_message)
+    everyday_models = {
+        "prima": "Mir geht es prima.",
+        "super": "Mir geht es super.",
+        "sehr gut": "Mir geht es sehr gut.",
+        "gut": "Mir geht es gut.",
+        "ganz gut": "Mir geht es ganz gut.",
+        "nicht schlecht": "Mir geht es nicht schlecht.",
+        "so lala": "Mir geht es so lala.",
+        "es geht": "Es geht.",
+        "geht so": "Es geht so.",
+        "nicht so gut": "Mir geht es nicht so gut.",
+        "schlecht": "Mir geht es schlecht.",
+        "sehr schlecht": "Mir geht es sehr schlecht.",
+        "müde": "Ich bin müde.",
+    }
+    return everyday_models.get(
+        message,
+        WELLBEING_MODEL_SENTENCES.get(wellbeing_type),
+    )
 
 
 # ==========================================
