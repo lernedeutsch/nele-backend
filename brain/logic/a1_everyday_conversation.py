@@ -23,6 +23,13 @@ def a1_everyday_reply(text, last_question, state=None):
       "was trinkst du gern":"Ich trinke nicht wirklich. Was trinkst du gern?",
       "hast du geschwister":"Ich habe keine Familie wie ein Mensch. Hast du Geschwister?",
       "wie spät ist es":"Das kann ich hier nicht zuverlässig sehen. Wie spät ist es bei dir?",
+      "wann fängst du an":"Ich bin immer für dich da. Wann fängst du heute an?",
+      "wann faengst du an":"Ich bin immer für dich da. Wann fängst du heute an?",
+      "wann fängst du heute an":"Ich bin immer für dich da. Wann fängst du heute an?",
+      "wann faengst du heute an":"Ich bin immer für dich da. Wann fängst du heute an?",
+      "was machst du bei der arbeit":"Ich bin keine Person und arbeite nicht wirklich. Was machst du bei der Arbeit?",
+      "was machst du auf der arbeit":"Ich bin keine Person und arbeite nicht wirklich. Was machst du bei der Arbeit?",
+      "was kochst du gern":"Ich koche nicht wirklich. Was kochst du gern?",
     }
     if low in direct: return direct[low]
 
