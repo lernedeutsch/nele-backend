@@ -1,8 +1,10 @@
 import unittest
 
 from brain.logic.dialogue_importer import (
+    activate_dialogue_candidates,
     import_dialogue_batch,
     normalize_dialogue,
+    prepare_dialogue_candidates,
     validate_imported_slots,
 )
 from brain.logic.content_validation import ContentValidationError
@@ -132,6 +134,36 @@ class DialogueImporterTests(unittest.TestCase):
         self.assertEqual(report["accepted_count"], 1)
         self.assertEqual(report["rejected_count"], 1)
         self.assertIn("Duplicate dialogue id", report["rejected"][0]["reason"])
+
+
+    def test_clean_batch_can_move_candidate_to_active(self):
+        raw = [{
+            "title": "Im Hotel",
+            "section": "Im Hotel",
+            "turns": [
+                {"role": "nele", "text": "Guten Morgen!"},
+                {"role": "student", "expected": "Guten Morgen!"},
+            ],
+        }]
+        candidates = prepare_dialogue_candidates(raw, level="A1", lesson=4)
+        self.assertTrue(candidates["activation_ready"])
+        self.assertEqual(candidates["accepted"][0]["knowledge_status"], "candidate")
+        active = activate_dialogue_candidates(candidates)
+        self.assertEqual(active[0]["knowledge_status"], "active")
+
+    def test_dirty_batch_cannot_be_activated(self):
+        raw = [{
+            "title": "Kaputt",
+            "section": "Herkunft",
+            "turns": [
+                {"role": "nele", "text": "Woher kommst du?"},
+                {"role": "student", "accepted_patterns": ["Aus {country}"]},
+            ],
+        }]
+        candidates = prepare_dialogue_candidates(raw)
+        self.assertFalse(candidates["activation_ready"])
+        with self.assertRaises(ContentValidationError):
+            activate_dialogue_candidates(candidates)
 
 
 if __name__ == "__main__":
