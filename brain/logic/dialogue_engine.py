@@ -116,6 +116,19 @@ def _current_turn(state, dialogue):
     return turns[index]
 
 
+def get_active_dialogue_prompt(state):
+    """Return the learner-facing prompt for the active scripted turn."""
+    if not is_dialogue_active(state):
+        return ""
+    dialogue = get_dialogue(state.get("dialogue_level"), state.get("dialogue_lesson"), state.get("dialogue_id"))
+    if not dialogue:
+        return ""
+    turn = _current_turn(state, dialogue)
+    if not turn:
+        return ""
+    return _text(turn.get("prompt") or turn.get("text"))
+
+
 def _advance_to_learner(turns, index):
     spoken = []
     while index < len(turns):
