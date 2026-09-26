@@ -216,7 +216,17 @@ def auto_start_dialogue_from_message(message, state, level="A1"):
     dialogue = find_dialogue_for_message(message, level)
     if dialogue is None:
         return None
-    return start_dialogue(dialogue.get("level") or level, dialogue.get("lesson") or 1, dialogue.get("id"), state)
+    reply = start_dialogue(
+        dialogue.get("level") or level,
+        dialogue.get("lesson") or 1,
+        dialogue.get("id"),
+        state,
+    )
+    if not reply:
+        return None
+    title = _text(dialogue.get("title") or dialogue.get("topic"))
+    prefix = f"Gerne! Wir sprechen kurz über {title.lower()}. " if title else "Gerne! "
+    return prefix + reply
 
 def clear_dialogue(state):
     for key, value in {
