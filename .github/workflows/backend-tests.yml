@@ -116,8 +116,8 @@ jobs:
               if line.strip()
           ]
           if questions:
-              with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as handle:
-                  handle.write("NELE_LIVE_QUESTIONS_JSON=" + json.dumps(questions, ensure_ascii=False) + "\n")
+              with open(".nele-live-request.json", "w", encoding="utf-8") as handle:
+                  json.dump(questions, handle, ensure_ascii=False)
           PY
 
       - name: Talk to production Nele
