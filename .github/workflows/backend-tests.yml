@@ -8,6 +8,8 @@ on:
     branches: ["main"]
   issue_comment:
     types: [created]
+  issues:
+    types: [opened]
 
 permissions:
   contents: read
@@ -58,7 +60,9 @@ jobs:
         run: python test_nele_live.py
 
   chatgpt-live-nele:
-    if: github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/nele-live')
+    if: >-
+      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/nele-live')) ||
+      (github.event_name == 'issues' && startsWith(github.event.issue.body, '/nele-live'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout backend
@@ -76,7 +80,7 @@ jobs:
 
       - name: Prepare requested conversation
         env:
-          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_BODY: ${{ github.event_name == 'issue_comment' && github.event.comment.body || github.event.issue.body }}
         run: |
           python - <<'PY'
           import json
