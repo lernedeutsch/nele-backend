@@ -211,13 +211,13 @@ def _dialogue_router_score(message, dialogue):
     return best, best_overlap
 
 
-def find_dialogue_for_message(message, level="A1"):
+def find_dialogue_for_message(message, level="A1", min_score=0.68):
     if not _text(message):
         return None
     candidates = []
     for dialogue in get_active_dialogues(str(level or "A1").upper()):
         score, overlap = _dialogue_router_score(message, dialogue)
-        if score >= 0.68:
+        if score >= float(min_score):
             candidates.append((score, overlap, dialogue))
     if not candidates:
         return None
@@ -225,10 +225,10 @@ def find_dialogue_for_message(message, level="A1"):
     return candidates[0][2]
 
 
-def auto_start_dialogue_from_message(message, state, level="A1"):
+def auto_start_dialogue_from_message(message, state, level="A1", min_score=0.68):
     if not state or is_dialogue_active(state):
         return None
-    dialogue = find_dialogue_for_message(message, level)
+    dialogue = find_dialogue_for_message(message, level, min_score=min_score)
     if dialogue is None:
         return None
     start_turn = _matching_nele_turn_index(message, dialogue)
