@@ -33,6 +33,19 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         reply = turn(state, "Was machst du gern am Wochenende?")
         self.assertNotIn("wetter", reply.lower())
 
+    def test_food_question_beats_previous_weather_topic(self):
+        state = self.fresh_state()
+        state["free_conversation"]["last_question"] = "Ist es warm oder kalt?"
+        reply = turn(state, "Und was isst du gern?")
+        self.assertNotIn("warm oder kalt", reply.lower())
+
+    def test_evening_question_beats_previous_home_topic(self):
+        state = self.fresh_state()
+        state["free_conversation"]["last_question"] = "Wohnst du in einem Haus oder in einer Wohnung?"
+        reply = turn(state, "Was machst du heute Abend?")
+        self.assertNotIn("zuhause", reply.lower())
+        self.assertNotIn("zimmer", reply.lower())
+
     def test_existing_weather_short_answer_still_keeps_context(self):
         state = self.fresh_state()
         state["free_conversation"]["last_question"] = "Wie ist das Wetter bei dir?"
