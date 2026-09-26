@@ -182,6 +182,14 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertIn("Was machst du am Samstag?", reply)
         self.assertNotIn("Sag bitte", reply)
 
+    def test_active_dialogue_switches_on_natural_new_dialogue_question(self):
+        state = {}
+        start_dialogue("A1", 11, "a1-l11-geburtstag", state)
+        reply = handle_dialogue("Welche Musik hörst du gern?", state)
+        self.assertEqual(state.get("dialogue_id"), "a1-l14-musik")
+        self.assertIn("Musik", reply)
+        self.assertNotIn("vierzehnten Februar", reply)
+
     def test_global_router_ignores_unrelated_message(self):
         self.assertIsNone(
             find_dialogue_for_message("Ich brauche heute Milch und Äpfel.", "A1")
