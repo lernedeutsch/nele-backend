@@ -150,6 +150,30 @@ class GoldenDialogueSystemTests(unittest.TestCase):
             self.assertIsNotNone(dialogue, message)
             self.assertEqual(dialogue["id"], expected_id, message)
 
+    def test_free_conversation_starts_and_keeps_selected_dialogue(self):
+        from brain.logic.free_conversation import generate_free_conversation_reply
+
+        state = {
+            "student_progress": {"current_level": "A1.1"},
+            "conversation_mode": "free",
+        }
+        reply, meta = generate_free_conversation_reply(
+            "Wann hast du Geburtstag?",
+            state,
+        )
+        self.assertTrue(meta.get("dialogue_knowledge"))
+        self.assertEqual(state.get("dialogue_id"), "a1-l11-geburtstag")
+        self.assertTrue(state.get("dialogue_active"))
+        self.assertIn("Geburtstag", reply)
+
+        reply, meta = generate_free_conversation_reply(
+            "Am vierzehnten Februar.",
+            state,
+        )
+        self.assertTrue(meta.get("dialogue_knowledge"))
+        self.assertTrue(state.get("dialogue_active"))
+        self.assertIn("Und du?", reply)
+
     def test_global_router_ignores_unrelated_message(self):
         self.assertIsNone(
             find_dialogue_for_message("Ich brauche heute Milch und Äpfel.", "A1")
