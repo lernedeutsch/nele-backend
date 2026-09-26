@@ -238,9 +238,17 @@ def find_dialogue_for_message(message, level="A1", min_score=0.68):
             ),
             None,
         )
+        entry_triggers = {
+            _norm(value)
+            for value in dialogue.get("entry_triggers", [])
+            if _norm(value)
+        }
         exact_prompt_match = bool(
-            entry_turn
-            and _norm(entry_turn.get("text") or entry_turn.get("prompt")) == _norm(message)
+            (
+                entry_turn
+                and _norm(entry_turn.get("text") or entry_turn.get("prompt")) == _norm(message)
+            )
+            or _norm(message) in entry_triggers
         )
         if score >= float(min_score) and (exact_prompt_match or has_topic_anchor):
             # Exact prompts are canonical triggers and outrank fuzzy matches.
