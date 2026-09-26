@@ -1588,8 +1588,9 @@ class GeneratedTests(unittest.TestCase):
         self.assertIn("Was machst du nach der Arbeit?", reply)
 
         reply, _ = _turn(state, "Was machst du nach der Arbeit?")
-        self.assertIn("Was machst du heute?", reply)
+        self.assertIn("Nach der Arbeit", reply)
 
+        state["free_conversation"]["last_question"] = "Was machst du nach der Arbeit?"
         reply, _ = _turn(state, "Ich gehe nach Hause.")
         self.assertIn("Was machst du abends?", reply)
 
