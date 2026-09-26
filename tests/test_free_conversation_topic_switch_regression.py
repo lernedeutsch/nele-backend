@@ -144,5 +144,28 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertIn("zimmer", reply.lower())
         self.assertNotIn("wie ist dein tag", reply.lower())
 
+
+    def test_weekend_question_updates_topic_away_from_weather(self):
+        state = self.fresh_state()
+        turn(state, "Wie ist das Wetter heute?")
+        turn(state, "schön")
+        turn(state, "Was machst du gern am Wochenende?")
+        self.assertEqual(state["free_conversation"].get("last_topic"), "hobby")
+
+    def test_food_question_updates_topic_away_from_weather(self):
+        state = self.fresh_state()
+        turn(state, "Wie ist das Wetter heute?")
+        turn(state, "schön")
+        reply = turn(state, "Und was isst du gern?")
+        self.assertNotIn("warm oder kalt", reply.lower())
+        self.assertEqual(state["free_conversation"].get("last_topic"), "food")
+
+    def test_evening_question_does_not_rotate_to_yesterday(self):
+        state = self.fresh_state()
+        turn(state, "Ich wohne in Deutschland.")
+        reply = turn(state, "Was machst du heute Abend?")
+        self.assertNotIn("gestern", reply.lower())
+        self.assertEqual(state["free_conversation"].get("last_topic"), "today")
+
 if __name__ == "__main__":
     unittest.main()
