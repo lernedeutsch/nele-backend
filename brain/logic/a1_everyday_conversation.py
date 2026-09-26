@@ -30,8 +30,36 @@ def a1_everyday_reply(text, last_question, state=None):
       "was machst du bei der arbeit":"Ich bin keine Person und arbeite nicht wirklich. Was machst du bei der Arbeit?",
       "was machst du auf der arbeit":"Ich bin keine Person und arbeite nicht wirklich. Was machst du bei der Arbeit?",
       "was kochst du gern":"Ich koche nicht wirklich. Was kochst du gern?",
+      "was putzt du bei der arbeit":"Ich putze nicht wirklich. Was putzt du bei der Arbeit?",
+      "was putzt du auf der arbeit":"Ich putze nicht wirklich. Was putzt du bei der Arbeit?",
+      "was reinigst du bei der arbeit":"Ich reinige nicht wirklich. Was reinigst du bei der Arbeit?",
     }
     if low in direct: return direct[low]
+
+    # Work-activity slot: keep common housekeeping activities anchored to the
+    # active work question. This is a reusable slot, not a one-off phrase.
+    work_activity_slots = {
+        "putze": ("Ich putze.", "Was putzt du bei der Arbeit?"),
+        "reinige": ("Ich reinige.", "Was reinigst du bei der Arbeit?"),
+        "mache sauber": ("Ich mache sauber.", "Was machst du bei der Arbeit sauber?"),
+        "koche": ("Ich koche.", "Was kochst du gern?"),
+    }
+    if re.fullmatch(r"(?:ich\s+)?(?:putze|reinige|koche)|ich\s+mache\s+sauber", low):
+        key = "mache sauber" if "mache sauber" in low else low.replace("ich ", "")
+        model, follow_up = work_activity_slots.get(key, (None, None))
+        if model:
+            facts["work_activity"] = key
+            return f"Du kannst sagen: „{model}“ {follow_up}"
+
+    if "was putzt du bei der arbeit" in last or "was putzt du auf der arbeit" in last:
+        if low in {"zimmer", "zimmern", "die zimmer", "hotelzimmer", "hotelzimmern"}:
+            facts["work_activity_detail"] = "Zimmer"
+            return "Du kannst sagen: „Ich putze Zimmer.“ Wie viele Zimmer putzt du normalerweise?"
+
+    if "was reinigst du bei der arbeit" in last:
+        if low in {"zimmer", "die zimmer", "hotelzimmer"}:
+            facts["work_activity_detail"] = "Zimmer"
+            return "Du kannst sagen: „Ich reinige Zimmer.“ Wie viele Zimmer reinigst du normalerweise?"
 
     # Learner-led intent/content has priority over stale last_question context.
     # Only genuinely short/dependent answers should continue the previous turn.
