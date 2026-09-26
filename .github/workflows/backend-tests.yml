@@ -2,6 +2,7 @@ name: Nele backend tests
 # CI sync trigger
 
 on:
+  workflow_dispatch:
   push:
     branches: ["main"]
   pull_request:
