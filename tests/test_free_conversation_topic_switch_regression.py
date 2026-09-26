@@ -120,5 +120,29 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertEqual(state.get("dialogue_id"), "a1-l15-weg-bahnhof")
         self.assertNotIn("Musik", reply)
 
+
+    def test_weekend_question_does_not_auto_start_travel_dialogue(self):
+        state = self.fresh_state()
+        turn(state, "Wie ist das Wetter heute?")
+        turn(state, "schön")
+        reply = turn(state, "Was machst du gern am Wochenende?")
+        self.assertNotIn("ich fahre nach berlin", reply.lower())
+        self.assertFalse(state.get("dialogue_active"))
+
+    def test_evening_question_interrupts_home_chain(self):
+        state = self.fresh_state()
+        turn(state, "Ich wohne in Deutschland.")
+        reply = turn(state, "Was machst du heute Abend?")
+        self.assertNotIn("zuhause groß oder klein", reply.lower())
+        self.assertNotIn("welche zimmer", reply.lower())
+
+    def test_full_housekeeping_answer_stays_in_work_context(self):
+        state = self.fresh_state()
+        turn(state, "Wann fängst du an?")
+        turn(state, "um 8 Uhr")
+        reply = turn(state, "Ich putze Zimmer.")
+        self.assertIn("zimmer", reply.lower())
+        self.assertNotIn("wie ist dein tag", reply.lower())
+
 if __name__ == "__main__":
     unittest.main()
