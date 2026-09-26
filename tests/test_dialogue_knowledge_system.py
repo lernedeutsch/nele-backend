@@ -63,3 +63,25 @@ class GoldenDialogueSystemTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_active_registry_is_consumed_by_same_engine(self):
+        from unittest.mock import patch
+        from brain.logic.dialogue_engine import load_dialogues, get_dialogue
+        active = [{
+            "id": "hotel-greeting-001",
+            "level": "A1",
+            "lesson": 4,
+            "knowledge_status": "active",
+            "title": "Im Hotel",
+            "turns": [
+                {"role": "nele", "text": "Guten Morgen!", "intent": "greet"},
+                {"role": "student", "expected": "Guten Morgen!", "expected_intent": "greet_back"},
+            ],
+        }]
+        with patch("brain.logic.dialogue_engine.get_active_dialogues", return_value=active):
+            loaded = load_dialogues("A1", 4)
+            self.assertEqual(loaded[0]["id"], "hotel-greeting-001")
+            self.assertEqual(get_dialogue("A1", 4, "hotel-greeting-001")["knowledge_status"], "active")
+
+
