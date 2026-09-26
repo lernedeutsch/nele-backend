@@ -13,6 +13,14 @@ def a1_everyday_reply(text, last_question, state=None):
     low=_norm(raw); last=_norm(last_question)
     facts=(state or {}).setdefault("a1_everyday_facts", {}) if state is not None else {}
 
+    # A fresh learner question must never be consumed as an answer to the
+    # previous A1 subthread. Direct question handlers below may still answer
+    # known questions; otherwise stale last_question context is cleared.
+    learner_question = "?" in raw and re.match(
+        r"^(?:was|wie|wo|woher|wohin|wann|warum|wer|welcher|welche|welches|arbeitest|wohnst|isst|trinkst|magst|machst|hast|bist|kommst)\\b",
+        low,
+    )
+
     # Learner-led questions: answer briefly and return the conversation.
     direct={
       "woher kommst du":"Ich bin Nele, deine Deutschtrainerin. Und woher kommst du?",
@@ -35,6 +43,8 @@ def a1_everyday_reply(text, last_question, state=None):
       "was reinigst du bei der arbeit":"Ich reinige nicht wirklich. Was reinigst du bei der Arbeit?",
     }
     if low in direct: return direct[low]
+    if learner_question:
+        return None
 
     # Work-activity slot: keep common housekeeping activities anchored to the
     # active work question. This is a reusable slot, not a one-off phrase.
@@ -51,10 +61,11 @@ def a1_everyday_reply(text, last_question, state=None):
             facts["work_activity"] = key
             return f"Du kannst sagen: „{model}“ {follow_up}"
 
-    if "was putzt du bei der arbeit" in last or "was putzt du auf der arbeit" in last:
-        if low in {"zimmer", "zimmern", "die zimmer", "hotelzimmer", "hotelzimmern"}:
+    if "was machst du bei der arbeit" in last or "was putzt du bei der arbeit" in last or "was putzt du auf der arbeit" in last:
+        if low in {"zimmer", "zimmern", "die zimmer", "hotelzimmer", "hotelzimmern", "ich putze zimmer", "ich putze die zimmer", "ich putze hotelzimmer"}:
+            facts["work_activity"] = "putze"
             facts["work_activity_detail"] = "Zimmer"
-            return "Du kannst sagen: „Ich putze Zimmer.“ Wie viele Zimmer putzt du normalerweise?"
+            return "Sehr gut. Du putzt Zimmer. Wie viele Zimmer putzt du normalerweise?"
 
     if "was reinigst du bei der arbeit" in last:
         if low in {"zimmer", "die zimmer", "hotelzimmer"}:
