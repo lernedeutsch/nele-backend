@@ -1562,3 +1562,18 @@ class GeneratedTests(unittest.TestCase):
         self.assertIn("Ich koche gern Pizza.", reply)
 
 
+    def test_work_activity_slot_supports_putzen_and_rooms(self):
+        state = {"free_conversation": {
+            "last_question": "Was machst du bei der Arbeit?",
+            "recent_questions": [],
+            "conversation_facts": {},
+        }}
+        reply, _ = _turn(state, "Ich putze.")
+        self.assertIn("Was putzt du bei der Arbeit?", reply)
+        reply, _ = _turn(state, "Was putzt du bei der Arbeit?")
+        self.assertIn("Was putzt du bei der Arbeit?", reply)
+        reply, _ = _turn(state, "Zimmer")
+        self.assertIn("Ich putze Zimmer.", reply)
+        self.assertIn("Wie viele Zimmer", reply)
+
+
