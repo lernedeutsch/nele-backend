@@ -330,8 +330,8 @@ ACTIVE_DIALOGUES = [
             {"role":"nele","text":"Warum?","intent":"ask_reason"},
             {"role":"student","expected_intent":"give_reason","expected":"Der Zug ist bequem.","accepted_patterns":["Der Zug ist bequem.","Weil der Zug bequem ist.","Bequem."]},
             {"role":"nele","text":"Ich fliege lieber mit dem Flugzeug.","intent":"share_preference"},
-            {"role":"student","expected_intent":"give_destination_preference","expected":"Ich fliege gern nach Deutschland und in die Schweiz.","accepted_patterns":["Ich fliege gern nach Deutschland und in die Schweiz.","Nach Deutschland und in die Schweiz.","Deutschland und die Schweiz."]},
-            {"role":"nele","text":"Wohin fliegst du gern?","intent":"ask_destination_preference"}
+            {"role":"student","expected_intent":"ask_destination_preference","expected":"Wohin fliegst du gern?","accepted_patterns":["Wohin fliegst du gern?","Wohin fliegst du?"]},
+            {"role":"nele","text":"Ich fliege gern nach Deutschland und in die Schweiz.","intent":"give_destination_preference"}
         ]
     },
     {
