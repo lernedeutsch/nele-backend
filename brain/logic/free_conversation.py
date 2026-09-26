@@ -1225,6 +1225,16 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # deliberately checked again here because social/weather handlers may have
     # already enriched memory while the active state still says work/kochen.
     low_message = _norm(user_message)
+    learner_question = _is_explicit_learner_question(user_message)
+    # Learner-led everyday questions own the topic before Guard/Recovery run.
+    # Detect semantic intent from the whole utterance, not only isolated topic words.
+    if learner_question:
+        if any(x in low_message for x in ("isst du", "essen", "speise", "gericht", "frühstück", "fruehstueck")):
+            explicit_topic = "food"
+        elif any(x in low_message for x in ("wochenende", "freizeit", "gern machen", "machst du gern")):
+            explicit_topic = "hobby"
+        elif any(x in low_message for x in ("heute abend", "heute noch", "machst du heute")):
+            explicit_topic = "today"
     if any(x in low_message for x in ("wetter", "sonne", "sonnig", "regen", "regnet", "warm", "kalt", "windig", "schnee")):
         explicit_topic = "weather"
     elif any(x in low_message for x in ("urlaub", "reise", "ferien", "meer", "berge")):
@@ -1467,8 +1477,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # Priority: answer context -> learner content -> safe course-level fallback.
     # On a deliberate topic transition, start with the new topic's safe
     # fallback instead of letting the old answer context pull us backwards.
-    question = None if topic_transition.get("transition") else _yes_no_followup(user_message, last_question, memory)
-    if not question:
+    question = None if topic_transition.get("transition") or learner_question else _yes_no_followup(user_message, last_question, memory)
+    if not question and not learner_question:
         question = _short_answer_followup(user_message, last_question, memory)
     if not question:
         question = _content_followup(user_message, facts, memory, free, level)
