@@ -993,7 +993,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         }
 
     # Personal real-life sentences remain available when no dialogue was selected.
-    personal = handle_personal_sentence(user_message, state, mode="free")
+    personal = None
+    if routed_intent.get("intent") in {"learner_question", "open_statement"}:
+        personal = handle_personal_sentence(user_message, state, mode="free")
     if personal:
         reply = personal["reply"]
         _remember_question(free, reply)
@@ -1002,8 +1004,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             **personal.get("meta", {}),
         }
 
-    # Active Dialogue Engine state owns every following learner turn.
-    if is_dialogue_active(state):
+    # An active scripted dialogue owns only the answer to its visible prompt.
+    # A fresh learner question or wellbeing update must be free to change topic.
+    if is_dialogue_active(state) and routed_intent.get("intent") == "dialogue_answer":
         dialogue_reply = handle_dialogue(user_message, state)
         if dialogue_reply is not None:
             _remember_question(free, dialogue_reply)
@@ -1103,7 +1106,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # A new learner question is not an answer to Nele's previous question.
     # Do not reinterpret it through stale weather/work/home context.
     contextual_reply = None
-    if not _is_explicit_learner_question(user_message):
+    if routed_intent.get("intent") != "learner_question":
         contextual_reply = _short_answer_followup(
             user_message,
             free.get("last_question", ""),
