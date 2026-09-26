@@ -901,13 +901,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if personal:
         reply = personal["reply"]
         free = state.setdefault("free_conversation", {})
-        _remember_question(free, reply)
-        meta = {
-            "conversation_mode": "free",
-            **personal.get("meta", {}),
-        }
-        return reply, meta
-    free = state.setdefault("free_conversation", {})
 
     # Priority -3: reusable Dialogue Knowledge router for a fresh learner-led
     # topic request. Existing active/ongoing conversation state remains untouched.
@@ -931,6 +924,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "dialogue_id": state.get("dialogue_id"),
                 "dialogue_topic": state.get("last_activity_detail"),
             }
+
+        _remember_question(free, reply)
+        meta = {
+            "conversation_mode": "free",
+            **personal.get("meta", {}),
+        }
+        return reply, meta
+    free = state.setdefault("free_conversation", {})
 
     # Priority -3: interpret short beginner answers through the exact
     # question Nele asked. This shared contextual layer must run before the
