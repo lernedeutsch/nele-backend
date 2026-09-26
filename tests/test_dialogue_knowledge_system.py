@@ -85,3 +85,28 @@ if __name__ == "__main__":
             self.assertEqual(get_dialogue("A1", 4, "hotel-greeting-001")["knowledge_status"], "active")
 
 
+
+
+    def test_real_a12_origin_dialogue_completes_without_topic_mixing(self):
+        from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+        state = {}
+        opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+        self.assertIn("Woher kommst du?", opening)
+
+        # Correct meaning but unrelated topic must not advance.
+        reply = handle_dialogue("Ich kaufe Brot.", state)
+        self.assertIn("Ich komme aus Polen", reply)
+        self.assertEqual(state["dialogue_turn"], 1)
+
+        reply = handle_dialogue("Polen", state)
+        self.assertIn("Kommst du aus Polen?", reply)
+        self.assertIn("give_origin", state["dialogue_completed_intents"])
+
+        reply = handle_dialogue("Ja", state)
+        self.assertIn("Woher kommt Anna?", reply)
+
+        reply = handle_dialogue("Anna kommt aus Österreich.", state)
+        self.assertFalse(state["dialogue_active"])
+        self.assertIn("geschafft", reply)
+
+
