@@ -667,6 +667,9 @@ def _is_explicit_learner_question(text):
     if "?" not in raw:
         return False
     low = _norm(raw).strip(" .?!")
+    # Spoken German often hands the turn back with "Und ...?", "Aber ...?"
+    # or "Also ...?". These particles do not change the question's intent.
+    low = re.sub(r"^(?:(?:und|aber|also)\\s+)+", "", low)
     starts = (
         "was ", "wie ", "wo ", "woher ", "wohin ", "wann ", "warum ", "wer ",
         "welcher ", "welche ", "welches ", "arbeitest ", "wohnst ", "isst ",
