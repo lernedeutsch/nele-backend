@@ -27,6 +27,7 @@ from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, reco
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
+from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -956,6 +957,27 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             },
             "contextual_short_answer": True,
         }
+
+    # Priority -2.5: reusable Dialogue Knowledge router.
+    # In free conversation, a clear learner-led question can select an
+    # active, validated dialogue. Once selected, the shared Dialogue Engine
+    # owns the turns; free-mode topic generation must not mix into it.
+    if not is_dialogue_active(state):
+        dialogue_reply = auto_start_dialogue_from_message(
+            user_message,
+            state,
+            level="A1",
+        )
+        if dialogue_reply:
+            free["last_user_message"] = str(user_message or "").strip()
+            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+            _remember_question(free, dialogue_reply)
+            return dialogue_reply, {
+                "conversation_mode": "free",
+                "dialogue_knowledge": True,
+                "dialogue_id": state.get("dialogue_id"),
+                "dialogue_topic": state.get("last_activity_detail"),
+            }
 
     # Priority -2: the reusable A1 lessons 1-10 conversation router must run
     # before Topic Manager / Teacher Policy / recovery. Otherwise those older
