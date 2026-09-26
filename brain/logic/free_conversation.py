@@ -962,6 +962,41 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "dialogue_topic": state.get("last_activity_detail"),
             }
 
+    # Shared wellbeing is resolved before topic/dialogue-specific routers.
+    if routed_intent.get("intent") == "wellbeing":
+        wb = routed_intent.get("wellbeing") or analyze_wellbeing_response(user_message)
+        kind = wb.get("type")
+        model = wb.get("model_sentence")
+        feedback = wb.get("feedback")
+        reaction = wb.get("reaction") or ""
+        follow_up = {
+            "bad": "Warum geht es dir nicht gut?",
+            "tired": "War dein Tag anstrengend?",
+            "stressed": "Möchtest du kurz und ruhig weitermachen?",
+            "sad": "Möchtest du ein bisschen reden?",
+            "sick": "Möchtest du heute nur etwas Leichtes machen?",
+        }.get(kind, "Was machst du heute?")
+        if feedback:
+            reply = f"{feedback} {reaction} {follow_up}".strip()
+        elif model:
+            reply = f"{reaction} Du kannst auch sagen: „{model}“ {follow_up}".strip()
+        else:
+            reply = f"{reaction} {follow_up}".strip()
+        previous_question = free.get("last_question", "")
+        record_answer(state, user_message, previous_question)
+        _remember_question(free, reply)
+        free.setdefault("conversation_facts", {})["wellbeing"] = kind
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        understanding = understand_response(user_message, conversation_state=state.get("conversation_state_v2") or {}, vocabulary_context=free.get("vocabulary_context") or {})
+        return reply, {
+            "conversation_mode": "free",
+            "shared_wellbeing": True,
+            "wellbeing_type": kind,
+            "response_understanding": understanding,
+            "error_engine": process_error(user_message, state=state, context={"response_understanding": understanding}),
+        }
+
     # Shared wellbeing corrections are semantic language corrections and must
     # run before personal/fuzzy routers. This prevents malformed but recognized
     # phrases such as "mir geht gut" from being swallowed on the first turn.
