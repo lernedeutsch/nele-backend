@@ -956,6 +956,62 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "dialogue_active": is_dialogue_active(state),
             }
 
+    # Priority -2.5: shared social/wellbeing semantics must outrank generic
+    # lesson/fallback routers. A wellbeing answer belongs to the last wellbeing
+    # question; explicit states such as "mir geht ...", "müde", "schlecht" or
+    # "gestresst" are also meaningful learner-led updates on their own.
+    last_social_question = _norm(free.get("last_question", ""))
+    wellbeing_context = any(x in last_social_question for x in (
+        "wie geht's dir", "wie geht es dir", "wie geht es ihnen", "wie geht's ihnen"
+    ))
+    wellbeing_analysis = analyze_wellbeing_response(user_message)
+    explicit_wellbeing = bool(
+        wellbeing_analysis.get("recognized")
+        and (
+            wellbeing_context
+            or wellbeing_analysis.get("type") in {"bad", "tired", "stressed", "sad", "sick"}
+            or re.match(r"^(?:mir\\s+geht|ich\\s+bin)\\b", _norm(user_message))
+        )
+    )
+    if explicit_wellbeing:
+        social_reply = _social_a1_reply(
+            user_message,
+            {**free, "last_question": free.get("last_question") if wellbeing_context else "Wie geht es dir?"},
+            state,
+        )
+        if social_reply:
+            _remember_question(free, social_reply)
+            free["last_user_message"] = str(user_message or "").strip()
+            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+            free["last_topic"] = "today"
+            return social_reply, {
+                "conversation_mode": "free",
+                "topic": "today",
+                "shared_wellbeing": True,
+                "wellbeing_type": wellbeing_analysis.get("type"),
+            }
+
+    # Priority -2.4: a clear learner-led question may activate Dialogue
+    # Knowledge at ANY point in free conversation, not only on the first turn.
+    # This prevents stale generic chains from stealing questions such as
+    # "Wie komme ich zum Bahnhof?" after a travel topic switch.
+    if not is_dialogue_active(state) and _is_explicit_learner_question(user_message):
+        dialogue_reply = auto_start_dialogue_from_message(
+            user_message,
+            state,
+            level="A1",
+        )
+        if dialogue_reply:
+            _remember_question(free, dialogue_reply)
+            free["last_user_message"] = str(user_message or "").strip()
+            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+            return dialogue_reply, {
+                "conversation_mode": "free",
+                "dialogue_knowledge": True,
+                "dialogue_id": state.get("dialogue_id"),
+                "dialogue_topic": state.get("last_activity_detail"),
+            }
+
     # Priority -3: interpret short beginner answers through the exact
     # question Nele asked. This shared contextual layer must run before the
     # broad A1 content bank, otherwise nouns/times such as "Pizza", "8" or
