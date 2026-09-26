@@ -32,7 +32,11 @@ def classify_conversation_intent(message, *, last_question="", dialogue_active=F
     if learner_question:
         return {"intent": "learner_question", "wellbeing": wellbeing}
 
-    if dialogue_active:
+    # An active scripted dialogue only owns the turn when its prompt is also
+    # the question the learner is currently answering. Free-conversation
+    # questions must not leave a hidden dialogue state that later captures
+    # short answers such as "Pizza" or "Zimmer".
+    if dialogue_active and last_question:
         return {"intent": "dialogue_answer", "wellbeing": wellbeing}
 
     if last_question:
