@@ -25,7 +25,7 @@ QUESTIONS = [
 
 
 def requested_questions():
-    """Accept controlled questions from GitHub Actions, with CLI fallback."""
+    """Accept controlled questions from GitHub Actions, a durable request file, or CLI."""
     raw = str(os.environ.get("NELE_LIVE_QUESTIONS_JSON", "") or "").strip()
     if raw:
         try:
@@ -39,6 +39,17 @@ def requested_questions():
         questions = [str(value).strip() for value in values if str(value).strip()]
         if questions:
             return questions
+
+    request_file = os.path.join(os.path.dirname(__file__), ".nele-live-request.json")
+    if os.path.exists(request_file):
+        try:
+            with open(request_file, "r", encoding="utf-8") as handle:
+                values = json.load(handle)
+            questions = [str(value).strip() for value in values if str(value).strip()]
+            if questions:
+                return questions
+        except (OSError, ValueError, TypeError):
+            pass
 
     return sys.argv[1:] or QUESTIONS
 
