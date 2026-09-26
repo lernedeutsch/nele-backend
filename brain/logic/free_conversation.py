@@ -895,15 +895,11 @@ def generate_free_welcome(state, session_id=None):
     return OPENERS[index]
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
-    # Personal real-life sentences have priority in free conversation. Their
-    # progress lives in the same learner state and is persisted by the caller.
-    personal = handle_personal_sentence(user_message, state, mode="free")
-    if personal:
-        reply = personal["reply"]
-        free = state.setdefault("free_conversation", {})
+    free = state.setdefault("free_conversation", {})
 
     # Priority -3: reusable Dialogue Knowledge router for a fresh learner-led
-    # topic request. Existing active/ongoing conversation state remains untouched.
+    # topic request. It runs before broad personal/A1 matching so a validated
+    # dialogue cannot be shadowed by a generic sentence or fallback.
     if (
         not is_dialogue_active(state)
         and not free.get("last_question")
@@ -925,13 +921,30 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "dialogue_topic": state.get("last_activity_detail"),
             }
 
+    # Personal real-life sentences remain available when no dialogue was selected.
+    personal = handle_personal_sentence(user_message, state, mode="free")
+    if personal:
+        reply = personal["reply"]
         _remember_question(free, reply)
-        meta = {
+        return reply, {
             "conversation_mode": "free",
             **personal.get("meta", {}),
         }
-        return reply, meta
-    free = state.setdefault("free_conversation", {})
+
+    # Active Dialogue Engine state owns every following learner turn.
+    if is_dialogue_active(state):
+        dialogue_reply = handle_dialogue(user_message, state)
+        if dialogue_reply is not None:
+            _remember_question(free, dialogue_reply)
+            free["last_user_message"] = str(user_message or "").strip()
+            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+            return dialogue_reply, {
+                "conversation_mode": "free",
+                "dialogue_knowledge": True,
+                "dialogue_id": state.get("dialogue_id"),
+                "dialogue_topic": state.get("last_activity_detail"),
+                "dialogue_active": is_dialogue_active(state),
+            }
 
     # Priority -3: interpret short beginner answers through the exact
     # question Nele asked. This shared contextual layer must run before the
