@@ -1577,3 +1577,20 @@ class GeneratedTests(unittest.TestCase):
         self.assertIn("Wie viele Zimmer", reply)
 
 
+    def test_active_question_slots_keep_room_count_and_after_work_context(self):
+        state = {"free_conversation": {
+            "last_question": "Wie viele Zimmer putzt du normalerweise?",
+            "recent_questions": [],
+            "conversation_facts": {},
+        }}
+        reply, _ = _turn(state, "5 Zimmer")
+        self.assertIn("Ich putze 5 Zimmer.", reply)
+        self.assertIn("Was machst du nach der Arbeit?", reply)
+
+        reply, _ = _turn(state, "Was machst du nach der Arbeit?")
+        self.assertIn("Was machst du heute?", reply)
+
+        reply, _ = _turn(state, "Ich gehe nach Hause.")
+        self.assertIn("Was machst du abends?", reply)
+
+
