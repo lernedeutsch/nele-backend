@@ -284,20 +284,15 @@ def handle_dialogue(user_message, state):
         user_message,
         state.get("dialogue_level") or "A1",
     )
+    # A clear new dialogue intent must pre-empt the old dialogue. Requiring an
+    # exact stored prompt made natural paraphrases and topic changes look like
+    # wrong answers, which caused loops and dialogue mixing.
     if (
         candidate is not None
         and _norm(candidate.get("id")) != _norm(state.get("dialogue_id"))
-        and "?" in str(user_message or "")
-        and _norm(user_message) == _norm(
-            next(
-                (
-                    turn.get("text") or turn.get("prompt")
-                    for turn in _turns(candidate)
-                    if _norm(turn.get("role")) in {"nele", "teacher", "assistant"}
-                    and _norm(turn.get("text") or turn.get("prompt")) == _norm(user_message)
-                ),
-                "",
-            )
+        and (
+            "?" in str(user_message or "")
+            or _dialogue_router_score(user_message, candidate)[0] >= 0.82
         )
     ):
         switched = start_dialogue(
