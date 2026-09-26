@@ -1,13 +1,23 @@
 import unittest
+from unittest.mock import patch
 
-from brain.logic.dialogue_engine import answer_matches_dialogue_turn, clear_dialogue
+from brain.logic.dialogue_engine import (
+    answer_matches_dialogue_turn,
+    clear_dialogue,
+    get_dialogue,
+    handle_dialogue,
+    load_dialogues,
+    start_dialogue,
+)
 from brain.logic.dialogue_knowledge import compatible_topics, render_pattern
+from brain.logic.dialogue_importer import activate_dialogue_candidates, validate_imported_slots
 from brain.logic.dialogue_state_engine import (
     allow_variation,
     initialise_dialogue_state,
     mark_intent_complete,
     within_turn_limit,
 )
+from brain.knowledge.active_dialogues import ACTIVE_DIALOGUES
 
 
 class GoldenDialogueSystemTests(unittest.TestCase):
@@ -60,14 +70,68 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertFalse(state["dialogue_active"])
         self.assertNotIn("dialogue_topic", state)
 
+    def test_active_registry_contains_exactly_twenty_promoted_dialogues(self):
+        self.assertEqual(len(ACTIVE_DIALOGUES), 20)
+        ids = [d["id"] for d in ACTIVE_DIALOGUES]
+        self.assertEqual(len(ids), len(set(ids)))
+        for dialogue in ACTIVE_DIALOGUES:
+            self.assertEqual(dialogue["knowledge_status"], "active")
+            self.assertEqual(dialogue["level"], "A1")
+            self.assertIn(dialogue["lesson"], [11, 12, 13, 14, 15])
+            self.assertGreaterEqual(len(dialogue["turns"]), 2)
+            self.assertIn("combine_unrelated_topics", dialogue["forbidden_variations"])
+            validate_imported_slots(dialogue)
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_every_promoted_dialogue_passes_candidate_to_active_gate(self):
+        candidates = []
+        for source in ACTIVE_DIALOGUES:
+            item = dict(source)
+            item["knowledge_status"] = "candidate"
+            candidates.append(item)
+        report = {
+            "accepted": candidates,
+            "rejected": [],
+            "accepted_count": len(candidates),
+            "rejected_count": 0,
+            "ok": True,
+            "stage": "candidate",
+            "activation_ready": True,
+        }
+        active = activate_dialogue_candidates(report)
+        self.assertEqual(len(active), 20)
+        self.assertTrue(all(d["knowledge_status"] == "active" for d in active))
 
+    def test_each_promoted_dialogue_rejects_unrelated_first_answer(self):
+        for dialogue in ACTIVE_DIALOGUES:
+            state = {}
+            opening = start_dialogue("A1", dialogue["lesson"], dialogue["id"], state)
+            self.assertTrue(opening)
+            before = state.get("dialogue_turn", 0)
+            response = handle_dialogue("Ich kaufe Brot.", state)
+            self.assertTrue(response)
+            self.assertEqual(
+                state.get("dialogue_turn", 0),
+                before,
+                msg=f"Unrelated answer advanced {dialogue['id']}",
+            )
+
+    def test_each_promoted_dialogue_can_follow_its_canonical_answers(self):
+        for dialogue in ACTIVE_DIALOGUES:
+            state = {}
+            start_dialogue("A1", dialogue["lesson"], dialogue["id"], state)
+            for turn in dialogue["turns"]:
+                if turn.get("role") != "student":
+                    continue
+                expected = turn.get("expected")
+                if not expected:
+                    continue
+                handle_dialogue(expected, state)
+            self.assertFalse(
+                state.get("dialogue_active", True),
+                msg=f"Dialogue did not complete: {dialogue['id']}",
+            )
 
     def test_active_registry_is_consumed_by_same_engine(self):
-        from unittest.mock import patch
-        from brain.logic.dialogue_engine import load_dialogues, get_dialogue
         active = [{
             "id": "hotel-greeting-001",
             "level": "A1",
@@ -82,18 +146,16 @@ if __name__ == "__main__":
         with patch("brain.logic.dialogue_engine.get_active_dialogues", return_value=active):
             loaded = load_dialogues("A1", 4)
             self.assertEqual(loaded[0]["id"], "hotel-greeting-001")
-            self.assertEqual(get_dialogue("A1", 4, "hotel-greeting-001")["knowledge_status"], "active")
-
-
-
+            self.assertEqual(
+                get_dialogue("A1", 4, "hotel-greeting-001")["knowledge_status"],
+                "active",
+            )
 
     def test_real_a12_origin_dialogue_completes_without_topic_mixing(self):
-        from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
         state = {}
         opening = start_dialogue("A1", 2, "woher-kommst-du", state)
         self.assertIn("Woher kommst du?", opening)
 
-        # Correct meaning but unrelated topic must not advance.
         reply = handle_dialogue("Ich kaufe Brot.", state)
         self.assertIn("Ich komme aus Polen", reply)
         self.assertEqual(state["dialogue_turn"], 1)
@@ -110,3 +172,5 @@ if __name__ == "__main__":
         self.assertIn("geschafft", reply)
 
 
+if __name__ == "__main__":
+    unittest.main()
