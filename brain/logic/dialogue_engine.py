@@ -268,6 +268,24 @@ def _learner_is_changing_topic(user_message, turn, slots=None):
     return message.startswith(_TOPIC_CHANGE_QUESTION_STARTS)
 
 
+_DIALOGUE_EXIT_PHRASES = {
+    "danke", "danke schön", "danke schoen", "vielen dank",
+    "tschüss", "tschuss", "ciao", "bis bald", "bis später", "bis spaeter",
+    "auf wiedersehen", "genug", "stopp", "stop",
+}
+
+
+def _learner_is_ending_dialogue(user_message, turn, slots=None):
+    """Allow natural social closings to leave a practice dialogue.
+
+    A phrase that is explicitly accepted by the current learner turn still
+    belongs to the dialogue; otherwise common thanks/goodbyes release it.
+    """
+    if answer_matches_dialogue_turn(user_message, turn, slots):
+        return False
+    return _norm(user_message) in _DIALOGUE_EXIT_PHRASES
+
+
 def clear_dialogue(state):
     for key, value in {
         "dialogue_active": False,
@@ -326,6 +344,16 @@ def handle_dialogue(user_message, state):
             title = _text(candidate.get("title") or candidate.get("topic"))
             prefix = f"Gerne! Wir sprechen kurz über {title.lower()}. " if title else "Gerne! "
             return prefix + switched
+
+    # Thanks/goodbyes are valid conversational exits, not failed repetitions.
+    if _learner_is_ending_dialogue(user_message, turn, state.get("dialogue_slots")):
+        closing = _norm(user_message)
+        clear_dialogue(state)
+        if closing in {"danke", "danke schön", "danke schoen", "vielen dank"}:
+            return "Gern!"
+        if closing in {"tschüss", "tschuss", "ciao", "bis bald", "bis später", "bis spaeter", "auf wiedersehen"}:
+            return "Tschüss!"
+        return "Gut, wir machen frei weiter."
 
     # Free conversation must remain learner-led. A clear new question that is
     # not a valid answer to the current scripted turn releases the dialogue and
