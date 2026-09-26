@@ -913,11 +913,19 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     dialogue_candidate = None
     if not is_dialogue_active(state):
         raw_dialogue_message = str(user_message or "").strip()
+        current_context_reply = None
+        if free.get("last_question"):
+            current_context_reply = a1_everyday_reply(
+                raw_dialogue_message,
+                free.get("last_question", ""),
+                state,
+            )
         may_route_dialogue = (
             int(free.get("turn_count", 0) or 0) == 0
             or (
                 "?" in raw_dialogue_message
                 and _is_explicit_learner_question(raw_dialogue_message)
+                and current_context_reply is None
             )
         )
         if may_route_dialogue:
