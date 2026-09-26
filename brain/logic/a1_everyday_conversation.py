@@ -33,6 +33,7 @@ def a1_everyday_reply(text, last_question, state=None):
       "was putzt du bei der arbeit":"Ich putze nicht wirklich. Was putzt du bei der Arbeit?",
       "was putzt du auf der arbeit":"Ich putze nicht wirklich. Was putzt du bei der Arbeit?",
       "was reinigst du bei der arbeit":"Ich reinige nicht wirklich. Was reinigst du bei der Arbeit?",
+      "was machst du nach der arbeit":"Nach der Arbeit ruhe ich mich aus. Und du?",
     }
     if low in direct: return direct[low]
 
@@ -81,7 +82,7 @@ def a1_everyday_reply(text, last_question, state=None):
 
     # Generic full-sentence answers to an active work question stay in that
     # question's context instead of falling through to a stale topic.
-    if "was machst du bei der arbeit" in last and re.match(r"^ich\s+", low):
+    if "was machst du bei der arbeit" in last and low in {"ich putze", "ich reinige", "ich koche", "ich mache sauber"}:
         if "putz" in low:
             facts["work_activity"] = "putzen"
             return "Du kannst sagen: „Ich putze.“ Was putzt du bei der Arbeit?"
