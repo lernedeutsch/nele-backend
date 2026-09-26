@@ -219,15 +219,49 @@ def _dialogue_router_score(message, dialogue):
 def find_dialogue_for_message(message, level="A1", min_score=0.68):
     if not _text(message):
         return None
+    message_tokens = _router_tokens(message)
     candidates = []
     for dialogue in get_active_dialogues(str(level or "A1").upper()):
         score, overlap = _dialogue_router_score(message, dialogue)
-        if score >= float(min_score):
-            candidates.append((score, overlap, dialogue))
+        # A partial prompt match is not enough to select a dialogue. Require
+        # at least one content-bearing token from the dialogue metadata
+        # (topic/title/situation). This prevents generic questions such as
+        # "Was machst du am Wochenende?" from accidentally selecting Reisen,
+        # while "Welche Musik hörst du gern?" still has the anchor "musik".
+        metadata = " ".join(str(dialogue.get(key) or "") for key in ("title", "topic", "situation"))
+        anchor_tokens = _router_tokens(metadata)
+        shared_anchors = message_tokens & anchor_tokens
+        has_topic_anchor = bool(shared_anchors)
+        # Prefer an explicit metadata/topic word over a coincidental prompt
+        # match when neighbouring dialogues share the same sentence pattern.
+        # Example: "Wochenende" should beat a generic Freizeit/Samstag match.
+        anchor_specificity = len(shared_anchors) / max(1, len(anchor_tokens))
+        entry_turn = next(
+            (
+                turn for turn in _turns(dialogue)
+                if _norm(turn.get("role")) in {"nele", "teacher", "assistant"}
+            ),
+            None,
+        )
+        entry_triggers = {
+            _norm(value)
+            for value in dialogue.get("entry_triggers", [])
+            if _norm(value)
+        }
+        exact_prompt_match = bool(
+            (
+                entry_turn
+                and _norm(entry_turn.get("text") or entry_turn.get("prompt")) == _norm(message)
+            )
+            or _norm(message) in entry_triggers
+        )
+        if score >= float(min_score) and (exact_prompt_match or has_topic_anchor):
+            # Exact prompts are canonical triggers and outrank fuzzy matches.
+            candidates.append((1 if exact_prompt_match else 0, anchor_specificity, score, overlap, dialogue))
     if not candidates:
         return None
-    candidates.sort(key=lambda item: (item[0], item[1], -int(item[2].get("lesson") or 999), _norm(item[2].get("id"))), reverse=True)
-    return candidates[0][2]
+    candidates.sort(key=lambda item: (item[0], item[1], item[2], item[3], -int(item[4].get("lesson") or 999), _norm(item[4].get("id"))), reverse=True)
+    return candidates[0][4]
 
 
 def auto_start_dialogue_from_message(message, state, level="A1", min_score=0.68):
