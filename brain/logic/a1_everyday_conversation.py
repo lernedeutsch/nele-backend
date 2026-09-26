@@ -14,6 +14,13 @@ def a1_everyday_reply(text, last_question, state=None):
     facts=(state or {}).setdefault("a1_everyday_facts", {}) if state is not None else {}
 
     # Learner-led questions: answer briefly and return the conversation.
+    # Learner-led work-time question: answer Nele's own schedule briefly.
+    # Do not turn the learner's question into a stale work-context prompt.
+    # Because this is a question *to Nele*, it must not create an expectation
+    # that the learner's next clock time describes their own work start.
+    if low in {"wann fängst du an", "wann faengst du an", "wann fängst du heute an", "wann faengst du heute an"}:
+        return "Ich bin immer für dich da. Wann fängst du heute an?"
+
     direct={
       "woher kommst du":"Ich bin Nele, deine Deutschtrainerin. Und woher kommst du?",
       "wo wohnst du":"Ich wohne nicht wirklich an einem Ort. Und wo wohnst du?",
