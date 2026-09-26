@@ -57,7 +57,29 @@ jobs:
       - name: Install requests
         run: pip install requests
       - name: Live Nele smoke test
-        run: python test_nele_live.py
+        id: live_conversation
+        continue-on-error: true
+        run: |
+          python test_nele_live.py > nele-live.txt 2>&1
+          cat nele-live.txt
+
+      - name: Post durable Nele Live transcript
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### Nele Live — automatic transcript'
+            echo
+            echo '\`\`\`text'
+            cat nele-live.txt
+            echo '\`\`\`'
+          } > nele-comment.md
+          gh issue comment 60 --repo "$GITHUB_REPOSITORY" --body-file nele-comment.md
+
+      - name: Fail if Nele Live failed
+        if: steps.live_conversation.outcome == 'failure'
+        run: exit 1
 
   chatgpt-live-nele:
     if: >-
