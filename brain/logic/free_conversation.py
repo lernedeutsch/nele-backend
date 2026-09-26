@@ -1579,19 +1579,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # If it blocks a question, prefer a coherent alternative from the ACTIVE
     # conversational branch. Do not let a generic fallback pull the learner
     # back to an older topic such as "Arbeitest du heute?".
-    guard = select_question(state, question, [])
-    if guard.get("blocked"):
-        branch_alternatives = _not_recent(
-            free, FALLBACKS.get(topic, FALLBACKS["today"])
-        )
-        replacement = select_question(state, branch_alternatives[0], branch_alternatives[1:])
-        question = replacement.get("selected") or question
-        guard = {
-            **guard,
-            "selected": question,
-            "changed": question != guard.get("question"),
-            "replacement": replacement,
-        }
+    branch_alternatives = _not_recent(
+        free, FALLBACKS.get(topic, FALLBACKS["today"])
+    )
+    guard = select_question(state, question, branch_alternatives)
+    question = guard.get("selected") or question
     else:
         question = guard.get("selected") or question
 
