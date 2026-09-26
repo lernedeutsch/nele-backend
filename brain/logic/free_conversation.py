@@ -931,6 +931,36 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "dialogue_topic": state.get("last_activity_detail"),
             }
 
+    # Shared wellbeing corrections are semantic language corrections and must
+    # run before personal/fuzzy routers. This prevents malformed but recognized
+    # phrases such as "mir geht gut" from being swallowed on the first turn.
+    early_wellbeing = analyze_wellbeing_response(user_message)
+    early_norm = _norm(user_message).strip(" ?!.,")
+    if (
+        early_wellbeing.get("recognized")
+        and early_wellbeing.get("corrected_message")
+        and (
+            early_norm.startswith("mir geht ")
+            or early_norm.startswith("ich bin ")
+            or early_norm.startswith("ich geht ")
+            or early_norm.startswith("ich gehe ")
+        )
+    ):
+        feedback = early_wellbeing.get("feedback") or early_wellbeing.get("corrected_message")
+        reaction = early_wellbeing.get("reaction") or ""
+        reply = " ".join(part for part in (feedback, reaction) if part).strip()
+        _remember_question(free, reply)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        free["last_topic"] = "today"
+        return reply, {
+            "conversation_mode": "free",
+            "topic": "today",
+            "shared_wellbeing": True,
+            "wellbeing_type": early_wellbeing.get("type"),
+            "wellbeing_correction": True,
+        }
+
     # Personal real-life sentences remain available when no dialogue was selected.
     personal = handle_personal_sentence(user_message, state, mode="free")
     if personal:
@@ -1409,11 +1439,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             guard = {"version": 1, "blocked": False, "reason": "no_question"}
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
-        social_topic, social_topic_source = choose_topic(
-            state,
-            explicit_topic=explicit_topic,
-            vocabulary_topic=vocabulary_topic or previous_topic,
-        )
+        # Reuse the topic already resolved for this turn. Re-running
+        # choose_topic here with raw vocabulary used to undo sticky/explicit
+        # topics (e.g. holiday -> today after "Ich fahre gern mit dem Zug.").
+        social_topic, social_topic_source = topic, topic_source
         free["last_topic"] = social_topic
         conversation_state = sync_conversation_state(
             state,
