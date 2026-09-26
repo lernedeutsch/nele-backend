@@ -49,6 +49,12 @@ from brain.logic.lesson_teaching import (
     handle_lesson_teaching
 )
 
+from brain.logic.dialogue_engine import (
+    auto_start_dialogue_from_message,
+    is_dialogue_active,
+    handle_dialogue,
+)
+
 from brain.logic.personal_sentences import (
     should_offer_personal_sentence_practice,
     start_personal_sentence_practice,
@@ -717,6 +723,30 @@ def generate_conversation_reply(
             session_id
         )
 
+
+    # ======================================
+    # 9B. AUTOMATYCZNY ROUTER DIALOGUE KNOWLEDGE
+    #
+    # W Frei sprechen użytkownik może rozpocząć
+    # aktywny dialog samym pytaniem. Jeśli nie
+    # ma już aktywnego dialogu, wspólny router
+    # wybiera właściwy wpis z aktywnej wiedzy.
+    # Nigdy nie nadpisuje aktywnego dialogu ani
+    # aktywnej lekcji.
+    # ======================================
+
+    if not state.get("lesson_teaching_active") and not is_dialogue_active(state):
+        dialogue_answer = auto_start_dialogue_from_message(
+            processed_message,
+            state,
+            level=level,
+        )
+        if dialogue_answer:
+            return return_with_feedback(
+                dialogue_answer,
+                feedback_text,
+                session_id
+            )
 
     # ======================================
     # 10. KONTYNUACJA AKTYWNOŚCI
