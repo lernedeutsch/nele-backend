@@ -16,7 +16,7 @@ QUESTION_STARTS = (
 def _norm(text):
     return re.sub(r"\s+", " ", str(text or "").strip().lower()).strip(" .?!")
 
-def classify_conversation_intent(message, *, last_question="", dialogue_active=False):
+def classify_conversation_intent(message, *, last_question="", dialogue_active=False, dialogue_prompt=""):
     raw = str(message or "").strip()
     low = _norm(raw)
     wellbeing = analyze_wellbeing_response(raw)
@@ -36,7 +36,12 @@ def classify_conversation_intent(message, *, last_question="", dialogue_active=F
     # the question the learner is currently answering. Free-conversation
     # questions must not leave a hidden dialogue state that later captures
     # short answers such as "Pizza" or "Zimmer".
-    if dialogue_active and last_question:
+    dialogue_q = _norm(dialogue_prompt)
+    # Dialogue state owns the answer only while the visible last question is
+    # actually the dialogue prompt. If another free-conversation handler asked
+    # a newer question, that newer context wins.
+    same_prompt = bool(dialogue_q and last and (dialogue_q == last or dialogue_q in last or last in dialogue_q))
+    if dialogue_active and same_prompt:
         return {"intent": "dialogue_answer", "wellbeing": wellbeing}
 
     if last_question:
