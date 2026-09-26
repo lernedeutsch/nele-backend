@@ -881,7 +881,7 @@ def generate_free_welcome(state, session_id=None):
 
     # Once Dialogue Knowledge has selected a dialogue, it owns the exchange
     # until completion. Free-mode topic generation must never steal a turn.
-    if is_dialogue_active(state) and routed_intent.get("intent") == "dialogue_answer":
+    if is_dialogue_active(state):
         dialogue_reply = handle_dialogue(user_message, state)
         if dialogue_reply is not None:
             _remember_question(free, dialogue_reply)
@@ -987,7 +987,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "wellbeing_correction": True,
         }
 
-    # Shared wellbeing is resolved before topic-specific routers.\n    if routed_intent.get("intent") == "wellbeing":\n        wb = routed_intent.get("wellbeing") or analyze_wellbeing_response(user_message)\n        kind = wb.get("type")\n        model = wb.get("model_sentence")\n        reaction = wb.get("reaction") or ""\n        follow_up = {"bad": "Warum geht es dir nicht gut?", "tired": "War dein Tag anstrengend?", "stressed": "Möchtest du kurz und ruhig weitermachen?", "sad": "Möchtest du ein bisschen reden?", "sick": "Möchtest du heute nur etwas Leichtes machen?"}.get(kind, "Was machst du heute?")\n        reply = f"{reaction} Du kannst auch sagen: „{model}“ {follow_up}".strip() if model else f"{reaction} {follow_up}".strip()\n        _remember_question(free, reply)\n        free["last_user_message"] = str(user_message or "").strip()\n        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1\n        understanding = understand_response(user_message, conversation_state=state.get("conversation_state_v2") or {}, vocabulary_context=free.get("vocabulary_context") or {})\n        return reply, {"conversation_mode": "free", "shared_wellbeing": True, "wellbeing_type": kind, "response_understanding": understanding, "error_engine": process_error(user_message, state=state, context={"response_understanding": understanding})}\n\n    # Personal real-life sentences remain available when no dialogue was selected.
+    # Personal real-life sentences remain available when no dialogue was selected.
     personal = None
     if routed_intent.get("intent") in {"learner_question", "open_statement"}:
         personal = handle_personal_sentence(user_message, state, mode="free")
