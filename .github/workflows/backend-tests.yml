@@ -60,8 +60,7 @@ jobs:
         id: live_conversation
         continue-on-error: true
         run: |
-          python test_nele_live.py > nele-live.txt 2>&1
-          cat nele-live.txt
+          python -u test_nele_live.py 2>&1 | tee nele-live.txt
 
       - name: Post durable Nele Live transcript
         if: always()
@@ -128,6 +127,7 @@ jobs:
           cat nele-live.txt
 
       - name: Post conversation back to the issue
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
