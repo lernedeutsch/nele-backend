@@ -914,11 +914,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # Priority -3: reusable Dialogue Knowledge router for a fresh learner-led
     # topic request. It runs before broad personal/A1 matching so a validated
     # dialogue cannot be shadowed by a generic sentence or fallback.
-    if (
-        not is_dialogue_active(state)
-        and not free.get("last_question")
-        and int(free.get("turn_count", 0) or 0) == 0
-    ):
+    if not is_dialogue_active(state):
         dialogue_reply = auto_start_dialogue_from_message(
             user_message,
             state,
