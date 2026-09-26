@@ -42,7 +42,17 @@ jobs:
         run: python -m brain.logic.content_validation
 
       - name: Run backend tests
-        run: python -m unittest discover -s tests -p "test_*.py"
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests -p "test_*.py" 2>&1 | tee unit-tests.txt
+
+      - name: Upload unit-test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-diagnostics
+          path: unit-tests.txt
+          if-no-files-found: warn
 
   live-nele:
     if: github.event_name != 'issue_comment'
@@ -216,3 +226,13 @@ jobs:
           cat /tmp/nele-backend.log || true
           echo "===== frontend ====="
           cat /tmp/nele-frontend.log || true
+
+      - name: Upload E2E diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-diagnostics
+          path: |
+            /tmp/nele-backend.log
+            /tmp/nele-frontend.log
+          if-no-files-found: warn
