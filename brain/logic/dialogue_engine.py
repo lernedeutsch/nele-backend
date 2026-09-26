@@ -287,6 +287,7 @@ def handle_dialogue(user_message, state):
     if (
         candidate is not None
         and _norm(candidate.get("id")) != _norm(state.get("dialogue_id"))
+        and "?" in str(user_message or "")
         and _norm(user_message) == _norm(
             next(
                 (
