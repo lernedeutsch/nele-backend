@@ -131,7 +131,17 @@ def _advance_to_learner(turns, index):
     return index, spoken
 
 
-def start_dialogue(level, lesson, dialogue_id, state):
+def _matching_nele_turn_index(message, dialogue):
+    message_norm = _norm(message)
+    for index, turn in enumerate(_turns(dialogue)):
+        if _norm(turn.get("role")) in {"nele", "teacher", "assistant"}:
+            prompt = _norm(turn.get("text") or turn.get("prompt"))
+            if prompt and prompt == message_norm:
+                return index
+    return 0
+
+
+def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
     dialogue = get_dialogue(level, lesson, dialogue_id)
     if dialogue is None or state is None:
         return None
@@ -140,7 +150,12 @@ def start_dialogue(level, lesson, dialogue_id, state):
     if not turns:
         return None
 
-    index, spoken = _advance_to_learner(turns, 0)
+    try:
+        requested_start = max(0, int(start_turn or 0))
+    except (TypeError, ValueError):
+        requested_start = 0
+    requested_start = min(requested_start, len(turns) - 1)
+    index, spoken = _advance_to_learner(turns, requested_start)
     state["dialogue_active"] = True
     state["dialogue_level"] = str(level).upper()
     state["dialogue_lesson"] = int(lesson)
@@ -216,11 +231,13 @@ def auto_start_dialogue_from_message(message, state, level="A1"):
     dialogue = find_dialogue_for_message(message, level)
     if dialogue is None:
         return None
+    start_turn = _matching_nele_turn_index(message, dialogue)
     reply = start_dialogue(
         dialogue.get("level") or level,
         dialogue.get("lesson") or 1,
         dialogue.get("id"),
         state,
+        start_turn=start_turn,
     )
     if not reply:
         return None
@@ -277,6 +294,7 @@ def handle_dialogue(user_message, state):
             candidate.get("lesson") or state.get("dialogue_lesson") or 1,
             candidate.get("id"),
             state,
+            start_turn=_matching_nele_turn_index(user_message, candidate),
         )
         if switched:
             title = _text(candidate.get("title") or candidate.get("topic"))
