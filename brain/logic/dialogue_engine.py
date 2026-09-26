@@ -231,10 +231,16 @@ def find_dialogue_for_message(message, level="A1", min_score=0.68):
         # match when neighbouring dialogues share the same sentence pattern.
         # Example: "Wochenende" should beat a generic Freizeit/Samstag match.
         anchor_specificity = len(shared_anchors) / max(1, len(anchor_tokens))
-        exact_prompt_match = any(
-            _norm(turn.get("text") or turn.get("prompt")) == _norm(message)
-            for turn in _turns(dialogue)
-            if _norm(turn.get("role")) in {"nele", "teacher", "assistant"}
+        entry_turn = next(
+            (
+                turn for turn in _turns(dialogue)
+                if _norm(turn.get("role")) in {"nele", "teacher", "assistant"}
+            ),
+            None,
+        )
+        exact_prompt_match = bool(
+            entry_turn
+            and _norm(entry_turn.get("text") or entry_turn.get("prompt")) == _norm(message)
         )
         if score >= float(min_score) and (exact_prompt_match or has_topic_anchor):
             # Exact prompts are canonical triggers and outrank fuzzy matches.
