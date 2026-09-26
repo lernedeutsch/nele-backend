@@ -1,6 +1,10 @@
 import unittest
 
-from brain.logic.dialogue_importer import normalize_dialogue, validate_imported_slots
+from brain.logic.dialogue_importer import (
+    import_dialogue_batch,
+    normalize_dialogue,
+    validate_imported_slots,
+)
 from brain.logic.content_validation import ContentValidationError
 
 
@@ -82,6 +86,52 @@ class DialogueImporterTests(unittest.TestCase):
         self.assertNotIn("grammar", d)
         self.assertNotIn("vocabulary", d)
         self.assertNotIn("learning_goals", d)
+
+
+    def test_batch_keeps_valid_and_rejects_invalid_dialogue(self):
+        batch = [
+            {
+                "title": "Begrüßung",
+                "section": "Hallo",
+                "turns": [
+                    {"role": "nele", "text": "Hallo! Wie heißt du?"},
+                    {"role": "student", "expected": "Ich heiße Moni."},
+                ],
+            },
+            {
+                "title": "Kaputter Dialog",
+                "section": "Herkunft",
+                "turns": [
+                    {"role": "nele", "text": "Woher kommst du?"},
+                    {
+                        "role": "student",
+                        "expected": "Ich komme aus Polen.",
+                        "accepted_patterns": ["Ich komme aus {country}"],
+                    },
+                ],
+            },
+        ]
+        report = import_dialogue_batch(batch, level="A1", lesson=1)
+        self.assertEqual(report["accepted_count"], 1)
+        self.assertEqual(report["rejected_count"], 1)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["accepted"][0]["id"], "begruessung")
+        self.assertIn("undefined slots", report["rejected"][0]["reason"])
+
+    def test_batch_rejects_duplicate_ids(self):
+        raw = {
+            "id": "hello",
+            "title": "Hallo",
+            "section": "Hallo",
+            "turns": [
+                {"role": "nele", "text": "Hallo!"},
+                {"role": "student", "expected": "Hallo!"},
+            ],
+        }
+        report = import_dialogue_batch([raw, raw])
+        self.assertEqual(report["accepted_count"], 1)
+        self.assertEqual(report["rejected_count"], 1)
+        self.assertIn("Duplicate dialogue id", report["rejected"][0]["reason"])
 
 
 if __name__ == "__main__":
