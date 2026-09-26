@@ -909,6 +909,29 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         return reply, meta
     free = state.setdefault("free_conversation", {})
 
+    # Priority -3: reusable Dialogue Knowledge router for a fresh learner-led
+    # topic request. Existing active/ongoing conversation state remains untouched.
+    if (
+        not is_dialogue_active(state)
+        and not free.get("last_question")
+        and int(free.get("turn_count", 0) or 0) == 0
+    ):
+        dialogue_reply = auto_start_dialogue_from_message(
+            user_message,
+            state,
+            level="A1",
+        )
+        if dialogue_reply:
+            free["last_user_message"] = str(user_message or "").strip()
+            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+            _remember_question(free, dialogue_reply)
+            return dialogue_reply, {
+                "conversation_mode": "free",
+                "dialogue_knowledge": True,
+                "dialogue_id": state.get("dialogue_id"),
+                "dialogue_topic": state.get("last_activity_detail"),
+            }
+
     # Priority -3: interpret short beginner answers through the exact
     # question Nele asked. This shared contextual layer must run before the
     # broad A1 content bank, otherwise nouns/times such as "Pizza", "8" or
