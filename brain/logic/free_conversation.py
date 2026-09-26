@@ -881,7 +881,7 @@ def generate_free_welcome(state, session_id=None):
 
     # Once Dialogue Knowledge has selected a dialogue, it owns the exchange
     # until completion. Free-mode topic generation must never steal a turn.
-    if is_dialogue_active(state) and routed_intent.get("intent") == "dialogue_answer":
+    if is_dialogue_active(state):
         dialogue_reply = handle_dialogue(user_message, state)
         if dialogue_reply is not None:
             _remember_question(free, dialogue_reply)
