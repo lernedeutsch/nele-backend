@@ -152,3 +152,57 @@ def import_dialogue_batch(raw_dialogues, *, level="A1", lesson=None, section=Non
         "rejected_count": len(rejected),
         "ok": not rejected,
     }
+
+
+
+def prepare_dialogue_candidates(raw_dialogues, *, level="A1", lesson=None, section=None):
+    """Build a non-active candidate package from a raw dialogue batch."""
+    report = import_dialogue_batch(
+        raw_dialogues, level=level, lesson=lesson, section=section
+    )
+    candidates = []
+    for dialogue in report["accepted"]:
+        item = deepcopy(dialogue)
+        item["knowledge_status"] = "candidate"
+        candidates.append(item)
+    return {
+        **report,
+        "accepted": candidates,
+        "stage": "candidate",
+        "activation_ready": report["ok"] and bool(candidates),
+    }
+
+
+def activate_dialogue_candidates(candidate_report):
+    """Promote only a completely clean candidate package to active knowledge.
+
+    This function changes data status only. Persistence into lesson modules is
+    deliberately separate so runtime logic is never modified by content import.
+    """
+    if not isinstance(candidate_report, dict):
+        raise ContentValidationError("Candidate report must be a dict.")
+    if candidate_report.get("rejected_count", 0):
+        raise ContentValidationError(
+            "Candidate package contains rejected dialogues and cannot be activated."
+        )
+    candidates = candidate_report.get("accepted") or []
+    if not candidates:
+        raise ContentValidationError("Candidate package contains no dialogues.")
+
+    active = []
+    seen_ids = set()
+    for source in candidates:
+        dialogue = deepcopy(source)
+        if dialogue.get("knowledge_status") != "candidate":
+            raise ContentValidationError(
+                f"Dialogue {dialogue.get('id')}: only candidate knowledge can be activated."
+            )
+        validate_imported_slots(dialogue)
+        key = _text(dialogue.get("id")).casefold()
+        if not key or key in seen_ids:
+            raise ContentValidationError("Active package has missing or duplicate dialogue id.")
+        seen_ids.add(key)
+        dialogue["knowledge_status"] = "active"
+        active.append(dialogue)
+
+    return active
