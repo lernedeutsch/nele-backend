@@ -27,7 +27,7 @@ from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, reco
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
-from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active, handle_dialogue
+from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active, handle_dialogue, get_active_dialogue_prompt
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
 from brain.logic.conversation_intent_router import classify_conversation_intent
 from brain.knowledge.social_a1_topics import social_topic_reply
@@ -912,6 +912,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         user_message,
         last_question=free.get("last_question", ""),
         dialogue_active=is_dialogue_active(state),
+        dialogue_prompt=get_active_dialogue_prompt(state),
     )
 
     # Priority -3: reusable Dialogue Knowledge router for a fresh learner-led
