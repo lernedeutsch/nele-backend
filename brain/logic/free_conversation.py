@@ -978,7 +978,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # In free conversation, a clear learner-led question can select an
     # active, validated dialogue. Once selected, the shared Dialogue Engine
     # owns the turns; free-mode topic generation must not mix into it.
-    if not is_dialogue_active(state):
+    if (
+        not is_dialogue_active(state)
+        and not free.get("last_question")
+        and int(free.get("turn_count", 0) or 0) == 0
+    ):
         dialogue_reply = auto_start_dialogue_from_message(
             user_message,
             state,
