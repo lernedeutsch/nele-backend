@@ -5,6 +5,7 @@ owns HOW a dialogue is practised; lesson content owns WHAT is practised.
 """
 from brain.logic.lesson_loader import load_lesson_module
 from brain.knowledge.active_dialogues import get_active_dialogues
+from brain.knowledge.situation_dialogues import get_situation_dialogues
 from brain.logic.matcher import normalize
 from brain.logic.dialogue_knowledge import accepted_patterns, infer_intent, render_pattern
 from brain.logic.dialogue_state_engine import (
@@ -29,7 +30,7 @@ def load_dialogues(level="A1", lesson=1):
     data = getattr(module, "LESSON_DIALOGUES", []) if module is not None else []
     local = data if isinstance(data, list) else []
     # Active reusable knowledge remains addressable even when no lesson module exists.
-    active = get_active_dialogues(str(level or "A1").upper(), int(lesson))
+    active = get_active_dialogues(str(level or "A1").upper(), int(lesson)) + get_situation_dialogues(str(level or "A1").upper(), int(lesson))
     # Local lesson content remains first; promoted reusable knowledge is added
     # through the same engine and never gets a second conversation controller.
     seen = {_norm(item.get("id")) for item in local if isinstance(item, dict)}
@@ -221,7 +222,7 @@ def find_dialogue_for_message(message, level="A1", min_score=0.68):
         return None
     message_tokens = _router_tokens(message)
     candidates = []
-    for dialogue in get_active_dialogues(str(level or "A1").upper()):
+    for dialogue in (get_active_dialogues(str(level or "A1").upper()) + get_situation_dialogues(str(level or "A1").upper())):
         score, overlap = _dialogue_router_score(message, dialogue)
         # A partial prompt match is not enough to select a dialogue. Require
         # at least one content-bearing token from the dialogue metadata
