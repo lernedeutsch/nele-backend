@@ -1288,10 +1288,16 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 }
                 guarded_question = next_question
             else:
-                social_alternatives = _not_recent(
-                    free,
-                    FALLBACKS.get(explicit_topic or previous_topic, FALLBACKS["today"]),
-                )
+                # A learner-led question owns this turn. The semantic guard may
+                # veto repeats, but it must never replace the new branch's
+                # question with a fallback from the PREVIOUS topic.
+                if _is_explicit_learner_question(user_message):
+                    social_alternatives = []
+                else:
+                    social_alternatives = _not_recent(
+                        free,
+                        FALLBACKS.get(explicit_topic or previous_topic, FALLBACKS["today"]),
+                    )
                 guard = select_question(state, next_question, social_alternatives)
                 guarded_question = guard.get("selected") or next_question
             social_reply = replace_final_question(
