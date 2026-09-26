@@ -353,7 +353,9 @@ def _social_a1_reply(text, free, state):
         "wind", "windig", "bewölkt", "bewoelkt", "wolken", "wolkig",
         "nebel", "neblig", "gewitter"
     ))
-    if weather_context or explicit_weather:
+    # Previous weather context may interpret an ANSWER, but it must never
+    # capture a new learner-led question about another topic.
+    if explicit_weather or (weather_context and not _is_explicit_learner_question(raw)):
         # Common keyboard/ASR typo from beginner input.
         if low in {"sonn8g", "sonnlg", "sonig"}:
             _record_error(state, free, "sonnig_spelling", raw)
