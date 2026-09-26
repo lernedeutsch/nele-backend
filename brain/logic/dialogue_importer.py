@@ -106,3 +106,49 @@ def validate_imported_slots(dialogue):
                     + ", ".join(sorted(missing))
                 )
     return True
+
+
+
+def import_dialogue_batch(raw_dialogues, *, level="A1", lesson=None, section=None):
+    """Normalize and validate many dialogues without activating invalid items.
+
+    Returns a report with accepted normalized dialogues and rejected items.
+    One bad dialogue never makes another bad dialogue look valid, and rejected
+    content is never returned in the accepted collection.
+    """
+    if not isinstance(raw_dialogues, list):
+        raise ContentValidationError("Dialogue batch must be a list.")
+
+    accepted = []
+    rejected = []
+    seen_ids = set()
+
+    for index, raw in enumerate(raw_dialogues):
+        try:
+            dialogue = normalize_dialogue(
+                raw, level=level, lesson=lesson, section=section
+            )
+            dialogue_id = dialogue["id"].strip().casefold()
+            if dialogue_id in seen_ids:
+                raise ContentValidationError(
+                    f"Duplicate dialogue id in batch: {dialogue['id']}"
+                )
+            validate_imported_slots(dialogue)
+            seen_ids.add(dialogue_id)
+            accepted.append(dialogue)
+        except (ContentValidationError, TypeError, ValueError) as error:
+            rejected.append(
+                {
+                    "index": index,
+                    "id": _text(raw.get("id")) if isinstance(raw, dict) else "",
+                    "reason": str(error),
+                }
+            )
+
+    return {
+        "accepted": accepted,
+        "rejected": rejected,
+        "accepted_count": len(accepted),
+        "rejected_count": len(rejected),
+        "ok": not rejected,
+    }
