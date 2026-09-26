@@ -190,6 +190,20 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertIn("Musik", reply)
         self.assertNotIn("vierzehnten Februar", reply)
 
+    def test_active_dialogue_allows_natural_thanks_exit(self):
+        state = {}
+        start_dialogue("A1", 15, "a1-l15-weg-bahnhof", state)
+        reply = handle_dialogue("Danke.", state)
+        self.assertEqual(reply, "Gern!")
+        self.assertFalse(state.get("dialogue_active"))
+
+    def test_active_dialogue_allows_goodbye_exit(self):
+        state = {}
+        start_dialogue("A1", 15, "a1-l15-weg-bahnhof", state)
+        reply = handle_dialogue("Tschüss!", state)
+        self.assertEqual(reply, "Tschüss!")
+        self.assertFalse(state.get("dialogue_active"))
+
     def test_global_router_ignores_unrelated_message(self):
         self.assertIsNone(
             find_dialogue_for_message("Ich brauche heute Milch und Äpfel.", "A1")
