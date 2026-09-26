@@ -1000,6 +1000,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             user_message,
             state,
             level="A1",
+            min_score=0.92,
         )
         if dialogue_reply:
             _remember_question(free, dialogue_reply)
