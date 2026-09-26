@@ -971,6 +971,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             wellbeing_context
             or wellbeing_analysis.get("type") in {"bad", "tired", "stressed", "sad", "sick"}
             or re.match(r"^(?:mir\\s+geht|ich\\s+bin)\\b", _norm(user_message))
+            or _norm(user_message).strip(" ?!.,") in {"gut", "sehr gut", "ganz gut", "prima", "super", "so lala", "es geht", "geht so"}
         )
     )
     if explicit_wellbeing:
@@ -990,6 +991,27 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "shared_wellbeing": True,
                 "wellbeing_type": wellbeing_analysis.get("type"),
             }
+
+    # "Und du?" is a learner-led hand-back, not permission to rotate to an
+    # unrelated fallback topic. Answer within the active topic and keep it.
+    if _norm(user_message).strip(" ?!.,") in {"und du", "und sie"}:
+        active_topic = free.get("last_topic") or "today"
+        topic_answers = {
+            "holiday": "Ich reise nicht wirklich, aber ich spreche gern mit dir über Reisen. Wie reist du am liebsten?",
+            "weather": "Ich habe kein eigenes Wetter. Welches Wetter magst du am liebsten?",
+            "hobby": "Ich spreche gern mit dir. Was machst du gern in deiner Freizeit?",
+            "work": "Ich bin deine Deutschtrainerin. Was machst du bei der Arbeit?",
+            "shopping": "Ich kaufe nicht wirklich ein. Was kaufst du gern?",
+        }
+        reply = topic_answers.get(active_topic, "Ich bin gern hier und spreche mit dir. Und was machst du gern?")
+        _remember_question(free, reply)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        return reply, {
+            "conversation_mode": "free",
+            "topic": active_topic,
+            "topic_handoff": True,
+        }
 
     # Priority -2.4: a clear learner-led question may activate Dialogue
     # Knowledge at ANY point in free conversation, not only on the first turn.
