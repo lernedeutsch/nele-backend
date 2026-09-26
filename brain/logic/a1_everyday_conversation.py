@@ -16,9 +16,10 @@ def a1_everyday_reply(text, last_question, state=None):
     # A fresh learner question must never be consumed as an answer to the
     # previous A1 subthread. Direct question handlers below may still answer
     # known questions; otherwise stale last_question context is cleared.
+    question_low = re.sub(r"^(?:(?:und|aber|also)\\s+)+", "", low)
     learner_question = "?" in raw and re.match(
         r"^(?:was|wie|wo|woher|wohin|wann|warum|wer|welcher|welche|welches|arbeitest|wohnst|isst|trinkst|magst|machst|hast|bist|kommst)\b",
-        low,
+        question_low,
     )
 
     # Learner-led questions: answer briefly and return the conversation.
