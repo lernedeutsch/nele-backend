@@ -245,6 +245,29 @@ def auto_start_dialogue_from_message(message, state, level="A1"):
     prefix = f"Gerne! Wir sprechen kurz über {title.lower()}. " if title else "Gerne! "
     return prefix + reply
 
+_TOPIC_CHANGE_QUESTION_STARTS = (
+    "was ", "wie ", "wo ", "woher ", "wohin ", "wann ", "warum ",
+    "wer ", "welcher ", "welche ", "welches ", "arbeitest ", "wohnst ",
+    "isst ", "trinkst ", "magst ", "machst ", "hast ", "bist ", "kommst ",
+)
+
+
+def _learner_is_changing_topic(user_message, turn, slots=None):
+    """Release a scripted dialogue when the learner clearly asks a new question.
+
+    The current turn still wins when the message is a valid answer. This keeps
+    short A1 answers inside the dialogue while allowing normal free-conversation
+    questions to interrupt it instead of being swallowed as retry attempts.
+    """
+    if answer_matches_dialogue_turn(user_message, turn, slots):
+        return False
+    raw = _text(user_message)
+    message = _norm(raw)
+    if not raw or "?" not in raw:
+        return False
+    return message.startswith(_TOPIC_CHANGE_QUESTION_STARTS)
+
+
 def clear_dialogue(state):
     for key, value in {
         "dialogue_active": False,
@@ -311,6 +334,13 @@ def handle_dialogue(user_message, state):
             title = _text(candidate.get("title") or candidate.get("topic"))
             prefix = f"Gerne! Wir sprechen kurz über {title.lower()}. " if title else "Gerne! "
             return prefix + switched
+
+    # Free conversation must remain learner-led. A clear new question that is
+    # not a valid answer to the current scripted turn releases the dialogue and
+    # lets the normal conversation router answer it.
+    if _learner_is_changing_topic(user_message, turn, state.get("dialogue_slots")):
+        clear_dialogue(state)
+        return None
 
     if not within_turn_limit(state, dialogue):
         complete = _text(dialogue.get("complete")) or "Sehr gut. Wir gehen jetzt weiter."
