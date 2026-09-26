@@ -29,6 +29,7 @@ from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
 from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active, handle_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
+from brain.knowledge.social_a1_topics import social_topic_reply
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
