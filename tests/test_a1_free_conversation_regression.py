@@ -1536,3 +1536,29 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertFalse(result["topic_transition"]["transition"])
         self.assertIn("topic_transition_blocked", result["conflicts"])
+    def test_learner_led_work_and_cooking_questions_keep_context(self):
+        state = {"free_conversation": {
+            "last_question": "Arbeitest du heute?",
+            "recent_questions": ["Arbeitest du heute?"],
+            "conversation_facts": {},
+        }}
+
+        reply, _ = _turn(state, "Wann fängst du an?")
+        self.assertIn("Wann fängst du heute an?", reply)
+
+        reply, _ = _turn(state, "um 8 Uhr")
+        self.assertIn("Ich fange um 8 Uhr an.", reply)
+
+        reply, _ = _turn(state, "Was machst du bei der Arbeit?")
+        self.assertIn("Was machst du bei der Arbeit?", reply)
+
+        reply, _ = _turn(state, "Kochen")
+        self.assertIn("Ich koche.", reply)
+
+        reply, _ = _turn(state, "Was kochst du gern?")
+        self.assertIn("Was kochst du gern?", reply)
+
+        reply, _ = _turn(state, "Pizza")
+        self.assertIn("Ich koche gern Pizza.", reply)
+
+
