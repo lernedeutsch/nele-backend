@@ -225,13 +225,18 @@ def find_dialogue_for_message(message, level="A1", min_score=0.68):
         # while "Welche Musik hörst du gern?" still has the anchor "musik".
         metadata = " ".join(str(dialogue.get(key) or "") for key in ("title", "topic", "situation"))
         anchor_tokens = _router_tokens(metadata)
-        has_topic_anchor = bool(message_tokens & anchor_tokens)
+        shared_anchors = message_tokens & anchor_tokens
+        has_topic_anchor = bool(shared_anchors)
+        # Prefer an explicit metadata/topic word over a coincidental prompt
+        # match when neighbouring dialogues share the same sentence pattern.
+        # Example: "Wochenende" should beat a generic Freizeit/Samstag match.
+        anchor_specificity = len(shared_anchors) / max(1, len(anchor_tokens))
         if score >= float(min_score) and has_topic_anchor:
-            candidates.append((score, overlap, dialogue))
+            candidates.append((score, overlap, anchor_specificity, dialogue))
     if not candidates:
         return None
-    candidates.sort(key=lambda item: (item[0], item[1], -int(item[2].get("lesson") or 999), _norm(item[2].get("id"))), reverse=True)
-    return candidates[0][2]
+    candidates.sort(key=lambda item: (item[2], item[0], item[1], -int(item[3].get("lesson") or 999), _norm(item[3].get("id"))), reverse=True)
+    return candidates[0][3]
 
 
 def auto_start_dialogue_from_message(message, state, level="A1", min_score=0.68):
