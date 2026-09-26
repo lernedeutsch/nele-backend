@@ -199,8 +199,13 @@ def _dialogue_router_score(message, dialogue):
         prompt_tokens = _router_tokens(prompt)
         if not prompt_tokens:
             continue
-        overlap = len(message_tokens & prompt_tokens) / len(prompt_tokens)
-        coverage = len(message_tokens & prompt_tokens) / max(1, len(message_tokens))
+        shared_tokens = message_tokens & prompt_tokens
+        # One generic shared word (for example "Wochenende") is not enough
+        # evidence to start a scripted dialogue with a different intent.
+        if len(shared_tokens) < 2:
+            continue
+        overlap = len(shared_tokens) / len(prompt_tokens)
+        coverage = len(shared_tokens) / max(1, len(message_tokens))
         score = (0.72 * overlap) + (0.28 * coverage)
         best = max(best, score)
         best_overlap = max(best_overlap, overlap)
