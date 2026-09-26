@@ -68,8 +68,20 @@ def main():
             timeout=90,
         )
         response.raise_for_status()
+        payload = response.json()
         print(f"DU: {question}")
-        print(f"NELE: {response.json().get('reply', '')}")
+        print(f"NELE: {payload.get('reply', '')}")
+        meta = payload.get("meta") or {}
+        diagnostic = {
+            key: meta.get(key)
+            for key in (
+                "dialogue_knowledge", "dialogue_id", "dialogue_active",
+                "contextual_short_answer", "a1_everyday_router",
+                "topic", "global_conversation_guard", "topic_manager",
+            )
+            if key in meta
+        }
+        print(f"ROUTER: {json.dumps(diagnostic, ensure_ascii=False, default=str)}")
 
 
 if __name__ == "__main__":
