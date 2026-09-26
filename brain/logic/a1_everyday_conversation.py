@@ -17,7 +17,7 @@ def a1_everyday_reply(text, last_question, state=None):
     # previous A1 subthread. Direct question handlers below may still answer
     # known questions; otherwise stale last_question context is cleared.
     learner_question = "?" in raw and re.match(
-        r"^(?:was|wie|wo|woher|wohin|wann|warum|wer|welcher|welche|welches|arbeitest|wohnst|isst|trinkst|magst|machst|hast|bist|kommst)\\b",
+        r"^(?:was|wie|wo|woher|wohin|wann|warum|wer|welcher|welche|welches|arbeitest|wohnst|isst|trinkst|magst|machst|hast|bist|kommst)\b",
         low,
     )
 
