@@ -27,7 +27,7 @@ from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, reco
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
-from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active, handle_dialogue
+from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
 
 OPENERS = [
@@ -910,14 +910,34 @@ def generate_free_welcome(state, session_id=None):
 def generate_free_conversation_reply(user_message, state, session_id=None):
     free = state.setdefault("free_conversation", {})
 
-    # Priority -3: reusable Dialogue Knowledge router for a fresh learner-led
-    # topic request. It runs before broad personal/A1 matching so a validated
-    # dialogue cannot be shadowed by a generic sentence or fallback.
-    if (
-        not is_dialogue_active(state)
-        and not free.get("last_question")
-        and int(free.get("turn_count", 0) or 0) == 0
-    ):
+    # Priority -3: reusable Dialogue Knowledge router. A concrete dialogue may
+    # start later in free conversation only when the learner asks an explicit
+    # new-topic question that is not already handled by the active A1 context.
+    dialogue_candidate = None
+    if not is_dialogue_active(state):
+        raw_dialogue_message = str(user_message or "").strip()
+        current_context_reply = None
+        if free.get("last_question"):
+            current_context_reply = a1_everyday_reply(
+                raw_dialogue_message,
+                free.get("last_question", ""),
+                state,
+            )
+        may_route_dialogue = (
+            int(free.get("turn_count", 0) or 0) == 0
+            or (
+                "?" in raw_dialogue_message
+                and _is_explicit_learner_question(raw_dialogue_message)
+                and current_context_reply is None
+            )
+        )
+        if may_route_dialogue:
+            dialogue_candidate = find_dialogue_for_message(
+                raw_dialogue_message,
+                "A1",
+            )
+
+    if dialogue_candidate is not None:
         dialogue_reply = auto_start_dialogue_from_message(
             user_message,
             state,

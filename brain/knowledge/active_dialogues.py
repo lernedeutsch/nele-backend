@@ -102,7 +102,7 @@ ACTIVE_DIALOGUES = [
         "allowed_variations":["change_activity","change_day"],"forbidden_variations":["combine_unrelated_topics"],
         "next_allowed_topics":["Freizeit","Wochenende"],
         "turns":[
-            {"role":"nele","text":"Was machst du am Samstag?","intent":"ask_plan"},
+            {"role":"nele","text":"Was machst du gern in deiner Freizeit am Samstag?","intent":"ask_plan"},
             {"role":"student","expected_intent":"give_plan","expected":"Ich gehe gern joggen.","accepted_patterns":["Ich gehe gern joggen.","Ich jogge gern.","Joggen."]},
             {"role":"nele","text":"Und du?","intent":"ask_plan"},
             {"role":"student","expected_intent":"give_plan","expected":"Ich spiele manchmal mit Freunden Karten.","accepted_patterns":["Ich spiele manchmal mit Freunden Karten.","Ich spiele Karten mit Freunden."]},
@@ -134,6 +134,7 @@ ACTIVE_DIALOGUES = [
     {
         "id":"a1-l13-faehigkeiten","level":"A1","lesson":13,"title":"Was kannst du?","section":"Fähigkeiten",
         "topic":"Fähigkeiten","situation":"Über sportliche Fähigkeiten sprechen","register":"informal","knowledge_status":"active",
+        "entry_triggers":["Kannst du schwimmen?"],
         "max_turns":8,"max_variations":2,"slots":{"sport":"Fußball","other_sport":"Tennis"},
         "allowed_variations":["change_sport"],"forbidden_variations":["combine_unrelated_topics"],
         "next_allowed_topics":["Sport","Fähigkeiten"],
@@ -155,7 +156,7 @@ ACTIVE_DIALOGUES = [
         "allowed_variations":["change_activity"],"forbidden_variations":["combine_unrelated_topics"],
         "next_allowed_topics":["Sport","Wochenende"],
         "turns":[
-            {"role":"nele","text":"Was machst du am Samstag?","intent":"ask_weekend_plan"},
+            {"role":"nele","text":"Welchen Sport machst du am Samstag?","intent":"ask_weekend_plan"},
             {"role":"student","expected_intent":"give_plan","expected":"Ich gehe schwimmen.","accepted_patterns":["Ich gehe schwimmen.","Ich schwimme.","Schwimmen."]},
             {"role":"nele","text":"Und du?","intent":"ask_weekend_plan"},
             {"role":"student","expected_intent":"give_plan","expected":"Ich fahre gern Rad.","accepted_patterns":["Ich fahre gern Rad.","Ich fahre gern Fahrrad.","Rad fahren."]},
