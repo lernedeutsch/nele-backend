@@ -665,6 +665,20 @@ def _social_a1_reply(text, free, state):
     return None
 
 
+def _is_explicit_learner_question(text):
+    """True for a clear learner-led question that must outrank stale context."""
+    raw = str(text or "").strip()
+    if "?" not in raw:
+        return False
+    low = _norm(raw).strip(" .?!")
+    starts = (
+        "was ", "wie ", "wo ", "woher ", "wohin ", "wann ", "warum ", "wer ",
+        "welcher ", "welche ", "welches ", "arbeitest ", "wohnst ", "isst ",
+        "trinkst ", "magst ", "machst ", "hast ", "bist ", "kommst ",
+    )
+    return low.startswith(starts)
+
+
 def _short_answer_followup(text, last_question, memory):
     """Interpret a short A1 answer through the question Nele asked before."""
     raw = str(text or "").strip()
@@ -950,11 +964,15 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # question Nele asked. This shared contextual layer must run before the
     # broad A1 content bank, otherwise nouns/times such as "Pizza", "8" or
     # "Kochen" lose their local meaning and the conversation jumps topics.
-    contextual_reply = _short_answer_followup(
-        user_message,
-        free.get("last_question", ""),
-        free.setdefault("conversation_facts", {}),
-    )
+    # A new learner question is not an answer to Nele's previous question.
+    # Do not reinterpret it through stale weather/work/home context.
+    contextual_reply = None
+    if not _is_explicit_learner_question(user_message):
+        contextual_reply = _short_answer_followup(
+            user_message,
+            free.get("last_question", ""),
+            free.setdefault("conversation_facts", {}),
+        )
     if contextual_reply:
         previous_question = free.get("last_question", "")
         record_answer(state, user_message, previous_question)
