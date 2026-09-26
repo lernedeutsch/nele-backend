@@ -1089,13 +1089,19 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
         level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
         previous_topic = free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic") or "today"
-        question_low = _norm(previous_question)
-        if "arbeit" in question_low or "kochst du" in question_low:
-            active_topic = "work"
-        elif any(x in question_low for x in ("isst du", "essen", "trinkst du", "frühstück", "fruehstueck")):
-            active_topic = "food"
-        else:
-            active_topic = previous_topic
+        # A dependent short answer inherits the active semantic topic.
+        # The wording of the previous question may describe an activity such as
+        # cooking without meaning "work"; lexical guesses must not override
+        # established conversation state.
+        active_topic = previous_topic
+        if active_topic in {None, "today", "everyday_a1"}:
+            question_low = _norm(previous_question)
+            if "arbeit" in question_low:
+                active_topic = "work"
+            elif any(x in question_low for x in ("isst du", "essen", "trinkst du", "frühstück", "fruehstueck")):
+                active_topic = "food"
+            else:
+                active_topic = active_topic or "today"
         free["last_topic"] = active_topic
         vocabulary_context = build_personalized_conversation_vocabulary(
             user_message, state=state, topic=active_topic, limit=8,
@@ -1137,10 +1143,15 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "contextual_short_answer": True,
         }
 
-    # Priority -2: the reusable A1 lessons 1-10 conversation router must run
-    # before Topic Manager / Teacher Policy / recovery. Otherwise those older
-    # systems can reinterpret a valid A1 fact and replace its natural follow-up.
-    a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
+    # Priority -2: the reusable A1 lessons 1-10 router may enrich a neutral
+    # conversation, but it must not take ownership away from an already active
+    # semantic topic. This prevents broad legacy rules (e.g. any "Ich arbeite")
+    # from restarting an established work thread.
+    current_semantic_topic = free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic")
+    protected_semantic_topics = {"work", "holiday", "weather", "hobby", "shopping", "food"}
+    a1_reply = None
+    if current_semantic_topic not in protected_semantic_topics:
+        a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
     if a1_reply:
         previous_question = free.get("last_question", "")
         # Early A1 turns still have to commit the same global conversation
