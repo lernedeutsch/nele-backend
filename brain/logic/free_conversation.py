@@ -976,6 +976,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "shared_wellbeing": True,
             "wellbeing_type": kind,
             "response_understanding": understanding,
+            "error_engine": process_error(user_message, state=state, context={"response_understanding": understanding}),
         }
 
     # Personal real-life sentences remain available when no dialogue was selected.
