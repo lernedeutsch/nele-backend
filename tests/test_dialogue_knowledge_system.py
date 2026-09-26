@@ -250,5 +250,26 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertIn("geschafft", reply)
 
 
+    def test_free_conversation_can_start_dialogue_after_earlier_free_turns(self):
+        from brain.logic.free_conversation import generate_free_conversation_reply
+
+        state = {
+            "student_progress": {"current_level": "A1.1"},
+            "conversation_mode": "free",
+        }
+        generate_free_conversation_reply("Hallo Nele!", state)
+        generate_free_conversation_reply("gut", state)
+
+        reply, meta = generate_free_conversation_reply(
+            "Welche Musik hörst du gern?",
+            state,
+        )
+
+        self.assertTrue(meta.get("dialogue_knowledge"))
+        self.assertEqual(state.get("dialogue_id"), "a1-l14-musik")
+        self.assertTrue(state.get("dialogue_active"))
+        self.assertIn("Musik", reply)
+
+
 if __name__ == "__main__":
     unittest.main()
