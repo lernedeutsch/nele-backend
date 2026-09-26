@@ -61,6 +61,37 @@ def a1_everyday_reply(text, last_question, state=None):
             facts["work_activity_detail"] = "Zimmer"
             return "Du kannst sagen: „Ich reinige Zimmer.“ Wie viele Zimmer reinigst du normalerweise?"
 
+    # Active-question answer slots: once Nele has asked a concrete question,
+    # its answer must be interpreted before generic topic routing. These are
+    # reusable semantic slots, not hard-coded conversation scripts.
+    if re.search(r"wie viele\s+zimmer\s+putzt du", last):
+        m = re.fullmatch(r"(?:ich habe\s+)?(\d{1,2})\s+zimmer", low)
+        if m:
+            count = m.group(1)
+            facts["work_room_count"] = int(count)
+            return f"Du kannst sagen: „Ich putze {count} Zimmer.“ Was machst du nach der Arbeit?"
+
+    if re.search(r"was machst du nach der arbeit", last):
+        if re.search(r"\bich\s+gehe\s+(?:nach\s+)?hause\b", low):
+            facts["after_work"] = "nach Hause"
+            return "Schön. Was machst du abends?"
+        if re.search(r"\bich\s+(?:ruhe|schlafe)\b", low):
+            facts["after_work"] = raw.strip(" .?!")
+            return "Verstehe. Und was machst du am Abend?"
+
+    # Generic full-sentence answers to an active work question stay in that
+    # question's context instead of falling through to a stale topic.
+    if "was machst du bei der arbeit" in last and re.match(r"^ich\s+", low):
+        if "putz" in low:
+            facts["work_activity"] = "putzen"
+            return "Du kannst sagen: „Ich putze.“ Was putzt du bei der Arbeit?"
+        if "koch" in low:
+            facts["work_activity"] = "kochen"
+            return "Du kannst sagen: „Ich koche.“ Was kochst du gern?"
+        if "reinige" in low:
+            facts["work_activity"] = "reinigen"
+            return "Du kannst sagen: „Ich reinige.“ Was reinigst du bei der Arbeit?"
+
     # Learner-led intent/content has priority over stale last_question context.
     # Only genuinely short/dependent answers should continue the previous turn.
     if re.fullmatch(r"(?:und\s+)?hast du (?:eine )?familie", low):
