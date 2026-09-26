@@ -29,6 +29,7 @@ from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
 from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active, handle_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
+from brain.logic.conversation_intent_router import classify_conversation_intent
 from brain.knowledge.social_a1_topics import social_topic_reply
 
 OPENERS = [
@@ -877,7 +878,7 @@ def generate_free_welcome(state, session_id=None):
 
     # Once Dialogue Knowledge has selected a dialogue, it owns the exchange
     # until completion. Free-mode topic generation must never steal a turn.
-    if is_dialogue_active(state):
+    if is_dialogue_active(state) and routed_intent.get("intent") != "learner_question":
         dialogue_reply = handle_dialogue(user_message, state)
         if dialogue_reply is not None:
             _remember_question(free, dialogue_reply)
@@ -907,6 +908,11 @@ def generate_free_welcome(state, session_id=None):
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
     free = state.setdefault("free_conversation", {})
+    routed_intent = classify_conversation_intent(
+        user_message,
+        last_question=free.get("last_question", ""),
+        dialogue_active=is_dialogue_active(state),
+    )
 
     # Priority -3: reusable Dialogue Knowledge router for a fresh learner-led
     # topic request. It runs before broad personal/A1 matching so a validated
@@ -915,6 +921,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         not is_dialogue_active(state)
         and not free.get("last_question")
         and int(free.get("turn_count", 0) or 0) == 0
+        and routed_intent.get("intent") not in {"learner_question", "wellbeing"}
     ):
         dialogue_reply = auto_start_dialogue_from_message(
             user_message,
@@ -964,7 +971,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # A new learner question is not an answer to Nele's previous question.
     # Do not reinterpret it through stale weather/work/home context.
     contextual_reply = None
-    if not _is_explicit_learner_question(user_message):
+    if routed_intent.get("intent") != "learner_question":
         contextual_reply = _short_answer_followup(
             user_message,
             free.get("last_question", ""),
