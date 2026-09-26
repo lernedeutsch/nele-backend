@@ -165,7 +165,7 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertIn("give_origin", state["dialogue_completed_intents"])
 
         reply = handle_dialogue("Ja", state)
-        self.assertIn("Woher kommt Anna?", reply)
+        self.assertIn("woher kommt Anna?", reply)
 
         reply = handle_dialogue("Anna kommt aus Österreich.", state)
         self.assertFalse(state["dialogue_active"])
