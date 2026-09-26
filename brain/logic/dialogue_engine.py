@@ -159,6 +159,65 @@ def start_dialogue(level, lesson, dialogue_id, state):
     return " ".join(part for part in [intro, *spoken, prompt] if part)
 
 
+_ROUTER_STOPWORDS = {"ich","du","dir","mir","mich","dich","was","wie","wo","wohin","wann","welcher","welche","welches","hast","haben","hat","ist","sind","bist","kannst","kann","machst","machen","geht","gehen","fährst","fahre","fahr","fliegst","fliege","gern","gerne","am","im","in","die","der","das","dem","den","ein","eine","einen","mit","zu","zum","zur","nach","auch","sehr","bitte","und","oder","heute","morgen","sie"}
+
+
+def _router_tokens(text):
+    return {token for token in _norm(text).split() if len(token) >= 3 and token not in _ROUTER_STOPWORDS}
+
+
+def _dialogue_router_score(message, dialogue):
+    message_norm = _norm(message)
+    if not message_norm or not isinstance(dialogue, dict):
+        return 0.0, 0.0
+    best = 0.0
+    best_overlap = 0.0
+    message_tokens = _router_tokens(message_norm)
+    for turn in _turns(dialogue):
+        if _norm(turn.get("role")) not in {"nele", "teacher", "assistant"}:
+            continue
+        prompt = _norm(turn.get("text") or turn.get("prompt"))
+        if not prompt:
+            continue
+        if message_norm == prompt:
+            return 1.0, 1.0
+        prompt_tokens = _router_tokens(prompt)
+        if not prompt_tokens:
+            continue
+        overlap = len(message_tokens & prompt_tokens) / len(prompt_tokens)
+        coverage = len(message_tokens & prompt_tokens) / max(1, len(message_tokens))
+        score = (0.72 * overlap) + (0.28 * coverage)
+        best = max(best, score)
+        best_overlap = max(best_overlap, overlap)
+    metadata = " ".join(str(dialogue.get(key) or "") for key in ("title","topic","situation"))
+    meta_tokens = _router_tokens(metadata)
+    meta_overlap = len(message_tokens & meta_tokens) / len(meta_tokens) if meta_tokens else 0.0
+    best = max(best, 0.58 * meta_overlap)
+    return best, best_overlap
+
+
+def find_dialogue_for_message(message, level="A1"):
+    if not _text(message):
+        return None
+    candidates = []
+    for dialogue in get_active_dialogues(str(level or "A1").upper()):
+        score, overlap = _dialogue_router_score(message, dialogue)
+        if score >= 0.68:
+            candidates.append((score, overlap, dialogue))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: (item[0], item[1], -int(item[2].get("lesson") or 999), _norm(item[2].get("id"))), reverse=True)
+    return candidates[0][2]
+
+
+def auto_start_dialogue_from_message(message, state, level="A1"):
+    if not state or is_dialogue_active(state):
+        return None
+    dialogue = find_dialogue_for_message(message, level)
+    if dialogue is None:
+        return None
+    return start_dialogue(dialogue.get("level") or level, dialogue.get("lesson") or 1, dialogue.get("id"), state)
+
 def clear_dialogue(state):
     for key, value in {
         "dialogue_active": False,
