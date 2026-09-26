@@ -1186,8 +1186,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 turn_plan=turn_plan,
             )),
         )
+        early_understanding = understand_response(user_message, conversation_state=conversation_state, vocabulary_context=vocabulary_context)
+        early_error = process_error(user_message, state=state, context={"response_understanding": early_understanding})
         return contextual_reply, {
             "conversation_mode": "free",
+            "response_understanding": early_understanding,
+            "error_engine": early_error,
             "course_level": level,
             "topic": active_topic,
             "vocabulary": vocabulary_context,
