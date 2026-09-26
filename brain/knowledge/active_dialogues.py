@@ -134,6 +134,7 @@ ACTIVE_DIALOGUES = [
     {
         "id":"a1-l13-faehigkeiten","level":"A1","lesson":13,"title":"Was kannst du?","section":"Fähigkeiten",
         "topic":"Fähigkeiten","situation":"Über sportliche Fähigkeiten sprechen","register":"informal","knowledge_status":"active",
+        "entry_triggers":["Kannst du schwimmen?"],
         "max_turns":8,"max_variations":2,"slots":{"sport":"Fußball","other_sport":"Tennis"},
         "allowed_variations":["change_sport"],"forbidden_variations":["combine_unrelated_topics"],
         "next_allowed_topics":["Sport","Fähigkeiten"],
