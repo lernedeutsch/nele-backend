@@ -1270,29 +1270,34 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # already enriched memory while the active state still says work/kochen.
     low_message = _norm(user_message)
     learner_question = _is_explicit_learner_question(user_message)
-    # Learner-led everyday questions own the topic before Guard/Recovery run.
-    # Detect semantic intent from the whole utterance, not only isolated topic words.
-    if learner_question:
-        if any(x in low_message for x in ("isst du", "essen", "speise", "gericht", "frühstück", "fruehstueck")):
-            explicit_topic = "food"
-        elif any(x in low_message for x in ("wochenende", "freizeit", "gern machen", "machst du gern")):
-            explicit_topic = "hobby"
-        elif any(x in low_message for x in ("heute abend", "heute noch", "machst du heute")):
-            explicit_topic = "today"
-    if any(x in low_message for x in ("wetter", "sonne", "sonnig", "regen", "regnet", "warm", "kalt", "windig", "schnee")):
-        explicit_topic = "weather"
+    # One topic classifier owns learner intent. Do not run a second classifier
+    # afterwards that can silently overwrite a stronger semantic decision.
+    detected_topic = explicit_topic
+    if any(x in low_message for x in ("wetter", "sonne", "sonnig", "regen", "regnet", "windig", "schnee")):
+        detected_topic = "weather"
     elif any(x in low_message for x in ("urlaub", "reise", "ferien", "meer", "berge")):
-        explicit_topic = "holiday"
+        detected_topic = "holiday"
     elif "gestern" in low_message:
-        explicit_topic = "yesterday"
+        detected_topic = "yesterday"
     elif any(x in low_message for x in ("arbeit", "job", "hotel")):
-        explicit_topic = "work"
+        detected_topic = "work"
+    elif learner_question and (
+        re.search(r"\\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\\b", low_message)
+        or any(x in low_message for x in ("speise", "gericht"))
+    ):
+        detected_topic = "food"
+    elif learner_question and any(x in low_message for x in ("wochenende", "freizeit", "hobby", "musik", "sport", "lesen", "buch")):
+        detected_topic = "hobby"
+    elif learner_question and any(x in low_message for x in ("heute abend", "heute noch", "machst du heute")):
+        detected_topic = "today"
     elif any(x in low_message for x in ("hobby", "freizeit", "musik", "sport", "lesen", "buch")):
-        explicit_topic = "hobby"
+        detected_topic = "hobby"
+
     if facts.get("activity") == "shopping":
-        explicit_topic = "shopping"
+        detected_topic = "shopping"
     elif facts.get("place"):
-        explicit_topic = "place"
+        detected_topic = "place"
+    explicit_topic = detected_topic
 
     # Neutral content must not silently abandon an explicit active topic.
     # Vocabulary may enrich a topic, but it may not demote holiday/weather/etc.
