@@ -27,7 +27,7 @@ from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, reco
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
-from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active
+from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active, handle_dialogue
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -863,6 +863,22 @@ def _generic_followup(topic, free, support, independent, level):
 
 def generate_free_welcome(state, session_id=None):
     free = state.setdefault("free_conversation", {})
+
+    # Once Dialogue Knowledge has selected a dialogue, it owns the exchange
+    # until completion. Free-mode topic generation must never steal a turn.
+    if is_dialogue_active(state):
+        dialogue_reply = handle_dialogue(user_message, state)
+        if dialogue_reply is not None:
+            _remember_question(free, dialogue_reply)
+            free["last_user_message"] = str(user_message or "").strip()
+            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+            return dialogue_reply, {
+                "conversation_mode": "free",
+                "dialogue_knowledge": True,
+                "dialogue_id": state.get("dialogue_id"),
+                "dialogue_topic": state.get("last_activity_detail"),
+                "dialogue_active": is_dialogue_active(state),
+            }
     index = int(free.get("welcome_index", 0) or 0)
     free["welcome_index"] = (index + 1) % len(OPENERS)
     free["last_question"] = OPENERS[index]
