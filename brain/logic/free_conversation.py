@@ -1240,10 +1240,22 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     elif facts.get("place"):
         explicit_topic = "place"
 
+    # Neutral content must not silently abandon an explicit active topic.
+    # Vocabulary may enrich a topic, but it may not demote holiday/weather/etc.
+    # to generic "today" merely because the current sentence has no topic word.
+    sticky_topics = {"holiday", "weather", "hobby", "work", "shopping", "food"}
+    topic_hint = vocabulary_topic or previous_topic
+    if (
+        not explicit_topic
+        and previous_topic in sticky_topics
+        and topic_hint in {None, "today", "alltag"}
+    ):
+        topic_hint = previous_topic
+
     topic, topic_source = choose_topic(
         state,
         explicit_topic=explicit_topic,
-        vocabulary_topic=vocabulary_topic or previous_topic,
+        vocabulary_topic=topic_hint,
     )
 
     last_question = free.get("last_question", "")
