@@ -28,6 +28,7 @@ from brain.logic.global_conversation_guard import record_answer, select_question
 from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
 from brain.logic.dialogue_engine import auto_start_dialogue_from_message, is_dialogue_active, handle_dialogue
+from brain.logic.wellbeing_feedback import analyze_wellbeing_response
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -555,43 +556,36 @@ def _social_a1_reply(text, free, state):
         "wie geht's dir", "wie geht es dir", "wie geht es ihnen", "wie geht's ihnen"
     ))
     if wellbeing_question:
-        # Accept short everyday answers but model the complete A1 sentence.
-        wellbeing = {
-            "prima": ("Mir geht es prima.", "Prima!"),
-            "super": ("Mir geht es super.", "Super!"),
-            "sehr gut": ("Mir geht es sehr gut.", "Das freut mich!"),
-            "gut": ("Mir geht es gut.", "Das freut mich!"),
-            "ganz gut": ("Mir geht es ganz gut.", "Schön!"),
-            "nicht schlecht": ("Mir geht es nicht schlecht.", "Schön!"),
-            "so lala": ("Mir geht es so lala.", "Verstehe."),
-            "es geht": ("Es geht.", "Verstehe."),
-            "geht so": ("Es geht so.", "Verstehe."),
-            "nicht so gut": ("Mir geht es nicht so gut.", "Oh, das tut mir leid."),
-            "schlecht": ("Mir geht es schlecht.", "Oh, das tut mir leid."),
-            "sehr schlecht": ("Mir geht es sehr schlecht.", "Oh, das tut mir leid."),
-            "müde": ("Ich bin müde.", "Oh, du bist müde."),
-        }
-        if low in wellbeing:
-            model, reaction = wellbeing[low]
-            free.setdefault("conversation_facts", {})["wellbeing"] = low
-            if low in {"schlecht", "sehr schlecht", "nicht so gut"}:
-                return f"{reaction} Du kannst sagen: „{model}“ Warum geht es dir nicht gut?"
-            if low == "müde":
-                return f"{reaction} Du kannst sagen: „{model}“ War dein Tag anstrengend?"
-            return f"{reaction} Du kannst auch sagen: „{model}“ Was machst du heute?"
+        # Shared engine: recognition, corrections and canonical A1 model
+        # sentences live in wellbeing_feedback.py. Free mode owns only the
+        # conversational policy that follows the recognized meaning.
+        analysis = analyze_wellbeing_response(raw)
+        if analysis.get("recognized"):
+            wellbeing_type = analysis.get("type")
+            model = analysis.get("model_sentence")
+            feedback = analysis.get("feedback")
+            reaction = analysis.get("reaction") or ""
 
-        # Common malformed answers: ich gut / mir geht gut / ich bin gut.
-        if re.fullmatch(r"ich\s+(?:gut|prima|schlecht)", low):
-            word = low.split()[-1]
-            model = f"Mir geht es {word}."
-            return f"Fast richtig. Sag: „{model}“ Und was machst du heute?"
-        m = re.fullmatch(r"mir\s+geht(?:\s+es)?\s+(gut|prima|schlecht|super)", low)
-        if m:
-            word = m.group(1)
-            model = f"Mir geht es {word}."
-            if low == model.lower().rstrip("."):
-                return f"Sehr gut! Was machst du heute?"
-            return f"Fast richtig. Sag: „{model}“ Was machst du heute?"
+            free.setdefault("conversation_facts", {})["wellbeing"] = wellbeing_type
+
+            if wellbeing_type == "bad":
+                follow_up = "Warum geht es dir nicht gut?"
+            elif wellbeing_type == "tired":
+                follow_up = "War dein Tag anstrengend?"
+            elif wellbeing_type == "stressed":
+                follow_up = "Möchtest du kurz und ruhig weitermachen?"
+            elif wellbeing_type == "sad":
+                follow_up = "Möchtest du ein bisschen reden?"
+            elif wellbeing_type == "sick":
+                follow_up = "Möchtest du heute nur etwas Leichtes machen?"
+            else:
+                follow_up = "Was machst du heute?"
+
+            if feedback:
+                return f"{feedback} {reaction} {follow_up}".strip()
+            if model:
+                return f"{reaction} Du kannst auch sagen: „{model}“ {follow_up}".strip()
+            return f"{reaction} {follow_up}".strip()
 
     # ---- Introductions / names ----
     # Correct variants.
