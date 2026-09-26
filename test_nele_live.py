@@ -57,18 +57,23 @@ def requested_questions():
 def main():
     session_id = f"chatgpt-live-test-{int(time.time())}-{uuid.uuid4().hex[:8]}"
     for question in requested_questions():
-        response = requests.post(
-            CHAT_URL,
-            json={
-                "message": question,
-                "session_id": session_id,
-                "input_mode": "keyboard",
-                "conversation_mode": "free",
-            },
-            timeout=90,
-        )
-        response.raise_for_status()
-        payload = response.json()
+        print(f"REQUEST {question}", flush=True)
+        try:
+            response = requests.post(
+                CHAT_URL,
+                json={
+                    "message": question,
+                    "session_id": session_id,
+                    "input_mode": "keyboard",
+                    "conversation_mode": "free",
+                },
+                timeout=90,
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except Exception as error:
+            print(f"ERROR calling production Nele: {type(error).__name__}: {error}", flush=True)
+            raise
         print(f"DU: {question}")
         print(f"NELE: {payload.get('reply', '')}")
         meta = payload.get("meta") or {}
