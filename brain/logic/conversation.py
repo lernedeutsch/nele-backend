@@ -749,6 +749,27 @@ def generate_conversation_reply(
             )
 
     # ======================================
+    # 9C. AKTYWNY DIALOGUE KNOWLEDGE
+    #
+    # Once a reusable dialogue owns the turn, it must be handled before
+    # legacy free-conversation continuations. Otherwise old topic follow-ups
+    # can leak into the dialogue and ignore short contextual answers.
+    # ======================================
+
+    if is_dialogue_active(state):
+        dialogue_answer = handle_dialogue(
+            processed_message,
+            state,
+        )
+        if dialogue_answer:
+            return return_with_feedback(
+                dialogue_answer,
+                feedback_text,
+                session_id
+            )
+
+
+    # ======================================
     # 10. KONTYNUACJA AKTYWNOŚCI
     # ======================================
 
