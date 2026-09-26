@@ -429,6 +429,31 @@ SICK_ANSWERS = {
 
 
 # ==========================================
+# WSPÓLNE MODELE A1 DLA SAMOPOCZUCIA
+#
+# Rozpoznanie znaczenia jest wspólne dla
+# Kursu i Frei sprechen. Każdy tryb może
+# dobrać własną dalszą reakcję/pytanie.
+# ==========================================
+
+WELLBEING_MODEL_SENTENCES = {
+    "very_good": "Mir geht es sehr gut.",
+    "good": "Mir geht es gut.",
+    "quite_good": "Mir geht es ganz gut.",
+    "neutral": "Es geht.",
+    "bad": "Mir geht es nicht so gut.",
+    "tired": "Ich bin müde.",
+    "stressed": "Ich bin gestresst.",
+    "sad": "Ich bin traurig.",
+    "sick": "Ich bin krank.",
+}
+
+
+def get_wellbeing_model_sentence(wellbeing_type):
+    return WELLBEING_MODEL_SENTENCES.get(wellbeing_type)
+
+
+# ==========================================
 # CZY UŻYTKOWNIK PYTA TEŻ:
 # "UND DIR?"
 # ==========================================
