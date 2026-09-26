@@ -7,6 +7,7 @@ from brain.logic.dialogue_engine import (
     get_dialogue,
     handle_dialogue,
     load_dialogues,
+    find_dialogue_for_message,
     start_dialogue,
 )
 from brain.logic.dialogue_knowledge import compatible_topics, render_pattern
@@ -130,6 +131,29 @@ class GoldenDialogueSystemTests(unittest.TestCase):
                 state.get("dialogue_active", True),
                 msg=f"Dialogue did not complete: {dialogue['id']}",
             )
+
+    def test_global_router_finds_each_requested_topic(self):
+        cases = [
+            ("Wann hast du Geburtstag?", "a1-l11-geburtstag"),
+            ("Was machst du am Samstag?", "a1-l11-wochenende"),
+            ("Was machst du gern in deiner Freizeit?", "a1-l12-hobbys"),
+            ("Kannst du schwimmen?", "a1-l13-faehigkeiten"),
+            ("Welche Musik hörst du gern?", "a1-l14-musik"),
+            ("Hast du Lust, ins Kino zu gehen?", "a1-l14-kino"),
+            ("Wie fährst du nach Berlin?", "a1-l15-verkehrsmittel"),
+            ("Wie komme ich zum Bahnhof?", "a1-l15-weg-bahnhof"),
+            ("Fährt von hier ein Zug nach Zürich?", "a1-l15-bahnhof"),
+            ("Wie fahre ich am besten in die Schweiz?", "a1-l15-schweiz"),
+        ]
+        for message, expected_id in cases:
+            dialogue = find_dialogue_for_message(message, "A1")
+            self.assertIsNotNone(dialogue, message)
+            self.assertEqual(dialogue["id"], expected_id, message)
+
+    def test_global_router_ignores_unrelated_message(self):
+        self.assertIsNone(
+            find_dialogue_for_message("Ich brauche heute Milch und Äpfel.", "A1")
+        )
 
     def test_active_registry_is_consumed_by_same_engine(self):
         active = [{
