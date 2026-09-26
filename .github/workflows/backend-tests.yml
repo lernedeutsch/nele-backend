@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   unit:
-    if: github.event_name != 'issue_comment'
+    if: github.event_name != 'issue_comment' && github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
@@ -51,7 +51,7 @@ jobs:
         run: python -m unittest discover -s tests -p "test_*.py"
 
   live-nele:
-    if: github.event_name != 'issue_comment'
+    if: github.event_name != 'issue_comment' && github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout backend
@@ -137,27 +137,33 @@ jobs:
           python test_nele_live.py > nele-live.txt 2>&1
           cat nele-live.txt
 
-      - name: Post conversation back to the issue
+      - name: Publish conversation result
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
-          {
-            echo '### Nele live conversation'
-            echo
-            echo '\`\`\`text'
-            cat nele-live.txt
-            echo '\`\`\`'
-          } > nele-comment.md
-          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file nele-comment.md
-
+          echo '### Nele live conversation' >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat nele-live.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$ISSUE_NUMBER" ]; then
+            {
+              echo '### Nele live conversation'
+              echo
+              echo '```text'
+              cat nele-live.txt
+              echo '```'
+            } > nele-comment.md
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file nele-comment.md
+          fi
       - name: Fail if conversation failed
         if: steps.conversation.outcome == 'failure'
         run: exit 1
 
   e2e:
-    if: github.event_name != 'issue_comment'
+    if: github.event_name != 'issue_comment' && github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     services:
