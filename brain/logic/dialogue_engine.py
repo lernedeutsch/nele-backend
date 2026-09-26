@@ -26,10 +26,9 @@ def _norm(value):
 
 def load_dialogues(level="A1", lesson=1):
     module = load_lesson_module(str(level or "A1").upper(), lesson)
-    if module is None:
-        return []
-    data = getattr(module, "LESSON_DIALOGUES", [])
+    data = getattr(module, "LESSON_DIALOGUES", []) if module is not None else []
     local = data if isinstance(data, list) else []
+    # Active reusable knowledge remains addressable even when no lesson module exists.
     active = get_active_dialogues(str(level or "A1").upper(), int(lesson))
     # Local lesson content remains first; promoted reusable knowledge is added
     # through the same engine and never gets a second conversation controller.
@@ -217,6 +216,15 @@ def handle_dialogue(user_message, state):
         return " ".join(part for part in [success, *spoken, complete] if part)
 
     state["dialogue_turn"] = next_index
+    # A dialogue may intentionally finish with a Nele closing line.
+    if not any(
+        _norm(item.get("role")) in {"student", "learner", "user", "du"}
+        for item in turns[next_index:]
+    ):
+        complete = _text(dialogue.get("complete"))
+        clear_dialogue(state)
+        return " ".join(part for part in [success, *spoken, complete] if part)
+
     next_turn = turns[next_index]
     prompt = _text(next_turn.get("prompt") or next_turn.get("text"))
     return " ".join(part for part in [success, *spoken, prompt] if part)
