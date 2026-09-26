@@ -76,6 +76,22 @@ class DialogueEngineTests(unittest.TestCase):
         self.assertFalse(state["dialogue_active"])
 
     @patch("brain.logic.dialogue_engine.get_dialogue", return_value=SAMPLE)
+    def test_new_question_releases_active_dialogue(self, _):
+        state = {}
+        start_dialogue("A1", 2, "street", state)
+        reply = handle_dialogue("Was isst du gern?", state)
+        self.assertIsNone(reply)
+        self.assertFalse(state["dialogue_active"])
+
+    @patch("brain.logic.dialogue_engine.get_dialogue", return_value=SAMPLE)
+    def test_wrong_statement_stays_in_active_dialogue(self, _):
+        state = {}
+        start_dialogue("A1", 2, "street", state)
+        reply = handle_dialogue("Berlin", state)
+        self.assertIn("Ich komme aus Polen", reply)
+        self.assertTrue(state["dialogue_active"])
+
+    @patch("brain.logic.dialogue_engine.get_dialogue", return_value=SAMPLE)
     def test_wrong_answer_does_not_advance(self, _):
         state = {}
         start_dialogue("A1", 2, "street", state)
