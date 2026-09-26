@@ -6,6 +6,12 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      nele_live_questions_json:
+        description: "JSON list of Nele Live messages"
+        required: false
+        default: "[]"
   issue_comment:
     types: [created]
   issues:
@@ -82,6 +88,7 @@ jobs:
 
   chatgpt-live-nele:
     if: >-
+      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' && startsWith(github.event.comment.body || '', '/nele-live')) ||
       (github.event_name == 'issues' && startsWith(github.event.issue.body || '', '/nele-live'))
     runs-on: ubuntu-latest
@@ -108,12 +115,16 @@ jobs:
           import os
 
           body = os.environ.get("COMMENT_BODY", "")
-          lines = body.splitlines()
-          questions = [
-              line.strip()
-              for line in lines[1:]
-              if line.strip()
-          ]
+          if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+              raw = os.environ.get("INPUT_NELE_LIVE_QUESTIONS_JSON", "[]")
+              questions = json.loads(raw)
+          else:
+              lines = body.splitlines()
+              questions = [
+                  line.strip()
+                  for line in lines[1:]
+                  if line.strip()
+              ]
           if questions:
               with open(".nele-live-request.json", "w", encoding="utf-8") as handle:
                   json.dump(questions, handle, ensure_ascii=False)
