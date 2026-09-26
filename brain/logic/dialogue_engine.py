@@ -287,7 +287,17 @@ def handle_dialogue(user_message, state):
     if (
         candidate is not None
         and _norm(candidate.get("id")) != _norm(state.get("dialogue_id"))
-        and _dialogue_router_score(user_message, candidate)[0] >= 0.99
+        and _norm(user_message) == _norm(
+            next(
+                (
+                    turn.get("text") or turn.get("prompt")
+                    for turn in _turns(candidate)
+                    if _norm(turn.get("role")) in {"nele", "teacher", "assistant"}
+                    and _norm(turn.get("text") or turn.get("prompt")) == _norm(user_message)
+                ),
+                "",
+            )
+        )
     ):
         switched = start_dialogue(
             candidate.get("level") or state.get("dialogue_level") or "A1",
