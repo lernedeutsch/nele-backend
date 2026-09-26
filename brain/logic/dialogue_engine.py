@@ -4,6 +4,7 @@ Lesson files may expose DIALOGUES as a list of dialogue definitions. The engine
 owns HOW a dialogue is practised; lesson content owns WHAT is practised.
 """
 from brain.logic.lesson_loader import load_lesson_module
+from brain.knowledge.active_dialogues import get_active_dialogues
 from brain.logic.matcher import normalize
 from brain.logic.dialogue_knowledge import accepted_patterns, infer_intent, render_pattern
 from brain.logic.dialogue_state_engine import (
@@ -28,7 +29,15 @@ def load_dialogues(level="A1", lesson=1):
     if module is None:
         return []
     data = getattr(module, "LESSON_DIALOGUES", [])
-    return data if isinstance(data, list) else []
+    local = data if isinstance(data, list) else []
+    active = get_active_dialogues(str(level or "A1").upper(), int(lesson))
+    # Local lesson content remains first; promoted reusable knowledge is added
+    # through the same engine and never gets a second conversation controller.
+    seen = {_norm(item.get("id")) for item in local if isinstance(item, dict)}
+    return local + [
+        item for item in active
+        if _norm(item.get("id")) not in seen
+    ]
 
 
 def get_dialogue_for_section(level, lesson, section):
