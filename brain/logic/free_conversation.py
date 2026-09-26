@@ -389,7 +389,7 @@ def _social_a1_reply(text, free, state):
     # Clear learner questions can start these topics at any moment.
     everyday_questions = {
         "was machst du heute": "Heute spreche ich mit dir. Und was machst du heute?",
-        "was machst du gern": "Ich spreche gern mit dir. Was machst du gern?",
+        "was machst du gern": "Ich spreche gern mit dir. Ich höre auch gern, was du erzählst. Was kochst du zum Beispiel gern?",
         "was machst du gern in deiner freizeit": "Ich spreche gern mit dir. Und du? Was machst du gern in deiner Freizeit?",
         "hast du ein hobby": "Ja, ich mag Sprachen. Und du? Was ist dein Hobby?",
         "arbeitest du": "Ich bin deine Deutschtrainerin. Arbeitest du heute?",
