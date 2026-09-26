@@ -47,6 +47,8 @@ LEVEL_SKILLS = {
 
 FALLBACKS = {
     "today": ["Was machst du heute?", "Was möchtest du heute noch machen?", "Wie ist dein Tag heute?"],
+    "place": ["Wo bist du gerade?", "Bist du gern dort?", "Was machst du dort gern?"],
+    "shopping": ["Was möchtest du kaufen?", "Welche Farbe möchtest du?", "Wo kaufst du gern ein?"],
     "work": ["Arbeitest du heute?", "Wann fängst du an?", "Was machst du bei der Arbeit?"],
     "hobby": ["Was machst du gern in deiner Freizeit?", "Hörst du gern Musik?", "Machst du gern Sport?"],
     "weather": ["Wie ist das Wetter bei dir?", "Ist es warm oder kalt?", "Magst du das Wetter heute?"],
