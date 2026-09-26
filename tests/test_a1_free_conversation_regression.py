@@ -1536,3 +1536,19 @@ class GeneratedTests(unittest.TestCase):
         )
         self.assertFalse(result["topic_transition"]["transition"])
         self.assertIn("topic_transition_blocked", result["conflicts"])
+    def test_learner_led_work_time_question_outranks_stale_context(self):
+        state = {"free_conversation": {
+            "last_question": "Arbeitest du heute?",
+            "recent_questions": ["Arbeitest du heute?"],
+            "conversation_facts": {},
+        }}
+
+        reply, _ = _turn(state, "Wann fängst du an?")
+        self.assertIn("Wann fängst du heute an?", reply)
+        self.assertNotEqual(reply, "Arbeitest du heute?")
+
+        reply, _ = _turn(state, "um 8 Uhr")
+        self.assertIn("Ich fange um 8 Uhr an.", reply)
+        self.assertIn("Arbeit", reply)
+
+
