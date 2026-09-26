@@ -290,10 +290,7 @@ def handle_dialogue(user_message, state):
     if (
         candidate is not None
         and _norm(candidate.get("id")) != _norm(state.get("dialogue_id"))
-        and (
-            "?" in str(user_message or "")
-            or _dialogue_router_score(user_message, candidate)[0] >= 0.82
-        )
+        and "?" in str(user_message or "")
     ):
         switched = start_dialogue(
             candidate.get("level") or state.get("dialogue_level") or "A1",
