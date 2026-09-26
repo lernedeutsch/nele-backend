@@ -1,0 +1,37 @@
+{
+  "batch_name": "Lektion 3 – Im Alltag",
+  "level": "A1",
+  "lesson": 3,
+  "dialogues": [
+    {
+      "title": "Im Café",
+      "section": "Getränke",
+      "topic": "Bestellen",
+      "situation": "Im Café",
+      "register": "informal",
+      "learning_goals": ["ein Getränk bestellen"],
+      "grammar": ["möchte"],
+      "vocabulary": ["Kaffee", "Tee", "Wasser"],
+      "slots": {
+        "drink": "Kaffee"
+      },
+      "turns": [
+        {
+          "role": "nele",
+          "text": "Was möchtest du trinken?",
+          "intent": "ask_drink"
+        },
+        {
+          "role": "student",
+          "expected_intent": "order_drink",
+          "expected": "Ich möchte einen Kaffee.",
+          "accepted_patterns": [
+            "Ich möchte einen {drink}.",
+            "Einen {drink}."
+          ]
+        }
+      ],
+      "complete": "Sehr gut!"
+    }
+  ]
+}
