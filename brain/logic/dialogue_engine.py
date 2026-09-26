@@ -260,6 +260,29 @@ def handle_dialogue(user_message, state):
         clear_dialogue(state)
         return _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."
 
+    # A learner may explicitly open a different validated dialogue while
+    # practising. If the new message exactly matches another dialogue's
+    # opening, switch cleanly instead of treating it as a wrong answer.
+    candidate = find_dialogue_for_message(
+        user_message,
+        state.get("dialogue_level") or "A1",
+    )
+    if (
+        candidate is not None
+        and _norm(candidate.get("id")) != _norm(state.get("dialogue_id"))
+        and _dialogue_router_score(user_message, candidate)[0] >= 0.99
+    ):
+        switched = start_dialogue(
+            candidate.get("level") or state.get("dialogue_level") or "A1",
+            candidate.get("lesson") or state.get("dialogue_lesson") or 1,
+            candidate.get("id"),
+            state,
+        )
+        if switched:
+            title = _text(candidate.get("title") or candidate.get("topic"))
+            prefix = f"Gerne! Wir sprechen kurz über {title.lower()}. " if title else "Gerne! "
+            return prefix + switched
+
     if not within_turn_limit(state, dialogue):
         complete = _text(dialogue.get("complete")) or "Sehr gut. Wir gehen jetzt weiter."
         clear_dialogue(state)
