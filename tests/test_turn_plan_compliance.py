@@ -5,6 +5,7 @@ from brain.logic.turn_plan_compliance import (
     record_turn_plan_compliance,
 )
 from brain.logic.free_conversation import generate_free_conversation_reply
+from brain.logic.conversation_orchestrator import resolve_learner_topic
 
 
 class TurnPlanComplianceMonitorTests(unittest.TestCase):
@@ -82,6 +83,27 @@ class TurnPlanComplianceMonitorTests(unittest.TestCase):
         self.assertIn(compliance["status"], {"COMPLIANT", "VIOLATION"})
         self.assertEqual(state["turn_plan_compliance_v1"], compliance)
         self.assertTrue(state["turn_plan_compliance_history"])
+
+    def test_orchestrator_owns_food_topic_detection(self):
+        for question in ("Was isst du gern?", "Und was isst du gern?", "Aber was isst du gern?"):
+            decision = resolve_learner_topic(
+                question,
+                previous_topic="hobby",
+                vocabulary_topic="hobby",
+                learner_question=True,
+            )
+            self.assertEqual(decision["topic"], "food", question)
+            self.assertEqual(decision["source"], "learner_explicit")
+
+    def test_orchestrator_keeps_context_only_for_neutral_input(self):
+        decision = resolve_learner_topic(
+            "Ja.",
+            previous_topic="weather",
+            vocabulary_topic="today",
+            learner_question=False,
+        )
+        self.assertIsNone(decision["topic"])
+        self.assertEqual(decision["topic_hint"], "weather")
 
 
 if __name__ == "__main__":

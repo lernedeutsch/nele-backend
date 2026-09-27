@@ -1,10 +1,13 @@
-"""Conversation Orchestrator v2 with Turn Plan.
+"""Conversation Orchestrator v3 with Turn Plan and turn ownership.
 
 Defines and validates the ownership/precedence contract between Nele's
 conversation engines. It does not replace engines or generate language.
 """
 
-ORCHESTRATOR_VERSION = 2
+ORCHESTRATOR_VERSION = 3
+
+import re
+
 
 PIPELINE = [
     "learning_outcome",
@@ -39,6 +42,55 @@ EXPECTED_OUTCOMES = {
     "ADVANCE": "independent_answer",
     "CONTINUE": "continue_conversation",
 }
+
+
+def resolve_learner_topic(user_message, *, facts=None, previous_topic="today",
+                          vocabulary_topic=None, learner_question=False):
+    """Single owner for semantic topic selection from learner input.
+
+    Other engines may provide facts/context, but they must not independently
+    reclassify the learner's topic afterwards.
+    """
+    facts = facts or {}
+    low = re.sub(r"\s+", " ", str(user_message or "").strip().lower())
+    topic = facts.get("topic")
+
+    if any(x in low for x in ("wetter", "sonne", "sonnig", "regen", "regnet", "windig", "schnee")):
+        topic = "weather"
+    elif any(x in low for x in ("urlaub", "reise", "ferien", "meer", "berge")):
+        topic = "holiday"
+    elif "gestern" in low:
+        topic = "yesterday"
+    elif any(x in low for x in ("arbeit", "job", "hotel")):
+        topic = "work"
+    elif learner_question and (
+        re.search(r"\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\b", low)
+        or any(x in low for x in ("speise", "gericht"))
+    ):
+        topic = "food"
+    elif learner_question and any(x in low for x in ("wochenende", "freizeit", "hobby", "musik", "sport", "lesen", "buch")):
+        topic = "hobby"
+    elif learner_question and any(x in low for x in ("heute abend", "heute noch", "machst du heute")):
+        topic = "today"
+    elif any(x in low for x in ("hobby", "freizeit", "musik", "sport", "lesen", "buch")):
+        topic = "hobby"
+
+    if facts.get("activity") == "shopping":
+        topic = "shopping"
+    elif facts.get("place"):
+        topic = "place"
+
+    sticky = {"holiday", "weather", "hobby", "work", "shopping", "food"}
+    hint = vocabulary_topic or previous_topic
+    if not topic and previous_topic in sticky and hint in {None, "today", "alltag"}:
+        hint = previous_topic
+
+    return {
+        "version": ORCHESTRATOR_VERSION,
+        "topic": topic,
+        "topic_hint": hint,
+        "source": "learner_explicit" if topic else "context",
+    }
 
 def build_turn_plan(*, teacher_policy=None, topic=None, struggle=False,
                     explicit_topic=None, error_result=None,
