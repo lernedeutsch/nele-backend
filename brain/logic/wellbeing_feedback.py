@@ -821,6 +821,12 @@ def get_wellbeing_reaction(
 def analyze_wellbeing_response(
     user_message
 ):
+    """Analyze a wellbeing reply.
+
+    Return contract: recognized, type, reaction, feedback, corrected_message,
+    error_type, and model_sentence are always present. model_sentence is the
+    natural A1 model for the recognized meaning, or None when unrecognized.
+    """
 
     wellbeing_type = detect_wellbeing_type(
         user_message
@@ -846,6 +852,9 @@ def analyze_wellbeing_response(
                 None,
 
             "error_type":
+                None,
+
+            "model_sentence":
                 None
         }
 
@@ -856,6 +865,11 @@ def analyze_wellbeing_response(
 
 
     reaction = get_wellbeing_reaction(
+        wellbeing_type,
+        user_message
+    )
+
+    model_sentence = get_wellbeing_model_sentence(
         wellbeing_type,
         user_message
     )
@@ -896,5 +910,8 @@ def analyze_wellbeing_response(
                 )
                 if correction
                 else None
-            )
+            ),
+
+        "model_sentence":
+            model_sentence
 }
