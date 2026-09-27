@@ -10,6 +10,7 @@ import requests
 
 CHAT_URL = "https://nele-backend.onrender.com/api/chat"
 WELCOME_URL = "https://nele-backend.onrender.com/welcome"
+STUDENT_URL = "https://nele-backend.onrender.com/api/students"
 QUESTIONS = [
     "Hallo Nele, wie geht es dir heute?",
     "Wann hast du frei?",
@@ -60,11 +61,40 @@ def requested_mode():
     return mode if mode in {"free", "course"} else "free"
 
 
+def requested_course():
+    level = str(os.environ.get("NELE_LIVE_LEVEL", "A1") or "A1").strip().upper()
+    raw_lesson = str(os.environ.get("NELE_LIVE_LESSON", "") or "").strip()
+    if not raw_lesson:
+        return level, None
+    try:
+        lesson = int(raw_lesson)
+    except ValueError as error:
+        raise SystemExit("NELE_LIVE_LESSON must be an integer.") from error
+    if lesson < 1:
+        raise SystemExit("NELE_LIVE_LESSON must be >= 1.")
+    return level, lesson
+
+
 def main():
     session_id = f"chatgpt-live-test-{int(time.time())}-{uuid.uuid4().hex[:8]}"
     conversation_mode = requested_mode()
     print(f"MODE: {conversation_mode}", flush=True)
     if conversation_mode == "course":
+        level, lesson = requested_course()
+        if lesson is not None:
+            student = requests.post(
+                STUDENT_URL,
+                json={"session_id": session_id, "level": level, "lesson": lesson},
+                timeout=90,
+            )
+            student.raise_for_status()
+            student_payload = student.json()
+            print(f"COURSE SELECT: {level}.{lesson} -> {json.dumps(student_payload, ensure_ascii=False)}")
+            if int(student_payload.get("lesson") or 0) != lesson:
+                raise RuntimeError(
+                    f"Production did not select requested lesson {level}.{lesson}: {student_payload}"
+                )
+
         welcome = requests.post(
             WELCOME_URL,
             json={"session_id": session_id, "conversation_mode": "course", "new_conversation": True},
