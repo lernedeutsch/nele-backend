@@ -7,7 +7,7 @@ active topic and learner facts.
 
 import re
 
-ENGINE_VERSION = 1
+ENGINE_VERSION = 2
 
 TOPIC_TERMS = {
     "work": {"arbeit", "arbeitest", "arbeiten", "job", "hotel", "koch", "kochst", "pause", "fängst", "faengst"},
@@ -23,6 +23,19 @@ TOPIC_TERMS = {
 def _norm(value):
     return re.sub(r"\s+", " ", str(value or "").strip().lower()).strip(" ?!.")
 
+def _question_signature(question):
+    """Collapse near-duplicate A1 prompts to a semantic intent signature."""
+    q = _norm(question)
+    groups = (
+        ("activity_more", ("was machst du sonst noch gern", "was machst du sonst gern", "was machst du noch gern")),
+        ("reading_preference", ("was liest du am liebsten", "was liest du gern")),
+        ("weather_temperature", ("ist es warm oder kalt", "wie ist das wetter bei dir")),
+    )
+    for name, variants in groups:
+        if any(v in q for v in variants):
+            return name
+    return q
+
 def _topic_match(question, topic):
     q = _norm(question)
     terms = TOPIC_TERMS.get(str(topic or ""), set())
@@ -31,8 +44,10 @@ def _topic_match(question, topic):
 def assess_candidate_question(question, *, topic=None, recent_questions=None, previous_question=None):
     q = _norm(question)
     recent = [_norm(x) for x in (recent_questions or []) if x]
-    repeated = bool(q and q in recent[-8:])
-    immediate_repeat = bool(q and q == _norm(previous_question))
+    recent_signatures = [_question_signature(x) for x in (recent_questions or []) if x]
+    signature = _question_signature(question)
+    repeated = bool(q and (q in recent[-8:] or signature in recent_signatures[-8:]))
+    immediate_repeat = bool(q and signature == _question_signature(previous_question))
     topic_match = _topic_match(question, topic)
     return {
         "version": ENGINE_VERSION,
