@@ -27,7 +27,7 @@ def infer_expected_answer(question):
     )
     if q.startswith(yes_no_starts):
         return "yes_no"
-    if q.startswith(("wann ", "bis wann ")):
+    if q.startswith(("wann ", "bis wann ", "um wie viel uhr", "um wieviel uhr")):
         return "time"
     if q.startswith(("wo ", "woher ")):
         return "place"
