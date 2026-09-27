@@ -155,7 +155,7 @@ jobs:
               if env_path and directives:
                   with open(env_path, "a", encoding="utf-8") as env_file:
                       for key, value in directives.items():
-                          env_file.write(f"{env_map[key]}={value}\\n")
+                          env_file.write(f"{env_map[key]}={value}\n")
 
           if questions:
               with open(".nele-live-request.json", "w", encoding="utf-8") as handle:
