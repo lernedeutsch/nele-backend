@@ -2430,16 +2430,18 @@ def handle_lesson_teaching(
     if state is None:
         return None
 
-    # Shared Meine Sätze practice has priority while one personal sentence is active.
-    personal_practice = handle_personal_sentence_practice(user_message, state)
-    if personal_practice:
-        return personal_practice.get("reply")
-
     # A started dialogue owns the conversation until it is completed.
+    # Never let an incidental/stale Meine Sätze drill interrupt a lesson dialogue.
     if is_dialogue_active(state):
+        state.pop("personal_sentence_practice", None)
         dialogue_reply = handle_dialogue(user_message, state)
         if dialogue_reply is not None:
             return dialogue_reply
+
+    # Meine Sätze may run only when no lesson dialogue currently owns the turn.
+    personal_practice = handle_personal_sentence_practice(user_message, state)
+    if personal_practice:
+        return personal_practice.get("reply")
 
 
     if not is_lesson_teaching_active(
