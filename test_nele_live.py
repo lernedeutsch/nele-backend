@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Live conversation test for production Nele free conversation."""
+"""Live conversation test for production Nele in free or course mode."""
 import json
 import os
 import sys
@@ -9,6 +9,7 @@ import uuid
 import requests
 
 CHAT_URL = "https://nele-backend.onrender.com/api/chat"
+WELCOME_URL = "https://nele-backend.onrender.com/welcome"
 QUESTIONS = [
     "Hallo Nele, wie geht es dir heute?",
     "Wann hast du frei?",
@@ -54,8 +55,26 @@ def requested_questions():
     return sys.argv[1:] or QUESTIONS
 
 
+def requested_mode():
+    mode = str(os.environ.get("NELE_LIVE_MODE", "free") or "free").strip().lower()
+    return mode if mode in {"free", "course"} else "free"
+
+
 def main():
     session_id = f"chatgpt-live-test-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    conversation_mode = requested_mode()
+    print(f"MODE: {conversation_mode}", flush=True)
+    if conversation_mode == "course":
+        welcome = requests.post(
+            WELCOME_URL,
+            json={"session_id": session_id, "conversation_mode": "course", "new_conversation": True},
+            timeout=90,
+        )
+        welcome.raise_for_status()
+        welcome_payload = welcome.json()
+        print(f"NELE WELCOME: {welcome_payload.get('reply', '')}")
+        print(f"COURSE META: {json.dumps(welcome_payload.get('meta') or {}, ensure_ascii=False)}")
+
     for question in requested_questions():
         print(f"REQUEST {question}", flush=True)
         try:
@@ -65,7 +84,7 @@ def main():
                     "message": question,
                     "session_id": session_id,
                     "input_mode": "keyboard",
-                    "conversation_mode": "free",
+                    "conversation_mode": conversation_mode,
                 },
                 timeout=90,
             )
