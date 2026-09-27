@@ -1304,7 +1304,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     elif any(x in low_message for x in ("arbeit", "job", "hotel")):
         detected_topic = "work"
     elif learner_question and (
-        re.search(r"\\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\\b", low_message)
+        re.search(r"\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\b", low_message)
         or any(x in low_message for x in ("speise", "gericht"))
     ):
         detected_topic = "food"
