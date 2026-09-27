@@ -110,6 +110,49 @@ def main():
         print(f"NELE WELCOME: {welcome_payload.get('reply', '')}")
         print(f"COURSE META: {json.dumps(welcome_payload.get('meta') or {}, ensure_ascii=False)}")
 
+        # A fresh Live session has no durable learner facts yet. Complete the
+        # normal first-use onboarding through the public chat API, then reopen
+        # the same learner. This makes targeted course tests exercise the
+        # selected lesson as a returning learner without adding a test-only
+        # production endpoint or bypassing onboarding state.
+        if "Wie heißt du?" in str(welcome_payload.get("reply") or ""):
+            bootstrap_answers = [
+                f"ich heiße {os.environ.get('NELE_LIVE_STUDENT_NAME', 'Moni')}",
+                "ich komme aus Polen",
+                "ich wohne in Heidelberg",
+            ]
+            for answer in bootstrap_answers:
+                bootstrap = requests.post(
+                    CHAT_URL,
+                    json={
+                        "message": answer,
+                        "session_id": session_id,
+                        "input_mode": "keyboard",
+                        "conversation_mode": "course",
+                    },
+                    timeout=90,
+                )
+                bootstrap.raise_for_status()
+                print(
+                    f"ONBOARDING: {answer} -> "
+                    f"{bootstrap.json().get('reply', '')}"
+                )
+
+            welcome = requests.post(
+                WELCOME_URL,
+                json={
+                    "session_id": session_id,
+                    "conversation_mode": "course",
+                    "new_conversation": True,
+                },
+                timeout=90,
+            )
+            welcome.raise_for_status()
+            welcome_payload = welcome.json()
+            print(f"NELE RETURNING WELCOME: {welcome_payload.get('reply', '')}")
+            if "Wie heißt du?" in str(welcome_payload.get("reply") or ""):
+                raise RuntimeError("Course Live onboarding did not complete.")
+
     for question in requested_questions():
         print(f"REQUEST {question}", flush=True)
         try:
