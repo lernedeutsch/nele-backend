@@ -1586,8 +1586,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
     guard = select_question(state, question, branch_alternatives)
     question = guard.get("selected") or question
-    else:
-        question = guard.get("selected") or question
 
     # Final safety fallback if every topic alternative has already appeared.
     recent_norm = {_norm(q).strip(" ?!.") for q in free.get("recent_questions", [])[-8:]}
