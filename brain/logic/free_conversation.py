@@ -1025,7 +1025,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         and (
             wellbeing_context
             or wellbeing_analysis.get("type") in {"bad", "tired", "stressed", "sad", "sick"}
-            or re.match(r"^(?:mir\\s+geht|ich\\s+bin)\\b", _norm(user_message))
+            or re.match(r"^(?:mir\s+geht|ich\s+bin)\b", _norm(user_message))
             or _norm(user_message).strip(" ?!.,") in {"gut", "sehr gut", "ganz gut", "prima", "super", "so lala", "es geht", "geht so"}
         )
     )
