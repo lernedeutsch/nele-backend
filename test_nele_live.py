@@ -84,7 +84,12 @@ def main():
         if lesson is not None:
             student = requests.post(
                 STUDENT_URL,
-                json={"session_id": session_id, "level": level, "lesson": lesson},
+                json={
+                    "session_id": session_id,
+                    "name": os.environ.get("NELE_LIVE_STUDENT_NAME", "Moni"),
+                    "level": level,
+                    "lesson": lesson,
+                },
                 timeout=90,
             )
             student.raise_for_status()
