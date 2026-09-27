@@ -45,21 +45,36 @@ def execute_learning_action(
         "reply": fallback_question,
     }
 
-    if action == "REPEAT_ERROR" and model:
-        result["reply"] = f"Richtig ist: „{model}“ Sag es bitte noch einmal."
-        result["expects_outcome"] = "repeat_correct_form"
+    if action == "REPEAT_ERROR":
+        if model:
+            result["reply"] = f"Richtig ist: „{model}“ Sag es bitte noch einmal."
+            result["expects_outcome"] = "repeat_correct_form"
+            return result
+        result["action"] = "CONTINUE"
+        result["expects_outcome"] = "continue_conversation"
+        result["reply"] = fallback_question
         return result
 
-    if action == "CORRECT_ERROR" and model:
-        prefix = f"Du kannst sagen: „{model}“"
-        result["reply"] = f"{prefix} {fallback_question}".strip()
-        result["expects_outcome"] = "continue_after_correction"
+    if action == "CORRECT_ERROR":
+        if model:
+            prefix = f"Du kannst sagen: „{model}“"
+            result["reply"] = f"{prefix} {fallback_question}".strip()
+            result["expects_outcome"] = "continue_after_correction"
+            return result
+        result["action"] = "CONTINUE"
+        result["expects_outcome"] = "continue_conversation"
+        result["reply"] = fallback_question
         return result
 
-    if action == "MODEL_SENTENCE" and model:
-        prefix = f"Du kannst sagen: „{model}“"
-        result["reply"] = f"{prefix} {fallback_question}".strip()
-        result["expects_outcome"] = "use_full_sentence"
+    if action == "MODEL_SENTENCE":
+        if model:
+            prefix = f"Du kannst sagen: „{model}“"
+            result["reply"] = f"{prefix} {fallback_question}".strip()
+            result["expects_outcome"] = "use_full_sentence"
+            return result
+        result["action"] = "CONTINUE"
+        result["expects_outcome"] = "continue_conversation"
+        result["reply"] = fallback_question
         return result
 
     if action == "SIMPLIFY":
