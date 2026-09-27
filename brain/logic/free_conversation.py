@@ -1040,11 +1040,27 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             free["last_user_message"] = str(user_message or "").strip()
             free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
             free["last_topic"] = "today"
+            # Early wellbeing routing still exposes the shared pipeline
+            # diagnostics expected by every free-conversation turn.
+            response_understanding = understand_response(
+                user_message,
+                conversation_state=state.get("conversation_state_v2") or {},
+                vocabulary_context=free.get("vocabulary_context") or {},
+            )
+            error_result = process_error(
+                user_message,
+                state,
+                support_level=free.get("support_level", "high"),
+                expected_answer=(state.get("conversation_state_v2") or {}).get("expected_answer"),
+                context={"mode": "free", "topic": "today", "last_question": last_social_question},
+            )
             return social_reply, {
                 "conversation_mode": "free",
                 "topic": "today",
                 "shared_wellbeing": True,
                 "wellbeing_type": wellbeing_analysis.get("type"),
+                "response_understanding": response_understanding,
+                "error_engine": error_result,
             }
 
     # "Und du?" is a learner-led hand-back, not permission to rotate to an
