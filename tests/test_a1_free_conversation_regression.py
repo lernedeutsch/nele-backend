@@ -1577,3 +1577,27 @@ class GeneratedTests(unittest.TestCase):
         self.assertIn("Wie viele Zimmer", reply)
 
 
+
+    def test_coherence_blocks_semantic_repeat_of_activity_more_question(self):
+        from brain.logic.conversation_coherence import assess_candidate_question
+        result = assess_candidate_question(
+            "Was machst du sonst gern?",
+            topic="hobby",
+            recent_questions=["Was machst du sonst noch gern?"],
+            previous_question="Was machst du sonst noch gern?",
+        )
+        self.assertTrue(result["repeated"])
+        self.assertFalse(result["coherent"])
+
+    def test_personalization_keeps_reading_genre_thread(self):
+        from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
+        state = {}
+        remember_conversation_facts(
+            state,
+            {"activity": "reading", "reading_genre": "Krimis"},
+            topic="hobby",
+        )
+        followup = choose_personalized_followup(state, topic="hobby", turn_count=4)
+        self.assertIsNotNone(followup)
+        self.assertIn("Krimis", followup["question"])
+        self.assertIn("Buch", followup["question"])
