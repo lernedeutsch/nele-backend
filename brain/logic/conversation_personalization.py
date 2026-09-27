@@ -7,7 +7,7 @@ session and therefore follows the backend's existing persistence mechanism.
 
 ENGINE_VERSION = 1
 REUSABLE_KEYS = {
-    "place", "activity", "music_genre", "shopping_item", "color",
+    "place", "activity", "music_genre", "reading_genre", "shopping_item", "color",
 }
 
 def remember_conversation_facts(state, facts, *, topic=None):
@@ -34,6 +34,7 @@ def _prompt_candidates(facts, topic):
     activity = (facts.get("activity") or {}).get("value")
     place = (facts.get("place") or {}).get("value")
     genre = (facts.get("music_genre") or {}).get("value")
+    reading_genre = (facts.get("reading_genre") or {}).get("value")
     item = (facts.get("shopping_item") or {}).get("value")
     color = (facts.get("color") or {}).get("value")
 
@@ -42,7 +43,10 @@ def _prompt_candidates(facts, topic):
     if topic == "hobby" and activity == "swimming":
         candidates.append("Du schwimmst gern. Wo schwimmst du am liebsten?")
     if topic == "hobby" and activity == "reading":
-        candidates.append("Du liest gern. Was liest du am liebsten?")
+        if reading_genre:
+            candidates.append(f"Du liest gern {reading_genre}. Liest du gerade ein Buch?")
+        else:
+            candidates.append("Du liest gern. Was liest du am liebsten?")
     if topic == "hobby" and genre:
         candidates.append(f"Du hörst gern {genre}. Wann hörst du Musik?")
     if topic == "place" and place:
