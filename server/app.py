@@ -769,6 +769,22 @@ def api_students():
     if name and not state.get("name"):
         state["name"] = name
 
+    # Optional course selection for clients and production live tests.
+    # Existing callers remain unchanged when level/lesson are omitted.
+    progress = state.setdefault("student_progress", {})
+    level = str(data.get("level") or "").strip().upper()
+    lesson = data.get("lesson")
+    if level in {"A1", "A2", "B1", "B2", "C1", "C2"}:
+        progress["current_level"] = level
+    if lesson is not None:
+        try:
+            lesson = int(lesson)
+        except (TypeError, ValueError):
+            return jsonify({"ok": False, "error": "invalid_lesson"}), 400
+        if lesson < 1:
+            return jsonify({"ok": False, "error": "invalid_lesson"}), 400
+        progress["current_lesson"] = lesson
+
     save_conversation_state(session_id)
     return jsonify({
         "ok": True,
@@ -776,6 +792,7 @@ def api_students():
         "session_id": session_id,
         "name": state.get("name"),
         "level": (state.get("student_progress") or {}).get("current_level", "A1"),
+        "lesson": (state.get("student_progress") or {}).get("current_lesson", 1),
     })
 
 
