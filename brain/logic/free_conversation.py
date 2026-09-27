@@ -22,7 +22,7 @@ from brain.logic.conversation_goal_transition import decide_topic_transition
 from brain.logic.conversation_personalization import remember_conversation_facts, choose_personalized_followup
 from brain.logic.conversation_quality_controller import check_reply
 from brain.logic.conversation_recovery import recover_reply
-from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration
+from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration, resolve_learner_topic
 from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, record_turn_plan_compliance
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 from brain.logic.personal_sentences import handle_personal_sentence
@@ -1294,44 +1294,15 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     learner_question = _is_explicit_learner_question(user_message)
     # One topic classifier owns learner intent. Do not run a second classifier
     # afterwards that can silently overwrite a stronger semantic decision.
-    detected_topic = explicit_topic
-    if any(x in low_message for x in ("wetter", "sonne", "sonnig", "regen", "regnet", "windig", "schnee")):
-        detected_topic = "weather"
-    elif any(x in low_message for x in ("urlaub", "reise", "ferien", "meer", "berge")):
-        detected_topic = "holiday"
-    elif "gestern" in low_message:
-        detected_topic = "yesterday"
-    elif any(x in low_message for x in ("arbeit", "job", "hotel")):
-        detected_topic = "work"
-    elif learner_question and (
-        re.search(r"\\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\\b", low_message)
-        or any(x in low_message for x in ("speise", "gericht"))
-    ):
-        detected_topic = "food"
-    elif learner_question and any(x in low_message for x in ("wochenende", "freizeit", "hobby", "musik", "sport", "lesen", "buch")):
-        detected_topic = "hobby"
-    elif learner_question and any(x in low_message for x in ("heute abend", "heute noch", "machst du heute")):
-        detected_topic = "today"
-    elif any(x in low_message for x in ("hobby", "freizeit", "musik", "sport", "lesen", "buch")):
-        detected_topic = "hobby"
-
-    if facts.get("activity") == "shopping":
-        detected_topic = "shopping"
-    elif facts.get("place"):
-        detected_topic = "place"
-    explicit_topic = detected_topic
-
-    # Neutral content must not silently abandon an explicit active topic.
-    # Vocabulary may enrich a topic, but it may not demote holiday/weather/etc.
-    # to generic "today" merely because the current sentence has no topic word.
-    sticky_topics = {"holiday", "weather", "hobby", "work", "shopping", "food"}
-    topic_hint = vocabulary_topic or previous_topic
-    if (
-        not explicit_topic
-        and previous_topic in sticky_topics
-        and topic_hint in {None, "today", "alltag"}
-    ):
-        topic_hint = previous_topic
+    topic_decision = resolve_learner_topic(
+        user_message,
+        facts=facts,
+        previous_topic=previous_topic,
+        vocabulary_topic=vocabulary_topic,
+        learner_question=learner_question,
+    )
+    explicit_topic = topic_decision["topic"]
+    topic_hint = topic_decision["topic_hint"]
 
     topic, topic_source = choose_topic(
         state,
