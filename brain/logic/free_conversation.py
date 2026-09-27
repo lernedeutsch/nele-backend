@@ -1569,12 +1569,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if not question:
         question = _content_followup(user_message, facts, memory, free, level)
     if not question:
-        personalized = choose_personalized_followup(
-            state,
-            topic=topic,
-            recent_questions=free.get("recent_questions", []),
-            turn_count=free.get("turn_count", 0),
-        )
+        # Personalization is an optional question source. Do not create it
+        # when the Turn Plan forbids personalization, otherwise the
+        # orchestrator has to block work that should never have been proposed.
+        if turn_plan.get("allow_personalization", True):
+            personalized = choose_personalized_followup(
+                state,
+                topic=topic,
+                recent_questions=free.get("recent_questions", []),
+                turn_count=free.get("turn_count", 0),
+            )
+        else:
+            personalized = None
         question = (personalized or {}).get("question")
     else:
         personalized = None
