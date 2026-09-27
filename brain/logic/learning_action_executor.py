@@ -21,6 +21,25 @@ def _vocabulary_entry(target_word, vocabulary_context):
     return {}
 
 
+def resolve_learning_action(policy, *, teacher_action=None, error_result=None):
+    """Resolve a pedagogical policy into an executable action contract."""
+    resolved = dict(policy or {})
+    teacher_action = teacher_action or {}
+    error_result = error_result or {}
+    action = resolved.get("action") or "CONTINUE"
+    error = error_result.get("error") or {}
+    model = resolved.get("model") or teacher_action.get("model")
+    if not model and action in {"REPEAT_ERROR", "CORRECT_ERROR"}:
+        model = error.get("correct")
+    if model:
+        resolved["model"] = model
+    elif action in {"REPEAT_ERROR", "CORRECT_ERROR", "MODEL_SENTENCE"}:
+        resolved["requested_action"] = action
+        resolved["action"] = "CONTINUE"
+        resolved["reason"] = "model_required_but_unavailable"
+    return resolved
+
+
 def execute_learning_action(
     policy,
     *,
@@ -45,21 +64,36 @@ def execute_learning_action(
         "reply": fallback_question,
     }
 
-    if action == "REPEAT_ERROR" and model:
-        result["reply"] = f"Richtig ist: „{model}“ Sag es bitte noch einmal."
-        result["expects_outcome"] = "repeat_correct_form"
+    if action == "REPEAT_ERROR":
+        if model:
+            result["reply"] = f"Richtig ist: „{model}“ Sag es bitte noch einmal."
+            result["expects_outcome"] = "repeat_correct_form"
+            return result
+        result["action"] = "CONTINUE"
+        result["expects_outcome"] = "continue_conversation"
+        result["reply"] = fallback_question
         return result
 
-    if action == "CORRECT_ERROR" and model:
-        prefix = f"Du kannst sagen: „{model}“"
-        result["reply"] = f"{prefix} {fallback_question}".strip()
-        result["expects_outcome"] = "continue_after_correction"
+    if action == "CORRECT_ERROR":
+        if model:
+            prefix = f"Du kannst sagen: „{model}“"
+            result["reply"] = f"{prefix} {fallback_question}".strip()
+            result["expects_outcome"] = "continue_after_correction"
+            return result
+        result["action"] = "CONTINUE"
+        result["expects_outcome"] = "continue_conversation"
+        result["reply"] = fallback_question
         return result
 
-    if action == "MODEL_SENTENCE" and model:
-        prefix = f"Du kannst sagen: „{model}“"
-        result["reply"] = f"{prefix} {fallback_question}".strip()
-        result["expects_outcome"] = "use_full_sentence"
+    if action == "MODEL_SENTENCE":
+        if model:
+            prefix = f"Du kannst sagen: „{model}“"
+            result["reply"] = f"{prefix} {fallback_question}".strip()
+            result["expects_outcome"] = "use_full_sentence"
+            return result
+        result["action"] = "CONTINUE"
+        result["expects_outcome"] = "continue_conversation"
+        result["reply"] = fallback_question
         return result
 
     if action == "SIMPLIFY":

@@ -13,7 +13,7 @@ from brain.logic.error_engine import process_error
 from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
 from brain.logic.learner_model import build_learner_model
 from brain.logic.teacher_policy import choose_next_best_learning_action, policy_to_teacher_action
-from brain.logic.learning_action_executor import execute_learning_action
+from brain.logic.learning_action_executor import execute_learning_action, resolve_learning_action
 from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
 from brain.logic.question_simplifier import simplify_question
 from brain.logic.response_understanding import understand_response
@@ -671,7 +671,7 @@ def _is_explicit_learner_question(text):
     low = _norm(raw).strip(" .?!")
     # Spoken German often hands the turn back with "Und ...?", "Aber ...?"
     # or "Also ...?". These particles do not change the question's intent.
-    low = re.sub(r"^(?:(?:und|aber|also)\\s+)+", "", low)
+    low = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", low)
     starts = (
         "was ", "wie ", "wo ", "woher ", "wohin ", "wann ", "warum ", "wer ",
         "welcher ", "welche ", "welches ", "arbeitest ", "wohnst ", "isst ",
@@ -1025,7 +1025,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         and (
             wellbeing_context
             or wellbeing_analysis.get("type") in {"bad", "tired", "stressed", "sad", "sick"}
-            or re.match(r"^(?:mir\\s+geht|ich\\s+bin)\\b", _norm(user_message))
+            or re.match(r"^(?:mir\s+geht|ich\s+bin)\b", _norm(user_message))
             or _norm(user_message).strip(" ?!.,") in {"gut", "sehr gut", "ganz gut", "prima", "super", "so lala", "es geht", "geht so"}
         )
     )
@@ -1040,11 +1040,27 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             free["last_user_message"] = str(user_message or "").strip()
             free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
             free["last_topic"] = "today"
+            # Early wellbeing routing still exposes the shared pipeline
+            # diagnostics expected by every free-conversation turn.
+            response_understanding = understand_response(
+                user_message,
+                conversation_state=state.get("conversation_state_v2") or {},
+                vocabulary_context=free.get("vocabulary_context") or {},
+            )
+            error_result = process_error(
+                user_message,
+                state,
+                support_level=free.get("support_level", "high"),
+                expected_answer=(state.get("conversation_state_v2") or {}).get("expected_answer"),
+                context={"mode": "free", "topic": "today", "last_question": last_social_question},
+            )
             return social_reply, {
                 "conversation_mode": "free",
                 "topic": "today",
                 "shared_wellbeing": True,
                 "wellbeing_type": wellbeing_analysis.get("type"),
+                "response_understanding": response_understanding,
+                "error_engine": error_result,
             }
 
     # "Und du?" is a learner-led hand-back, not permission to rotate to an
@@ -1304,7 +1320,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     elif any(x in low_message for x in ("arbeit", "job", "hotel")):
         detected_topic = "work"
     elif learner_question and (
-        re.search(r"\\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\\b", low_message)
+        re.search(r"\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\b", low_message)
         or any(x in low_message for x in ("speise", "gericht"))
     ):
         detected_topic = "food"
@@ -1382,8 +1398,13 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
     teacher_action = policy_to_teacher_action(teacher_policy, teacher_action)
     state["teacher_policy_v2"] = teacher_policy
+    executable_policy = resolve_learning_action(
+        teacher_policy,
+        teacher_action=teacher_action,
+        error_result=error_result,
+    )
     turn_plan = build_turn_plan(
-        teacher_policy=teacher_policy,
+        teacher_policy=executable_policy,
         topic=topic,
         struggle=struggle,
         explicit_topic=explicit_topic,
@@ -1553,12 +1574,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if not question:
         question = _content_followup(user_message, facts, memory, free, level)
     if not question:
-        personalized = choose_personalized_followup(
-            state,
-            topic=topic,
-            recent_questions=free.get("recent_questions", []),
-            turn_count=free.get("turn_count", 0),
-        )
+        # Personalization is an optional question source. Do not create it
+        # when the Turn Plan forbids personalization, otherwise the
+        # orchestrator has to block work that should never have been proposed.
+        if turn_plan.get("allow_personalization", True):
+            personalized = choose_personalized_followup(
+                state,
+                topic=topic,
+                recent_questions=free.get("recent_questions", []),
+                turn_count=free.get("turn_count", 0),
+            )
+        else:
+            personalized = None
         question = (personalized or {}).get("question")
     else:
         personalized = None
@@ -1606,7 +1633,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         action_question = question_support.get("question") or question
 
     learning_action = execute_learning_action(
-        teacher_policy,
+        executable_policy,
         teacher_action=teacher_action,
         vocabulary_context=vocabulary_context,
         fallback_question=action_question,

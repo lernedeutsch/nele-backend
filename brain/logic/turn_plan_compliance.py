@@ -26,7 +26,24 @@ def evaluate_turn_plan_compliance(turn_plan, *, learning_action=None,
 
     expected = plan.get("expected_outcome")
     actual_expected = action.get("expects_outcome")
-    checks["expected_outcome_match"] = actual_expected in {None, expected}
+    canonical_expected = {
+        "REPEAT_ERROR": "repeat_correct_form",
+        "CORRECT_ERROR": "continue_after_correction",
+        "MODEL_SENTENCE": "use_full_sentence",
+        "SIMPLIFY": "answer_with_support",
+        "REVIEW_WORD": "recall_target_word",
+        "INTRODUCE_WORD": "notice_new_word",
+        "ADVANCE": "independent_answer",
+        "CONTINUE": "continue_conversation",
+    }.get(planned_action, expected)
+    if checks["action_match"]:
+        # Executed action matches the plan: compare against the canonical
+        # outcome for that (matching) action, not a possibly stale plan label.
+        checks["expected_outcome_match"] = actual_expected in {None, canonical_expected}
+    else:
+        # A different action than planned was executed: judge the outcome
+        # against what the plan actually required so both mismatches survive.
+        checks["expected_outcome_match"] = actual_expected in {None, expected}
     if not checks["expected_outcome_match"]:
         violations.append("expected_outcome_mismatch")
 

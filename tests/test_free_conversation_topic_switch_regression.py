@@ -177,6 +177,22 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertNotIn("sport", reply.lower())
         self.assertNotIn("musik", reply.lower())
 
+    def test_food_intent_accepts_natural_discourse_variants(self):
+        variants = (
+            "Und was isst du gern?",
+            "Aber was isst du gern?",
+            "Also was isst du gern?",
+            "Und was frühstückst du gern?",
+        )
+        for question in variants:
+            state = self.fresh_state()
+            turn(state, "Was machst du gern am Wochenende?")
+            turn(state, "spazieren")
+            reply = turn(state, question)
+            self.assertEqual(state["free_conversation"].get("last_topic"), "food", question)
+            self.assertNotIn("sport", reply.lower(), question)
+            self.assertNotIn("musik", reply.lower(), question)
+
     def test_food_intent_variants_share_one_classifier(self):
         for question in ("Was isst du gern?", "Und was isst du gern?", "Aber was isst du gern?"):
             state = self.fresh_state()
