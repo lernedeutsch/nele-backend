@@ -671,7 +671,7 @@ def _is_explicit_learner_question(text):
     low = _norm(raw).strip(" .?!")
     # Spoken German often hands the turn back with "Und ...?", "Aber ...?"
     # or "Also ...?". These particles do not change the question's intent.
-    low = re.sub(r"^(?:(?:und|aber|also)\\s+)+", "", low)
+    low = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", low)
     starts = (
         "was ", "wie ", "wo ", "woher ", "wohin ", "wann ", "warum ", "wer ",
         "welcher ", "welche ", "welches ", "arbeitest ", "wohnst ", "isst ",
@@ -1025,7 +1025,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         and (
             wellbeing_context
             or wellbeing_analysis.get("type") in {"bad", "tired", "stressed", "sad", "sick"}
-            or re.match(r"^(?:mir\\s+geht|ich\\s+bin)\\b", _norm(user_message))
+            or re.match(r"^(?:mir\s+geht|ich\s+bin)\b", _norm(user_message))
             or _norm(user_message).strip(" ?!.,") in {"gut", "sehr gut", "ganz gut", "prima", "super", "so lala", "es geht", "geht so"}
         )
     )
@@ -1320,7 +1320,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     elif any(x in low_message for x in ("arbeit", "job", "hotel")):
         detected_topic = "work"
     elif learner_question and (
-        re.search(r"\\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\\b", low_message)
+        re.search(r"\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\b", low_message)
         or any(x in low_message for x in ("speise", "gericht"))
     ):
         detected_topic = "food"
