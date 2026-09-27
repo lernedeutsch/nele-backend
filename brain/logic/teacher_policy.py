@@ -99,12 +99,6 @@ def choose_next_best_learning_action(
             action = CURRICULUM_ACTIONS.get(curriculum_skill, action)
             reason = "curriculum_next_ready_skill"
 
-    # Model-dependent actions are executable only with a concrete model.
-    # Keep the published policy consistent with what the executor can do.
-    if action in {"REPEAT_ERROR", "CORRECT_ERROR", "MODEL_SENTENCE"} and not teacher_action.get("model"):
-        action = "CONTINUE"
-        reason = "model_required_but_unavailable"
-
     selected = {
         "version": POLICY_VERSION,
         "action": action,
