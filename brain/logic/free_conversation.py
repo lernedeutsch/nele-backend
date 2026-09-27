@@ -13,7 +13,7 @@ from brain.logic.error_engine import process_error
 from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
 from brain.logic.learner_model import build_learner_model
 from brain.logic.teacher_policy import choose_next_best_learning_action, policy_to_teacher_action
-from brain.logic.learning_action_executor import execute_learning_action
+from brain.logic.learning_action_executor import execute_learning_action, resolve_learning_action
 from brain.logic.learning_outcome_tracker import evaluate_learning_outcome
 from brain.logic.question_simplifier import simplify_question
 from brain.logic.response_understanding import understand_response
@@ -1398,8 +1398,13 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
     teacher_action = policy_to_teacher_action(teacher_policy, teacher_action)
     state["teacher_policy_v2"] = teacher_policy
+    executable_policy = resolve_learning_action(
+        teacher_policy,
+        teacher_action=teacher_action,
+        error_result=error_result,
+    )
     turn_plan = build_turn_plan(
-        teacher_policy=teacher_policy,
+        teacher_policy=executable_policy,
         topic=topic,
         struggle=struggle,
         explicit_topic=explicit_topic,
@@ -1628,7 +1633,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         action_question = question_support.get("question") or question
 
     learning_action = execute_learning_action(
-        teacher_policy,
+        executable_policy,
         teacher_action=teacher_action,
         vocabulary_context=vocabulary_context,
         fallback_question=action_question,
