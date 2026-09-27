@@ -882,6 +882,9 @@ def analyze_wellbeing_response(
         "type":
             wellbeing_type,
 
+        "model_sentence":
+            get_wellbeing_model_sentence(wellbeing_type, user_message),
+
         "reaction":
             reaction,
 

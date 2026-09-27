@@ -27,8 +27,10 @@ from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, reco
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
-from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue
+from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue, get_active_dialogue_prompt
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
+from brain.logic.conversation_intent_router import classify_conversation_intent
+from brain.knowledge.social_a1_topics import social_topic_reply
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -911,6 +913,7 @@ def generate_free_welcome(state, session_id=None):
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
     free = state.setdefault("free_conversation", {})
+    routed_intent = classify_conversation_intent(user_message, last_question=free.get("last_question", ""), dialogue_active=is_dialogue_active(state), dialogue_prompt=get_active_dialogue_prompt(state))
 
     # Priority -3: reusable Dialogue Knowledge router. A concrete dialogue may
     # start later in free conversation only when the learner asks an explicit
@@ -987,7 +990,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         }
 
     # Personal real-life sentences remain available when no dialogue was selected.
-    personal = handle_personal_sentence(user_message, state, mode="free")
+    personal = None
+    if routed_intent.get("intent") in {"learner_question", "open_statement"}:
+        personal = handle_personal_sentence(user_message, state, mode="free")
     if personal:
         reply = personal["reply"]
         _remember_question(free, reply)
@@ -1113,7 +1118,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # A new learner question is not an answer to Nele's previous question.
     # Do not reinterpret it through stale weather/work/home context.
     contextual_reply = None
-    if not _is_explicit_learner_question(user_message):
+    if routed_intent.get("intent") != "learner_question":
         contextual_reply = _short_answer_followup(
             user_message,
             free.get("last_question", ""),
