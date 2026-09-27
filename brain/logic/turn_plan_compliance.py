@@ -26,9 +26,6 @@ def evaluate_turn_plan_compliance(turn_plan, *, learning_action=None,
 
     expected = plan.get("expected_outcome")
     actual_expected = action.get("expects_outcome")
-    # The executor's outcome vocabulary is action-specific. Compare against
-    # the canonical outcome for the executed action, rather than treating a
-    # valid executor contract as a mismatch with a stale/generic plan label.
     canonical_expected = {
         "REPEAT_ERROR": "repeat_correct_form",
         "CORRECT_ERROR": "continue_after_correction",
@@ -38,8 +35,15 @@ def evaluate_turn_plan_compliance(turn_plan, *, learning_action=None,
         "INTRODUCE_WORD": "notice_new_word",
         "ADVANCE": "independent_answer",
         "CONTINUE": "continue_conversation",
-    }.get(executed_action, expected)
-    checks["expected_outcome_match"] = actual_expected in {None, canonical_expected}
+    }.get(planned_action, expected)
+    if checks["action_match"]:
+        # Executed action matches the plan: compare against the canonical
+        # outcome for that (matching) action, not a possibly stale plan label.
+        checks["expected_outcome_match"] = actual_expected in {None, canonical_expected}
+    else:
+        # A different action than planned was executed: judge the outcome
+        # against what the plan actually required so both mismatches survive.
+        checks["expected_outcome_match"] = actual_expected in {None, expected}
     if not checks["expected_outcome_match"]:
         violations.append("expected_outcome_mismatch")
 
