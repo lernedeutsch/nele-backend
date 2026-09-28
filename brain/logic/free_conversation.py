@@ -42,7 +42,9 @@ OPENERS = [
 LEVEL_ORDER = ["A1.1", "A1.2", "A1.3", "A1.4", "A2.1", "A2.2", "B1.1"]
 LEVEL_SKILLS = {
     "A1.1": {"today", "place", "work", "shopping", "hobby", "weather", "holiday"},
-    "A1.2": {"yesterday", "family", "friends", "food"},\n    "A1.3": {"housing", "weekend"},\n    "A2.1": {"transport", "technology", "health"},
+    "A1.2": {"yesterday", "family", "friends", "food"},
+    "A1.3": {"housing", "weekend"},
+    "A2.1": {"transport", "technology", "health"},
 }
 
 FALLBACKS = {
@@ -53,7 +55,15 @@ FALLBACKS = {
     "hobby": ["Was machst du gern in deiner Freizeit?", "Hörst du gern Musik?", "Machst du gern Sport?"],
     "weather": ["Wie ist das Wetter bei dir?", "Ist es warm oder kalt?", "Magst du das Wetter heute?"],
     "holiday": ["Wo machst du gern Urlaub?", "Meer oder Berge – was magst du lieber?", "Was machst du gern im Urlaub?"],
-    "yesterday": ["Was hast du gestern gemacht?", "Wie war dein Tag gestern?"],\n    "food": ["Was isst du gern zum Frühstück?", "Kochst du gern, oder isst du lieber im Restaurant?", "Magst du deutsches Essen?"],\n    "family": ["Hast du Geschwister?", "Wie oft siehst du deine Familie?", "Wohnt deine Familie in der Nähe?"],\n    "friends": ["Hast du viele Freunde hier?", "Wie oft triffst du deine Freunde?", "Was macht ihr zusammen?"],\n    "housing": ["Wohnst du in einer Wohnung oder in einem Haus?", "Wohnst du allein oder mit anderen?", "Gefällt dir deine Wohnung?"],\n    "weekend": ["Was machst du am Wochenende?", "Schläfst du am Wochenende länger?", "Triffst du am Wochenende Freunde?"],\n    "transport": ["Wie kommst du zur Arbeit?", "Fährst du gern mit dem Fahrrad?", "Ist der Bus bei dir meistens pünktlich?"],\n    "technology": ["Wie viele Stunden bist du am Handy?", "Nutzt du WhatsApp oder Instagram?", "Schaust du lieber Serien, oder liest du lieber?"],\n    "health": ["Wie fühlst du dich heute körperlich?", "Machst du regelmäßig Sport für die Gesundheit?", "Warst du dieses Jahr schon beim Arzt?"],
+    "yesterday": ["Was hast du gestern gemacht?", "Wie war dein Tag gestern?"],
+    "food": ["Was isst du gern zum Frühstück?", "Kochst du gern, oder isst du lieber im Restaurant?", "Magst du deutsches Essen?"],
+    "family": ["Hast du Geschwister?", "Wie oft siehst du deine Familie?", "Wohnt deine Familie in der Nähe?"],
+    "friends": ["Hast du viele Freunde hier?", "Wie oft triffst du deine Freunde?", "Was macht ihr zusammen?"],
+    "housing": ["Wohnst du in einer Wohnung oder in einem Haus?", "Wohnst du allein oder mit anderen?", "Gefällt dir deine Wohnung?"],
+    "weekend": ["Was machst du am Wochenende?", "Schläfst du am Wochenende länger?", "Triffst du am Wochenende Freunde?"],
+    "transport": ["Wie kommst du zur Arbeit?", "Fährst du gern mit dem Fahrrad?", "Ist der Bus bei dir meistens pünktlich?"],
+    "technology": ["Wie viele Stunden bist du am Handy?", "Nutzt du WhatsApp oder Instagram?", "Schaust du lieber Serien, oder liest du lieber?"],
+    "health": ["Wie fühlst du dich heute körperlich?", "Machst du regelmäßig Sport für die Gesundheit?", "Warst du dieses Jahr schon beim Arzt?"],
 }
 
 YES = {"ja", "ja ja", "ja gern", "ja, gern", "klar", "genau"}
