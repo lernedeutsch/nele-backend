@@ -284,9 +284,9 @@ def _yes_no_followup(text, last_question, facts):
     if "fährst du oft rad" in q:
         return "Wo fährst du gern Rad?" if yes else "Was machst du sonst gern in deiner Freizeit?"
     if "fährst du dort oft rad" in q:
-        return "Schön! Fährst du lieber allein oder mit jemandem?" if yes else "Wo fährst du lieber Rad?"
+        return "Fährst du lieber allein oder mit jemandem?" if yes else "Wo fährst du lieber Rad?"
     if "schwimmst du dort im sommer" in q:
-        return "Schön! Gehst du auch im Winter schwimmen?" if yes else "Wann schwimmst du dort gern?"
+        return "Gehst du auch im Winter schwimmen?" if yes else "Wann schwimmst du dort gern?"
     if "schwimmst du oft" in q:
         return "Wo schwimmst du gern?" if yes else "Welchen Sport machst du sonst gern?"
     if "hörst du oft" in q and "musik" in q:
@@ -300,11 +300,11 @@ def _yes_no_followup(text, last_question, facts):
         return "Welche Schuhe suchst du?"
     if "gefallen dir die schuhe" in q:
         facts["shopping_complete"] = True
-        return "Schön! Und wie ist dein Tag heute?" if yes else "Oh, schade. Suchst du noch weiter?"
+        return "Das klingt gut. Und wie ist dein Tag heute?" if yes else "Oh, schade. Suchst du noch weiter?"
     if "magst du das wetter heute" in q:
-        return "Schön! Was machst du bei diesem Wetter gern?" if yes else "Was machst du bei diesem Wetter lieber?"
+        return "Was machst du bei diesem Wetter gern?" if yes else "Was machst du bei diesem Wetter lieber?"
     if "magst du das wetter" in q:
-        return "Schön! Was machst du bei diesem Wetter gern?" if yes else "Was machst du bei diesem Wetter lieber?"
+        return "Was machst du bei diesem Wetter gern?" if yes else "Was machst du bei diesem Wetter lieber?"
     return None
 
 def _social_a1_reply(text, free, state):
@@ -1053,7 +1053,7 @@ def _content_followup(text, facts, memory, free, level):
     if activity == "cycling":
         return "Fährst du oft Rad?"
     if activity == "swimming":
-        return "Schwimmen? Schön! Schwimmst du oft?"
+        return "Du schwimmst gern. Schwimmst du oft?"
 
     if re.search(r"\bich\s+arbeite\b", low):
         return "Wann fängst du an?"

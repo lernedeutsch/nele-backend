@@ -20,6 +20,17 @@ class FreeSessionMemoryTests(unittest.TestCase):
         free = {"asked": [_question_key(q) for q in FALLBACKS["work"]], "conversation_facts": {}}
         self.assertEqual(_not_recent(free, FALLBACKS["work"]), [])
 
+    def test_yes_followups_do_not_repeat_generic_schoen_reaction(self):
+        from brain.logic.free_conversation import _yes_no_followup
+        cases = [
+            "Fährst du dort oft Rad?",
+            "Schwimmst du dort im Sommer?",
+            "Magst du das Wetter heute?",
+        ]
+        for question in cases:
+            reply = _yes_no_followup("ja", question, {})
+            self.assertNotIn("Schön!", reply)
+
     def test_work_start_creates_filled_slot(self):
         memory = {}
         reply = _short_answer_followup("8", "Wann fängst du an?", memory)
