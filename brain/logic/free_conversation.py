@@ -27,7 +27,7 @@ from brain.logic.turn_plan_compliance import evaluate_turn_plan_compliance, reco
 from brain.logic.global_conversation_guard import record_answer, select_question, replace_final_question
 from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
-from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue
+from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue, clear_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
 
 OPENERS = [
@@ -879,21 +879,11 @@ def _generic_followup(topic, free, support, independent, level):
 def generate_free_welcome(state, session_id=None):
     free = state.setdefault("free_conversation", {})
 
-    # Once Dialogue Knowledge has selected a dialogue, it owns the exchange
-    # until completion. Free-mode topic generation must never steal a turn.
+    # Entering free mode is a hard boundary: a dialogue inherited from course
+    # mode must never own the free-conversation welcome.
     if is_dialogue_active(state):
-        dialogue_reply = handle_dialogue(user_message, state)
-        if dialogue_reply is not None:
-            _remember_question(free, dialogue_reply)
-            free["last_user_message"] = str(user_message or "").strip()
-            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
-            return dialogue_reply, {
-                "conversation_mode": "free",
-                "dialogue_knowledge": True,
-                "dialogue_id": state.get("dialogue_id"),
-                "dialogue_topic": state.get("last_activity_detail"),
-                "dialogue_active": is_dialogue_active(state),
-            }
+        clear_dialogue(state)
+        state.pop("dialogue_origin", None)
     index = int(free.get("welcome_index", 0) or 0)
     free["welcome_index"] = (index + 1) % len(OPENERS)
     free["last_question"] = OPENERS[index]
@@ -911,6 +901,12 @@ def generate_free_welcome(state, session_id=None):
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
     free = state.setdefault("free_conversation", {})
+
+    # A dialogue may continue in free mode only when free mode started it.
+    # This also protects reload/direct-entry paths that skip generate_free_welcome().
+    if is_dialogue_active(state) and state.get("dialogue_origin") != "free":
+        clear_dialogue(state)
+        state.pop("dialogue_origin", None)
 
     # Priority -3: reusable Dialogue Knowledge router. A concrete dialogue may
     # start later in free conversation only when the learner asks an explicit
@@ -946,6 +942,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             level="A1",
         )
         if dialogue_reply:
+            state["dialogue_origin"] = "free"
             free["last_user_message"] = str(user_message or "").strip()
             free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
             _remember_question(free, dialogue_reply)
@@ -1096,6 +1093,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             min_score=0.92,
         )
         if dialogue_reply:
+            state["dialogue_origin"] = "free"
             _remember_question(free, dialogue_reply)
             free["last_user_message"] = str(user_message or "").strip()
             free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
