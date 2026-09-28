@@ -220,6 +220,26 @@ def _not_recent(free, candidates):
     asked = set(free.get("asked", []))
     return [q for q in candidates if _question_key(q) not in asked]
 
+def _content_question_repair(text, last_question):
+    """Keep the topic when a yes/no answer cannot answer an open content question."""
+    low = _norm(text).strip(" ?!.,")
+    if low not in YES | NO:
+        return None
+    q = _norm(last_question).strip(" ?!.,")
+    prompts = (
+        ("welche musik", "Ich meine: Welche Musik? Zum Beispiel Pop, Rock oder Klassik."),
+        ("welchen sport", "Ich meine: Welchen Sport? Zum Beispiel Fußball, Schwimmen oder Radfahren."),
+        ("was ", "Ich meine: Was genau? Sag mir bitte ein Beispiel."),
+        ("wo ", "Ich meine: Wo genau? Sag mir bitte einen Ort."),
+        ("wann ", "Ich meine: Wann genau? Zum Beispiel morgens, abends oder um 8 Uhr."),
+        ("wie viel", "Ich meine: Wie viel genau? Sag mir bitte eine Zahl."),
+        ("wie viele", "Ich meine: Wie viele genau? Sag mir bitte eine Zahl."),
+    )
+    for prefix, repair in prompts:
+        if q.startswith(prefix):
+            return repair
+    return None
+
 def _yes_no_followup(text, last_question, facts):
     low = _norm(text)
     yes, no = low in YES, low in NO
@@ -1128,6 +1148,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "dialogue_id": state.get("dialogue_id"),
                 "dialogue_topic": state.get("last_activity_detail"),
             }
+
+    # A yes/no answer cannot satisfy an open content question. Repair the
+    # answer shape and stay on the same topic instead of jumping elsewhere.
+    answer_type_repair = _content_question_repair(user_message, free.get("last_question", ""))
+    if answer_type_repair:
+        _remember_question(free, answer_type_repair)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        return answer_type_repair, {
+            "conversation_mode": "free",
+            "answer_type_repair": True,
+        }
 
     # Priority -3: interpret short beginner answers through the exact
     # question Nele asked. This shared contextual layer must run before the
