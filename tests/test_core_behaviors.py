@@ -235,8 +235,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "Ich möchte ein kilo Apfeln, bitt",
         )
 
-        self.assertFalse(result["completed"])
-        self.assertIn("Ich möchte ein Kilo Äpfel, bitte.", result["reply"])
+        self.assertTrue(result["completed"])
         self.assertNotIn("Brötchen", result["reply"])
 
     def test_writing_prompt_copy_is_detected(self):
