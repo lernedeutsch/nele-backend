@@ -64,7 +64,7 @@ class FreeSessionMemoryTests(unittest.TestCase):
         )
 
     def test_food_topic_has_contextual_und_du_handback(self):
-        source = inspect.getsource(free_conversation.generate_free_reply)
+        source = inspect.getsource(free_conversation.generate_free_conversation_reply)
         self.assertIn(
             '"food": "Ich esse nicht wirklich, aber ich spreche gern mit dir über Essen. Was kochst du noch gern?"',
             source,
