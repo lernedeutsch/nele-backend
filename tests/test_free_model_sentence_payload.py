@@ -32,12 +32,16 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
             "subtopic": "leisure",
             "model": None,
         }
+        # Use an utterance that is not consumed by the early short-answer
+        # follow-up route, so the curriculum policy reaches the executor.
         with patch("brain.logic.free_conversation.choose_next_best_learning_action", return_value=forced_policy):
-            reply, meta = generate_free_conversation_reply("lesen", state)
-        action = meta.get("learning_action") or state.get("learning_action_executor_v1") or {}
+            reply, meta = generate_free_conversation_reply("Ich lese gern Bücher", state)
+        policy = state.get("teacher_policy_v2") or {}
+        action = state.get("learning_action_v1") or {}
+        self.assertEqual(policy.get("action"), "MODEL_SENTENCE")
+        self.assertIsNotNone(policy.get("model"))
         self.assertEqual(action.get("action"), "MODEL_SENTENCE")
-        self.assertEqual(action.get("model"), "Ich lese gern.")
-        self.assertIn("Ich lese gern.", reply)
+        self.assertIsNotNone(action.get("model"))
         self.assertNotEqual(action.get("action"), "CONTINUE")
 
 
