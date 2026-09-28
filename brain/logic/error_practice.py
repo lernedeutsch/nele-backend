@@ -224,7 +224,17 @@ def is_equivalent_correct_answer(
     ).strip().lower()
 
 
-    # Natural full sentences can satisfy a one-word vocabulary target.\n    if (\n        error_type == "vocabulary"\n        and correct_clean\n        and len(correct_clean.split()) == 1\n        and correct_clean in user_clean.split()\n    ):\n        return True\n\n\n    # Przy umlautach kolejność nie ma znaczenia:
+    # Natural full sentences can satisfy a one-word vocabulary target.
+    if (
+        error_type == "vocabulary"
+        and correct_clean
+        and len(correct_clean.split()) == 1
+        and correct_clean in user_clean.split()
+    ):
+        return True
+
+
+    # Przy umlautach kolejność nie ma znaczenia:
     # "Ö Ä Ü" jest tak samo poprawne jak
     # "Ä, Ö und Ü".
     if error_type == "spelling":
@@ -959,16 +969,24 @@ def build_error_choice_prompt(
     if context:
 
         return (
-            f"{context}\n\n"
-            "Welche Antwort passt hier?\n\n"
-            f"1. {wrong_sentence}\n"
+            f"{context}
+
+"
+            "Welche Antwort passt hier?
+
+"
+            f"1. {wrong_sentence}
+"
             f"2. {correct_sentence}"
         )
 
 
     return (
-        "Welche Antwort ist richtig?\n\n"
-        f"1. {wrong_sentence}\n"
+        "Welche Antwort ist richtig?
+
+"
+        f"1. {wrong_sentence}
+"
         f"2. {correct_sentence}"
     )
 
@@ -1498,7 +1516,9 @@ def build_error_transfer_prompt(context, correct_sentence):
     context = str(context or "").strip()
     if context:
         return (
-            f"{context}\n\n"
+            f"{context}
+
+"
             "Jetzt ohne Auswahl: Was sagst du?"
         )
 
