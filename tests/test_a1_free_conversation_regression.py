@@ -1645,3 +1645,14 @@ class GeneratedTests(unittest.TestCase):
         self.assertIsNotNone(followup)
         self.assertIn("Krimis", followup["question"])
         self.assertIn("Buch", followup["question"])
+
+    def test_recovery_preserves_krimi_reading_semantics(self):
+        from brain.logic.conversation_recovery import _content_recovery
+        self.assertEqual(
+            _content_recovery("manchmal lese ich krimis", "hobby"),
+            "Krimis? Welche Krimis liest du gern?",
+        )
+        self.assertEqual(
+            _content_recovery("ich lese bücher", "hobby"),
+            "Was liest du gern?",
+        )
