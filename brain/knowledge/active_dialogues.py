@@ -352,7 +352,8 @@ ACTIVE_DIALOGUES = [
             {"role":"student","expected_intent":"respond_thanks","expected":"Bitte schön. Gute Reise!","accepted_patterns":["Bitte schön. Gute Reise!","Bitte schön.","Gute Reise!"]}
         ]
     }
-,\n    {
+,
+    {
         "id":"a1-daily-post","level":"A1","lesson":16,"title":"Bei der Post","section":"Alltag",
         "topic":"Post","situation":"Bei der Post einen Brief verschicken","register":"formal",
         "knowledge_status":"active","max_turns":6,"max_variations":2,
@@ -367,7 +368,8 @@ ACTIVE_DIALOGUES = [
             {"role":"nele","text":"Gut. Sonst noch etwas?","intent":"ask_more"},
             {"role":"student","expected_intent":"finish","expected":"Nein, danke.","accepted_patterns":["Nein, danke.","Das ist alles, danke.","Nein."]}
         ]
-    },,\n    {
+    },
+    {
         "id":"a1-daily-bus-ticket","level":"A1","lesson":16,"title":"Im Bus","section":"Unterwegs",
         "topic":"Bus","situation":"Im Bus nach einer Fahrkarte fragen","register":"formal",
         "knowledge_status":"active","max_turns":6,"max_variations":2,
@@ -382,7 +384,8 @@ ACTIVE_DIALOGUES = [
             {"role":"nele","text":"Gut. Möchten Sie mit Karte zahlen?","intent":"ask_payment"},
             {"role":"student","expected_intent":"choose_payment","expected":"Ja, bitte.","accepted_patterns":["Ja, bitte.","Ja.","Nein, bar bitte."]}
         ]
-    },,\n    {
+    },
+    {
         "id":"a2-daily-nachbar-paket","level":"A2","lesson":16,"title":"Paket beim Nachbarn","section":"Alltag",
         "topic":"Paket","situation":"Mit einem Nachbarn über ein angenommenes Paket sprechen","register":"informal",
         "knowledge_status":"active","max_turns":6,"max_variations":2,
@@ -396,7 +399,11 @@ ACTIVE_DIALOGUES = [
             {"role":"student","expected_intent":"arrange_pickup","expected":"Ja, ich komme gleich.","accepted_patterns":["Ja, ich komme gleich.","Gern, ich komme jetzt.","Ja, gern."]},
             {"role":"nele","text":"Okay, bis gleich!","intent":"close_package"}
         ]
-    }\n]\n\n\ndef get_active_dialogues(level=None, lesson=None):
+    }
+]
+
+
+def get_active_dialogues(level=None, lesson=None):
     level = str(level or "").upper()
     result = []
     for dialogue in ACTIVE_DIALOGUES:
