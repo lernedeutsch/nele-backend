@@ -1629,7 +1629,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         }
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
-    social_reply = _social_a1_reply(user_message, free, state)
+    # Explicit pedagogical actions must reach the shared executor. Social A1
+    # shortcuts are conversational fallbacks and must not swallow MODEL_SENTENCE
+    # after Teacher Policy has already selected it for this turn.
+    social_reply = None
+    if executable_policy.get("action") != "MODEL_SENTENCE":
+        social_reply = _social_a1_reply(user_message, free, state)
     if social_reply:
         # Store its final question as conversational context for the next turn.
         parts = re.findall(r"[^.!?]*[?]", social_reply)
