@@ -842,6 +842,37 @@ def _short_answer_followup(text, last_question, memory):
     return None
 
 
+def _model_sentence_from_turn(user_message, topic, subtopic=None):
+    """Build a simple A1 model from the learner's current meaning."""
+    raw = str(user_message or "").strip(" .?!")
+    low = _norm(raw)
+    if not raw:
+        return None
+    if re.fullmatch(r"(?:pizza|brot|salat|nudeln|reis|suppe|fleisch|gemüse|gemuese)", low):
+        food = "Gemüse" if low == "gemuese" else raw.capitalize()
+        return f"Ich esse gern {food}."
+    if low in {"lesen", "bücher lesen", "buch lesen"}:
+        return "Ich lese gern."
+    if low in {"musik", "musik hören", "musik hoeren"}:
+        return "Ich höre gern Musik."
+    if low in {"schwimmen", "sport", "radfahren", "rad fahren"}:
+        forms = {
+            "schwimmen": "Ich schwimme gern.",
+            "sport": "Ich mache gern Sport.",
+            "radfahren": "Ich fahre gern Rad.",
+            "rad fahren": "Ich fahre gern Rad.",
+        }
+        return forms[low]
+    if topic == "work" and low in {"kochen", "putzen", "reinigen"}:
+        forms = {"kochen": "Ich koche.", "putzen": "Ich putze.", "reinigen": "Ich reinige."}
+        return forms[low]
+    # If the learner already supplied a usable first-person sentence, the
+    # curriculum model can reinforce that meaning without inventing content.
+    if re.match(r"^ich\s+[a-zäöüß]+(?:\s+.+)?$", low) and "?" not in raw:
+        return raw[0].upper() + raw[1:] + "."
+    return None
+
+
 def _correction_followup(error_result, topic, memory):
     """Continue from the corrected meaning instead of abandoning the subtopic."""
     error = (error_result or {}).get("error") or {}
@@ -1232,6 +1263,26 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             free.setdefault("conversation_facts", {}),
         )
     if contextual_reply:
+        # A curriculum MODEL_SENTENCE is an explicit pedagogical action and must
+        # reach the shared executor instead of being swallowed by this shortcut.
+        # Only bypass this early return when the current turn can supply a
+        # concrete model; all other contextual-short-answer behavior is unchanged.
+        early_model = _model_sentence_from_turn(
+            user_message,
+            free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic") or "today",
+            (state.get("conversation_state_v2") or {}).get("subtopic"),
+        )
+        early_learner_model = build_learner_model(state) if early_model else {}
+        early_next_skill = early_learner_model.get("next_curriculum_skill") or {}
+        early_requires_model_sentence = (
+            bool(early_model)
+            and early_next_skill.get("skill") == "conversation:full_sentence"
+            and early_next_skill.get("reason") in {"prerequisites_met", "curriculum_review", "dynamic_review"}
+        )
+        if early_requires_model_sentence:
+            contextual_reply = None
+
+    if contextual_reply:
         previous_question = free.get("last_question", "")
         record_answer(state, user_message, previous_question)
         _remember_question(free, contextual_reply)
@@ -1508,6 +1559,19 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         error_result=error_result,
         vocabulary_context=vocabulary_context,
     )
+    # Curriculum can request MODEL_SENTENCE even when Teacher Engine selected
+    # ordinary continuation. Supply the concrete model here, where the current
+    # learner utterance and active subtopic are available.
+    if teacher_policy.get("action") == "MODEL_SENTENCE" and not teacher_policy.get("model"):
+        turn_model = _model_sentence_from_turn(
+            user_message,
+            teacher_policy.get("topic") or topic,
+            teacher_policy.get("subtopic") or current_state.get("subtopic"),
+        )
+        if turn_model:
+            teacher_policy = {**teacher_policy, "model": turn_model}
+            teacher_action = {**teacher_action, "model": turn_model}
+
     teacher_action = policy_to_teacher_action(teacher_policy, teacher_action)
     state["teacher_policy_v2"] = teacher_policy
     executable_policy = resolve_learning_action(
@@ -1565,7 +1629,21 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         }
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
-    social_reply = _social_a1_reply(user_message, free, state)
+    # A clear "Ich ... gern ..." statement normally belongs to the social A1
+    # shortcut. One narrow exception exists: when curriculum explicitly targets
+    # a full sentence and Teacher Policy resolved MODEL_SENTENCE, let the turn
+    # continue through the shared learning-action executor.
+    social_key = _norm(user_message).strip(" ?!.,")
+    policy_next_skill = executable_policy.get("next_curriculum_skill") or {}
+    curriculum_model_sentence = (
+        executable_policy.get("action") == "MODEL_SENTENCE"
+        and (
+            executable_policy.get("curriculum_skill") == "conversation:full_sentence"
+            or policy_next_skill.get("skill") == "conversation:full_sentence"
+        )
+        and bool(re.fullmatch(r"ich\s+.+?\s+gern(?:e)?(?:\s+.+)?", social_key))
+    )
+    social_reply = None if curriculum_model_sentence else _social_a1_reply(user_message, free, state)
     if social_reply:
         # Store its final question as conversational context for the next turn.
         parts = re.findall(r"[^.!?]*[?]", social_reply)
