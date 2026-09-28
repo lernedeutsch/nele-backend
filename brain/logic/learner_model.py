@@ -65,7 +65,19 @@ def build_learner_model(state):
     curriculum = get_curriculum_state(state)
     next_curriculum_skill = choose_next_curriculum_skill(state)
     recent_outcomes = list(state.get("learning_outcomes") or [])[-10:]
-    recent_knowledge_usage = list(free.get("knowledge_usage") or [])[-10:]
+    recent_knowledge_usage = [
+        item for item in list(free.get("knowledge_usage") or [])[-10:]
+        if isinstance(item, dict)
+    ]
+    recent_knowledge_topics = []
+    recent_knowledge_sources = []
+    for item in recent_knowledge_usage:
+        topic = str(item.get("topic") or "").strip()
+        source = str(item.get("source") or "").strip()
+        if topic and topic not in recent_knowledge_topics:
+            recent_knowledge_topics.append(topic)
+        if source and source not in recent_knowledge_sources:
+            recent_knowledge_sources.append(source)
     outcome_successes = sum(1 for item in recent_outcomes if item.get("status") == "SUCCESS")
     outcome_not_yet = sum(1 for item in recent_outcomes if item.get("status") == "NOT_YET")
     outcome_partials = sum(1 for item in recent_outcomes if item.get("status") == "PARTIAL")
@@ -114,7 +126,9 @@ def build_learner_model(state):
         "next_curriculum_skill": next_curriculum_skill,
         "knowledge_usage": {
             "recent_count": len(recent_knowledge_usage),
-            "recent": [dict(item) for item in recent_knowledge_usage if isinstance(item, dict)],
+            "recent": [dict(item) for item in recent_knowledge_usage],
+            "recent_topics": recent_knowledge_topics,
+            "recent_sources": recent_knowledge_sources,
         },
         "learning_outcomes": {
             "recent_count": len(recent_outcomes),
