@@ -40,6 +40,19 @@ class FreeSessionMemoryTests(unittest.TestCase):
         self.assertEqual(result["confidence"], "low")
         self.assertIsNone(result["meaning"])
 
+    def test_content_followup_deepens_krimi_instead_of_switching_to_music(self):
+        from brain.logic.free_conversation import _content_followup
+        memory = {}
+        reply = _content_followup("Manchmal lese ich Krimis.", {}, memory, {"last_question": "Was machst du gern?"}, "A2")
+        self.assertEqual(reply, "Krimis? Welche Krimis liest du gern?")
+        self.assertEqual(memory["reading_kind"], "Krimis")
+
+    def test_content_followup_keeps_explicit_pizza_in_cooking_thread(self):
+        from brain.logic.free_conversation import _content_followup
+        memory = {"cooking_thread": True, "cooked_food": "Pizza"}
+        reply = _content_followup("Ich meine Pizza.", {}, memory, {"last_question": "Wie ist dein Tag heute?"}, "A2")
+        self.assertEqual(reply, "Ja, Pizza. Kochst du sie oft?")
+
     def test_deliberate_topic_transition_gets_a_short_bridge(self):
         from brain.logic.free_conversation import _smooth_topic_transition
         reply = _smooth_topic_transition("Was machst du gern in deiner Freizeit?", "hobby")
