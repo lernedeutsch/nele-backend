@@ -695,6 +695,8 @@ class GeneratedTests(unittest.TestCase):
         model = build_learner_model(state)
         self.assertEqual(model["knowledge_usage"]["recent_count"], 1)
         self.assertEqual(model["knowledge_usage"]["recent"][0]["item_id"], "food-1")
+        self.assertEqual(model["knowledge_usage"]["recent_topics"], ["food"])
+        self.assertEqual(model["knowledge_usage"]["recent_sources"], ["dialogue"])
 
     def test_learner_model_contains_learning_outcomes(self):
         from brain.logic.learner_model import build_learner_model
