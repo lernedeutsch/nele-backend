@@ -56,6 +56,35 @@ def _similarity_score(message, expected):
     return int(round(overlap * 100))
 
 
+def _preserve_dialogue_intent_correction(message):
+    """Correct a few high-confidence A1 forms without replacing learner meaning."""
+    raw = str(message or "").strip()
+    if not raw:
+        return None
+
+    corrected = raw
+    replacements = [
+        (r"\bich\s+hatte\s+gern\b", "Ich hätte gern"),
+        (r"\bich\s+mochte\b", "Ich möchte"),
+        (r"\bich\s+möchte\b", "Ich möchte"),
+        (r"\bein\s+kilo\b", "ein Kilo"),
+        (r"\bapfeln\b", "Äpfel"),
+        (r"\bäpfeln\b", "Äpfel"),
+        (r"\bapfel\b", "Äpfel"),
+        (r"\bbitt\b", "bitte"),
+    ]
+    for pattern, value in replacements:
+        corrected = re.sub(pattern, value, corrected, flags=re.IGNORECASE)
+
+    corrected = corrected.strip(" .")
+    if corrected and not corrected.endswith((".", "!", "?")):
+        corrected += "."
+
+    if _normalize(corrected) == _normalize(raw):
+        return None
+    return corrected
+
+
 def _sentence_count(text):
     raw = str(text or "").strip()
     if not raw:
@@ -539,9 +568,18 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
             reply = "Sehr gut. Das passt in dieser Situation."
         else:
             model = task.get("model_answer")
+            correction = (
+                _preserve_dialogue_intent_correction(message)
+                if activity_type == "dialogue"
+                else None
+            )
             reply = "Fast. Versuch es noch einmal als kurzen, natürlichen Satz."
-            if model:
-                reply += f" Du kannst sagen: „{model}“"
+            if correction:
+                reply += f" Du kannst sagen: „{correction}“"
+            elif model and len(_normalize(message).split()) <= 2:
+                # A model answer is only a fallback for an unusably short answer.
+                # It must not overwrite concrete information supplied by the learner.
+                reply += f" Zum Beispiel: „{model}“"
 
     else:
         score = min(100, 50 + len(_normalize(message).split()) * 7)
