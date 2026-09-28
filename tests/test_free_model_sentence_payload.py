@@ -9,6 +9,7 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
         self.assertEqual(_model_sentence_from_turn("lesen", "hobby"), "Ich lese gern.")
         self.assertEqual(_model_sentence_from_turn("Suppe", "food"), "Ich esse gern Suppe.")
         self.assertEqual(_model_sentence_from_turn("kochen", "work"), "Ich koche.")
+        self.assertEqual(_model_sentence_from_turn("Ich lese gern Bücher", "hobby"), "Ich lese gern Bücher.")
 
     def test_curriculum_model_sentence_reaches_executor_with_model(self):
         state = {
