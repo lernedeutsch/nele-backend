@@ -65,6 +65,7 @@ def build_learner_model(state):
     curriculum = get_curriculum_state(state)
     next_curriculum_skill = choose_next_curriculum_skill(state)
     recent_outcomes = list(state.get("learning_outcomes") or [])[-10:]
+    recent_knowledge_usage = list(free.get("knowledge_usage") or [])[-10:]
     outcome_successes = sum(1 for item in recent_outcomes if item.get("status") == "SUCCESS")
     outcome_not_yet = sum(1 for item in recent_outcomes if item.get("status") == "NOT_YET")
     outcome_partials = sum(1 for item in recent_outcomes if item.get("status") == "PARTIAL")
@@ -111,6 +112,10 @@ def build_learner_model(state):
         "learning_progress": learning_progress,
         "curriculum": curriculum,
         "next_curriculum_skill": next_curriculum_skill,
+        "knowledge_usage": {
+            "recent_count": len(recent_knowledge_usage),
+            "recent": [dict(item) for item in recent_knowledge_usage if isinstance(item, dict)],
+        },
         "learning_outcomes": {
             "recent_count": len(recent_outcomes),
             "success": outcome_successes,
