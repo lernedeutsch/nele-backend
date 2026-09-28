@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from brain.logic.free_conversation import _model_sentence_from_turn, _model_sentence_from_knowledge, generate_free_conversation_reply
+from brain.logic.free_conversation import _model_sentence_from_turn, _model_sentence_from_knowledge, _learn_pending_knowledge, generate_free_conversation_reply
 
 
 class FreeModelSentencePayloadTests(unittest.TestCase):
@@ -20,8 +20,12 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
         free = {}
         self.assertEqual(_model_sentence_from_knowledge("koche", "food", "A1.1", free), "Ich koche gern.")
         retrieve.assert_called_once()
+        self.assertNotIn("recent_knowledge", free)
+        self.assertNotIn("knowledge_usage", free)
+        self.assertEqual(free["_pending_knowledge_usage"]["item_id"], "cook")
+        learned = _learn_pending_knowledge(free, {"action": "MODEL_SENTENCE"})
+        self.assertEqual(learned["item_id"], "cook")
         self.assertEqual(free["recent_knowledge"], ["cook"])
-        self.assertEqual(free["knowledge_usage"][-1]["item_id"], "cook")
         self.assertEqual(free["knowledge_usage"][-1]["intent"], "model_sentence")
 
     @patch("brain.logic.free_conversation.retrieve")
@@ -32,9 +36,18 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
         ]
         free = {"recent_knowledge": [f"old-{i}" for i in range(8)]}
         self.assertEqual(_model_sentence_from_knowledge("lese", "hobby", "A1.1", free), "Ich lese gern.")
+        self.assertEqual(free["recent_knowledge"], [f"old-{i}" for i in range(8)])
+        self.assertEqual(retrieve.call_args.kwargs["recently_used"], tuple(f"old-{i}" for i in range(8)))
+        _learn_pending_knowledge(free, {"action": "MODEL_SENTENCE"})
         self.assertEqual(free["recent_knowledge"][-1], "reading")
         self.assertEqual(len(free["recent_knowledge"]), 8)
-        self.assertEqual(retrieve.call_args.kwargs["recently_used"], tuple(f"old-{i}" for i in range(8)))
+
+    def test_pending_knowledge_is_not_learned_when_action_changes(self):
+        free = {"_pending_knowledge_usage": {"item_id": "x", "text": "X", "intent": "model_sentence"}}
+        self.assertIsNone(_learn_pending_knowledge(free, {"action": "CONTINUE"}))
+        self.assertNotIn("knowledge_usage", free)
+        self.assertNotIn("recent_knowledge", free)
+        self.assertNotIn("_pending_knowledge_usage", free)
 
     @patch("brain.logic.free_conversation.retrieve", return_value=[])
     def test_existing_model_builder_remains_safe_fallback(self, _retrieve):
