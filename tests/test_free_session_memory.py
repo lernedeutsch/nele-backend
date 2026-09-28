@@ -20,6 +20,17 @@ class FreeSessionMemoryTests(unittest.TestCase):
         free = {"asked": [_question_key(q) for q in FALLBACKS["work"]], "conversation_facts": {}}
         self.assertEqual(_not_recent(free, FALLBACKS["work"]), [])
 
+    def test_deliberate_topic_transition_gets_a_short_bridge(self):
+        from brain.logic.free_conversation import _smooth_topic_transition
+        reply = _smooth_topic_transition("Was machst du gern in deiner Freizeit?", "hobby")
+        self.assertIn("Und nach dem Alltag", reply)
+        self.assertTrue(reply.endswith("Was machst du gern in deiner Freizeit?"))
+
+    def test_unknown_topic_transition_keeps_question_unchanged(self):
+        from brain.logic.free_conversation import _smooth_topic_transition
+        question = "Was möchtest du erzählen?"
+        self.assertEqual(_smooth_topic_transition(question, "other"), question)
+
     def test_yes_followups_do_not_repeat_generic_schoen_reaction(self):
         from brain.logic.free_conversation import _yes_no_followup
         cases = [
