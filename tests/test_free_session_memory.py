@@ -20,6 +20,26 @@ class FreeSessionMemoryTests(unittest.TestCase):
         free = {"asked": [_question_key(q) for q in FALLBACKS["work"]], "conversation_facts": {}}
         self.assertEqual(_not_recent(free, FALLBACKS["work"]), [])
 
+    def test_cooking_context_keeps_pizza_and_toppings_together(self):
+        from brain.logic.free_conversation import _short_answer_followup
+        memory = {"cooking_thread": True}
+        first = _short_answer_followup("Pizza.", "Was möchtest du heute noch machen?", memory)
+        self.assertIn("Pizza", first)
+        self.assertEqual(memory["cooked_food"], "Pizza")
+        second = _short_answer_followup("Mit Tomaten und Käse.", "Wie ist dein Tag heute?", memory)
+        self.assertIn("Tomaten und Käse", second)
+        self.assertIn("Kochst du das oft?", second)
+
+    def test_gibberish_is_low_confidence_and_not_understood(self):
+        from brain.logic.response_understanding import understand_response
+        result = understand_response(
+            "hmm xyz",
+            conversation_state={"topic": "food", "last_question": "Kochst du das oft?"},
+        )
+        self.assertFalse(result["understood"])
+        self.assertEqual(result["confidence"], "low")
+        self.assertIsNone(result["meaning"])
+
     def test_deliberate_topic_transition_gets_a_short_bridge(self):
         from brain.logic.free_conversation import _smooth_topic_transition
         reply = _smooth_topic_transition("Was machst du gern in deiner Freizeit?", "hobby")
