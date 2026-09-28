@@ -1098,7 +1098,16 @@ def _content_followup(text, facts, memory, free, level):
     if re.search(r"\bich\s+(?:höre|mag)\b.*musik", low):
         return "Welche Musik hörst du gern?"
     if re.search(r"\bich\s+lese\b", low):
+        if re.search(r"\bkrimis?\b", low):
+            memory["reading_kind"] = "Krimis"
+            return "Krimis? Welche Krimis liest du gern?"
         return "Was liest du gern?"
+    if re.search(r"\bkrimis?\b", low):
+        memory["reading_kind"] = "Krimis"
+        return "Krimis? Welche Krimis liest du gern?"
+    if memory.get("cooking_thread") and re.search(r"\b(?:ich meine\s+)?pizza\b", low):
+        memory["cooked_food"] = "Pizza"
+        return "Ja, Pizza. Kochst du sie oft?"
 
     return None
 
@@ -1593,6 +1602,33 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         vocabulary_context=(state.get("free_conversation") or {}).get("vocabulary_context") or {},
     )
     state["response_understanding_v1"] = response_understanding
+
+    # Recovery must run before generic question selection. Otherwise an
+    # obviously unclear learner turn can be converted into a perfectly valid
+    # but unrelated fallback question before Conversation Recovery sees it.
+    if not response_understanding.get("understood", True) and response_understanding.get("confidence") == "low":
+        active_topic = free.get("last_topic") or (state.get("conversation_state_v2") or {}).get("topic") or "today"
+        recovery = recover_reply(
+            free.get("last_question", ""),
+            {},
+            topic=active_topic,
+            action="CONTINUE",
+            response_understanding=response_understanding,
+            user_message=user_message,
+        )
+        recovery_reply = recovery.get("reply")
+        if recovery_reply:
+            free["last_user_message"] = str(user_message or "").strip()
+            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+            state["conversation_recovery_v2"] = recovery
+            state["conversation_recovery_v1"] = recovery
+            return recovery_reply, {
+                "conversation_mode": "free",
+                "topic": active_topic,
+                "response_understanding": response_understanding,
+                "conversation_recovery": recovery,
+                "recovery_before_routing": True,
+            }
 
     # Vocabulary Engine is the single vocabulary source for free conversation.
     # Existing handcrafted rules below remain conversational fallbacks only.
