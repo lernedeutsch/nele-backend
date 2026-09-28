@@ -73,7 +73,7 @@ def _personal_items(level):
     ]
 
 
-def retrieve(query="", topic="", level="A1", intent="", lesson=None, sources=None, limit=8):
+def retrieve(query="", topic="", level="A1", intent="", lesson=None, sources=None, limit=8, recently_used=None):
     """Return ranked KnowledgeItems from existing Nele knowledge sources."""
     allowed = set(sources or ("lesson", "dialogue", "meine_saetze"))
     items = []
@@ -85,6 +85,7 @@ def retrieve(query="", topic="", level="A1", intent="", lesson=None, sources=Non
         items.extend(_personal_items(level))
 
     q, wanted_topic, wanted_intent = _norm(query), _norm(topic), _norm(intent)
+    recent = {_norm(value) for value in (recently_used or ()) if _norm(value)}
     ranked = []
     for item in items:
         haystack = " ".join([item.text, item.topic, *item.tags]).casefold()
@@ -101,6 +102,10 @@ def retrieve(query="", topic="", level="A1", intent="", lesson=None, sources=Non
             score += 1.0
         if item.source == "meine_saetze":
             score += 0.25
+        # Relevance still wins, but equally useful knowledge should rotate
+        # instead of repeating the exact same sentence on nearby turns.
+        if _norm(item.item_id) in recent or _norm(item.text) in recent:
+            score -= 3.0
         ranked.append(KnowledgeItem(item.source, item.text, item.topic, item.level, item.tags, score, item.item_id))
 
     ranked.sort(key=lambda x: (-x.score, x.source, x.item_id, x.text))
