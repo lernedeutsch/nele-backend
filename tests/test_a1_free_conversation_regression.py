@@ -1537,7 +1537,7 @@ class GeneratedTests(unittest.TestCase):
         contract = build_orchestration_contract(turn_plan=plan)
         result = enforce_orchestration(contract)
         recorded = record_orchestration(state, result)
-        self.assertEqual(recorded["version"], 2)
+        self.assertEqual(recorded["version"], 3)
         self.assertEqual(state["turn_plan_v1"]["topic"], "weather")
         self.assertEqual(state["conversation_orchestrator_v1"]["version"], 2)
         self.assertEqual(state["conversation_orchestrator_v2"]["version"], 2)
