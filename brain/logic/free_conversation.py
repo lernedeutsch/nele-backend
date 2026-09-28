@@ -879,7 +879,7 @@ def _model_sentence_from_knowledge(user_message, topic, level="A1", free_state=N
         intent="model_sentence",
         sources=("dialogue", "meine_saetze"),
         limit=5,
-        recently_used=recent,
+        recently_used=tuple(recent),
     )
     if not items:
         return None
