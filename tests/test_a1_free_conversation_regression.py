@@ -1378,7 +1378,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(result["strategy"], "simplify_for_learner")
         self.assertIn("Ich frage einfacher", result["reply"])
 
-    def test_recovery_v2_asks_again_when_nele_is_uncertain(self):
+    def test_recovery_v2_clarifies_uncertain_reply_without_losing_topic(self):
         from brain.logic.conversation_recovery import recover_reply
         result = recover_reply(
             "Was machst du heute?",
@@ -1388,8 +1388,9 @@ class GeneratedTests(unittest.TestCase):
             user_message="...",
         )
         self.assertTrue(result["recovered"])
-        self.assertEqual(result["strategy"], "ask_again")
+        self.assertEqual(result["strategy"], "clarify_keep_topic")
         self.assertIn("nicht ganz verstanden", result["reply"])
+        self.assertIn("Was machst du heute?", result["reply"])
 
     def test_recovery_v2_accepts_explicit_topic_change(self):
         from brain.logic.conversation_recovery import recover_reply
