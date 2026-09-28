@@ -157,6 +157,10 @@ def _extract_facts(text):
         facts["topic"] = "holiday"
     elif "gestern" in low:
         facts["topic"] = "yesterday"
+    elif low.startswith("ich komme aus ") or low.startswith("ich wohne in "):
+        # Origin/residence is an explicit place branch and must expire stale
+        # sticky topics such as food.
+        facts["topic"] = "place"
     return facts
 
 def _error_and_recast(text):
@@ -846,6 +850,14 @@ def _short_answer_followup(text, last_question, memory):
             memory["food"] = food
             return f"Du kannst sagen: „Ich esse gern {food}.“ Isst du das oft?"
 
+    # Hobby activity: a one-word answer such as "spazieren" already answers
+    # "Was machst du gern ...?". Move the thread forward instead of asking the
+    # same semantic question again.
+    if ("was machst du gern" in question or "freizeit" in question) and low in {"spazieren", "spazieren gehen"}:
+        memory["hobby_activity"] = "spazieren"
+        memory.setdefault("filled_slots", {})["hobby_activity"] = "spazieren"
+        return "Gehst du lieber allein oder mit jemandem spazieren?"
+
     # Company: "Mit wem ...?" / "allein oder mit jemandem?"
     if "mit wem" in question or "allein oder mit jemandem" in question:
         if low in {"mit meinem mann", "mit meiner frau", "mit freunden", "mit meiner familie"}:
@@ -1410,8 +1422,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # from restarting an established work thread.
     current_semantic_topic = free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic")
     protected_semantic_topics = {"work", "holiday", "weather", "hobby", "shopping", "food"}
+    # Explicit origin/residence language is a real topic switch. Let the A1
+    # router handle it even when the previous topic was sticky (for example food).
+    early_low = _norm(user_message)
+    explicit_place_turn = bool(
+        early_low.startswith(("ich komme aus ", "ich wohne in "))
+        or (
+            _is_explicit_learner_question(user_message)
+            and early_low.startswith(("woher ", "wohnst ", "kommst ", "wo wohnst"))
+        )
+    )
     a1_reply = None
-    if current_semantic_topic not in protected_semantic_topics:
+    if current_semantic_topic not in protected_semantic_topics or explicit_place_turn:
         a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
     if a1_reply:
         previous_question = free.get("last_question", "")
@@ -1423,16 +1445,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
         level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
+        a1_topic = "place" if explicit_place_turn else "everyday_a1"
+        free["last_topic"] = a1_topic
         conversation_state = sync_conversation_state(
-            state, topic="everyday_a1", last_question=free.get("last_question", ""), level=level
+            state, topic=a1_topic, last_question=free.get("last_question", ""), level=level
         )
         topic_manager = update_topic_manager(
-            state, topic="everyday_a1", source="a1_everyday_router",
+            state, topic=a1_topic, source="a1_everyday_router",
             subtopic=conversation_state.get("subtopic"),
         )
         turn_plan = build_turn_plan(
             teacher_policy={"action": "CONTINUE"},
-            topic="everyday_a1",
+            topic=a1_topic,
             response_understanding={"confidence": "high"},
         )
         orchestration_contract = build_orchestration_contract(
@@ -1452,7 +1476,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         return a1_reply, {
             "conversation_mode": "free",
             "course_level": level,
-            "topic": "everyday_a1",
+            "topic": a1_topic,
             "conversation_state": conversation_state,
             "topic_manager": topic_manager,
             "conversation_orchestrator": orchestration,
@@ -1547,6 +1571,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         or any(x in low_message for x in ("speise", "gericht"))
     ):
         detected_topic = "food"
+    elif learner_question and low_message.startswith(("woher ", "wohnst ", "kommst ", "wo wohnst")):
+        detected_topic = "place"
     elif learner_question and any(x in low_message for x in ("wochenende", "freizeit", "hobby", "musik", "sport", "lesen", "buch")):
         detected_topic = "hobby"
     elif learner_question and any(x in low_message for x in ("heute abend", "heute noch", "machst du heute")):

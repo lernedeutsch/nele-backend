@@ -66,7 +66,11 @@ def a1_everyday_reply(text, last_question, state=None):
         if low in {"zimmer", "zimmern", "die zimmer", "hotelzimmer", "hotelzimmern", "ich putze zimmer", "ich putze die zimmer", "ich putze hotelzimmer"}:
             facts["work_activity"] = "putze"
             facts["work_activity_detail"] = "Zimmer"
-            return "Sehr gut. Du kannst sagen: „Ich putze Zimmer.“ Wie viele Zimmer putzt du normalerweise?"
+            if low.startswith("ich putze"):
+                # The learner already produced a usable full sentence. Do not
+                # present the identical sentence as a correction/model.
+                return "Wie viele Zimmer putzt du normalerweise?"
+            return "Du kannst sagen: „Ich putze Zimmer.“ Wie viele Zimmer putzt du normalerweise?"
 
     if "was reinigst du bei der arbeit" in last:
         if low in {"zimmer", "die zimmer", "hotelzimmer"}:
