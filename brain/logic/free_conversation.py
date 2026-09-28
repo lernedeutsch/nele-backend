@@ -298,6 +298,8 @@ def _yes_no_followup(text, last_question, facts):
         return "Was kochst du gern bei der Arbeit?" if yes else "Was machst du sonst bei der Arbeit?"
     if "kochst du auch gern etwas anderes" in q:
         return "Was kochst du noch gern?" if yes else "Was kochst du am liebsten?"
+    if "kochst du sie oft" in q or "kochst du das oft" in q:
+        return "Was kochst du noch gern?" if yes else "Was kochst du lieber?"
     if "bist du heute zu hause" in q:
         return "Was machst du zu Hause?" if yes else "Ah, du bist unterwegs. Wo bist du gerade?"
     if "hast du heute viel zu tun" in q:
@@ -1607,7 +1609,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # obviously unclear learner turn can be converted into a perfectly valid
     # but unrelated fallback question before Conversation Recovery sees it.
     if not response_understanding.get("understood", True) and response_understanding.get("confidence") == "low":
-        active_topic = free.get("last_topic") or (state.get("conversation_state_v2") or {}).get("topic") or "today"
+        cooking_active = bool(free.setdefault("conversation_facts", {}).get("cooking_thread"))
+        active_topic = "food" if cooking_active else (free.get("last_topic") or (state.get("conversation_state_v2") or {}).get("topic") or "today")
         recovery = recover_reply(
             free.get("last_question", ""),
             {},
@@ -1661,6 +1664,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     user_low = _norm(user_message)
     if re.search(r"\bich\s+koche\b", user_low):
         memory["cooking_thread"] = True
+        # Cooking is a semantic food subtopic even when the sentence also
+        # mentions "heute" or "Wochenende".
+        free["last_topic"] = "food"
     memory.update({k: v for k, v in facts.items() if k not in {"topic", "day_statement"}})
     personalization_memory = remember_conversation_facts(
         state,
