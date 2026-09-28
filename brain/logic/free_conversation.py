@@ -869,6 +869,19 @@ def _short_answer_followup(text, last_question, memory):
             memory["favorite_cooked_food"] = food
             return f"Du kannst sagen: „Am liebsten koche ich {food}.“ Wie kochst du {food} gern?"
 
+    # Cooking context: once the learner says they cook, short food/detail
+    # turns belong to that local thread even if the previous generic question
+    # still mentions "today". This is stronger than broad topic routing.
+    if memory.get("cooking_thread"):
+        foods = {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}
+        if low in foods:
+            food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
+            memory["cooked_food"] = food
+            return f"{food}? Was kommt bei dir auf die {food}?"
+        if low.startswith("mit ") and memory.get("cooked_food"):
+            detail = raw.strip(" .?!")
+            return f"{detail} klingt gut. Kochst du das oft?"
+
     # Essen: a food noun is a valid answer, not a new unrelated topic.
     if any(key in question for key in ("was isst du", "was hast du gegessen", "was möchtest du essen")):
         if low in {"pizza", "brot", "salat", "nudeln", "reis", "suppe", "fleisch", "gemüse", "gemuese"}:
@@ -1609,6 +1622,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     facts = _extract_facts(user_message)
     memory = free.setdefault("conversation_facts", {})
+    user_low = _norm(user_message)
+    if re.search(r"\bich\s+koche\b", user_low):
+        memory["cooking_thread"] = True
     memory.update({k: v for k, v in facts.items() if k not in {"topic", "day_statement"}})
     personalization_memory = remember_conversation_facts(
         state,
