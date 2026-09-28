@@ -17,6 +17,7 @@ SAFE_TOPIC_QUESTIONS = {
     "yesterday": "Was hast du gestern gemacht?",
     "today": "Was machst du heute?",
     "place": "Wo bist du jetzt?",
+    "food": "Was isst du gern?",
 }
 
 STRUGGLE_PHRASES = {
@@ -137,11 +138,19 @@ def recover_reply(reply, quality, *, topic=None, action=None,
                 strategy="clarify_meaning",
             )
         else:
-            result.update(
-                reply="Ich habe dich nicht ganz verstanden. Kannst du das noch einmal sagen?",
-                recovered=True,
-                strategy="ask_again",
-            )
+            fallback = safe_question or SAFE_TOPIC_QUESTIONS.get(topic)
+            if fallback:
+                result.update(
+                    reply=f"Ich habe dich nicht ganz verstanden. {fallback}",
+                    recovered=True,
+                    strategy="clarify_keep_topic",
+                )
+            else:
+                result.update(
+                    reply="Ich habe dich nicht ganz verstanden. Kannst du das noch einmal sagen?",
+                    recovered=True,
+                    strategy="ask_again",
+                )
         return result
 
     if reason not in {"answer_mismatch", "topic_drift"}:

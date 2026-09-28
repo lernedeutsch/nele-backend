@@ -1378,7 +1378,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(result["strategy"], "simplify_for_learner")
         self.assertIn("Ich frage einfacher", result["reply"])
 
-    def test_recovery_v2_asks_again_when_nele_is_uncertain(self):
+    def test_recovery_v2_clarifies_uncertain_reply_without_losing_topic(self):
         from brain.logic.conversation_recovery import recover_reply
         result = recover_reply(
             "Was machst du heute?",
@@ -1388,8 +1388,9 @@ class GeneratedTests(unittest.TestCase):
             user_message="...",
         )
         self.assertTrue(result["recovered"])
-        self.assertEqual(result["strategy"], "ask_again")
+        self.assertEqual(result["strategy"], "clarify_keep_topic")
         self.assertIn("nicht ganz verstanden", result["reply"])
+        self.assertIn("Was machst du heute?", result["reply"])
 
     def test_recovery_v2_accepts_explicit_topic_change(self):
         from brain.logic.conversation_recovery import recover_reply
@@ -1418,6 +1419,22 @@ class GeneratedTests(unittest.TestCase):
         self.assertFalse(result["recovered"])
         self.assertEqual(result["reply"], reply)
 
+
+    def test_unclear_reply_keeps_current_food_topic(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Was machst du heute?",
+            {"issues": []},
+            topic="food",
+            action="CONTINUE",
+            response_understanding={"understood": False, "confidence": "low"},
+            user_message="hmm xyz",
+        )
+        self.assertTrue(result["recovered"])
+        self.assertEqual(result["strategy"], "clarify_keep_topic")
+        self.assertIn("nicht ganz verstanden", result["reply"])
+        self.assertIn("Was isst du gern?", result["reply"])
+        self.assertNotIn("Was machst du heute?", result["reply"])
 
     def test_conversation_engine_has_six_stage_contract(self):
         from brain.logic.conversation_orchestrator import CONVERSATION_STAGES
