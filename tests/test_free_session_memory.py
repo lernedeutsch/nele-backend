@@ -53,6 +53,13 @@ class FreeSessionMemoryTests(unittest.TestCase):
         reply = _content_followup("Ich meine Pizza.", {}, memory, {"last_question": "Wie ist dein Tag heute?"}, "A2")
         self.assertEqual(reply, "Ja, Pizza. Kochst du sie oft?")
 
+    def test_yes_after_pizza_cooking_question_stays_with_cooking(self):
+        from brain.logic.free_conversation import _yes_no_followup
+        self.assertEqual(
+            _yes_no_followup("Ja", "Ja, Pizza. Kochst du sie oft?", {}),
+            "Was kochst du noch gern?",
+        )
+
     def test_deliberate_topic_transition_gets_a_short_bridge(self):
         from brain.logic.free_conversation import _smooth_topic_transition
         reply = _smooth_topic_transition("Was machst du gern in deiner Freizeit?", "hobby")
