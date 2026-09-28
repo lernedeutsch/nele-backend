@@ -30,6 +30,7 @@ from brain.logic.a1_everyday_conversation import a1_everyday_reply
 from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue, clear_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
 from brain.logic.learner_turn import analyze_learner_turn, direct_nele_answer, question_slot
+from brain.logic.knowledge_retriever import retrieve
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -867,6 +868,28 @@ def _short_answer_followup(text, last_question, memory):
     return None
 
 
+def _model_sentence_from_knowledge(user_message, topic, level="A1"):
+    """Use shared knowledge only when it is a close semantic match."""
+    items = retrieve(
+        query=user_message,
+        topic=topic,
+        level=str(level or "A1").split(".")[0],
+        intent="model_sentence",
+        sources=("dialogue", "meine_saetze"),
+        limit=5,
+    )
+    if not items:
+        return None
+    best = items[0]
+    # Avoid inventing unrelated learner meaning. The retriever must have a
+    # concrete lexical match in addition to topic/level ranking.
+    query_words = {w for w in _words(_norm(user_message)) if len(w) >= 3}
+    text_low = _norm(best.text)
+    if not query_words or not any(word in text_low for word in query_words):
+        return None
+    return best.text
+
+
 def _model_sentence_from_turn(user_message, topic, subtopic=None):
     """Build a simple A1 model from the learner's current meaning."""
     raw = str(user_message or "").strip(" .?!")
@@ -1649,11 +1672,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # ordinary continuation. Supply the concrete model here, where the current
     # learner utterance and active subtopic are available.
     if teacher_policy.get("action") == "MODEL_SENTENCE" and not teacher_policy.get("model"):
-        turn_model = _model_sentence_from_turn(
+        active_model_topic = teacher_policy.get("topic") or topic
+        turn_model = _model_sentence_from_knowledge(
             user_message,
-            teacher_policy.get("topic") or topic,
-            teacher_policy.get("subtopic") or current_state.get("subtopic"),
+            active_model_topic,
+            state.setdefault("student_progress", {}).get("current_level", "A1.1"),
         )
+        if not turn_model:
+            turn_model = _model_sentence_from_turn(
+                user_message,
+                active_model_topic,
+                teacher_policy.get("subtopic") or current_state.get("subtopic"),
+            )
         if turn_model:
             teacher_policy = {**teacher_policy, "model": turn_model}
             teacher_action = {**teacher_action, "model": turn_model}
