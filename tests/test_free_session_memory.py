@@ -58,6 +58,15 @@ class FreeSessionMemoryTests(unittest.TestCase):
         self.assertIn(question, FALLBACKS["food"])
         self.assertNotEqual(_question_key(question), _question_key("Was isst du gern?"))
 
+    def test_old_question_outside_recent_window_stays_blocked(self):
+        old = "Arbeitest du heute?"
+        free = {
+            "asked": [_question_key(old)],
+            "recent_questions": [f"Neue Frage {i}?" for i in range(8)],
+            "conversation_facts": {},
+        }
+        self.assertNotIn(old, _not_recent(free, FALLBACKS["work"]))
+
     def test_twenty_five_selections_do_not_repeat_normalized_questions(self):
         free = {"asked": [], "conversation_facts": {}}
         seen = set()
