@@ -1425,7 +1425,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # Explicit origin/residence language is a real topic switch. Let the A1
     # router handle it even when the previous topic was sticky (for example food).
     early_low = _norm(user_message)
-    explicit_place_turn = bool(\n        early_low.startswith(("ich komme aus ", "ich wohne in "))\n        or (_is_explicit_learner_question(user_message) and early_low.startswith(("woher ", "wohnst ", "kommst ", "wo wohnst")))\n    )\n    a1_reply = None
+    explicit_place_turn = bool(
+        early_low.startswith(("ich komme aus ", "ich wohne in "))
+        or (
+            _is_explicit_learner_question(user_message)
+            and early_low.startswith(("woher ", "wohnst ", "kommst ", "wo wohnst"))
+        )
+    )
+    a1_reply = None
     if current_semantic_topic not in protected_semantic_topics or explicit_place_turn:
         a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
     if a1_reply:
