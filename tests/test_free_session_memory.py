@@ -63,6 +63,16 @@ class FreeSessionMemoryTests(unittest.TestCase):
             "Was kochst du noch gern?",
         )
 
+    def test_explicit_reading_content_bypasses_short_answer_router(self):
+        source = inspect.getsource(free_conversation.generate_free_conversation_reply)
+        self.assertIn("explicit_reading_content", source)
+        self.assertIn("not explicit_reading_content", source)
+
+    def test_active_reading_subtopic_handles_evening_frequency(self):
+        source = inspect.getsource(free_conversation.generate_free_conversation_reply)
+        self.assertIn('"active_reading_subtopic"', source)
+        self.assertIn("Liest du Krimis lieber am Abend oder am Wochenende?", source)
+
     def test_explicit_krimi_content_precedes_social_router(self):
         source = inspect.getsource(free_conversation.generate_free_conversation_reply)
         content_pos = source.index("explicit_content_followup = _content_followup")
