@@ -157,7 +157,7 @@ def _extract_facts(text):
         facts["topic"] = "holiday"
     elif "gestern" in low:
         facts["topic"] = "yesterday"
-    elif re.search(r"\\bich\\s+komme\\s+aus\\b|\\bich\\s+wohne\\s+in\\b", low):
+    elif low.startswith("ich komme aus ") or low.startswith("ich wohne in "):
         # Origin/residence is an explicit place branch and must expire stale
         # sticky topics such as food.
         facts["topic"] = "place"
@@ -1568,7 +1568,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         or any(x in low_message for x in ("speise", "gericht"))
     ):
         detected_topic = "food"
-    elif learner_question and (re.search(r"\\b(?:woher|wohnst|kommst)\\b", low_message) or "wo wohnst" in low_message):
+    elif learner_question and low_message.startswith(("woher ", "wohnst ", "kommst ", "wo wohnst")):
         detected_topic = "place"
     elif learner_question and any(x in low_message for x in ("wochenende", "freizeit", "hobby", "musik", "sport", "lesen", "buch")):
         detected_topic = "hobby"
