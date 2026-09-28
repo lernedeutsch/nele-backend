@@ -41,7 +41,10 @@ YES_ANSWERS = {
     "machen wir",
     "los gehts",
     "los geht's",
-    "weiter"
+    "weiter",
+    "und jetzt",
+    "was jetzt",
+    "weiter bitte"
 }
 
 
