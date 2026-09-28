@@ -71,14 +71,17 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertFalse(state["dialogue_active"])
         self.assertNotIn("dialogue_topic", state)
 
-    def test_active_registry_contains_exactly_twenty_promoted_dialogues(self):
-        self.assertEqual(len(ACTIVE_DIALOGUES), 20)
+    def test_active_registry_contains_promoted_dialogues(self):
+        self.assertGreaterEqual(len(ACTIVE_DIALOGUES), 20)
         ids = [d["id"] for d in ACTIVE_DIALOGUES]
         self.assertEqual(len(ids), len(set(ids)))
         for dialogue in ACTIVE_DIALOGUES:
             self.assertEqual(dialogue["knowledge_status"], "active")
-            self.assertEqual(dialogue["level"], "A1")
-            self.assertIn(dialogue["lesson"], [11, 12, 13, 14, 15])
+            self.assertIn(dialogue["level"], ["A1", "A2"])
+            if dialogue["level"] == "A1":
+                self.assertIn(dialogue["lesson"], [11, 12, 13, 14, 15, 16])
+            else:
+                self.assertEqual(dialogue["lesson"], 16)
             self.assertGreaterEqual(len(dialogue["turns"]), 2)
             self.assertIn("combine_unrelated_topics", dialogue["forbidden_variations"])
             validate_imported_slots(dialogue)
@@ -99,13 +102,13 @@ class GoldenDialogueSystemTests(unittest.TestCase):
             "activation_ready": True,
         }
         active = activate_dialogue_candidates(report)
-        self.assertEqual(len(active), 20)
+        self.assertEqual(len(active), len(ACTIVE_DIALOGUES))
         self.assertTrue(all(d["knowledge_status"] == "active" for d in active))
 
     def test_each_promoted_dialogue_rejects_unrelated_first_answer(self):
         for dialogue in ACTIVE_DIALOGUES:
             state = {}
-            opening = start_dialogue("A1", dialogue["lesson"], dialogue["id"], state)
+            opening = start_dialogue(dialogue["level"], dialogue["lesson"], dialogue["id"], state)
             self.assertTrue(opening)
             before = state.get("dialogue_turn", 0)
             response = handle_dialogue("Ich kaufe Brot.", state)
@@ -119,7 +122,7 @@ class GoldenDialogueSystemTests(unittest.TestCase):
     def test_each_promoted_dialogue_can_follow_its_canonical_answers(self):
         for dialogue in ACTIVE_DIALOGUES:
             state = {}
-            start_dialogue("A1", dialogue["lesson"], dialogue["id"], state)
+            start_dialogue(dialogue["level"], dialogue["lesson"], dialogue["id"], state)
             for turn in dialogue["turns"]:
                 if turn.get("role") != "student":
                     continue

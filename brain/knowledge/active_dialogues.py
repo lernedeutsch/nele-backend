@@ -351,6 +351,54 @@ ACTIVE_DIALOGUES = [
             {"role":"nele","text":"Vielen Dank!","intent":"thank"},
             {"role":"student","expected_intent":"respond_thanks","expected":"Bitte schön. Gute Reise!","accepted_patterns":["Bitte schön. Gute Reise!","Bitte schön.","Gute Reise!"]}
         ]
+    },
+    # Everyday Germany batch — reusable A1/A2 situations
+    {
+        "id":"a1-daily-post","level":"A1","lesson":16,"title":"Bei der Post","section":"Alltag",
+        "topic":"Post","situation":"Bei der Post einen Brief verschicken","register":"formal",
+        "knowledge_status":"active","max_turns":6,"max_variations":2,
+        "slots":{"destination":"Polen"},"allowed_variations":["change_destination"],
+        "forbidden_variations":["combine_unrelated_topics"],"next_allowed_topics":["Post","Einkaufen"],
+        "entry_triggers":["Ich möchte einen Brief nach Polen schicken.","Was kostet ein Brief nach Polen?"],
+        "turns":[
+            {"role":"nele","text":"Guten Tag. Was möchten Sie?","intent":"ask_need"},
+            {"role":"student","expected_intent":"give_need","expected":"Ich möchte einen Brief nach Polen schicken.","accepted_patterns":["Ich möchte einen Brief nach Polen schicken.","Einen Brief nach Polen, bitte.","Ich möchte einen Brief schicken."]},
+            {"role":"nele","text":"Normal oder schnell?","intent":"ask_shipping"},
+            {"role":"student","expected_intent":"choose_shipping","expected":"Normal, bitte.","accepted_patterns":["Normal, bitte.","Normal.","Ganz normal, bitte."]},
+            {"role":"nele","text":"Gut. Sonst noch etwas?","intent":"ask_more"},
+            {"role":"student","expected_intent":"finish","expected":"Nein, danke.","accepted_patterns":["Nein, danke.","Das ist alles, danke.","Nein."]}
+        ]
+    },
+    {
+        "id":"a1-daily-bus-ticket","level":"A1","lesson":16,"title":"Im Bus","section":"Unterwegs",
+        "topic":"Bus","situation":"Im Bus nach einer Fahrkarte fragen","register":"formal",
+        "knowledge_status":"active","max_turns":6,"max_variations":2,
+        "slots":{"destination":"Bahnhof"},"allowed_variations":["change_destination"],
+        "forbidden_variations":["combine_unrelated_topics"],"next_allowed_topics":["Bus","Verkehrsmittel"],
+        "entry_triggers":["Fährt dieser Bus zum Bahnhof?","Eine Fahrkarte zum Bahnhof, bitte."],
+        "turns":[
+            {"role":"nele","text":"Guten Tag. Wohin möchten Sie?","intent":"ask_destination"},
+            {"role":"student","expected_intent":"give_destination","expected":"Zum Bahnhof, bitte.","accepted_patterns":["Zum Bahnhof, bitte.","Zum Bahnhof.","Ich möchte zum Bahnhof."]},
+            {"role":"nele","text":"Einfach oder hin und zurück?","intent":"ask_ticket_type"},
+            {"role":"student","expected_intent":"choose_ticket","expected":"Einfach, bitte.","accepted_patterns":["Einfach, bitte.","Nur einfach.","Einfach."]},
+            {"role":"nele","text":"Gut. Möchten Sie mit Karte zahlen?","intent":"ask_payment"},
+            {"role":"student","expected_intent":"choose_payment","expected":"Ja, bitte.","accepted_patterns":["Ja, bitte.","Ja.","Nein, bar bitte."]}
+        ]
+    },
+    {
+        "id":"a2-daily-nachbar-paket","level":"A2","lesson":16,"title":"Paket beim Nachbarn","section":"Alltag",
+        "topic":"Paket","situation":"Mit einem Nachbarn über ein angenommenes Paket sprechen","register":"informal",
+        "knowledge_status":"active","max_turns":6,"max_variations":2,
+        "slots":{"time":"gestern"},"allowed_variations":["change_time"],
+        "forbidden_variations":["combine_unrelated_topics"],"next_allowed_topics":["Paket","Nachbarn"],
+        "entry_triggers":["Hast du mein Paket angenommen?","Ist mein Paket bei dir?"],
+        "turns":[
+            {"role":"nele","text":"Hallo! Ich habe gestern ein Paket für dich angenommen.","intent":"inform_package"},
+            {"role":"student","expected_intent":"thank_package","expected":"Danke! Ist es bei dir?","accepted_patterns":["Danke! Ist es bei dir?","Super, danke!","Danke dir!"]},
+            {"role":"nele","text":"Ja. Möchtest du es jetzt holen?","intent":"ask_pickup"},
+            {"role":"student","expected_intent":"arrange_pickup","expected":"Ja, ich komme gleich.","accepted_patterns":["Ja, ich komme gleich.","Gern, ich komme jetzt.","Ja, gern."]},
+            {"role":"nele","text":"Okay, bis gleich!","intent":"close_package"}
+        ]
     }
 ]
 
