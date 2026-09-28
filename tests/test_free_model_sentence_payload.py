@@ -22,6 +22,11 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
                 "last_topic": "hobby",
             },
             "student_progress": {"current_level": "A1.1"},
+            "learning_progress_v1": {
+                "skills": {
+                    "conversation:supported_answer": {"status": "mastered"},
+                }
+            },
         }
         forced_policy = {
             "version": 3,
@@ -32,6 +37,12 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
             "topic": "hobby",
             "subtopic": "leisure",
             "model": None,
+            "next_curriculum_skill": {
+                "skill": "conversation:full_sentence",
+                "reason": "prerequisites_met",
+            },
+            "curriculum_skill": "conversation:full_sentence",
+            "curriculum_reason": "prerequisites_met",
         }
         # Use an utterance that is not consumed by the early short-answer
         # follow-up route, so the curriculum policy reaches the executor.
