@@ -32,7 +32,7 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
         self.assertEqual(_model_sentence_from_knowledge("lese", "hobby", "A1.1", free), "Ich lese gern.")
         self.assertEqual(free["recent_knowledge"][-1], "reading")
         self.assertEqual(len(free["recent_knowledge"]), 8)
-        self.assertEqual(retrieve.call_args.kwargs["recently_used"], free["recent_knowledge"][:-1] + ["reading"] if False else [f"old-{i}" for i in range(8)])
+        self.assertEqual(retrieve.call_args.kwargs["recently_used"], tuple(f"old-{i}" for i in range(8)))
 
     @patch("brain.logic.free_conversation.retrieve", return_value=[])
     def test_existing_model_builder_remains_safe_fallback(self, _retrieve):
