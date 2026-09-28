@@ -868,8 +868,10 @@ def _short_answer_followup(text, last_question, memory):
     return None
 
 
-def _model_sentence_from_knowledge(user_message, topic, level="A1"):
+def _model_sentence_from_knowledge(user_message, topic, level="A1", free_state=None):
     """Use shared knowledge only when it is a close semantic match."""
+    free_state = free_state if isinstance(free_state, dict) else {}
+    recent = free_state.setdefault("recent_knowledge", [])
     items = retrieve(
         query=user_message,
         topic=topic,
@@ -877,6 +879,7 @@ def _model_sentence_from_knowledge(user_message, topic, level="A1"):
         intent="model_sentence",
         sources=("dialogue", "meine_saetze"),
         limit=5,
+        recently_used=tuple(recent),
     )
     if not items:
         return None
@@ -887,6 +890,10 @@ def _model_sentence_from_knowledge(user_message, topic, level="A1"):
     text_low = _norm(best.text)
     if not query_words or not any(word in text_low for word in query_words):
         return None
+    # Keep only a short conversation-local history. IDs are preferred because
+    # they stay stable even when two knowledge items have similar wording.
+    recent.append(best.item_id or best.text)
+    del recent[:-8]
     return best.text
 
 
@@ -1677,6 +1684,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             user_message,
             active_model_topic,
             state.setdefault("student_progress", {}).get("current_level", "A1.1"),
+            free,
         )
         if not turn_model:
             turn_model = _model_sentence_from_turn(
