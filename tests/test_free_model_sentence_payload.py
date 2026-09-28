@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from brain.logic.free_conversation import _model_sentence_from_turn, generate_free_conversation_reply
+from brain.logic.free_conversation import _model_sentence_from_turn, _model_sentence_from_knowledge, generate_free_conversation_reply
 
 
 class FreeModelSentencePayloadTests(unittest.TestCase):
@@ -10,6 +10,20 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
         self.assertEqual(_model_sentence_from_turn("Suppe", "food"), "Ich esse gern Suppe.")
         self.assertEqual(_model_sentence_from_turn("kochen", "work"), "Ich koche.")
         self.assertEqual(_model_sentence_from_turn("Ich lese gern Bücher", "hobby"), "Ich lese gern Bücher.")
+
+    @patch("brain.logic.free_conversation.retrieve")
+    def test_retriever_can_supply_model_sentence(self, retrieve):
+        from brain.logic.knowledge_retriever import KnowledgeItem
+        retrieve.return_value = [
+            KnowledgeItem("meine_saetze", "Ich koche gern.", "food", "A1", (), 9.0, "cook")
+        ]
+        self.assertEqual(_model_sentence_from_knowledge("koche", "food", "A1.1"), "Ich koche gern.")
+        retrieve.assert_called_once()
+
+    @patch("brain.logic.free_conversation.retrieve", return_value=[])
+    def test_existing_model_builder_remains_safe_fallback(self, _retrieve):
+        self.assertIsNone(_model_sentence_from_knowledge("Suppe", "food", "A1.1"))
+        self.assertEqual(_model_sentence_from_turn("Suppe", "food"), "Ich esse gern Suppe.")
 
     def test_curriculum_model_sentence_reaches_executor_with_model(self):
         state = {
