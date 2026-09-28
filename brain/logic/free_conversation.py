@@ -1634,9 +1634,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # a full sentence and Teacher Policy resolved MODEL_SENTENCE, let the turn
     # continue through the shared learning-action executor.
     social_key = _norm(user_message).strip(" ?!.,")
+    social_learner_model = build_learner_model(state)
+    social_next_skill = social_learner_model.get("next_curriculum_skill") or {}
     curriculum_model_sentence = (
         executable_policy.get("action") == "MODEL_SENTENCE"
-        and teacher_policy.get("curriculum_skill") == "conversation:full_sentence"
+        and social_next_skill.get("skill") == "conversation:full_sentence"
         and bool(re.fullmatch(r"ich\s+.+?\s+gern(?:e)?(?:\s+.+)?", social_key))
     )
     social_reply = None if curriculum_model_sentence else _social_a1_reply(user_message, free, state)
