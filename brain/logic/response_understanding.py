@@ -126,6 +126,12 @@ def understand_response(text, *, conversation_state=None, vocabulary_context=Non
         result.update(confidence="high", intent="time", meaning="time", canonical=low)
         return result
 
+    # Obvious placeholder/gibberish should never be promoted to a high-
+    # confidence meaning merely because it contains more than one token.
+    if re.fullmatch(r"(?:h+m+|hm+|äh+|aeh+)(?:\s+[a-z]{1,4})?", low) or " xyz" in f" {low}":
+        result.update(understood=False, confidence="low", meaning=None, canonical=None)
+        return result
+
     words = re.findall(r"[A-Za-zÄÖÜäöüß0-9'-]+", low)
     if len(words) == 1:
         match = _contextual_asr_match(low, candidates)
