@@ -969,24 +969,16 @@ def build_error_choice_prompt(
     if context:
 
         return (
-            f"{context}
-
-"
-            "Welche Antwort passt hier?
-
-"
-            f"1. {wrong_sentence}
-"
+            f"{context}\n\n"
+            "Welche Antwort passt hier?\n\n"
+            f"1. {wrong_sentence}\n"
             f"2. {correct_sentence}"
         )
 
 
     return (
-        "Welche Antwort ist richtig?
-
-"
-        f"1. {wrong_sentence}
-"
+        "Welche Antwort ist richtig?\n\n"
+        f"1. {wrong_sentence}\n"
         f"2. {correct_sentence}"
     )
 
@@ -1516,9 +1508,7 @@ def build_error_transfer_prompt(context, correct_sentence):
     context = str(context or "").strip()
     if context:
         return (
-            f"{context}
-
-"
+            f"{context}\n\n"
             "Jetzt ohne Auswahl: Was sagst du?"
         )
 
