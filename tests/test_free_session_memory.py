@@ -183,3 +183,10 @@ def test_krimi_detail_deepens_instead_of_repeating_question():
     assert "last_reading_question" in source
     assert "Magst du lieber spannende oder ruhige Krimis?" in source
     assert "Was gefällt dir an Krimis besonders?" in source
+
+def test_final_delivered_question_is_persisted_after_recovery():
+    source = inspect.getsource(free_conversation.generate_free_conversation_reply)
+    assert "delivered_question" in source
+    assert "final_questions" in source
+    assert "_remember_question(free, delivered_question)" in source
+    assert 'last_question=free.get("last_question", delivered_question)' in source
