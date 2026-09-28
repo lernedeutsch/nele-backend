@@ -1868,6 +1868,39 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "global_conversation_guard": {"version": 2, "blocked": False, "reason": "active_subthread"},
         }
 
+    # Priority -0.5: explicit learner content should deepen its semantic
+    # thread before the broad social A1 shortcut can turn it into a generic
+    # "Machst du das oft?" response. Keep this narrow: only use content
+    # followups that identify a concrete reading kind such as Krimis.
+    explicit_content_followup = _content_followup(user_message, facts, memory, free, level)
+    if explicit_content_followup and memory.get("reading_kind") == "Krimis":
+        _remember_question(free, explicit_content_followup)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        free["last_topic"] = topic
+        conversation_state = sync_conversation_state(
+            state, topic=topic, last_question=free.get("last_question", explicit_content_followup), level=level
+        )
+        topic_manager = update_topic_manager(
+            state, topic=topic, source=topic_source, subtopic=conversation_state.get("subtopic")
+        )
+        return explicit_content_followup, {
+            "conversation_mode": "free",
+            "support_level": support,
+            "topic": topic,
+            "independent_turns": independent,
+            "course_level": level,
+            "conversation_facts": dict(memory),
+            "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
+            "error_engine": error_result,
+            "teacher_engine": teacher_action,
+            "teacher_policy": teacher_policy,
+            "turn_plan": turn_plan,
+            "response_understanding": response_understanding,
+            "global_conversation_guard": {"version": 2, "blocked": False, "reason": "explicit_content_followup"},
+        }
+
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
     # A clear "Ich ... gern ..." statement normally belongs to the social A1
     # shortcut. One narrow exception exists: when curriculum explicitly targets
