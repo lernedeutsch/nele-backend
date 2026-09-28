@@ -866,6 +866,10 @@ def _model_sentence_from_turn(user_message, topic, subtopic=None):
     if topic == "work" and low in {"kochen", "putzen", "reinigen"}:
         forms = {"kochen": "Ich koche.", "putzen": "Ich putze.", "reinigen": "Ich reinige."}
         return forms[low]
+    # If the learner already supplied a usable first-person sentence, the
+    # curriculum model can reinforce that meaning without inventing content.
+    if re.match(r"^ich\s+[a-zäöüß]+(?:\s+.+)?$", low) and "?" not in raw:
+        return raw[0].upper() + raw[1:] + "."
     return None
 
 
