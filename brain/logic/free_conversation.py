@@ -194,6 +194,9 @@ def _record_error(state, free, key, original):
         })
     del recurring[:-12]
 
+def _question_key(question):
+    return re.sub(r"[^a-zäöüß0-9]+", " ", _norm(question)).strip()
+
 def _remember_question(free, question):
     if not question:
         return
@@ -204,15 +207,18 @@ def _remember_question(free, question):
     actual_question = parts[-1].strip() if parts else str(question).strip()
     actual_question = actual_question.lstrip("„“”\"' ").strip()
     free["last_question"] = actual_question
+    asked = free.setdefault("asked", [])
+    key = _question_key(actual_question)
+    if key and key not in asked:
+        asked.append(key)
     history = free.setdefault("recent_questions", [])
     if not history or history[-1] != actual_question:
         history.append(actual_question)
     del history[:-8]
 
 def _not_recent(free, candidates):
-    recent = set(free.get("recent_questions", [])[-5:])
-    available = [q for q in candidates if q not in recent]
-    return available or candidates
+    asked = set(free.get("asked", []))
+    return [q for q in candidates if _question_key(q) not in asked]
 
 def _yes_no_followup(text, last_question, facts):
     low = _norm(text)
@@ -698,6 +704,7 @@ def _short_answer_followup(text, last_question, memory):
             minute = match.group(2)
             time_value = f"{hour}:{minute}" if minute else hour
             memory["work_start"] = time_value
+            memory.setdefault("filled_slots", {})["work_start"] = time_value
             return f"Du kannst sagen: „Ich fange um {time_value} Uhr an.“ Was machst du bei der Arbeit?"
 
     # A yes/no answer after the cooking follow-up belongs to the cooking
@@ -730,6 +737,7 @@ def _short_answer_followup(text, last_question, memory):
         if low in activities:
             model, follow_up = activities[low]
             memory["work_activity"] = low
+            memory.setdefault("filled_slots", {})["work_activity"] = low
             return f"Du kannst sagen: „{model}“ {follow_up}"
 
     # Cooking at work: short food nouns answer "Was kochst du gern ...?".
@@ -739,6 +747,7 @@ def _short_answer_followup(text, last_question, memory):
         if low in foods:
             food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
             memory["cooked_food"] = food
+            memory.setdefault("filled_slots", {})["cooked_food"] = food
             return f"Du kannst sagen: „Ich koche gern {food}.“ Kochst du auch gern etwas anderes?"
 
     # Follow-up after a cooking preference stays with food.
@@ -870,8 +879,23 @@ def _generic_followup(topic, free, support, independent, level):
     allowed = _allowed_skills(level)
     if topic == "yesterday" and "yesterday" not in allowed:
         topic = "today"
-    pool = FALLBACKS.get(topic, FALLBACKS["today"])
-    pool = _not_recent(free, pool)
+    pool = _not_recent(free, FALLBACKS.get(topic, FALLBACKS["today"]))
+    filled = free.get("conversation_facts", {}).get("filled_slots", {})
+    if topic == "work":
+        if filled.get("work_start"):
+            pool = [q for q in pool if _question_key(q) != _question_key("Wann fängst du an?")]
+        if filled.get("work_activity"):
+            pool = [q for q in pool if _question_key(q) != _question_key("Was machst du bei der Arbeit?")]
+    if not pool:
+        topic_order = ["work", "hobby", "today", "weather", "holiday", "place", "shopping", "yesterday"]
+        for next_topic in topic_order:
+            if next_topic == topic or next_topic not in allowed:
+                continue
+            pool = _not_recent(free, FALLBACKS.get(next_topic, []))
+            if pool:
+                break
+    if not pool:
+        return "Erzähl mir noch etwas darüber."
     # More independent learners get the more open end of the same A1 material.
     index = -1 if independent >= 3 and support == 0 else 0
     return pool[index]
@@ -888,6 +912,7 @@ def generate_free_welcome(state, session_id=None):
     free["welcome_index"] = (index + 1) % len(OPENERS)
     free["last_question"] = OPENERS[index]
     free["recent_questions"] = [OPENERS[index]]
+    free["asked"] = [_question_key(OPENERS[index])]
     free["turn_count"] = 0
     free["support_level"] = 1
     free["independent_turns"] = 0
