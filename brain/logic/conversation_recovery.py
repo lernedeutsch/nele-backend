@@ -76,6 +76,12 @@ def _content_recovery(meaning, topic):
         if low in {"kochen", "arbeit", "arbeiten"}:
             return "Du arbeitest heute. Was machst du bei der Arbeit?"
     if topic == "hobby":
+        # Preserve a concrete reading thread recovered from learner meaning
+        # instead of flattening every hobby into the generic activity prompt.
+        if "krimi" in low:
+            return "Krimis? Welche Krimis liest du gern?"
+        if any(word in low for word in ("lese", "lesen", "buch", "bücher", "buecher")):
+            return "Was liest du gern?"
         return f"Ah, {meaning}. Machst du das oft?"
     if topic == "weather":
         return f"Ah, {meaning}. Ist es warm oder kalt?"
