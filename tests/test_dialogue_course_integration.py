@@ -46,6 +46,47 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
         self.assertIn("Herkunftsdialog geschafft", reply)
         self.assertFalse(state["dialogue_active"])
 
+
+    def test_completed_course_dialogue_offers_next_section_and_und_jetzt_continues(self):
+        from brain.logic.dialogue_engine import start_dialogue
+        from brain.memory.lesson_progress import set_lesson_sections
+
+        state = {}
+        set_lesson_sections(
+            state,
+            "A1",
+            2,
+            ["Woher kommen Sie?", "Das Verb kommen", "Zahlen 1–20"],
+        )
+        start_dialogue("A1", 2, "woher-kommst-du", state)
+        handle_dialogue("Polen", state)
+        handle_dialogue("Ja", state)
+        reply = handle_dialogue("Anna kommt aus Österreich", state)
+
+        self.assertIn("Herkunftsdialog geschafft", reply)
+        self.assertIn("Das Verb kommen", reply)
+        self.assertEqual(state["last_question"], "continue_new_learning")
+        self.assertEqual(
+            state["pending_new_learning"]["section"],
+            "Das Verb kommen",
+        )
+
+        # A social thank-you must not destroy the pending course continuation.
+        self.assertIsNone(handle_new_learning_resume("danke", state))
+        self.assertEqual(
+            state["pending_new_learning"]["section"],
+            "Das Verb kommen",
+        )
+
+        with patch(
+            "brain.logic.new_learning_resume.start_new_learning",
+            return_value="NEXT_SECTION_STARTED",
+        ) as start_next:
+            continued = handle_new_learning_resume("und jetzt", state)
+
+        self.assertEqual(continued, "NEXT_SECTION_STARTED")
+        start_next.assert_called_once()
+
     def test_unrelated_answer_does_not_advance_origin_dialogue(self):
         from brain.logic.dialogue_engine import start_dialogue
         state = {}
