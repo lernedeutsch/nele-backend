@@ -1263,6 +1263,26 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             free.setdefault("conversation_facts", {}),
         )
     if contextual_reply:
+        # A curriculum MODEL_SENTENCE is an explicit pedagogical action and must
+        # reach the shared executor instead of being swallowed by this shortcut.
+        # Only bypass this early return when the current turn can supply a
+        # concrete model; all other contextual-short-answer behavior is unchanged.
+        early_model = _model_sentence_from_turn(
+            user_message,
+            free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic") or "today",
+            (state.get("conversation_state_v2") or {}).get("subtopic"),
+        )
+        early_learner_model = build_learner_model(state) if early_model else {}
+        early_next_skill = early_learner_model.get("next_curriculum_skill") or {}
+        early_requires_model_sentence = (
+            bool(early_model)
+            and early_next_skill.get("skill") == "conversation:full_sentence"
+            and early_next_skill.get("reason") in {"prerequisites_met", "curriculum_review", "dynamic_review"}
+        )
+        if early_requires_model_sentence:
+            contextual_reply = None
+
+    if contextual_reply:
         previous_question = free.get("last_question", "")
         record_answer(state, user_message, previous_question)
         _remember_question(free, contextual_reply)
