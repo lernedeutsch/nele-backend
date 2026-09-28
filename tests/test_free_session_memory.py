@@ -1,4 +1,7 @@
 import unittest
+import inspect
+
+from brain.logic import free_conversation
 
 from brain.logic.free_conversation import (
     FALLBACKS, _generic_followup, _not_recent, _question_key,
@@ -58,6 +61,13 @@ class FreeSessionMemoryTests(unittest.TestCase):
         self.assertEqual(
             _yes_no_followup("Ja", "Ja, Pizza. Kochst du sie oft?", {}),
             "Was kochst du noch gern?",
+        )
+
+    def test_food_topic_has_contextual_und_du_handback(self):
+        source = inspect.getsource(free_conversation.generate_free_reply)
+        self.assertIn(
+            '"food": "Ich esse nicht wirklich, aber ich spreche gern mit dir über Essen. Was kochst du noch gern?"',
+            source,
         )
 
     def test_enthusiastic_yes_stays_in_cooking_subthread(self):
