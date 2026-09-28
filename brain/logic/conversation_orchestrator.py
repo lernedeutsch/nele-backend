@@ -5,6 +5,7 @@ conversation engines. It does not replace engines or generate language.
 """
 
 ORCHESTRATOR_VERSION = 3
+TURN_PLAN_VERSION = 2
 
 # High-level Conversation Engine contract. The detailed PIPELINE below keeps
 # the existing engines visible, while this sequence makes the architectural
@@ -70,7 +71,7 @@ def build_turn_plan(*, teacher_policy=None, topic=None, struggle=False,
         "CONTINUE": "continue_conversation",
     }.get(action, "continue_conversation")
     return {
-        "version": ORCHESTRATOR_VERSION,
+        "version": TURN_PLAN_VERSION,
         "goal": goal,
         "topic": topic,
         "action": action,
