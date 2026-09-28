@@ -63,6 +63,13 @@ class FreeSessionMemoryTests(unittest.TestCase):
             "Was kochst du noch gern?",
         )
 
+    def test_explicit_krimi_content_precedes_social_router(self):
+        source = inspect.getsource(free_conversation.generate_free_conversation_reply)
+        content_pos = source.index("explicit_content_followup = _content_followup")
+        social_pos = source.index("social_reply = None if curriculum_model_sentence else _social_a1_reply")
+        self.assertLess(content_pos, social_pos)
+        self.assertIn('memory.get("reading_kind") == "Krimis"', source)
+
     def test_food_topic_has_contextual_und_du_handback(self):
         source = inspect.getsource(free_conversation.generate_free_conversation_reply)
         self.assertIn(
