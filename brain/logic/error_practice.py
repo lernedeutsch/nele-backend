@@ -224,6 +224,16 @@ def is_equivalent_correct_answer(
     ).strip().lower()
 
 
+    # Natural full sentences can satisfy a one-word vocabulary target.
+    if (
+        error_type == "vocabulary"
+        and correct_clean
+        and len(correct_clean.split()) == 1
+        and correct_clean in user_clean.split()
+    ):
+        return True
+
+
     # Przy umlautach kolejność nie ma znaczenia:
     # "Ö Ä Ü" jest tak samo poprawne jak
     # "Ä, Ö und Ü".
