@@ -4,7 +4,39 @@ Executes Teacher Policy v2 decisions. It does not decide which action is best.
 Conversation Engine remains responsible for ordinary contextual questions.
 """
 
-EXECUTOR_VERSION = 1
+EXECUTOR_VERSION = 2
+
+# Single source of truth for the Planner -> Executor contract. The handler
+# names document which branch below owns each action; required fields are
+# validated before execution instead of being guessed by the executor.
+ACTION_CONTRACT = {
+    "REPEAT_ERROR": {"handler": "repeat_error", "required": ("model",)},
+    "CORRECT_ERROR": {"handler": "correct_error", "required": ("model",)},
+    "MODEL_SENTENCE": {"handler": "model_sentence", "required": ("model",)},
+    "SIMPLIFY": {"handler": "simplify", "required": ()},
+    "REVIEW_WORD": {"handler": "review_word", "required": ("target_word",)},
+    "INTRODUCE_WORD": {"handler": "introduce_word", "required": ("target_word",)},
+    "ADVANCE": {"handler": "advance", "required": ()},
+    "CONTINUE": {"handler": "continue", "required": ()},
+}
+
+
+def validate_learning_action(policy):
+    """Return missing inputs for a known planner action."""
+    policy = policy or {}
+    action = policy.get("action") or "CONTINUE"
+    contract = ACTION_CONTRACT.get(action)
+    if contract is None:
+        return {"valid": False, "action": action, "missing": (), "reason": "unknown_action"}
+    missing = tuple(field for field in contract["required"] if not policy.get(field))
+    return {
+        "valid": not missing,
+        "action": action,
+        "handler": contract["handler"],
+        "missing": missing,
+        "reason": None if not missing else "required_input_missing",
+    }
+
 
 
 def _clean_example(entry):
@@ -27,6 +59,7 @@ def resolve_learning_action(policy, *, teacher_action=None, error_result=None):
     teacher_action = teacher_action or {}
     error_result = error_result or {}
     action = resolved.get("action") or "CONTINUE"
+    resolved["planned_action"] = action
     error = error_result.get("error") or {}
     model = resolved.get("model") or teacher_action.get("model")
     if not model and action in {"REPEAT_ERROR", "CORRECT_ERROR"}:
@@ -36,6 +69,7 @@ def resolve_learning_action(policy, *, teacher_action=None, error_result=None):
     elif action in {"REPEAT_ERROR", "CORRECT_ERROR", "MODEL_SENTENCE"}:
         resolved["requested_action"] = action
         resolved["action"] = "CONTINUE"
+        resolved["fallback_reason"] = "model_required_but_unavailable"
         resolved["reason"] = "model_required_but_unavailable"
     return resolved
 
@@ -50,6 +84,8 @@ def execute_learning_action(
     policy = policy or {}
     teacher_action = teacher_action or {}
     action = policy.get("action") or "CONTINUE"
+    planned_action = policy.get("planned_action") or action
+    fallback_reason = policy.get("fallback_reason")
     model = policy.get("model") or teacher_action.get("model")
     target_word = policy.get("target_word") or teacher_action.get("word")
     fallback_question = str(fallback_question or "").strip()
@@ -57,6 +93,9 @@ def execute_learning_action(
     result = {
         "version": EXECUTOR_VERSION,
         "action": action,
+        "planned_action": planned_action,
+        "executed_action": action,
+        "fallback_reason": fallback_reason,
         "executed": True,
         "target_word": target_word,
         "model": model,

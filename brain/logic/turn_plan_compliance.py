@@ -19,8 +19,13 @@ def evaluate_turn_plan_compliance(turn_plan, *, learning_action=None,
     checks = {}
 
     planned_action = plan.get("action") or "CONTINUE"
-    executed_action = action.get("action")
-    checks["action_match"] = executed_action in {None, planned_action}
+    executed_action = action.get("executed_action") or action.get("action")
+    fallback_reason = action.get("fallback_reason")
+    checks["execution_recorded"] = executed_action is not None
+    if not checks["execution_recorded"]:
+        violations.append("execution_missing")
+    checks["fallback_explicit"] = not fallback_reason or executed_action != planned_action
+    checks["action_match"] = executed_action == planned_action or bool(fallback_reason)
     if not checks["action_match"]:
         violations.append("action_mismatch")
 
@@ -36,7 +41,21 @@ def evaluate_turn_plan_compliance(turn_plan, *, learning_action=None,
         "ADVANCE": "independent_answer",
         "CONTINUE": "continue_conversation",
     }.get(planned_action, expected)
-    if checks["action_match"]:
+    if fallback_reason:
+        # An explicit validated fallback is allowed to have the outcome of the
+        # action actually executed. It remains observable via fallback_reason.
+        executed_expected = {
+            "REPEAT_ERROR": "repeat_correct_form",
+            "CORRECT_ERROR": "continue_after_correction",
+            "MODEL_SENTENCE": "use_full_sentence",
+            "SIMPLIFY": "answer_with_support",
+            "REVIEW_WORD": "recall_target_word",
+            "INTRODUCE_WORD": "notice_new_word",
+            "ADVANCE": "independent_answer",
+            "CONTINUE": "continue_conversation",
+        }.get(executed_action)
+        checks["expected_outcome_match"] = actual_expected == executed_expected
+    elif checks["action_match"]:
         # Executed action matches the plan: compare against the canonical
         # outcome for that (matching) action, not a possibly stale plan label.
         checks["expected_outcome_match"] = actual_expected in {None, canonical_expected}
@@ -85,6 +104,7 @@ def evaluate_turn_plan_compliance(turn_plan, *, learning_action=None,
         "compliant": not violations,
         "planned_action": planned_action,
         "executed_action": executed_action,
+        "fallback_reason": fallback_reason,
         "expected_outcome": expected,
         "executor_expected_outcome": actual_expected,
         "checks": checks,
