@@ -1419,6 +1419,22 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(result["reply"], reply)
 
 
+    def test_unclear_reply_keeps_current_food_topic(self):
+        from brain.logic.conversation_recovery import recover_reply
+        result = recover_reply(
+            "Was machst du heute?",
+            {"issues": []},
+            topic="food",
+            action="CONTINUE",
+            response_understanding={"understood": False, "confidence": "low"},
+            user_message="hmm xyz",
+        )
+        self.assertTrue(result["recovered"])
+        self.assertEqual(result["strategy"], "clarify_keep_topic")
+        self.assertIn("nicht ganz verstanden", result["reply"])
+        self.assertIn("Was isst du gern?", result["reply"])
+        self.assertNotIn("Was machst du heute?", result["reply"])
+
     def test_conversation_engine_has_six_stage_contract(self):
         from brain.logic.conversation_orchestrator import CONVERSATION_STAGES
         self.assertEqual(
