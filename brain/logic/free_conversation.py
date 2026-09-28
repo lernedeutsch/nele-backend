@@ -284,8 +284,9 @@ def _content_question_repair(text, last_question):
     return None
 
 def _yes_no_followup(text, last_question, facts):
-    low = _norm(text)
-    yes, no = low in YES, low in NO
+    low = _norm(text).strip(" ?!.,")
+    yes = low in YES or low in {"ja sehr gern", "ja gern", "sehr gern"}
+    no = low in NO
     if not (yes or no):
         return None
 
@@ -1705,6 +1706,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         detected_topic = "yesterday"
     elif any(x in low_message for x in ("arbeit", "job", "hotel")):
         detected_topic = "work"
+    elif re.search(r"\bich\s+koche\b", low_message):
+        detected_topic = "food"
     elif learner_question and (
         re.search(r"\b(?:isst|esse|essen|frühstückst|fruehstueckst|frühstücke|fruehstuecke)\b", low_message)
         or any(x in low_message for x in ("speise", "gericht"))
