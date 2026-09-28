@@ -194,6 +194,51 @@ class NeleCoreBehaviorTests(unittest.TestCase):
                 )
             )
 
+    def test_dialogue_correction_preserves_apples_and_quantity(self):
+        state = {
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "dialogue",
+                    "title": "In der Bäckerei",
+                    "prompt": "Ich bin die Verkäuferin: Guten Morgen. Was möchten Sie?",
+                    "keywords": ["ich möchte", "bitte"],
+                    "model_answer": "Ich möchte zwei Brötchen, bitte.",
+                }
+            }
+        }
+
+        result = answer_active_task(
+            state,
+            "Guten Morgen ich hatte gern ein kilo apfeln",
+        )
+
+        self.assertFalse(result["completed"])
+        self.assertIn("ein Kilo Äpfel", result["reply"])
+        self.assertIn("hätte gern", result["reply"])
+        self.assertNotIn("Brötchen", result["reply"])
+
+    def test_dialogue_correction_never_replaces_concrete_answer_with_model(self):
+        state = {
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "dialogue",
+                    "title": "In der Bäckerei",
+                    "prompt": "Ich bin die Verkäuferin: Guten Morgen. Was möchten Sie?",
+                    "keywords": ["ich möchte", "bitte"],
+                    "model_answer": "Ich möchte zwei Brötchen, bitte.",
+                }
+            }
+        }
+
+        result = answer_active_task(
+            state,
+            "Ich möchte ein kilo Apfeln, bitt",
+        )
+
+        self.assertFalse(result["completed"])
+        self.assertIn("Ich möchte ein Kilo Äpfel, bitte.", result["reply"])
+        self.assertNotIn("Brötchen", result["reply"])
+
     def test_writing_prompt_copy_is_detected(self):
         prompt = (
             "Schreib zwei kurze Sätze: "
