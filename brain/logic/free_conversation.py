@@ -842,6 +842,36 @@ def _short_answer_followup(text, last_question, memory):
     return None
 
 
+def _model_sentence_from_turn(user_message, topic, subtopic=None):
+    """Build a simple A1 model from the learner's current meaning."""
+    raw = str(user_message or "").strip(" .?!")
+    low = _norm(raw)
+    if not raw:
+        return None
+    perfect = _perfect_sentence(low)
+    if perfect:
+        return perfect
+    if re.fullmatch(r"(?:pizza|brot|salat|nudeln|reis|suppe|fleisch|gemüse|gemuese)", low):
+        food = "Gemüse" if low == "gemuese" else raw.capitalize()
+        return f"Ich esse gern {food}."
+    if low in {"lesen", "bücher lesen", "buch lesen"}:
+        return "Ich lese gern."
+    if low in {"musik", "musik hören", "musik hoeren"}:
+        return "Ich höre gern Musik."
+    if low in {"schwimmen", "sport", "radfahren", "rad fahren"}:
+        forms = {
+            "schwimmen": "Ich schwimme gern.",
+            "sport": "Ich mache gern Sport.",
+            "radfahren": "Ich fahre gern Rad.",
+            "rad fahren": "Ich fahre gern Rad.",
+        }
+        return forms[low]
+    if topic == "work" and low in {"kochen", "putzen", "reinigen"}:
+        forms = {"kochen": "Ich koche.", "putzen": "Ich putze.", "reinigen": "Ich reinige."}
+        return forms[low]
+    return None
+
+
 def _correction_followup(error_result, topic, memory):
     """Continue from the corrected meaning instead of abandoning the subtopic."""
     error = (error_result or {}).get("error") or {}
@@ -1508,6 +1538,19 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         error_result=error_result,
         vocabulary_context=vocabulary_context,
     )
+    # Curriculum can request MODEL_SENTENCE even when Teacher Engine selected
+    # ordinary continuation. Supply the concrete model here, where the current
+    # learner utterance and active subtopic are available.
+    if teacher_policy.get("action") == "MODEL_SENTENCE" and not teacher_policy.get("model"):
+        turn_model = _model_sentence_from_turn(
+            user_message,
+            teacher_policy.get("topic") or topic,
+            teacher_policy.get("subtopic") or current_state.get("subtopic"),
+        )
+        if turn_model:
+            teacher_policy = {**teacher_policy, "model": turn_model}
+            teacher_action = {**teacher_action, "model": turn_model}
+
     teacher_action = policy_to_teacher_action(teacher_policy, teacher_action)
     state["teacher_policy_v2"] = teacher_policy
     executable_policy = resolve_learning_action(
