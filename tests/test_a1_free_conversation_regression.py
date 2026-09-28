@@ -1530,7 +1530,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(contract["allow_question_simplifier"])
         self.assertFalse(contract["allow_topic_transition"])
 
-    def test_orchestrator_v2_records_turn_plan_and_compatibility_state(self):
+    def test_orchestrator_v3_records_turn_plan_and_compatibility_state(self):
         from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration
         state = {}
         plan = build_turn_plan(teacher_policy={"action": "CONTINUE"}, topic="weather")
@@ -1540,7 +1540,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(recorded["version"], 3)
         self.assertEqual(state["turn_plan_v1"]["topic"], "weather")
         self.assertEqual(state["conversation_orchestrator_v1"]["version"], 3)
-        self.assertEqual(state["conversation_orchestrator_v2"]["version"], 2)
+        self.assertEqual(state["conversation_orchestrator_v2"]["version"], 3)
 
     def test_orchestrator_v2_turn_plan_blocks_topic_change_during_simplify(self):
         from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration
