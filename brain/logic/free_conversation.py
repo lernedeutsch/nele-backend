@@ -2222,11 +2222,17 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         "turn_count": turn,
         "last_user_message": str(user_message or "").strip(),
     })
-    _remember_question(free, action_question)
+    # Persist the question the learner actually received. Recovery may
+    # replace the planned action_question with a more contextual reply; keeping
+    # the stale planned question here makes the next turn reason about text
+    # Nele never said.
+    final_questions = re.findall(r"[^.!?]*[?]", str(reply or ""))
+    delivered_question = final_questions[-1].strip() if final_questions else action_question
+    _remember_question(free, delivered_question)
     conversation_state = sync_conversation_state(
         state,
         topic=topic,
-        last_question=free.get("last_question", action_question),
+        last_question=free.get("last_question", delivered_question),
         level=level,
     )
     topic_manager = update_topic_manager(
