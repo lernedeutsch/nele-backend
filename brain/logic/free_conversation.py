@@ -49,6 +49,7 @@ FALLBACKS = {
     "today": ["Was machst du heute?", "Was möchtest du heute noch machen?", "Wie ist dein Tag heute?"],
     "place": ["Wo bist du gerade?", "Bist du gern dort?", "Was machst du dort gern?"],
     "shopping": ["Was möchtest du kaufen?", "Welche Farbe möchtest du?", "Wo kaufst du gern ein?"],
+    "food": ["Was isst du gern?", "Was isst du heute?", "Was kochst du gern?"],
     "work": ["Arbeitest du heute?", "Wann fängst du an?", "Was machst du bei der Arbeit?"],
     "hobby": ["Was machst du gern in deiner Freizeit?", "Hörst du gern Musik?", "Machst du gern Sport?"],
     "weather": ["Wie ist das Wetter bei dir?", "Ist es warm oder kalt?", "Magst du das Wetter heute?"],
@@ -995,7 +996,7 @@ def _generic_followup(topic, free, support, independent, level):
         if filled.get("work_activity"):
             pool = [q for q in pool if _question_key(q) != _question_key("Was machst du bei der Arbeit?")]
     if not pool:
-        topic_order = ["work", "hobby", "today", "weather", "holiday", "place", "shopping", "yesterday"]
+        topic_order = ["work", "hobby", "food", "today", "weather", "holiday", "place", "shopping", "yesterday"]
         for next_topic in topic_order:
             if next_topic == topic or next_topic not in allowed:
                 continue
