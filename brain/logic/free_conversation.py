@@ -29,6 +29,7 @@ from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
 from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue, clear_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
+from brain.logic.learner_turn import analyze_learner_turn, direct_nele_answer, question_slot
 
 OPENERS = [
     "Hallo! Wie geht's dir heute?",
@@ -218,6 +219,7 @@ def _remember_question(free, question):
     actual_question = parts[-1].strip() if parts else str(question).strip()
     actual_question = actual_question.lstrip("„“”\"' ").strip()
     free["last_question"] = actual_question
+    free["last_question_context"] = {"slot": question_slot(actual_question), "topic": free.get("last_topic")}
     asked = free.setdefault("asked", [])
     key = _question_key(actual_question)
     if key and key not in asked:
@@ -1246,6 +1248,53 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "dialogue_knowledge": True,
                 "dialogue_id": state.get("dialogue_id"),
                 "dialogue_topic": state.get("last_activity_detail"),
+            }
+
+    # Priority -2.3: a learner-led question outranks Nele's stale previous
+    # question. Answer it first; only then hand the turn back to the learner.
+    learner_turn = analyze_learner_turn(
+        user_message,
+        last_question=free.get("last_question", ""),
+    )
+    state["learner_turn_v1"] = learner_turn
+    if learner_turn.get("intent") == "question_to_nele":
+        direct_reply = direct_nele_answer(user_message)
+        if direct_reply:
+            previous_question = free.get("last_question", "")
+            record_answer(state, user_message, previous_question)
+            slot_topic = {
+                "food": "food",
+                "film_genre": "hobby",
+                "reading": "hobby",
+                "activity": "hobby",
+                "work": "work",
+            }.get(learner_turn.get("slot"))
+            topic = slot_topic or ("today" if "heute" in _norm(user_message) else (free.get("last_topic") or "today"))
+            free["last_topic"] = topic
+            _remember_question(free, direct_reply)
+            free["last_user_message"] = str(user_message or "").strip()
+            free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+            level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
+            conversation_state = sync_conversation_state(
+                state, topic=topic, last_question=free.get("last_question", ""), level=level
+            )
+            topic_manager = update_topic_manager(
+                state, topic=topic, source="learner_question", subtopic=conversation_state.get("subtopic")
+            )
+            response_understanding = understand_response(
+                user_message,
+                conversation_state={**conversation_state, "last_question": previous_question},
+                vocabulary_context=free.get("vocabulary_context") or {},
+            )
+            return direct_reply, {
+                "conversation_mode": "free",
+                "course_level": level,
+                "topic": topic,
+                "learner_turn": learner_turn,
+                "response_understanding": response_understanding,
+                "conversation_state": conversation_state,
+                "topic_manager": topic_manager,
+                "answered_learner_question": True,
             }
 
     # A yes/no answer cannot satisfy an open content question. Repair the

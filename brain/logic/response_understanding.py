@@ -8,6 +8,8 @@ The learner's original text always remains available to Error Engine.
 import re
 from difflib import SequenceMatcher
 
+from brain.logic.learner_turn import analyze_learner_turn
+
 ENGINE_VERSION = 2
 
 YES = {"ja", "ja gern", "ja, gern", "klar", "genau", "jap", "yah", "ya"}
@@ -88,8 +90,13 @@ def understand_response(text, *, conversation_state=None, vocabulary_context=Non
     subtopic = conversation_state.get("subtopic")
     candidates = _candidate_words(topic, subtopic, vocabulary_context)
 
+    turn = analyze_learner_turn(raw, last_question=question)
+
     result = {
         "version": ENGINE_VERSION,
+        "turn_intent": turn["intent"],
+        "slot": turn["slot"],
+        "content": turn["content"],
         "original": raw,
         "normalized": low,
         "understood": bool(low),
