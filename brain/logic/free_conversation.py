@@ -1422,8 +1422,15 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # from restarting an established work thread.
     current_semantic_topic = free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic")
     protected_semantic_topics = {"work", "holiday", "weather", "hobby", "shopping", "food"}
+    # Explicit origin/residence language is a real topic switch. Let the A1
+    # router handle it even when the previous topic was sticky (for example food).
+    early_low = _norm(user_message)
+    explicit_place_turn = bool(
+        re.search(r"\\bich\\s+(?:komme\\s+aus|wohne\\s+in)\\b", early_low)
+        or (_is_explicit_learner_question(user_message) and re.search(r"\\b(?:woher|wohnst|kommst)\\b", early_low))
+    )
     a1_reply = None
-    if current_semantic_topic not in protected_semantic_topics:
+    if current_semantic_topic not in protected_semantic_topics or explicit_place_turn:
         a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
     if a1_reply:
         previous_question = free.get("last_question", "")
@@ -1435,16 +1442,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
         level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
+        a1_topic = "place" if explicit_place_turn else "everyday_a1"
+        free["last_topic"] = a1_topic
         conversation_state = sync_conversation_state(
-            state, topic="everyday_a1", last_question=free.get("last_question", ""), level=level
+            state, topic=a1_topic, last_question=free.get("last_question", ""), level=level
         )
         topic_manager = update_topic_manager(
-            state, topic="everyday_a1", source="a1_everyday_router",
+            state, topic=a1_topic, source="a1_everyday_router",
             subtopic=conversation_state.get("subtopic"),
         )
         turn_plan = build_turn_plan(
             teacher_policy={"action": "CONTINUE"},
-            topic="everyday_a1",
+            topic=a1_topic,
             response_understanding={"confidence": "high"},
         )
         orchestration_contract = build_orchestration_contract(
@@ -1464,7 +1473,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         return a1_reply, {
             "conversation_mode": "free",
             "course_level": level,
-            "topic": "everyday_a1",
+            "topic": a1_topic,
             "conversation_state": conversation_state,
             "topic_manager": topic_manager,
             "conversation_orchestrator": orchestration,
