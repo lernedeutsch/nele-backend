@@ -1055,10 +1055,17 @@ class GeneratedTests(unittest.TestCase):
         self.assertFalse(result["completed"])
         self.assertEqual(result["reason"], "continue_topic")
 
+    def test_topic_goal_keeps_hobby_for_four_turns(self):
+        from brain.logic.conversation_goal_transition import assess_topic_goal
+        state = {"conversation_coherence_v1": {"turns": [{"topic": "hobby"}] * 3}}
+        result = assess_topic_goal(state, topic="hobby", independent_turns=3)
+        self.assertFalse(result["completed"])
+        self.assertEqual(result["min_turns"], 4)
+
     def test_topic_goal_completes_after_enough_useful_practice(self):
         from brain.logic.conversation_goal_transition import assess_topic_goal
         state = {"conversation_coherence_v1": {"turns": [
-            {"topic": "work"}, {"topic": "work"}, {"topic": "work"}, {"topic": "work"},
+            {"topic": "work"}, {"topic": "work"}, {"topic": "work"}, {"topic": "work"}, {"topic": "work"},
         ]}}
         result = assess_topic_goal(state, topic="work", independent_turns=3)
         self.assertTrue(result["completed"])
@@ -1086,7 +1093,7 @@ class GeneratedTests(unittest.TestCase):
     def test_topic_transition_selects_next_not_recent_topic(self):
         from brain.logic.conversation_goal_transition import decide_topic_transition
         state = {"conversation_coherence_v1": {
-            "turns": [{"topic": "work"}] * 4,
+            "turns": [{"topic": "work"}] * 5,
             "recent_topics": ["today", "work"],
         }}
         result = decide_topic_transition(state, topic="work", independent_turns=3)

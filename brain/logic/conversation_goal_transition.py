@@ -9,15 +9,18 @@ ENGINE_VERSION = 1
 
 TOPIC_ORDER = ["today", "work", "hobby", "weather", "yesterday", "holiday", "shopping", "place"]
 
+# A natural A1/A2 conversation should deepen one subject before changing it.
+# Four turns is the default floor; work gets one extra turn because it often
+# develops through schedule, activity and workplace details.
 TOPIC_GOALS = {
-    "today": {"min_turns": 3, "min_independent": 2},
-    "work": {"min_turns": 4, "min_independent": 2},
-    "hobby": {"min_turns": 3, "min_independent": 2},
-    "weather": {"min_turns": 3, "min_independent": 2},
-    "yesterday": {"min_turns": 3, "min_independent": 2},
-    "holiday": {"min_turns": 3, "min_independent": 2},
-    "shopping": {"min_turns": 3, "min_independent": 2},
-    "place": {"min_turns": 2, "min_independent": 1},
+    "today": {"min_turns": 4, "min_independent": 2},
+    "work": {"min_turns": 5, "min_independent": 2},
+    "hobby": {"min_turns": 4, "min_independent": 2},
+    "weather": {"min_turns": 4, "min_independent": 2},
+    "yesterday": {"min_turns": 4, "min_independent": 2},
+    "holiday": {"min_turns": 4, "min_independent": 2},
+    "shopping": {"min_turns": 4, "min_independent": 2},
+    "place": {"min_turns": 4, "min_independent": 1},
 }
 
 def _topic_turns(state, topic):
@@ -35,7 +38,7 @@ def _has_active_learning_problem(*, struggle=False, error_result=None, teacher_p
 
 def assess_topic_goal(state, *, topic, independent_turns=0, struggle=False,
                       error_result=None, teacher_policy=None, explicit_topic=False):
-    goal = TOPIC_GOALS.get(topic, {"min_turns": 3, "min_independent": 2})
+    goal = TOPIC_GOALS.get(topic, {"min_turns": 4, "min_independent": 2})
     turns = _topic_turns(state, topic)
     blocked = _has_active_learning_problem(
         struggle=struggle,
