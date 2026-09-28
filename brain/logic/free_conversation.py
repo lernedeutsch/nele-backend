@@ -890,25 +890,37 @@ def _model_sentence_from_knowledge(user_message, topic, level="A1", free_state=N
     text_low = _norm(best.text)
     if not query_words or not any(word in text_low for word in query_words):
         return None
-    # Keep only a short conversation-local history. IDs are preferred because
-    # they stay stable even when two knowledge items have similar wording.
-    knowledge_key = best.item_id or best.text
-    recent.append(knowledge_key)
-    del recent[:-8]
-    # LEARN: keep a bounded audit of knowledge that actually reached a
-    # MODEL_SENTENCE response. This is separate from ranking history so the
-    # Learner Model can summarize what Nele used without re-running retrieval.
-    usage = free_state.setdefault("knowledge_usage", [])
-    usage.append({
+    # RETRIEVE only selects knowledge. LEARN records it later, after the
+    # response pipeline has accepted the MODEL_SENTENCE action.
+    free_state["_pending_knowledge_usage"] = {
         "item_id": best.item_id,
         "source": best.source,
         "text": best.text,
         "topic": best.topic,
         "level": best.level,
         "intent": "model_sentence",
-    })
-    del usage[:-20]
+    }
     return best.text
+
+
+def _learn_pending_knowledge(free_state, learning_action):
+    """Commit retrieved knowledge only after it reached the response action."""
+    if not isinstance(free_state, dict):
+        return None
+    pending = free_state.pop("_pending_knowledge_usage", None)
+    if not isinstance(pending, dict):
+        return None
+    if (learning_action or {}).get("action") != "MODEL_SENTENCE":
+        return None
+    knowledge_key = pending.get("item_id") or pending.get("text")
+    if knowledge_key:
+        recent = free_state.setdefault("recent_knowledge", [])
+        recent.append(knowledge_key)
+        del recent[:-8]
+    usage = free_state.setdefault("knowledge_usage", [])
+    usage.append(dict(pending))
+    del usage[:-20]
+    return dict(pending)
 
 
 def _model_sentence_from_turn(user_message, topic, subtopic=None):
@@ -2017,6 +2029,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     state["conversation_quality_controller_v2"] = quality
     state["conversation_quality_controller_v1"] = quality
     state["learning_action_executor_v1"] = learning_action
+    _learn_pending_knowledge(free, learning_action)
     compliance = evaluate_turn_plan_compliance(
         turn_plan,
         learning_action=learning_action,
