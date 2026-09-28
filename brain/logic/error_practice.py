@@ -224,7 +224,7 @@ def is_equivalent_correct_answer(
     ).strip().lower()
 
 
-    # Przy umlautach kolejność nie ma znaczenia:
+    # Natural full sentences can satisfy a one-word vocabulary target.\n    if (\n        error_type == "vocabulary"\n        and correct_clean\n        and len(correct_clean.split()) == 1\n        and correct_clean in user_clean.split()\n    ):\n        return True\n\n\n    # Przy umlautach kolejność nie ma znaczenia:
     # "Ö Ä Ü" jest tak samo poprawne jak
     # "Ä, Ö und Ü".
     if error_type == "spelling":
