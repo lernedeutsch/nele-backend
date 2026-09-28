@@ -1665,8 +1665,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         teacher_action=teacher_action,
         error_result=error_result,
     )
+    # Plan records the policy decision before execution/fallback resolution.
+    # This keeps planned_action observable even when validation must fall back.
     turn_plan = build_turn_plan(
-        teacher_policy=executable_policy,
+        teacher_policy=teacher_policy,
         topic=topic,
         struggle=struggle,
         explicit_topic=explicit_topic,
