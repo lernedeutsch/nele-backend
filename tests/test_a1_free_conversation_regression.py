@@ -1419,6 +1419,13 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(result["reply"], reply)
 
 
+    def test_conversation_engine_has_six_stage_contract(self):
+        from brain.logic.conversation_orchestrator import CONVERSATION_STAGES
+        self.assertEqual(
+            CONVERSATION_STAGES,
+            ["UNDERSTAND", "CONTEXT", "RETRIEVE", "DECIDE", "RESPOND", "LEARN"],
+        )
+
     def test_orchestrator_pipeline_has_explicit_order(self):
         from brain.logic.conversation_orchestrator import PIPELINE
         self.assertLess(PIPELINE.index("response_understanding"), PIPELINE.index("error_engine"))
@@ -1523,17 +1530,17 @@ class GeneratedTests(unittest.TestCase):
         self.assertTrue(contract["allow_question_simplifier"])
         self.assertFalse(contract["allow_topic_transition"])
 
-    def test_orchestrator_v2_records_turn_plan_and_compatibility_state(self):
+    def test_orchestrator_v3_records_turn_plan_and_compatibility_state(self):
         from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration, record_orchestration
         state = {}
         plan = build_turn_plan(teacher_policy={"action": "CONTINUE"}, topic="weather")
         contract = build_orchestration_contract(turn_plan=plan)
         result = enforce_orchestration(contract)
         recorded = record_orchestration(state, result)
-        self.assertEqual(recorded["version"], 2)
+        self.assertEqual(recorded["version"], 3)
         self.assertEqual(state["turn_plan_v1"]["topic"], "weather")
-        self.assertEqual(state["conversation_orchestrator_v1"]["version"], 2)
-        self.assertEqual(state["conversation_orchestrator_v2"]["version"], 2)
+        self.assertEqual(state["conversation_orchestrator_v1"]["version"], 3)
+        self.assertEqual(state["conversation_orchestrator_v2"]["version"], 3)
 
     def test_orchestrator_v2_turn_plan_blocks_topic_change_during_simplify(self):
         from brain.logic.conversation_orchestrator import build_turn_plan, build_orchestration_contract, enforce_orchestration
