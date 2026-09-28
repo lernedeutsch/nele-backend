@@ -1262,11 +1262,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         if direct_reply:
             previous_question = free.get("last_question", "")
             record_answer(state, user_message, previous_question)
+            slot_topic = {
+                "food": "food",
+                "film_genre": "hobby",
+                "reading": "hobby",
+                "activity": "hobby",
+                "work": "work",
+            }.get(learner_turn.get("slot"))
+            topic = slot_topic or ("today" if "heute" in _norm(user_message) else (free.get("last_topic") or "today"))
+            free["last_topic"] = topic
             _remember_question(free, direct_reply)
             free["last_user_message"] = str(user_message or "").strip()
             free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
-            topic = "today" if "heute" in _norm(user_message) else (free.get("last_topic") or "today")
-            free["last_topic"] = topic
             level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
             conversation_state = sync_conversation_state(
                 state, topic=topic, last_question=free.get("last_question", ""), level=level
