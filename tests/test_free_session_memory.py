@@ -177,3 +177,9 @@ class FreeSessionMemoryTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+def test_krimi_detail_deepens_instead_of_repeating_question():
+    source = inspect.getsource(free_conversation._content_followup)
+    assert "last_reading_question" in source
+    assert "Magst du lieber spannende oder ruhige Krimis?" in source
+    assert "Was gefällt dir an Krimis besonders?" in source
