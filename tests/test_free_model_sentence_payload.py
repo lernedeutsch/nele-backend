@@ -21,6 +21,8 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
         self.assertEqual(_model_sentence_from_knowledge("koche", "food", "A1.1", free), "Ich koche gern.")
         retrieve.assert_called_once()
         self.assertEqual(free["recent_knowledge"], ["cook"])
+        self.assertEqual(free["knowledge_usage"][-1]["item_id"], "cook")
+        self.assertEqual(free["knowledge_usage"][-1]["intent"], "model_sentence")
 
     @patch("brain.logic.free_conversation.retrieve")
     def test_recent_knowledge_is_passed_back_and_bounded(self, retrieve):

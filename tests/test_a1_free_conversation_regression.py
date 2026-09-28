@@ -683,6 +683,19 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(state["vocabulary_memory"]["pause"]["mistakes"], 1)
         self.assertTrue(state["vocabulary_memory"]["pause"]["needs_review"])
 
+    def test_learner_model_exposes_recent_retriever_knowledge(self):
+        from brain.logic.learner_model import build_learner_model
+        state = {
+            "free_conversation": {
+                "knowledge_usage": [
+                    {"item_id": "food-1", "source": "dialogue", "text": "Ich koche gern.", "topic": "food", "level": "A1", "intent": "model_sentence"}
+                ]
+            }
+        }
+        model = build_learner_model(state)
+        self.assertEqual(model["knowledge_usage"]["recent_count"], 1)
+        self.assertEqual(model["knowledge_usage"]["recent"][0]["item_id"], "food-1")
+
     def test_learner_model_contains_learning_outcomes(self):
         from brain.logic.learner_model import build_learner_model
         state = {"learning_outcomes": [

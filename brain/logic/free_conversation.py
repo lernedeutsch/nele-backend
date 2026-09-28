@@ -892,8 +892,22 @@ def _model_sentence_from_knowledge(user_message, topic, level="A1", free_state=N
         return None
     # Keep only a short conversation-local history. IDs are preferred because
     # they stay stable even when two knowledge items have similar wording.
-    recent.append(best.item_id or best.text)
+    knowledge_key = best.item_id or best.text
+    recent.append(knowledge_key)
     del recent[:-8]
+    # LEARN: keep a bounded audit of knowledge that actually reached a
+    # MODEL_SENTENCE response. This is separate from ranking history so the
+    # Learner Model can summarize what Nele used without re-running retrieval.
+    usage = free_state.setdefault("knowledge_usage", [])
+    usage.append({
+        "item_id": best.item_id,
+        "source": best.source,
+        "text": best.text,
+        "topic": best.topic,
+        "level": best.level,
+        "intent": "model_sentence",
+    })
+    del usage[:-20]
     return best.text
 
 
