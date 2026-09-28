@@ -842,6 +842,31 @@ def _short_answer_followup(text, last_question, memory):
     return None
 
 
+def _correction_followup(error_result, topic, memory):
+    """Continue from the corrected meaning instead of abandoning the subtopic."""
+    error = (error_result or {}).get("error") or {}
+    correct = str(error.get("correct") or "").strip()
+    if not correct or not (error_result or {}).get("recast"):
+        return None
+    low = _norm(correct)
+    if topic == "work" or "koche " in low:
+        match = re.match(r"ich koche\s+(.+?)[.!]?$", correct, re.I)
+        if match:
+            food = match.group(1).strip(" .")
+            memory["cooked_food"] = food
+            memory.setdefault("filled_slots", {})["cooked_food"] = food
+            return f"Kochst du oft {food}?"
+    if "ich höre " in low:
+        return "Welche Musik hörst du am liebsten?"
+    if "ich kaufe " in low:
+        return "Wo kaufst du das gern?"
+    if "ich fahre gern rad" in low:
+        return "Wo fährst du gern Rad?"
+    if "ich schwimme gern" in low:
+        return "Wo schwimmst du gern?"
+    return None
+
+
 def _content_followup(text, facts, memory, free, level):
     """Choose a question from the learner's content before any generic pool."""
     low = _norm(text)
@@ -1652,10 +1677,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         topic = topic_transition["next_topic"]
         topic_source = "goal_transition"
 
+    # A correction must preserve the semantic thread. Build the next question
+    # from the corrected meaning before generic/personalized routing can move on.
+    correction_question = _correction_followup(error_result, topic, memory)
+
     # Priority: answer context -> learner content -> safe course-level fallback.
     # On a deliberate topic transition, start with the new topic's safe
     # fallback instead of letting the old answer context pull us backwards.
-    question = None if topic_transition.get("transition") or learner_question else _yes_no_followup(user_message, last_question, memory)
+    if correction_question:
+        topic_transition = {**topic_transition, "transition": False, "next_topic": topic, "reason": "correction_topic_continuity"}
+    question = correction_question
+    if not question:
+        question = None if topic_transition.get("transition") or learner_question else _yes_no_followup(user_message, last_question, memory)
     if not question and not learner_question:
         question = _short_answer_followup(user_message, last_question, memory)
     if not question:
@@ -1726,6 +1759,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         fallback_question=action_question,
     )
     reply = learning_action.get("reply") or question
+    if correction_question and recast:
+        reply = f"{recast} {correction_question}"
     quality = check_reply(
         reply,
         topic=topic,
