@@ -43,6 +43,21 @@ class FreeSessionMemoryTests(unittest.TestCase):
         self.assertNotEqual(_question_key(question), _question_key("Wann fängst du an?"))
         self.assertNotEqual(_question_key(question), _question_key("Was machst du bei der Arbeit?"))
 
+    def test_food_fallback_stays_in_food_topic(self):
+        free = {"asked": [], "conversation_facts": {}}
+        question = _generic_followup("food", free, support=1, independent=0, level="A1.1")
+        self.assertIn(question, FALLBACKS["food"])
+        self.assertNotIn(question, FALLBACKS["today"] + FALLBACKS["work"])
+
+    def test_food_fallback_moves_to_another_food_question_before_other_topics(self):
+        free = {
+            "asked": [_question_key("Was isst du gern?")],
+            "conversation_facts": {},
+        }
+        question = _generic_followup("food", free, support=1, independent=0, level="A1.1")
+        self.assertIn(question, FALLBACKS["food"])
+        self.assertNotEqual(_question_key(question), _question_key("Was isst du gern?"))
+
     def test_twenty_five_selections_do_not_repeat_normalized_questions(self):
         free = {"asked": [], "conversation_facts": {}}
         seen = set()
