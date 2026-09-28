@@ -42,9 +42,10 @@ EXPECTED_OUTCOMES = {
 
 def build_turn_plan(*, teacher_policy=None, topic=None, struggle=False,
                     explicit_topic=None, error_result=None,
-                    response_understanding=None):
+                    response_understanding=None, learner_model=None, knowledge=None, mode="free"):
     teacher_policy = teacher_policy or {}
     error_result = error_result or {}
+    learner_model = learner_model or {}
     action = teacher_policy.get("action") or "CONTINUE"
     pedagogy_locked = action in PEDAGOGY_ACTIONS
     goal = {
@@ -76,6 +77,14 @@ def build_turn_plan(*, teacher_policy=None, topic=None, struggle=False,
         "learner_topic_change": explicit_topic if explicit_topic and explicit_topic != topic else None,
         "has_active_error": bool(error_result.get("error") or error_result.get("recast")),
         "response_confidence": (response_understanding or {}).get("confidence"),
+        "mode": mode,
+        "learner": {
+            "course_level": learner_model.get("course_level"),
+            "autonomy": learner_model.get("autonomy"),
+            "adaptive_support": learner_model.get("adaptive_support"),
+            "weaknesses": list(learner_model.get("weaknesses") or []),
+        },
+        "knowledge": list(knowledge or [])[:6],
     }
 
 
