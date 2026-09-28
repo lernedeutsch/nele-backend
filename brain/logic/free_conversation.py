@@ -285,7 +285,8 @@ def _content_question_repair(text, last_question):
 
 def _yes_no_followup(text, last_question, facts):
     low = _norm(text).strip(" ?!.,")
-    yes = low in YES or low in {"ja sehr gern", "ja gern", "sehr gern"}
+    affirmative = re.sub(r"[^a-zäöüß ]+", "", low).strip()
+    yes = low in YES or affirmative in {"ja sehr gern", "ja gern", "sehr gern"}
     no = low in NO
     if not (yes or no):
         return None
