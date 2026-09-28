@@ -14,6 +14,7 @@ from brain.logic.dialogue_state_engine import (
     record_exchange,
     within_turn_limit,
 )
+from brain.memory.lesson_progress import mark_section_completed, get_next_incomplete_section
 
 
 def _text(value):
@@ -325,6 +326,29 @@ def _learner_is_ending_dialogue(user_message, turn, slots=None):
     return _norm(user_message) in _DIALOGUE_EXIT_PHRASES
 
 
+def _complete_course_dialogue(dialogue, state):
+    """Connect a completed lesson dialogue back to the course progression."""
+    if not state or not isinstance(dialogue, dict):
+        return None
+    section = _text(dialogue.get("section"))
+    level = _text(dialogue.get("level") or state.get("dialogue_level") or "A1").upper()
+    lesson = dialogue.get("lesson") or state.get("dialogue_lesson")
+    if not section or not lesson:
+        return None
+    mark_section_completed(state, level, lesson, section)
+    next_section = get_next_incomplete_section(state, level, lesson)
+    if next_section:
+        state["pending_new_learning"] = {
+            "type": "new_section",
+            "level": level,
+            "lesson": int(lesson),
+            "section": next_section,
+            "topic": next_section,
+        }
+        state["last_question"] = "continue_new_learning"
+    return next_section
+
+
 def clear_dialogue(state):
     for key, value in {
         "dialogue_active": False,
@@ -422,7 +446,10 @@ def handle_dialogue(user_message, state):
 
     if next_index >= len(turns):
         complete = _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."
+        next_section = _complete_course_dialogue(dialogue, state)
         clear_dialogue(state)
+        if next_section:
+            complete += f" Als Nächstes kommt „{next_section}“. Möchtest du weitermachen?"
         return " ".join(part for part in [success, *spoken, complete] if part)
 
     state["dialogue_turn"] = next_index
@@ -432,7 +459,10 @@ def handle_dialogue(user_message, state):
         for item in turns[next_index:]
     ):
         complete = _text(dialogue.get("complete"))
+        next_section = _complete_course_dialogue(dialogue, state)
         clear_dialogue(state)
+        if next_section:
+            complete = (complete + f" Als Nächstes kommt „{next_section}“. Möchtest du weitermachen?").strip()
         return " ".join(part for part in [success, *spoken, complete] if part)
 
     next_turn = turns[next_index]
