@@ -67,5 +67,62 @@ class LearnerTurnPriorityTests(unittest.TestCase):
         self.assertEqual(ctx.get("topic"), "today")
 
 
+    def test_spazieren_advances_hobby_thread_instead_of_repeating_question(self):
+        state = {
+            "free_conversation": {
+                "last_question": "Was machst du gern in deiner Freizeit?",
+                "last_topic": "hobby",
+                "turn_count": 2,
+                "conversation_facts": {},
+            },
+            "student_progress": {"current_level": "A1.1"},
+        }
+        reply, meta = generate_free_conversation_reply("spazieren", state)
+        self.assertNotEqual(reply, "Was machst du gern in deiner Freizeit?")
+        self.assertIn("spazieren", reply.lower())
+        self.assertEqual(meta["topic_manager"]["topic"], "hobby")
+
+    def test_origin_statement_expires_stale_food_topic(self):
+        state = {
+            "free_conversation": {
+                "last_question": "Isst du das oft?",
+                "last_topic": "food",
+                "turn_count": 5,
+                "conversation_facts": {},
+            },
+            "student_progress": {"current_level": "A1.1"},
+        }
+        reply, meta = generate_free_conversation_reply("Ich komme aus Polen.", state)
+        self.assertEqual(meta["topic_manager"]["topic"], "place")
+        self.assertNotEqual(meta["topic"], "food")
+
+    def test_origin_question_expires_stale_food_topic(self):
+        state = {
+            "free_conversation": {
+                "last_question": "Isst du das oft?",
+                "last_topic": "food",
+                "turn_count": 5,
+                "conversation_facts": {},
+            },
+            "student_progress": {"current_level": "A1.1"},
+        }
+        reply, meta = generate_free_conversation_reply("Woher kommst du?", state)
+        self.assertEqual(meta["topic_manager"]["topic"], "place")
+
+    def test_valid_work_sentence_is_not_repeated_as_a_correction(self):
+        state = {
+            "free_conversation": {
+                "last_question": "Was machst du bei der Arbeit?",
+                "last_topic": "work",
+                "turn_count": 3,
+                "conversation_facts": {},
+            },
+            "student_progress": {"current_level": "A1.1"},
+        }
+        reply, meta = generate_free_conversation_reply("Ich putze Zimmer.", state)
+        self.assertNotIn("Du kannst sagen: „Ich putze Zimmer.“", reply)
+        self.assertIn("Wie viele Zimmer", reply)
+
+
 if __name__ == "__main__":
     unittest.main()
