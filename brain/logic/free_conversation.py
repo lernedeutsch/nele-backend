@@ -42,7 +42,9 @@ OPENERS = [
 LEVEL_ORDER = ["A1.1", "A1.2", "A1.3", "A1.4", "A2.1", "A2.2", "B1.1"]
 LEVEL_SKILLS = {
     "A1.1": {"today", "place", "work", "shopping", "hobby", "weather", "holiday"},
-    "A1.2": {"yesterday"},
+    "A1.2": {"yesterday", "family", "friends", "food"},
+    "A1.3": {"housing", "weekend"},
+    "A2.1": {"transport", "technology", "health"},
 }
 
 FALLBACKS = {
@@ -54,6 +56,14 @@ FALLBACKS = {
     "weather": ["Wie ist das Wetter bei dir?", "Ist es warm oder kalt?", "Magst du das Wetter heute?"],
     "holiday": ["Wo machst du gern Urlaub?", "Meer oder Berge – was magst du lieber?", "Was machst du gern im Urlaub?"],
     "yesterday": ["Was hast du gestern gemacht?", "Wie war dein Tag gestern?"],
+    "food": ["Was isst du gern zum Frühstück?", "Kochst du gern, oder isst du lieber im Restaurant?", "Magst du deutsches Essen?"],
+    "family": ["Hast du Geschwister?", "Wie oft siehst du deine Familie?", "Wohnt deine Familie in der Nähe?"],
+    "friends": ["Hast du viele Freunde hier?", "Wie oft triffst du deine Freunde?", "Was macht ihr zusammen?"],
+    "housing": ["Wohnst du in einer Wohnung oder in einem Haus?", "Wohnst du allein oder mit anderen?", "Gefällt dir deine Wohnung?"],
+    "weekend": ["Was machst du am Wochenende?", "Schläfst du am Wochenende länger?", "Triffst du am Wochenende Freunde?"],
+    "transport": ["Wie kommst du zur Arbeit?", "Fährst du gern mit dem Fahrrad?", "Ist der Bus bei dir meistens pünktlich?"],
+    "technology": ["Wie viele Stunden bist du am Handy?", "Nutzt du WhatsApp oder Instagram?", "Schaust du lieber Serien, oder liest du lieber?"],
+    "health": ["Wie fühlst du dich heute körperlich?", "Machst du regelmäßig Sport für die Gesundheit?", "Warst du dieses Jahr schon beim Arzt?"],
 }
 
 YES = {"ja", "ja ja", "ja gern", "ja, gern", "klar", "genau"}
@@ -145,6 +155,22 @@ def _extract_facts(text):
         facts["topic"] = "holiday"
     elif "gestern" in low:
         facts["topic"] = "yesterday"
+    elif any(x in low for x in ("familie", "geschwister", "bruder", "schwester", "eltern")):
+        facts["topic"] = "family"
+    elif any(x in low for x in ("freunde", "freundin", "freund")):
+        facts["topic"] = "friends"
+    elif any(x in low for x in ("wohnung", "wohne", "wohnst", "zuhause", "zu hause")):
+        facts["topic"] = "housing"
+    elif "wochenende" in low:
+        facts["topic"] = "weekend"
+    elif any(x in low for x in ("fahrrad", "bus", "bahn", "zug", "verkehr", "straßenbahn", "strassenbahn")):
+        facts["topic"] = "transport"
+    elif any(x in low for x in ("handy", "internet", "whatsapp", "instagram", "smartphone")):
+        facts["topic"] = "technology"
+    elif any(x in low for x in ("arzt", "gesundheit", "gesund", "krank")):
+        facts["topic"] = "health"
+    elif any(x in low for x in ("essen", "frühstück", "fruehstueck", "restaurant", "koche", "kochen")):
+        facts["topic"] = "food"
     return facts
 
 def _error_and_recast(text):
@@ -1503,7 +1529,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # Neutral content must not silently abandon an explicit active topic.
     # Vocabulary may enrich a topic, but it may not demote holiday/weather/etc.
     # to generic "today" merely because the current sentence has no topic word.
-    sticky_topics = {"holiday", "weather", "hobby", "work", "shopping", "food"}
+    sticky_topics = {"holiday", "weather", "hobby", "work", "shopping", "food", "family", "friends", "housing", "weekend", "transport", "technology", "health"}
     topic_hint = vocabulary_topic or previous_topic
     if (
         not explicit_topic
