@@ -1436,7 +1436,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # A new learner question is not an answer to Nele's previous question.
     # Do not reinterpret it through stale weather/work/home context.
     contextual_reply = None
-    if not _is_explicit_learner_question(user_message):
+    early_content = _norm(user_message)
+    explicit_reading_content = bool(
+        re.search(r"\b(?:ich\s+lese|lese\s+ich)\b", early_content)
+        or re.search(r"\bkrimis?\b", early_content)
+    )
+    if not _is_explicit_learner_question(user_message) and not explicit_reading_content:
         contextual_reply = _short_answer_followup(
             user_message,
             free.get("last_question", ""),
@@ -1828,6 +1833,39 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         response_understanding=response_understanding,
     )
     state["turn_plan_v1"] = turn_plan
+
+    # Keep dependent answers inside an active reading subtopic. A learner
+    # saying "oft am Abend" after a Krimi/reading question is still talking
+    # about reading, not inviting a generic hobby rotation to music.
+    reading_active = (
+        memory.get("reading_kind") == "Krimis"
+        or (state.get("conversation_state_v2") or {}).get("subtopic") == "reading"
+    )
+    reading_low = _norm(user_message).strip(" ?!.,")
+    if reading_active and (
+        re.search(r"\b(?:oft|manchmal|selten)\b", reading_low)
+        or re.search(r"\b(?:am abend|abends|am wochenende)\b", reading_low)
+    ):
+        reading_reply = "Liest du Krimis lieber am Abend oder am Wochenende?"
+        _remember_question(free, reading_reply)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        free["last_topic"] = "hobby"
+        conversation_state = sync_conversation_state(
+            state, topic="hobby", last_question=free.get("last_question", reading_reply), level=level
+        )
+        topic_manager = update_topic_manager(
+            state, topic="hobby", source="active_reading_subtopic", subtopic="reading"
+        )
+        return reading_reply, {
+            "conversation_mode": "free",
+            "topic": "hobby",
+            "conversation_facts": dict(memory),
+            "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
+            "response_understanding": response_understanding,
+            "global_conversation_guard": {"version": 2, "blocked": False, "reason": "active_reading_subtopic"},
+        }
 
     # Priority -1: preserve a specific active yes/no subthread before the
     # broad social/work router sees the same short answer. This prevents a
