@@ -1335,6 +1335,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "hobby": "Ich spreche gern mit dir. Was machst du gern in deiner Freizeit?",
             "work": "Ich bin deine Deutschtrainerin. Was machst du bei der Arbeit?",
             "shopping": "Ich kaufe nicht wirklich ein. Was kaufst du gern?",
+            "food": "Ich esse nicht wirklich, aber ich spreche gern mit dir über Essen. Was kochst du noch gern?",
         }
         reply = topic_answers.get(active_topic, "Ich bin gern hier und spreche mit dir. Und was machst du gern?")
         _remember_question(free, reply)
