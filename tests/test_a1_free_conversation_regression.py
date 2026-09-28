@@ -1539,7 +1539,7 @@ class GeneratedTests(unittest.TestCase):
         recorded = record_orchestration(state, result)
         self.assertEqual(recorded["version"], 3)
         self.assertEqual(state["turn_plan_v1"]["topic"], "weather")
-        self.assertEqual(state["conversation_orchestrator_v1"]["version"], 2)
+        self.assertEqual(state["conversation_orchestrator_v1"]["version"], 3)
         self.assertEqual(state["conversation_orchestrator_v2"]["version"], 2)
 
     def test_orchestrator_v2_turn_plan_blocks_topic_change_during_simplify(self):
