@@ -848,9 +848,6 @@ def _model_sentence_from_turn(user_message, topic, subtopic=None):
     low = _norm(raw)
     if not raw:
         return None
-    perfect = _perfect_sentence(low)
-    if perfect:
-        return perfect
     if re.fullmatch(r"(?:pizza|brot|salat|nudeln|reis|suppe|fleisch|gemüse|gemuese)", low):
         food = "Gemüse" if low == "gemuese" else raw.capitalize()
         return f"Ich esse gern {food}."
