@@ -1964,12 +1964,15 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     guard = select_question(state, question, branch_alternatives)
     question = guard.get("selected") or question
 
-    # Final safety fallback if every topic alternative has already appeared.
-    recent_norm = {_norm(q).strip(" ?!.") for q in free.get("recent_questions", [])[-8:]}
-    if _norm(question).strip(" ?!.") in recent_norm:
-        question = _generic_followup("today", free, support, independent, level)
-        if question == last_question:
-            question = _not_recent(free, FALLBACKS["today"])[0]
+    # Final safety fallback: never reopen a question merely because it fell
+    # outside the short recent window. The session-wide normalized `asked`
+    # history is authoritative; if every safe question is exhausted, use an
+    # open continuation instead of repeating an old fallback.
+    asked_keys = set(free.get("asked", []))
+    if _question_key(question) in asked_keys:
+        question = _generic_followup(topic, free, support, independent, level)
+        if _question_key(question) in asked_keys:
+            question = "Erzähl mir noch etwas darüber."
 
     question_support = None
     action_question = question
