@@ -4,7 +4,19 @@ Defines and validates the ownership/precedence contract between Nele's
 conversation engines. It does not replace engines or generate language.
 """
 
-ORCHESTRATOR_VERSION = 2
+ORCHESTRATOR_VERSION = 3
+
+# High-level Conversation Engine contract. The detailed PIPELINE below keeps
+# the existing engines visible, while this sequence makes the architectural
+# ownership explicit and testable.
+CONVERSATION_STAGES = [
+    "UNDERSTAND",
+    "CONTEXT",
+    "RETRIEVE",
+    "DECIDE",
+    "RESPOND",
+    "LEARN",
+]
 
 PIPELINE = [
     "learning_outcome",
@@ -91,6 +103,7 @@ def build_orchestration_contract(*, teacher_policy=None, struggle=False,
     ))
     return {
         "version": ORCHESTRATOR_VERSION,
+        "conversation_stages": list(CONVERSATION_STAGES),
         "pipeline": list(PIPELINE),
         "turn_plan": plan,
         "action": plan["action"],
