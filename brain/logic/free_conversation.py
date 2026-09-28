@@ -706,6 +706,22 @@ def _is_explicit_learner_question(text):
     return low.startswith(starts)
 
 
+PERFECT_FORMS = {
+    "lesen": ("habe", "gelesen"),
+    "spielen": ("habe", "gespielt"),
+    "arbeiten": ("habe", "gearbeitet"),
+    "kochen": ("habe", "gekocht"),
+    "gehen": ("bin", "gegangen"),
+    "fahren": ("bin", "gefahren"),
+}
+
+def _perfect_sentence(verb):
+    form = PERFECT_FORMS.get(_norm(verb))
+    if not form:
+        return None
+    auxiliary, participle = form
+    return f"Ich {auxiliary} gestern {participle}."
+
 def _short_answer_followup(text, last_question, memory):
     """Interpret a short A1 answer through the question Nele asked before."""
     raw = str(text or "").strip()
@@ -714,6 +730,22 @@ def _short_answer_followup(text, last_question, memory):
 
     if not low or len(_words(low)) > 5:
         return None
+
+    # Yesterday context controls tense for short verb answers. Keep the thread
+    # alive instead of converting "lesen" into the timeless "Ich lese gern".
+    if "gestern" in question or "hast du" in question and "gemacht" in question:
+        model = _perfect_sentence(low)
+        if model:
+            memory["yesterday_activity"] = low
+            memory.setdefault("filled_slots", {})["yesterday_activity"] = low
+            if low == "lesen":
+                return f"Du kannst sagen: „{model}“ Was hast du gelesen?"
+            return f"Du kannst sagen: „{model}“ Was hast du danach gemacht?"
+        if re.match(r"^ich\s+(?:habe|bin)\b.+\b(?:gelesen|gespielt|gearbeitet|gekocht|gegangen|gefahren)\b", low):
+            memory["yesterday_sentence"] = raw
+            if "gelesen" in low:
+                return "Was hast du gelesen?"
+            return "Was hast du danach gemacht?"
 
     # Work start time: acknowledge the learner's short time answer and keep
     # the work thread. A bare number is meaningful because of the last question.
