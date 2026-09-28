@@ -1419,6 +1419,13 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(result["reply"], reply)
 
 
+    def test_conversation_engine_has_six_stage_contract(self):
+        from brain.logic.conversation_orchestrator import CONVERSATION_STAGES
+        self.assertEqual(
+            CONVERSATION_STAGES,
+            ["UNDERSTAND", "CONTEXT", "RETRIEVE", "DECIDE", "RESPOND", "LEARN"],
+        )
+
     def test_orchestrator_pipeline_has_explicit_order(self):
         from brain.logic.conversation_orchestrator import PIPELINE
         self.assertLess(PIPELINE.index("response_understanding"), PIPELINE.index("error_engine"))
