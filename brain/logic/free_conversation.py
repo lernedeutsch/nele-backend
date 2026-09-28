@@ -157,6 +157,10 @@ def _extract_facts(text):
         facts["topic"] = "holiday"
     elif "gestern" in low:
         facts["topic"] = "yesterday"
+    elif re.search(r"\\bich\\s+komme\\s+aus\\b|\\bich\\s+wohne\\s+in\\b", low):
+        # Origin/residence is an explicit place branch and must expire stale
+        # sticky topics such as food.
+        facts["topic"] = "place"
     return facts
 
 def _error_and_recast(text):
@@ -845,6 +849,14 @@ def _short_answer_followup(text, last_question, memory):
             food = "Gemüse" if low == "gemuese" else raw.strip(" .?!").capitalize()
             memory["food"] = food
             return f"Du kannst sagen: „Ich esse gern {food}.“ Isst du das oft?"
+
+    # Hobby activity: a one-word answer such as "spazieren" already answers
+    # "Was machst du gern ...?". Move the thread forward instead of asking the
+    # same semantic question again.
+    if ("was machst du gern" in question or "freizeit" in question) and low in {"spazieren", "spazieren gehen"}:
+        memory["hobby_activity"] = "spazieren"
+        memory.setdefault("filled_slots", {})["hobby_activity"] = "spazieren"
+        return "Gehst du lieber allein oder mit jemandem spazieren?"
 
     # Company: "Mit wem ...?" / "allein oder mit jemandem?"
     if "mit wem" in question or "allein oder mit jemandem" in question:
@@ -1547,6 +1559,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         or any(x in low_message for x in ("speise", "gericht"))
     ):
         detected_topic = "food"
+    elif learner_question and (re.search(r"\\b(?:woher|wohnst|kommst)\\b", low_message) or "wo wohnst" in low_message):
+        detected_topic = "place"
     elif learner_question and any(x in low_message for x in ("wochenende", "freizeit", "hobby", "musik", "sport", "lesen", "buch")):
         detected_topic = "hobby"
     elif learner_question and any(x in low_message for x in ("heute abend", "heute noch", "machst du heute")):
