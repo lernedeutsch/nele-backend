@@ -69,6 +69,31 @@ FALLBACKS = {
     "health": ["Wie fühlst du dich heute körperlich?", "Machst du regelmäßig Sport für die Gesundheit?", "Warst du dieses Jahr schon beim Arzt?"],
 }
 
+TOPIC_TRANSITION_BRIDGES = {
+    "today": "Und jetzt zu deinem Tag:",
+    "place": "Und wo wir gerade über deinen Alltag sprechen:",
+    "shopping": "Noch etwas aus dem Alltag:",
+    "food": "Und noch etwas Alltägliches:",
+    "work": "Und wie ist es bei der Arbeit?",
+    "hobby": "Und nach dem Alltag etwas Schönes:",
+    "weather": "Und noch etwas von heute:",
+    "holiday": "Und wenn du frei hast:",
+    "yesterday": "Und noch kurz zu gestern:",
+    "family": "Und noch etwas Persönliches:",
+    "friends": "Und wie ist es mit deinen Freunden?",
+    "housing": "Und zu deinem Zuhause:",
+    "weekend": "Und wenn Wochenende ist:",
+    "transport": "Und unterwegs im Alltag:",
+    "technology": "Und im Alltag mit Technik:",
+    "health": "Und noch zu deinem Wohlbefinden:",
+}
+
+def _smooth_topic_transition(question, topic):
+    bridge = TOPIC_TRANSITION_BRIDGES.get(topic)
+    if not bridge or not question:
+        return question
+    return f"{bridge} {question}"
+
 YES = {"ja", "ja ja", "ja gern", "ja, gern", "klar", "genau"}
 NO = {"nein", "nein nein", "nein danke", "nein, danke"}
 NORMAL_SHORT = YES | NO | {
@@ -1941,6 +1966,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         personalized = None
     if not question:
         question = _generic_followup(topic, free, support, independent, level)
+
+    if topic_transition.get("transition"):
+        question = _smooth_topic_transition(question, topic)
 
     # Conversation Coherence Engine keeps the local thread and avoids loops.
     # Prefer alternatives from the active topic before falling back to today.
