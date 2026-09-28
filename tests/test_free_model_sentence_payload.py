@@ -20,7 +20,7 @@ class FreeModelSentencePayloadTests(unittest.TestCase):
         free = {}
         self.assertEqual(_model_sentence_from_knowledge("koche", "food", "A1.1", free), "Ich koche gern.")
         retrieve.assert_called_once()
-        self.assertNotIn("recent_knowledge", free)
+        self.assertEqual(free["recent_knowledge"], [])
         self.assertNotIn("knowledge_usage", free)
         self.assertEqual(free["_pending_knowledge_usage"]["item_id"], "cook")
         learned = _learn_pending_knowledge(free, {"action": "MODEL_SENTENCE"})
