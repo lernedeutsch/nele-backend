@@ -1580,7 +1580,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     # A yes/no answer cannot satisfy an open content question. Repair the
     # answer shape and stay on the same topic instead of jumping elsewhere.
-    answer_type_repair = _content_question_repair(user_message, free.get("last_question", ""))
+    active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
+    answer_type_repair = None
+    if not active_semantic_slot:
+        answer_type_repair = _content_question_repair(user_message, free.get("last_question", ""))
     if answer_type_repair:
         _remember_question(free, answer_type_repair)
         free["last_user_message"] = str(user_message or "").strip()
