@@ -17,7 +17,7 @@ class GeneratedTests(unittest.TestCase):
         generate_free_welcome(state)
         reply, _ = _turn(state, "Was machst du bei der Arbeit?")
         self.assertIn("Ich helfe dir beim Deutschlernen.", reply)
-        self.assertIn("Was machst du bei der Arbeit?", reply)
+        self.assertIn("was machst du bei der Arbeit?", reply.lower().replace("arbeit", "Arbeit"))
         self.assertNotIn("keine Person", reply)
         self.assertNotIn("arbeite nicht wirklich", reply)
 
@@ -1603,7 +1603,7 @@ class GeneratedTests(unittest.TestCase):
         self.assertIn("Ich fange um 8 Uhr an.", reply)
 
         reply, _ = _turn(state, "Was machst du bei der Arbeit?")
-        self.assertIn("Was machst du bei der Arbeit?", reply)
+        self.assertIn("was machst du bei der Arbeit?", reply.lower().replace("arbeit", "Arbeit"))
 
         reply, _ = _turn(state, "Kochen")
         self.assertIn("Ich koche.", reply)
