@@ -393,5 +393,19 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
             reply = turn(state, reciprocal)
             self.assertIn(expected, reply.lower(), question)
 
+
+    def test_und_du_answers_exact_active_semantic_question(self):
+        cases = (
+            ("Was liest du gern?", "Ich lese Krimis", "spannung", "freizeit"),
+            ("Welchen Sport machst du gern?", "Ich spiele Fußball", "sportpartner", "freizeit"),
+        )
+        for opener, answer, expected, forbidden in cases:
+            state = self.fresh_state()
+            turn(state, opener)
+            turn(state, answer)
+            reply = turn(state, "Und du?")
+            self.assertIn(expected, reply.lower(), opener)
+            self.assertNotIn(forbidden, reply.lower(), opener)
+
 if __name__ == "__main__":
     unittest.main()
