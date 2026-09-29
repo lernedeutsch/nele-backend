@@ -14,6 +14,12 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         generate_free_welcome(state)
         return state
 
+    def test_weather_question_stays_in_natural_tutor_conversation(self):
+        state = self.fresh_state()
+        reply = turn(state, "Wie ist das Wetter heute?")
+        self.assertEqual("Ich bin gespannt. Wie ist das Wetter bei dir?", reply)
+        self.assertNotIn("kein echtes Wetter", reply)
+
     def test_deutsch_lernen_does_not_repeat_already_answered_question(self):
         state = self.fresh_state()
         turn(state, "Was machst du heute Abend?")

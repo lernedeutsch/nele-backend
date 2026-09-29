@@ -530,7 +530,7 @@ def _social_a1_reply(text, free, state):
         "schneit es", "ist es bewölkt", "ist es bewoelkt"
     }
     if low.strip(" ?!.") in weather_questions:
-        return "Bei mir gibt es kein echtes Wetter. Wie ist das Wetter bei dir?"
+        return "Ich bin gespannt. Wie ist das Wetter bei dir?"
 
     if low.strip(" ?!.") in {
         "wie wetter heute", "wie ist wetter", "was ist das wetter",
