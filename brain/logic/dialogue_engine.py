@@ -182,6 +182,22 @@ def _router_tokens(text):
     return {token for token in _norm(text).split() if len(token) >= 3 and token not in _ROUTER_STOPWORDS}
 
 
+def _router_shared_tokens(left, right):
+    """Match content tokens while tolerating ordinary German compounds/endings."""
+    shared = set()
+    for left_token in left:
+        for right_token in right:
+            if left_token == right_token:
+                shared.add(left_token)
+                break
+            if min(len(left_token), len(right_token)) >= 5 and (
+                left_token in right_token or right_token in left_token
+            ):
+                shared.add(left_token)
+                break
+    return shared
+
+
 def _dialogue_router_score(message, dialogue):
     message_norm = _norm(message)
     if not message_norm or not isinstance(dialogue, dict):
@@ -200,7 +216,7 @@ def _dialogue_router_score(message, dialogue):
         prompt_tokens = _router_tokens(prompt)
         if not prompt_tokens:
             continue
-        shared_tokens = message_tokens & prompt_tokens
+        shared_tokens = _router_shared_tokens(message_tokens, prompt_tokens)
         # One generic shared word (for example "Wochenende") is not enough
         # evidence to start a scripted dialogue with a different intent.
         if len(shared_tokens) < 2:
@@ -212,7 +228,18 @@ def _dialogue_router_score(message, dialogue):
         best_overlap = max(best_overlap, overlap)
     metadata = " ".join(str(dialogue.get(key) or "") for key in ("title","topic","situation"))
     meta_tokens = _router_tokens(metadata)
-    meta_overlap = len(message_tokens & meta_tokens) / len(meta_tokens) if meta_tokens else 0.0
+    meta_shared = _router_shared_tokens(message_tokens, meta_tokens)
+    meta_overlap = len(meta_shared) / len(meta_tokens) if meta_tokens else 0.0
+    for trigger in dialogue.get("entry_triggers", []):
+        trigger_tokens = _router_tokens(trigger)
+        if not trigger_tokens:
+            continue
+        shared = _router_shared_tokens(message_tokens, trigger_tokens)
+        if len(shared) < 2:
+            continue
+        trigger_overlap = len(shared) / len(trigger_tokens)
+        trigger_coverage = len(shared) / max(1, len(message_tokens))
+        best = max(best, (0.72 * trigger_overlap) + (0.28 * trigger_coverage))
     best = max(best, 0.58 * meta_overlap)
     return best, best_overlap
 
@@ -222,7 +249,12 @@ def find_dialogue_for_message(message, level="A1", min_score=0.68):
         return None
     message_tokens = _router_tokens(message)
     candidates = []
-    for dialogue in get_active_dialogues(str(level or "A1").upper()):
+    requested_level = str(level or "A1").upper()
+    if requested_level in {"A1-A2", "A1/A2", "A1+A2"}:
+        dialogues = get_active_dialogues("A1") + get_active_dialogues("A2")
+    else:
+        dialogues = get_active_dialogues(requested_level)
+    for dialogue in dialogues:
         score, overlap = _dialogue_router_score(message, dialogue)
         # A partial prompt match is not enough to select a dialogue. Require
         # at least one content-bearing token from the dialogue metadata
@@ -231,7 +263,7 @@ def find_dialogue_for_message(message, level="A1", min_score=0.68):
         # while "Welche Musik hörst du gern?" still has the anchor "musik".
         metadata = " ".join(str(dialogue.get(key) or "") for key in ("title", "topic", "situation"))
         anchor_tokens = _router_tokens(metadata)
-        shared_anchors = message_tokens & anchor_tokens
+        shared_anchors = _router_shared_tokens(message_tokens, anchor_tokens)
         has_topic_anchor = bool(shared_anchors)
         # Prefer an explicit metadata/topic word over a coincidental prompt
         # match when neighbouring dialogues share the same sentence pattern.
@@ -256,7 +288,11 @@ def find_dialogue_for_message(message, level="A1", min_score=0.68):
             )
             or _norm(message) in entry_triggers
         )
-        if score >= float(min_score) and (exact_prompt_match or has_topic_anchor):
+        trigger_match = any(
+            len(_router_shared_tokens(message_tokens, _router_tokens(trigger))) >= 2
+            for trigger in dialogue.get("entry_triggers", [])
+        )
+        if score >= float(min_score) and (exact_prompt_match or has_topic_anchor or trigger_match):
             # Exact prompts are canonical triggers and outrank fuzzy matches.
             candidates.append((1 if exact_prompt_match else 0, anchor_specificity, score, overlap, dialogue))
     if not candidates:

@@ -1203,14 +1203,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         if may_route_dialogue:
             dialogue_candidate = find_dialogue_for_message(
                 raw_dialogue_message,
-                "A1",
+                "A1-A2",
             )
 
     if dialogue_candidate is not None:
         dialogue_reply = auto_start_dialogue_from_message(
             user_message,
             state,
-            level="A1",
+            level="A1-A2",
         )
         if dialogue_reply:
             state["dialogue_origin"] = "free"
