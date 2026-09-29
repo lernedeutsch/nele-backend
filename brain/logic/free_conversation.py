@@ -277,7 +277,7 @@ SUBTOPIC_QUESTIONS = {
     ],
     ("food", "essen"): [
         ("food", "Was isst du gern?"),
-        ("food_detail", "Wie isst du das gern?"),
+        ("food_detail", "Wie magst du das am liebsten?"),
         ("food_frequency", "Wie oft isst du das?"),
     ],
     ("personal", "birthday"): [
