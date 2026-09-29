@@ -421,10 +421,20 @@ def create_nele_reply(
             save_conversation_state(session_id)
             return answer, meta or {}
 
+        # Route course turns through the learner's actually selected lesson.
+        # The API stores this selection in student_progress; hard-coding A1/1 here
+        # made lesson-specific routers answer from Lektion 1 after selecting another lesson.
+        progress = state.get("student_progress") or {}
+        selected_level = str(progress.get("current_level") or "A1").strip().upper()
+        try:
+            selected_lesson = int(progress.get("current_lesson") or 1)
+        except (TypeError, ValueError):
+            selected_lesson = 1
+
         answer = generate_conversation_reply(
             user_message,
-            level="A1",
-            lesson=1,
+            level=selected_level,
+            lesson=selected_lesson,
             session_id=session_id,
         )
 
