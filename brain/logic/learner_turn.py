@@ -21,14 +21,15 @@ def question_slot(question):
         return "film_genre"
     if any(x in q for x in ("buch", "bücher", "buecher", "liest du", "lesen")):
         return "reading"
+    # Specific semantic domains must outrank broad interrogative words.
+    if "geburtstag" in q:
+        return "birthday"
     if q.startswith(("wann ", "um wie viel", "bis wann")):
         return "time"
     if q.startswith(("wo ", "woher ", "wohin ")):
         return "place"
     if "mit wem" in q or "mit jemandem" in q:
         return "person"
-    if "geburtstag" in q:
-        return "birthday"
     if any(x in q for x in ("musik", "hörst du", "hoerst du")):
         return "music_genre"
     if any(x in q for x in ("sport", "schwimmen", "fußball", "fussball")):
