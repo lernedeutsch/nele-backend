@@ -425,6 +425,8 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertTrue(answer_matches_step("6 7 8 9 10", numbers[1], {}))
         self.assertTrue(answer_matches_step("11 12 13 14 15", numbers[2], {}))
         self.assertTrue(answer_matches_step("16 17 18 19 20", numbers[3], {}))
+        self.assertEqual(numbers[0]["success"], "Sehr gut.")
+        self.assertFalse(numbers[1]["prompt"].startswith("Sehr gut."))
 
     def test_a1_lesson_2_teaches_source_page_topics(self):
         from brain.logic.lesson_loader import load_lesson_flow
