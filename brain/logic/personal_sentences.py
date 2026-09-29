@@ -28,7 +28,7 @@ PERSONAL_SENTENCES = [
         "text": "Arbeitest du heute?",
         "category": "arbeit",
         "aliases": ["arbeitest du heute"],
-        "reply": "Ja, heute habe ich einiges zu tun. Und du?",
+        "reply": "Ich helfe dir heute beim Deutschlernen. Und du, arbeitest du heute?",
         "practice_prompt": "Du möchtest jemanden fragen, ob er heute arbeitet. Was sagst du?",
     },
     {
@@ -36,7 +36,7 @@ PERSONAL_SENTENCES = [
         "text": "Arbeitest du am Sonntag?",
         "category": "arbeit",
         "aliases": ["arbeitest du am sonntag"],
-        "reply": "Nein, am Sonntag habe ich frei. Und du?",
+        "reply": "Ich kann dir auch am Sonntag beim Deutschlernen helfen. Und du, arbeitest du am Sonntag?",
         "practice_prompt": "Du möchtest jemanden fragen, ob er am Sonntag arbeitet. Was sagst du?",
     },
     {
@@ -44,7 +44,7 @@ PERSONAL_SENTENCES = [
         "text": "Wann hast du frei?",
         "category": "arbeit",
         "aliases": ["wann hast du frei", "wann hast du einen freien tag"],
-        "reply": "Am Sonntag habe ich meistens frei. Und du?",
+        "reply": "Ich bin für dein Deutschlernen da. Und wann hast du frei?",
         "practice_prompt": "Du möchtest jemanden fragen, wann er frei hat. Was sagst du?",
     },
     {
