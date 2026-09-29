@@ -259,6 +259,44 @@ def _remember_question(free, question):
         history.append(actual_question)
     del history[:-8]
 
+SUBTOPIC_QUESTIONS = {
+    ("hobby", "reading"): [
+        ("genre", "Was liest du gern?"),
+        ("detail", "Was gefällt dir daran?"),
+        ("frequency", "Liest du oft?"),
+    ],
+    ("hobby", "music"): [
+        ("genre", "Welche Musik hörst du gern?"),
+        ("artist", "Wer ist dein Lieblingssänger?"),
+        ("frequency", "Hörst du oft Musik?"),
+    ],
+    ("hobby", "sport"): [
+        ("kind", "Welchen Sport machst du gern?"),
+        ("detail", "Spielst du in einem Verein?"),
+        ("frequency", "Wie oft machst du das?"),
+    ],
+}
+
+
+def _subtopic_followup(topic, subtopic, free, memory):
+    """Continue an established semantic subtopic without keyword hardcoding."""
+    pool = SUBTOPIC_QUESTIONS.get((topic, subtopic))
+    if not pool:
+        return None
+    asked = {_norm(q).strip(" ?!.") for q in free.get("recent_questions", [])}
+    slots = memory.setdefault("subtopic_slots", {})
+    key = f"{topic}/{subtopic}"
+    filled = int(slots.get(key, 0) or 0)
+    for i, (_slot, question) in enumerate(pool):
+        if i < filled:
+            continue
+        if _norm(question).strip(" ?!.") in asked:
+            continue
+        slots[key] = i + 1
+        return question
+    return None
+
+
 def _not_recent(free, candidates):
     asked = set(free.get("asked", []))
     return [q for q in candidates if _question_key(q) not in asked]
@@ -1485,6 +1523,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
         level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
         previous_topic = free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic") or "today"
+
         # A dependent short answer inherits the active semantic topic.
         # The wording of the previous question may describe an activity such as
         # cooking without meaning "work"; lexical guesses must not override
@@ -1920,6 +1959,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # thread before the broad social A1 shortcut can turn it into a generic
     # "Machst du das oft?" response. Keep this narrow: only use content
     # followups that identify a concrete reading kind such as Krimis.
+    previous_subtopic = (
+        (state.get("topic_manager_v2") or {}).get("subtopic")
+        or (state.get("conversation_state_v2") or {}).get("subtopic")
+    )
     explicit_content_followup = _content_followup(user_message, facts, memory, free, level)
     if explicit_content_followup and memory.get("reading_kind") == "Krimis":
         _remember_question(free, explicit_content_followup)
@@ -1947,6 +1990,51 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "turn_plan": turn_plan,
             "response_understanding": response_understanding,
             "global_conversation_guard": {"version": 2, "blocked": False, "reason": "explicit_content_followup"},
+        }
+
+    # Generic subtopic safety net. Existing specific content routes above keep
+    # priority; this only preserves an already established subtopic when the
+    # current short/unexpected answer has no explicit new activity/topic.
+    subtopic_followup = None
+    if (
+        not explicit_content_followup
+        and previous_subtopic
+        and not facts.get("activity")
+        and topic_source != "explicit"
+    ):
+        subtopic_followup = _subtopic_followup(
+            topic, previous_subtopic, free, memory
+        )
+    if subtopic_followup:
+        _remember_question(free, subtopic_followup)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        free["last_topic"] = topic
+        conversation_state = sync_conversation_state(
+            state, topic=topic,
+            last_question=free.get("last_question", subtopic_followup),
+            level=level,
+        )
+        topic_manager = update_topic_manager(
+            state, topic=topic, source=topic_source, subtopic=previous_subtopic
+        )
+        return subtopic_followup, {
+            "conversation_mode": "free",
+            "support_level": support,
+            "topic": topic,
+            "independent_turns": independent,
+            "course_level": level,
+            "conversation_facts": dict(memory),
+            "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
+            "error_engine": error_result,
+            "teacher_engine": teacher_action,
+            "teacher_policy": teacher_policy,
+            "turn_plan": turn_plan,
+            "response_understanding": response_understanding,
+            "global_conversation_guard": {
+                "version": 2, "blocked": False, "reason": "active_subtopic"
+            },
         }
 
     # Priority 0: core A1 social language (greetings, wellbeing, introductions).
