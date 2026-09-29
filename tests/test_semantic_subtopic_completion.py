@@ -35,6 +35,13 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
         self.assertEqual(reply, "Mit wem machst du Sport?")
         self.assertNotIn("oft", reply.lower())
 
+    def test_explicit_topic_switch_still_beats_active_semantic_thread(self):
+        state = {}
+        turn(state, "Welchen Sport machst du gern?")
+        reply, meta = turn(state, "Heute regnet es")
+        self.assertEqual(meta["topic"], "weather")
+        self.assertNotEqual((state.get("conversation_state_v2") or {}).get("subtopic"), "sport")
+
     def test_sync_does_not_reopen_a_slot_that_was_just_answered(self):
         from brain.logic.conversation_state import apply_response_to_conversation_state, sync_conversation_state
         state = {
