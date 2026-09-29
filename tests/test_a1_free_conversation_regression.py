@@ -1772,3 +1772,14 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(slots.get("food"), "pizza")
         self.assertEqual(slots.get("food_detail"), "mit käse")
 
+
+    def test_completed_food_slots_do_not_reopen_food_preference(self):
+        state = {}
+        _turn(state, "Was isst du gern?")
+        _turn(state, "Pizza")
+        _turn(state, "Mit Käse")
+        reply, meta = _turn(state, "Am Wochenende")
+        self.assertEqual(meta["topic"], "food")
+        self.assertNotEqual(reply, "Was isst du gern?")
+        self.assertNotIn("was isst du gern", reply.lower())
+

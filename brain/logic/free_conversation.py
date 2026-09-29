@@ -1185,11 +1185,20 @@ def _content_followup(text, facts, memory, free, level):
 
     return None
 
-def _generic_followup(topic, free, support, independent, level):
+def _semantic_fallbacks(topic, state):
+    """Remove fallback questions whose semantic answer is already known."""
+    pool = list(FALLBACKS.get(topic, FALLBACKS["today"]))
+    slots = ((state.get("conversation_state_v2") or {}).get("semantic_slots") or {})
+    if topic == "food" and (slots.get("food") or slots.get("food_item")):
+        pool = [q for q in pool if _question_key(q) != _question_key("Was isst du gern?")]
+    return pool
+
+
+def _generic_followup(topic, free, support, independent, level, state=None):
     allowed = _allowed_skills(level)
     if topic == "yesterday" and "yesterday" not in allowed:
         topic = "today"
-    pool = _not_recent(free, FALLBACKS.get(topic, FALLBACKS["today"]))
+    pool = _not_recent(free, _semantic_fallbacks(topic, state or {}))
     filled = free.get("conversation_facts", {}).get("filled_slots", {})
     if topic == "work":
         if filled.get("work_start"):
@@ -2283,14 +2292,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     else:
         personalized = None
     if not question:
-        question = _generic_followup(topic, free, support, independent, level)
+        question = _generic_followup(topic, free, support, independent, level, state=state)
 
     if topic_transition.get("transition"):
         question = _smooth_topic_transition(question, topic)
 
     # Conversation Coherence Engine keeps the local thread and avoids loops.
     # Prefer alternatives from the active topic before falling back to today.
-    topic_alternatives = _not_recent(free, FALLBACKS.get(topic, FALLBACKS["today"]))
+    topic_alternatives = _not_recent(free, _semantic_fallbacks(topic, state))
     coherence = choose_coherent_question(
         question,
         topic=topic,
@@ -2305,7 +2314,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # conversational branch. Do not let a generic fallback pull the learner
     # back to an older topic such as "Arbeitest du heute?".
     branch_alternatives = _not_recent(
-        free, FALLBACKS.get(topic, FALLBACKS["today"])
+        free, _semantic_fallbacks(topic, state)
     )
     guard = select_question(state, question, branch_alternatives)
     question = guard.get("selected") or question
@@ -2316,7 +2325,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # open continuation instead of repeating an old fallback.
     asked_keys = set(free.get("asked", []))
     if _question_key(question) in asked_keys:
-        question = _generic_followup(topic, free, support, independent, level)
+        question = _generic_followup(topic, free, support, independent, level, state=state)
         if _question_key(question) in asked_keys:
             question = "Erzähl mir noch etwas darüber."
 
