@@ -179,6 +179,23 @@ class LearnerTurnPriorityTests(unittest.TestCase):
         self.assertEqual(meta["topic_manager"]["subtopic"], "work")
         self.assertIn("Bis wann arbeitest du", reply)
 
+    def test_work_place_compound_does_not_trigger_holiday_topic(self):
+        state = {
+            "free_conversation": {
+                "last_question": "Hörst du oft Musik?",
+                "last_topic": "hobby",
+                "turn_count": 4,
+                "conversation_facts": {},
+            },
+            "student_progress": {"current_level": "A1.1"},
+        }
+        generate_free_conversation_reply("Und Arbeit?", state)
+        generate_free_conversation_reply("Zimmer vorbereiten", state)
+        reply, meta = generate_free_conversation_reply("In einer Jugendherberge", state)
+        self.assertEqual(meta["topic_manager"]["topic"], "work")
+        self.assertEqual(meta["topic_manager"]["subtopic"], "work")
+        self.assertIn("Mit wem arbeitest du", reply)
+
     def test_valid_work_sentence_is_not_repeated_as_a_correction(self):
         state = {
             "free_conversation": {
