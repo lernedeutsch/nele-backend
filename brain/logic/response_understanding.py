@@ -163,5 +163,6 @@ def understand_response(text, *, conversation_state=None, vocabulary_context=Non
         return result
 
     if low:
-        result.update(confidence="high", meaning=low, canonical=low)
+        semantic_value = turn.get("content") if turn.get("intent") == "semantic_statement" else low
+        result.update(confidence="high", meaning=semantic_value, canonical=semantic_value)
     return result

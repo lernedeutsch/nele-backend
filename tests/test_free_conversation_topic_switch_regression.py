@@ -339,5 +339,39 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
             reply = turn(state, answer)
             self.assertIn(expected, reply)
 
+
+    def test_full_sentence_semantic_statements_fill_domain_slots(self):
+        cases = (
+            ("Ich lese Krimis", "reading_genre", "krimis", "hobby", "reading"),
+            ("Ich höre gern Popmusik", "music_genre", "popmusik", "hobby", "music"),
+            ("Ich spiele Fußball", "sport_kind", "fußball", "hobby", "sport"),
+            ("Ich esse gern Pizza", "food_item", "pizza", "food", "essen"),
+        )
+        for statement, slot, value, topic, subtopic in cases:
+            state = self.fresh_state()
+            turn(state, "Was machst du heute?")
+            reply = turn(state, statement)
+            snap = state.get("conversation_state_v2") or {}
+            self.assertEqual(snap.get("semantic_slots", {}).get(slot), value, statement)
+            self.assertEqual(snap.get("topic"), topic, statement)
+            self.assertEqual(snap.get("subtopic"), subtopic, statement)
+            if slot == "reading_genre":
+                self.assertNotIn("was liest du gern", reply.lower(), statement)
+            elif slot == "music_genre":
+                self.assertNotIn("welche musik hörst du gern", reply.lower(), statement)
+            elif slot == "sport_kind":
+                self.assertNotIn("was machst du gern in deiner freizeit", reply.lower(), statement)
+            elif slot == "food_item":
+                self.assertNotIn("was machst du sonst noch gern", reply.lower(), statement)
+
+    def test_full_sentence_sport_keeps_companion_answer_in_sport(self):
+        state = self.fresh_state()
+        turn(state, "Was machst du gern?")
+        reply = turn(state, "Ich spiele Fußball")
+        self.assertIn("mit wem", reply.lower())
+        reply = turn(state, "Mit Freunden")
+        self.assertIn("oft", reply.lower())
+        self.assertNotIn("musik", reply.lower())
+
 if __name__ == "__main__":
     unittest.main()
