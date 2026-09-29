@@ -25,6 +25,16 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
         self.assertNotEqual(reply, "Was machst du gern in deiner Freizeit?")
         self.assertIn("Sport", reply)
 
+    def test_sport_kind_advances_to_companion_not_legacy_frequency(self):
+        state = {}
+        turn(state, "Welchen Sport machst du gern?")
+        reply, meta = turn(state, "Fußball")
+        semantic = state.get("conversation_state_v2") or {}
+        self.assertEqual((semantic.get("semantic_slots") or {}).get("sport_kind"), "fußball")
+        self.assertEqual(semantic.get("active_slot"), "sport_companion")
+        self.assertEqual(reply, "Mit wem machst du Sport?")
+        self.assertNotIn("oft", reply.lower())
+
     def test_food_completion_stays_related(self):
         state = {}
         turn(state, "Was isst du gern?")
