@@ -319,5 +319,25 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertEqual(meta.get("topic"), "hobby")
         self.assertEqual((state.get("topic_manager_v2") or {}).get("subtopic"), "reading")
 
+
+    def test_work_statement_with_today_and_end_time_does_not_ask_if_learner_works_today(self):
+        state = self.fresh_state()
+        turn(state, "Was isst du gern?")
+        turn(state, "Pizza")
+        reply = turn(state, "Ich arbeite heute bis 15 Uhr")
+        self.assertNotEqual(reply, "Arbeitest du heute?")
+        self.assertIn("fängst du", reply)
+        facts = state.get("a1_everyday_facts") or {}
+        self.assertTrue(facts.get("works_today"))
+        self.assertEqual(facts.get("work_end"), "15")
+
+    def test_contextual_company_echo_preserves_internal_capitalization(self):
+        for answer, expected in (("Mit meinem Mann", "Mit meinem Mann"), ("Mit meiner Familie", "Mit meiner Familie")):
+            state = self.fresh_state()
+            turn(state, "Was machst du gern am Wochenende?")
+            turn(state, "spazieren")
+            reply = turn(state, answer)
+            self.assertIn(expected, reply)
+
 if __name__ == "__main__":
     unittest.main()

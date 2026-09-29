@@ -191,7 +191,19 @@ def a1_everyday_reply(text, last_question, state=None):
     ):
         return "Hast du Geschwister?"
 
-    if re.search(r"\bich arbeite\b", low):
+    work_statement = re.search(r"\bich arbeite\b", low)
+    if work_statement:
+        # The learner's statement itself owns the work facts. Do not ask a
+        # yes/no question whose answer is already explicit in the same turn.
+        works_today = bool(re.search(r"\bheute\b", low))
+        end_time = re.search(r"\bbis\s+((?:[01]?\d|2[0-3])(?:(?::|\.)[0-5]\d)?)(?:\s*uhr)?\b", low)
+        if works_today:
+            facts["works_today"] = True
+        if end_time:
+            facts["work_end"] = end_time.group(1)
+            return "Wann fängst du heute an?"
+        if works_today:
+            return "Wann fängst du heute an?"
         return "Arbeitest du heute?"
     if re.search(r"\bich trinke morgens\b", low):
         return "Was isst du zum Frühstück?"

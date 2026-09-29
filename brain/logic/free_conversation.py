@@ -1037,7 +1037,12 @@ def _short_answer_followup(text, last_question, memory):
     if "mit wem" in question or "allein oder mit jemandem" in question:
         if low in {"mit meinem mann", "mit meiner frau", "mit freunden", "mit meiner familie"}:
             memory["activity_company"] = raw.strip(" .?!")
-            return f"Schön! {raw.strip(' .?!').capitalize()}. Macht ihr das oft zusammen?"
+            # Preserve the learner's original internal capitalization (Mann,
+            # Familie, names) instead of str.capitalize(), which lowercases
+            # every character after the first one.
+            echoed = raw.strip(" .?!")
+            echoed = echoed[:1].upper() + echoed[1:] if echoed else echoed
+            return f"Schön! {echoed}. Macht ihr das oft zusammen?"
 
     return None
 
