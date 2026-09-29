@@ -1224,6 +1224,28 @@ def generate_free_welcome(state, session_id=None):
     reset_conversation_state(state, opener=OPENERS[index], level=level)
     return OPENERS[index]
 
+def _should_activate_dialogue_in_free(dialogue):
+    """Only situational role-play may take ownership of Frei sprechen.
+
+    Dialogue matches about ordinary conversation topics remain knowledge:
+    Conversation Engine keeps ownership and may use the dialogue content later.
+    """
+    if not isinstance(dialogue, dict):
+        return False
+    situation = _norm(dialogue.get("situation", ""))
+    practice_cues = (
+        "nach dem weg",
+        "am bahnhof",
+        "bei der post",
+        "im bus",
+        "fahrkarte",
+        "zugverbindung",
+        "einladung",
+        "paket",
+    )
+    return any(cue in situation for cue in practice_cues)
+
+
 def generate_free_conversation_reply(user_message, state, session_id=None):
     free = state.setdefault("free_conversation", {})
 
@@ -1260,7 +1282,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "A1-A2",
             )
 
-    if dialogue_candidate is not None:
+    if dialogue_candidate is not None and _should_activate_dialogue_in_free(dialogue_candidate):
         dialogue_reply = auto_start_dialogue_from_message(
             user_message,
             state,
