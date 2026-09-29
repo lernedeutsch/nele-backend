@@ -675,7 +675,7 @@ def _social_a1_reply(text, free, state):
     # a complete A1 sentence instead of abruptly changing the subject.
     if any(x in last for x in ("was machst du gerade", "was machst du heute", "wie ist dein tag", "viel zu tun")):
         if low in {"lernen", "deutsch lernen"}:
-            return "Du kannst sagen: „Ich lerne gerade Deutsch.“ Was lernst du gerade?"
+            return "Du kannst sagen: „Ich lerne gerade Deutsch.“ Lernst du jeden Tag?"
         if low in {"arbeiten", "arbeit"}:
             return "Du arbeitest heute. Wann fängst du an?"
         if low in {"einkaufen", "shoppen"}:
