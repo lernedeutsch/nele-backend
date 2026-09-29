@@ -1224,6 +1224,39 @@ def generate_free_welcome(state, session_id=None):
     reset_conversation_state(state, opener=OPENERS[index], level=level)
     return OPENERS[index]
 
+def _should_activate_dialogue_in_free(dialogue):
+    """Return True only when a dialogue represents a concrete role-play.
+
+    Active dialogues contain both conversational knowledge (birthday, hobbies,
+    music, sport, travel preferences) and transactional/situational practice
+    (directions, invitations, station, post, bus, package).  A knowledge match
+    must not by itself transfer ownership away from Conversation Engine.
+    """
+    if not isinstance(dialogue, dict):
+        return False
+
+    topic = _norm(dialogue.get("topic", ""))
+    section = _norm(dialogue.get("section", ""))
+    situation = _norm(dialogue.get("situation", ""))
+    text = " ".join((topic, section, situation))
+
+    # Concrete role-play families. Keep this semantic and data-driven from
+    # dialogue metadata; do not key it to individual learner answers.
+    roleplay_patterns = (
+        r"\bweg(?:beschreibung)?\b",
+        r"\bbahnhof\b",
+        r"\bpost\b",
+        r"\bbus\b",
+        r"\bfahrkarte\b",
+        r"\bzugverbindung\b",
+        r"\beinladung\b",
+        r"\beinladen\b",
+        r"\babsagen\b",
+        r"\bpaket\b",
+    )
+    return any(re.search(pattern, text) for pattern in roleplay_patterns)
+
+
 def generate_free_conversation_reply(user_message, state, session_id=None):
     free = state.setdefault("free_conversation", {})
 
@@ -1260,7 +1293,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "A1-A2",
             )
 
-    if dialogue_candidate is not None:
+    if dialogue_candidate is not None and _should_activate_dialogue_in_free(dialogue_candidate):
         dialogue_reply = auto_start_dialogue_from_message(
             user_message,
             state,
@@ -1412,12 +1445,19 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # This prevents stale generic chains from stealing questions such as
     # "Wie komme ich zum Bahnhof?" after a travel topic switch.
     if not is_dialogue_active(state) and _is_explicit_learner_question(user_message):
-        dialogue_reply = auto_start_dialogue_from_message(
+        late_dialogue_candidate = find_dialogue_for_message(
             user_message,
-            state,
-            level="A1",
+            "A1",
             min_score=0.92,
         )
+        dialogue_reply = None
+        if _should_activate_dialogue_in_free(late_dialogue_candidate):
+            dialogue_reply = auto_start_dialogue_from_message(
+                user_message,
+                state,
+                level="A1",
+                min_score=0.92,
+            )
         if dialogue_reply:
             state["dialogue_origin"] = "free"
             _remember_question(free, dialogue_reply)
@@ -1446,7 +1486,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "food": "food",
                 "film_genre": "hobby",
                 "reading": "hobby",
+                "music_genre": "hobby",
+                "sport_kind": "hobby",
                 "activity": "hobby",
+                "birthday": "personal",
                 "work": "work",
             }.get(learner_turn.get("slot"))
             topic = slot_topic or ("today" if "heute" in _norm(user_message) else (free.get("last_topic") or "today"))

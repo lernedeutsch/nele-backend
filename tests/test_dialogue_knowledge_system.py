@@ -181,7 +181,7 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertTrue(state.get("dialogue_active"))
         self.assertIn("Paket", reply)
 
-    def test_free_conversation_starts_and_keeps_selected_dialogue(self):
+    def test_free_conversation_keeps_birthday_as_conversation_not_drill(self):
         from brain.logic.free_conversation import generate_free_conversation_reply
 
         state = {
@@ -192,18 +192,48 @@ class GoldenDialogueSystemTests(unittest.TestCase):
             "Wann hast du Geburtstag?",
             state,
         )
-        self.assertTrue(meta.get("dialogue_knowledge"))
-        self.assertEqual(state.get("dialogue_id"), "a1-l11-geburtstag")
-        self.assertTrue(state.get("dialogue_active"))
-        self.assertIn("Geburtstag", reply)
 
-        reply, meta = generate_free_conversation_reply(
-            "Am vierzehnten Februar.",
-            state,
-        )
-        self.assertTrue(meta.get("dialogue_knowledge"))
-        self.assertTrue(state.get("dialogue_active"))
-        self.assertIn("Und du?", reply)
+        self.assertTrue(reply)
+        self.assertFalse(state.get("dialogue_active", False))
+        self.assertIsNone(state.get("dialogue_id"))
+        self.assertFalse(meta.get("dialogue_knowledge", False))
+        self.assertIn("Geburtstag", reply)
+        self.assertEqual(meta.get("learner_turn", {}).get("slot"), "birthday")
+        self.assertEqual(meta.get("topic"), "personal")
+
+    def test_free_music_and_sport_questions_use_conversation_engine(self):
+        from brain.logic.free_conversation import generate_free_conversation_reply
+
+        cases = [
+            ("Welche Musik hörst du gern?", "music_genre"),
+            ("Welchen Sport machst du gern?", "sport_kind"),
+        ]
+        for message, expected_slot in cases:
+            with self.subTest(message=message):
+                state = {
+                    "student_progress": {"current_level": "A1.1"},
+                    "conversation_mode": "free",
+                }
+                reply, meta = generate_free_conversation_reply(message, state)
+                self.assertTrue(reply)
+                self.assertFalse(state.get("dialogue_active", False))
+                self.assertEqual(meta.get("learner_turn", {}).get("slot"), expected_slot)
+                self.assertEqual(meta.get("topic"), "hobby")
+
+    def test_inflected_welcher_questions_are_learner_questions(self):
+        from brain.logic.learner_turn import analyze_learner_turn, is_learner_question
+
+        cases = [
+            ("Welchen Sport machst du gern?", "sport_kind"),
+            ("Welche Musik hörst du gern?", "music_genre"),
+        ]
+        for message, slot in cases:
+            with self.subTest(message=message):
+                self.assertTrue(is_learner_question(message))
+                turn = analyze_learner_turn(message)
+                self.assertEqual(turn.get("intent"), "question_to_nele")
+                self.assertEqual(turn.get("slot"), slot)
+
 
     def test_active_dialogue_switches_cleanly_to_explicit_new_topic(self):
         state = {}
@@ -280,25 +310,46 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertFalse(state["dialogue_active"])
         self.assertIn("geschafft", reply)
 
-    def test_free_conversation_can_start_dialogue_after_earlier_free_turns(self):
+    def test_free_conversation_keeps_ownership_for_ordinary_dialogue_topics(self):
+        from brain.logic.free_conversation import generate_free_conversation_reply
+
+        cases = [
+            "Welche Musik hörst du gern?",
+            "Welchen Sport machst du gern?",
+            "Was machst du gern in deiner Freizeit?",
+        ]
+        for message in cases:
+            with self.subTest(message=message):
+                state = {
+                    "student_progress": {"current_level": "A1.1"},
+                    "conversation_mode": "free",
+                }
+                generate_free_conversation_reply("Hallo Nele!", state)
+                generate_free_conversation_reply("gut", state)
+
+                reply, meta = generate_free_conversation_reply(message, state)
+
+                self.assertTrue(reply)
+                self.assertFalse(state.get("dialogue_active", False))
+                self.assertIsNone(state.get("dialogue_id"))
+                self.assertFalse(meta.get("dialogue_knowledge", False))
+
+    def test_free_conversation_still_activates_situational_dialogue(self):
         from brain.logic.free_conversation import generate_free_conversation_reply
 
         state = {
             "student_progress": {"current_level": "A1.1"},
             "conversation_mode": "free",
         }
-        generate_free_conversation_reply("Hallo Nele!", state)
-        generate_free_conversation_reply("gut", state)
-
         reply, meta = generate_free_conversation_reply(
-            "Welche Musik hörst du gern?",
+            "Wie komme ich zum Bahnhof?",
             state,
         )
 
         self.assertTrue(meta.get("dialogue_knowledge"))
-        self.assertEqual(state.get("dialogue_id"), "a1-l14-musik")
+        self.assertEqual(state.get("dialogue_id"), "a1-l15-weg-bahnhof")
         self.assertTrue(state.get("dialogue_active"))
-        self.assertIn("Musik", reply)
+        self.assertIn("Bahnhof", reply)
 
 
 if __name__ == "__main__":
