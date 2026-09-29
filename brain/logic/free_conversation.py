@@ -1524,7 +1524,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     # "Und du?" is a learner-led hand-back, not permission to rotate to an
     # unrelated fallback topic. Answer within the active topic and keep it.
-    if _norm(user_message).strip(" ?!.,") in {"und du", "und sie"}:
+    if _norm(user_message).strip(" ?!.,") in {"und du", "und sie", "du", "und bei dir", "bei dir"}:
         active_topic = free.get("last_topic") or "today"
         topic_answers = {
             "holiday": "Ich reise nicht wirklich, aber ich spreche gern mit dir über Reisen. Wie reist du am liebsten?",
@@ -1534,7 +1534,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "shopping": "Ich kaufe nicht wirklich ein. Was kaufst du gern?",
             "food": "Ich esse nicht wirklich, aber ich spreche gern mit dir über Essen. Was kochst du noch gern?",
         }
-        reply = topic_answers.get(active_topic, "Ich bin gern hier und spreche mit dir. Und was machst du gern?")
+        previous_question = free.get("last_question", "")
+        reply = reciprocal_nele_answer(user_message, previous_question) or topic_answers.get(active_topic, "Ich bin gern hier und spreche mit dir. Und was machst du gern?")
         _remember_question(free, reply)
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
@@ -1542,6 +1543,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "conversation_mode": "free",
             "topic": active_topic,
             "topic_handoff": True,
+            "reciprocal_question": bool(reciprocal_nele_answer(user_message, previous_question)),
+            "reciprocal_to": previous_question,
         }
 
     # Priority -2.4: a clear learner-led question may activate Dialogue
@@ -1630,14 +1633,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "topic_manager": topic_manager,
                 "answered_learner_question": True,
             }
-
-    reciprocal_reply = reciprocal_nele_answer(user_message, free.get("last_question", ""))
-    if reciprocal_reply:
-        previous_question = free.get("last_question", "")
-        record_answer(state, user_message, previous_question)
-        free["last_user_message"] = str(user_message or "").strip()
-        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
-        return reciprocal_reply, {"conversation_mode": "free", "topic": free.get("last_topic"), "reciprocal_question": True, "reciprocal_to": previous_question}
 
     # A yes/no answer cannot satisfy an open content question. Repair the
     # answer shape and stay on the same topic instead of jumping elsewhere.
