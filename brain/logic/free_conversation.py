@@ -175,7 +175,7 @@ def _extract_facts(text):
 
     if any(x in low for x in ("arbeit", "job", "hotel")):
         facts["topic"] = "work"
-    elif any(x in low for x in ("hobby", "freizeit", "musik", "sport", "lesen", "buch")):
+    elif any(x in low for x in ("hobby", "freizeit", "musik", "sport", "lesen", "buch", "krimi")):
         facts["topic"] = "hobby"
     elif any(x in low for x in ("wetter", "sonne", "regen", "kalt", "warm")):
         facts["topic"] = "weather"
@@ -1965,6 +1965,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
     explicit_content_followup = _content_followup(user_message, facts, memory, free, level)
     if explicit_content_followup and memory.get("reading_kind") == "Krimis":
+        memory.setdefault("activity", "reading")
         _remember_question(free, explicit_content_followup)
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
