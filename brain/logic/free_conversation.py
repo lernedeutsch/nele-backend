@@ -1355,6 +1355,7 @@ def _should_activate_dialogue_in_free(dialogue):
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
     free = state.setdefault("free_conversation", {})
+    semantic_statement = semantic_statement_context(user_message)
 
     # A dialogue may continue in free mode only when free mode started it.
     # This also protects reload/direct-entry paths that skip generate_free_welcome().
@@ -1905,7 +1906,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             support = max(0, support - 1)
 
     facts = _extract_facts(user_message)
-    semantic_statement = semantic_statement_context(user_message)
     if semantic_statement:
         facts["topic"] = semantic_statement["topic"]
         facts["activity"] = semantic_statement["subtopic"]
