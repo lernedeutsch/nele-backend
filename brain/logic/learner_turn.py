@@ -103,7 +103,7 @@ def semantic_statement_context(text):
         (r"^ich\s+lese(?:\s+gern)?\s+(.+)$", "reading_genre", "hobby", "reading"),
         (r"^ich\s+(?:höre|hoere|hore)\s+(?:gern\s+)?(.+)$", "music_genre", "hobby", "music"),
         (r"^ich\s+(?:spiele|mache)\s+(?:gern\s+)?(.+)$", "sport_kind", "hobby", "sport"),
-        (r"^ich\s+(?:esse|mag)\s+(?:gern\s+)?(.+)$", "food_item", "food", "essen"),
+        (r"^ich\s+(?:esse|mag)\s+(?:gern\s+)?(.+)$", "food", "food", "essen"),
     )
     for pattern, slot, topic, subtopic in patterns:
         match = re.match(pattern, low, re.I)

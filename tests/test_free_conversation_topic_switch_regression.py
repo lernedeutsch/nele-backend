@@ -345,7 +345,7 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
             ("Ich lese Krimis", "reading_genre", "krimis", "hobby", "reading"),
             ("Ich höre gern Popmusik", "music_genre", "popmusik", "hobby", "music"),
             ("Ich spiele Fußball", "sport_kind", "fußball", "hobby", "sport"),
-            ("Ich esse gern Pizza", "food_item", "pizza", "food", "essen"),
+            ("Ich esse gern Pizza", "food", "pizza", "food", "essen"),
         )
         for statement, slot, value, topic, subtopic in cases:
             state = self.fresh_state()
