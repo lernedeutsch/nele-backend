@@ -5,7 +5,7 @@ fields remain available while conversation_state_v2 becomes the canonical,
 structured snapshot other engines can consume.
 """
 
-STATE_VERSION = 3
+STATE_VERSION = 2
 
 SLOT_CONTEXT = {
     "music_genre": ("hobby", "music"),
@@ -17,6 +17,7 @@ SLOT_CONTEXT = {
     "reading_genre": ("hobby", "reading"),
     "reading_detail": ("hobby", "reading"),
     "reading_frequency": ("hobby", "reading"),
+    "food": ("food", "essen"),
     "food_item": ("food", "essen"),
     "food_detail": ("food", "essen"),
     "food_frequency": ("food", "essen"),
