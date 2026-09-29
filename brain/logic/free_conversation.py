@@ -1523,10 +1523,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
         level = str(state.setdefault("student_progress", {}).get("current_level", "A1.1") or "A1.1")
         previous_topic = free.get("last_topic") or (state.get("topic_manager_v2") or {}).get("topic") or "today"
-        previous_subtopic = (
-            (state.get("topic_manager_v2") or {}).get("subtopic")
-            or (state.get("conversation_state_v2") or {}).get("subtopic")
-        )
+
         # A dependent short answer inherits the active semantic topic.
         # The wording of the previous question may describe an activity such as
         # cooking without meaning "work"; lexical guesses must not override
@@ -1962,6 +1959,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # thread before the broad social A1 shortcut can turn it into a generic
     # "Machst du das oft?" response. Keep this narrow: only use content
     # followups that identify a concrete reading kind such as Krimis.
+    previous_subtopic = (
+        (state.get("topic_manager_v2") or {}).get("subtopic")
+        or (state.get("conversation_state_v2") or {}).get("subtopic")
+    )
     explicit_content_followup = _content_followup(user_message, facts, memory, free, level)
     if explicit_content_followup and memory.get("reading_kind") == "Krimis":
         _remember_question(free, explicit_content_followup)
