@@ -1659,7 +1659,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         or re.search(r"\bkrimis?\b", early_content)
     )
     active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
-    if not active_semantic_slot and not _is_explicit_learner_question(user_message) and not explicit_reading_content:
+    if not active_semantic_slot and not _is_explicit_learner_question(user_message) and not explicit_reading_content and not semantic_statement:
         contextual_reply = _short_answer_followup(
             user_message,
             free.get("last_question", ""),
