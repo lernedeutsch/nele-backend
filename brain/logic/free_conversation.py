@@ -2218,6 +2218,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if (
         not explicit_content_followup
         and previous_subtopic
+        and executable_policy.get("action") != "MODEL_SENTENCE"
         and (topic_source != "explicit" or canonical_semantic_turn)
     ):
         subtopic_followup = _subtopic_followup(
