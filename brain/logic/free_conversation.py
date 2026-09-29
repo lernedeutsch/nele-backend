@@ -178,7 +178,7 @@ def _extract_facts(text):
         facts["topic"] = "hobby"
     elif any(x in low for x in ("wetter", "sonne", "regen", "kalt", "warm")):
         facts["topic"] = "weather"
-    elif any(x in low for x in ("urlaub", "reise", "ferien", "meer", "berge")):
+    elif re.search(r"\b(?:urlaub|reise|ferien|meer|berge)\b", low):
         facts["topic"] = "holiday"
     elif "gestern" in low:
         facts["topic"] = "yesterday"
