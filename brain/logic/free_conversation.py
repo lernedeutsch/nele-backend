@@ -2164,6 +2164,24 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         subtopic_followup = _subtopic_followup(
             topic, previous_subtopic, free, memory, state=state
         )
+    # When the semantic bridge has just been answered, acknowledge the
+    # completed mini-thread before moving on. This prevents a correct bridge
+    # answer such as "Unterwegs" from sounding ignored by an abrupt broad
+    # fallback question.
+    semantic_now = state.get("conversation_state_v2") or {}
+    completed_subtopic = (
+        previous_subtopic
+        and semantic_now.get("subtopic_status") == "completed"
+        and semantic_now.get("active_slot") is None
+    )
+    if not subtopic_followup and completed_subtopic and topic_source != "explicit":
+        if topic == "hobby":
+            subtopic_followup = "Das klingt gut. Und was machst du sonst gern in deiner Freizeit?"
+        elif topic == "food":
+            subtopic_followup = "Verstehe. Und was machst du heute noch?"
+        elif topic == "personal":
+            subtopic_followup = "Schön. Und was machst du sonst gern in deiner Freizeit?"
+
     if subtopic_followup:
         _remember_question(free, subtopic_followup)
         free["last_user_message"] = str(user_message or "").strip()
