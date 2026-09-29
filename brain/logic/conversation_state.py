@@ -39,7 +39,7 @@ def _slot_value_is_compatible(slot, content):
         return False
     if slot.endswith("_frequency"):
         return bool(
-            any(x in value for x in ("oft", "manchmal", "selten", "immer", "nie", "jeden", "jede ", "am wochenende", "pro woche", "pro tag"))
+            any(x in value for x in ("oft", "manchmal", "selten", "immer", "nie", "jeden", "jede ", "am wochenende", "am abend", "abends", "morgens", "pro woche", "pro tag"))
             or re.search(r"\\b\\d+\\s*(?:mal|x)\\b", value)
         )
     if slot == "sport_companion":
@@ -54,6 +54,17 @@ def apply_response_to_conversation_state(state, response):
     response = response or {}
     slot = response.get("slot")
     content = response.get("canonical") or response.get("content")
+    value = str(content or "").strip().lower()
+
+    # Learners often elaborate instead of answering the exact requested shape.
+    # Rebind only when the utterance itself gives strong evidence; otherwise
+    # carry the previous state over unchanged rather than writing a false slot.
+    active_subtopic = snapshot.get("subtopic")
+    if active_subtopic == "sport" and value.startswith("mit "):
+        slot = "sport_companion"
+    elif active_subtopic == "essen" and value.startswith("mit ") and any(k in slots for k in ("food", "food_item")):
+        slot = "food_detail"
+
     if slot in SLOT_CONTEXT and content and response.get("understood", True) and _slot_value_is_compatible(slot, content):
         topic, subtopic = SLOT_CONTEXT[slot]
         slots[slot] = content
