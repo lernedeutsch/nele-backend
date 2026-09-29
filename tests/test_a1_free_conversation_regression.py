@@ -1656,3 +1656,36 @@ class GeneratedTests(unittest.TestCase):
             _content_recovery("ich lese bücher", "hobby"),
             "Was liest du gern?",
         )
+
+    def test_semantic_state_tracks_music_sport_food_and_birthday(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state, sync_conversation_state
+        from brain.logic.response_understanding import understand_response
+
+        cases = [
+            ("hobby", "Welche Musik hörst du gern?", "Pop", "music_genre", "music"),
+            ("hobby", "Welchen Sport machst du gern?", "Fußball", "sport_kind", "sport"),
+            ("food", "Was isst du gern?", "Pizza", "food_item", "essen"),
+            ("personal", "Wann hast du Geburtstag?", "Am vierzehnten Februar", "birthday", "birthday"),
+        ]
+        for topic, question, answer, slot, subtopic in cases:
+            with self.subTest(answer=answer):
+                state = {"free_conversation": {"conversation_facts": {}, "last_topic": topic, "last_question": question}}
+                snap = sync_conversation_state(state, topic=topic, last_question=question, level="A1.1")
+                understood = understand_response(answer, conversation_state=snap)
+                apply_response_to_conversation_state(state, understood)
+                snap = state["conversation_state_v2"]
+                self.assertEqual(snap["subtopic"], subtopic)
+                self.assertEqual(snap["semantic_slots"][slot], understood["canonical"] or understood["content"])
+
+    def test_semantic_state_preserves_active_music_subtopic_on_sync(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state, sync_conversation_state
+        from brain.logic.response_understanding import understand_response
+
+        state = {"free_conversation": {"conversation_facts": {}, "last_topic": "hobby", "last_question": "Welche Musik hörst du gern?"}}
+        snap = sync_conversation_state(state, topic="hobby", last_question="Welche Musik hörst du gern?", level="A1.1")
+        apply_response_to_conversation_state(state, understand_response("Pop", conversation_state=snap))
+        snap = sync_conversation_state(state, topic="hobby", last_question="Wer ist dein Lieblingssänger?", level="A1.1")
+        self.assertEqual(snap["subtopic"], "music")
+        self.assertEqual(snap["active_slot"], "music_artist")
+        self.assertEqual(snap["semantic_slots"]["music_genre"], "pop")
+
