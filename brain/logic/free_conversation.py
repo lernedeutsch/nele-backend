@@ -29,7 +29,7 @@ from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
 from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue, clear_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
-from brain.logic.learner_turn import analyze_learner_turn, direct_nele_answer, learner_question_context, question_slot, semantic_statement_context
+from brain.logic.learner_turn import analyze_learner_turn, direct_nele_answer, learner_question_context, question_slot, semantic_statement_context, reciprocal_nele_answer
 from brain.logic.knowledge_retriever import retrieve
 
 OPENERS = [
@@ -1763,6 +1763,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "contextual_short_answer": True,
             "response_understanding": early_understanding,
         }
+
+    reciprocal_reply = reciprocal_nele_answer(user_message, free.get("last_question", ""))
+    if reciprocal_reply:
+        previous_question = free.get("last_question", "")
+        record_answer(state, user_message, previous_question)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        return reciprocal_reply, {"conversation_mode": "free", "topic": free.get("last_topic"), "reciprocal_question": True, "reciprocal_to": previous_question}
 
     # Priority -2: the reusable A1 lessons 1-10 router may enrich a neutral
     # conversation, but it must not take ownership away from an already active
