@@ -13,19 +13,24 @@ SLOT_CONTEXT = {
     "music_genre": ("hobby", "music"),
     "music_artist": ("hobby", "music"),
     "music_frequency": ("hobby", "music"),
+    "music_place": ("hobby", "music"),
     "sport_kind": ("hobby", "sport"),
     "sport_companion": ("hobby", "sport"),
     "sport_frequency": ("hobby", "sport"),
+    "sport_environment": ("hobby", "sport"),
     "reading_genre": ("hobby", "reading"),
     "reading_detail": ("hobby", "reading"),
     "reading_frequency": ("hobby", "reading"),
+    "reading_place": ("hobby", "reading"),
     "food": ("food", "essen"),
     "food_item": ("food", "essen"),
     "food_detail": ("food", "essen"),
     "food_frequency": ("food", "essen"),
+    "food_place": ("food", "essen"),
     "birthday": ("personal", "birthday"),
     "birthday_company": ("personal", "birthday"),
     "birthday_activity": ("personal", "birthday"),
+    "birthday_preference": ("personal", "birthday"),
 }
 
 QUESTION_SLOT_CONTEXT = {
@@ -75,6 +80,8 @@ def apply_response_to_conversation_state(state, response):
         snapshot["topic"] = topic
         snapshot["subtopic"] = subtopic
         snapshot["active_slot"] = None
+        if snapshot.get("subtopic_status") == "bridging":
+            snapshot["subtopic_status"] = "completed"
     return snapshot
 
 
@@ -170,6 +177,7 @@ def sync_conversation_state(state, *, topic=None, last_question=None, level=None
 
     snapshot.setdefault("semantic_slots", {})
     snapshot.setdefault("active_slot", None)
+    snapshot.setdefault("subtopic_status", "active")
     # The delivered question defines how a short next answer should be read.
     try:
         from brain.logic.learner_turn import question_slot
