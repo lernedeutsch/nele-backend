@@ -181,7 +181,7 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertTrue(state.get("dialogue_active"))
         self.assertIn("Paket", reply)
 
-    def test_free_conversation_starts_and_keeps_selected_dialogue(self):
+    def test_free_conversation_keeps_birthday_as_conversation_not_drill(self):
         from brain.logic.free_conversation import generate_free_conversation_reply
 
         state = {
@@ -192,18 +192,13 @@ class GoldenDialogueSystemTests(unittest.TestCase):
             "Wann hast du Geburtstag?",
             state,
         )
-        self.assertTrue(meta.get("dialogue_knowledge"))
-        self.assertEqual(state.get("dialogue_id"), "a1-l11-geburtstag")
-        self.assertTrue(state.get("dialogue_active"))
+
+        self.assertTrue(reply)
+        self.assertFalse(state.get("dialogue_active", False))
+        self.assertIsNone(state.get("dialogue_id"))
+        self.assertFalse(meta.get("dialogue_knowledge", False))
         self.assertIn("Geburtstag", reply)
 
-        reply, meta = generate_free_conversation_reply(
-            "Am vierzehnten Februar.",
-            state,
-        )
-        self.assertTrue(meta.get("dialogue_knowledge"))
-        self.assertTrue(state.get("dialogue_active"))
-        self.assertIn("Und du?", reply)
 
     def test_active_dialogue_switches_cleanly_to_explicit_new_topic(self):
         state = {}
