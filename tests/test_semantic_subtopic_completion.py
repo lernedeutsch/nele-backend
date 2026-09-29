@@ -97,12 +97,13 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
                 "meta_topic": (meta or {}).get("topic"),
             })
         semantic = state.get("conversation_state_v2") or {}
-        self.assertEqual(
-            (semantic.get("semantic_slots") or {}).get("reading_place"),
-            "unterwegs",
-            msg=f"reading transcript: {transcript!r}",
-        )
+        semantic_slots = semantic.get("semantic_slots") or {}
+        self.assertEqual(semantic_slots.get("reading_genre"), "krimis", msg=f"reading transcript: {transcript!r}")
+        self.assertEqual(semantic_slots.get("reading_detail"), "die spannung", msg=f"reading transcript: {transcript!r}")
+        self.assertEqual(semantic_slots.get("reading_frequency"), "oft", msg=f"reading transcript: {transcript!r}")
+        self.assertEqual(semantic_slots.get("reading_place"), "unterwegs", msg=f"reading transcript: {transcript!r}")
         self.assertEqual(semantic.get("subtopic_status"), "completed")
+        self.assertIsNone(semantic.get("active_slot"))
         self.assertNotEqual(transcript[-1]["reply"], "Was machst du gern in deiner Freizeit?")
         self.assertTrue(
             transcript[-1]["reply"].startswith("Das klingt gut."),
