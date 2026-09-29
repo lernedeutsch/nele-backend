@@ -8,6 +8,25 @@ import re
 
 VERSION = 1
 
+ELLIPTICAL_TOPIC_QUESTIONS = {
+    "sport": {"slot": "sport_kind", "topic": "hobby", "subtopic": "sport"},
+    "musik": {"slot": "music_genre", "topic": "hobby", "subtopic": "music"},
+    "lesen": {"slot": "reading_genre", "topic": "hobby", "subtopic": "reading"},
+    "bücher": {"slot": "reading_genre", "topic": "hobby", "subtopic": "reading"},
+    "buecher": {"slot": "reading_genre", "topic": "hobby", "subtopic": "reading"},
+    "essen": {"slot": "food", "topic": "food", "subtopic": "essen"},
+    "arbeit": {"slot": "work", "topic": "work", "subtopic": "work"},
+}
+
+def elliptical_topic_question(text):
+    """Understand natural hand-off questions such as 'Und Sport?'."""
+    raw = str(text or "").strip()
+    if "?" not in raw:
+        return None
+    q = _norm(raw)
+    q = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", q)
+    return ELLIPTICAL_TOPIC_QUESTIONS.get(q)
+
 def _norm(text):
     return re.sub(r"\s+", " ", str(text or "").strip().lower()).strip(" ?!.")
 
@@ -76,6 +95,8 @@ def is_learner_question(text):
     raw = str(text or "").strip()
     if "?" not in raw:
         return False
+    if elliptical_topic_question(raw):
+        return True
     q = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", _norm(raw))
     return q.startswith((
         "was ", "wie ", "wo ", "woher ", "wohin ", "wann ", "warum ", "wer ",
@@ -108,6 +129,9 @@ def reciprocal_nele_answer(text, last_question):
 
 def learner_question_context(text):
     """Return stable semantic context for common learner-led questions."""
+    elliptical = elliptical_topic_question(text)
+    if elliptical:
+        return dict(elliptical)
     q = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", _norm(text))
     if not q:
         return None
@@ -144,7 +168,8 @@ def analyze_learner_turn(text, *, last_question=None):
     semantic_statement = semantic_statement_context(raw)
     if is_learner_question(raw):
         intent = "question_to_nele"
-        slot = question_slot(raw)
+        elliptical = elliptical_topic_question(raw)
+        slot = (elliptical or {}).get("slot") or question_slot(raw)
     elif semantic_statement:
         intent = "semantic_statement"
         slot = semantic_statement["slot"]
@@ -164,6 +189,16 @@ def analyze_learner_turn(text, *, last_question=None):
 
 def direct_nele_answer(text):
     """Answer common learner-led A1/A2 questions before asking a follow-up."""
+    elliptical = elliptical_topic_question(text)
+    if elliptical:
+        replies = {
+            "sport": "Sport? Ich mache nicht wirklich Sport, aber ich spreche gern darüber. Welchen Sport machst du gern?",
+            "music": "Musik? Ich höre nicht wirklich Musik, aber ich spreche gern darüber. Welche Musik hörst du gern?",
+            "reading": "Lesen? Ich lese gern Krimis. Was liest du gern?",
+            "essen": "Essen? Ich esse nicht wirklich, aber ich spreche gern darüber. Was isst du gern?",
+            "work": "Arbeit? Ich bin deine Deutschtrainerin. Was machst du bei der Arbeit?",
+        }
+        return replies.get(elliptical.get("subtopic"))
     q = _norm(text)
     q = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", q)
     if re.search(r"^was machst du heute abend$", q):
