@@ -2134,7 +2134,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if (
         not explicit_content_followup
         and previous_subtopic
-        and not facts.get("activity")
         and topic_source != "explicit"
     ):
         subtopic_followup = _subtopic_followup(
