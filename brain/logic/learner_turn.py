@@ -109,7 +109,7 @@ def semantic_statement_context(text):
         match = re.match(pattern, low, re.I)
         if match:
             content = match.group(1).strip(" .?!")
-            if content and not (slot == "sport_kind" and content in {"das", "es", "etwas", "gern"}):
+            if content not in {"", "gern", "gerne"} and not (slot == "sport_kind" and content in {"das", "es", "etwas"}):
                 return {"slot": slot, "topic": topic, "subtopic": subtopic, "content": content}
     return None
 
