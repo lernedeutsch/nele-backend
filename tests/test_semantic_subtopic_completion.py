@@ -93,6 +93,12 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
             msg=f"reading transcript: {transcript!r}",
         )
         self.assertEqual(semantic.get("subtopic_status"), "completed")
+        self.assertNotEqual(transcript[-1]["reply"], "Was machst du gern in deiner Freizeit?")
+        self.assertTrue(
+            transcript[-1]["reply"].startswith("Das klingt gut."),
+            msg=f"reading completion should acknowledge the learner: {transcript!r}",
+        )
+        self.assertIn("sonst", transcript[-1]["reply"].lower())
 
     def test_birthday_bridge_answer_is_committed_and_completes_subtopic(self):
         state = {}
