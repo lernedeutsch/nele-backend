@@ -179,6 +179,53 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertIn("allein oder mit jemandem", reply.lower())
         self.assertNotIn("sport", reply.lower())
 
+    def test_weekend_activity_question_variants_share_semantic_context(self):
+        variants = (
+            "Was machst du gern am Wochenende?",
+            "Und was machst du gern am Wochenende?",
+            "Was machst du am Wochenende?",
+            "Was machst du normalerweise am Wochenende?",
+        )
+        for question in variants:
+            state = self.fresh_state()
+            reply = turn(state, question)
+            pending = state["free_conversation"].get("pending_learner_question") or {}
+            self.assertEqual(pending.get("slot"), "activity", question)
+            self.assertEqual(pending.get("context"), "weekend", question)
+            self.assertEqual(pending.get("topic"), "hobby", question)
+            self.assertIn("wochenende", reply.lower(), question)
+
+    def test_weekend_activity_answers_do_not_collapse_into_sport(self):
+        cases = (
+            ("spazieren", "spazieren"),
+            ("lesen", "liest"),
+            ("Musik hören", "musik"),
+            ("schwimmen", "schwimm"),
+        )
+        for answer, expected in cases:
+            state = self.fresh_state()
+            turn(state, "Was machst du gern am Wochenende?")
+            reply = turn(state, answer)
+            self.assertIn(expected, reply.lower(), answer)
+            if answer != "schwimmen":
+                self.assertNotIn("machst du gern sport", reply.lower(), answer)
+
+    def test_weekend_walking_company_continues_walking_thread(self):
+        state = self.fresh_state()
+        turn(state, "Was machst du gern am Wochenende?")
+        turn(state, "spazieren")
+        reply = turn(state, "Mit meinem Mann")
+        self.assertIn("oft", reply.lower())
+        self.assertNotIn("machst du gern sport", reply.lower())
+
+    def test_explicit_weather_switch_beats_pending_weekend_activity(self):
+        state = self.fresh_state()
+        turn(state, "Was machst du gern am Wochenende?")
+        turn(state, "spazieren")
+        reply = turn(state, "Heute regnet es")
+        self.assertEqual(state["free_conversation"].get("last_topic"), "weather")
+        self.assertIn("regnet", reply.lower())
+
     def test_food_intent_with_discourse_particle_overrides_hobby(self):
         state = self.fresh_state()
         turn(state, "Was machst du gern am Wochenende?")
