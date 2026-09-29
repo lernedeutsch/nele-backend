@@ -50,3 +50,11 @@ class GeneratedTests(unittest.TestCase):
 
     def test_short_answer_without_matching_question_is_not_guessed(self):
         self.assertTrue(_short_answer_followup("Pizza", "Wie ist das Wetter?", {}) is None)
+
+
+    def test_walking_frequency_stays_in_local_activity_context(self):
+        memory = {"activity_company": "Mit meinem Mann"}
+        reply = _short_answer_followup("oft", "Macht ihr das oft zusammen?", memory)
+        self.assertNotIn("was machst du gern in deiner freizeit", reply.lower())
+        self.assertIn("zusammen", reply.lower())
+        self.assertEqual(memory["activity_frequency"], "oft")
