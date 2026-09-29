@@ -5,6 +5,8 @@ fields remain available while conversation_state_v2 becomes the canonical,
 structured snapshot other engines can consume.
 """
 
+import re
+
 STATE_VERSION = 2
 
 SLOT_CONTEXT = {
@@ -38,7 +40,7 @@ def _slot_value_is_compatible(slot, content):
     if slot.endswith("_frequency"):
         return bool(
             any(x in value for x in ("oft", "manchmal", "selten", "immer", "nie", "jeden", "jede ", "am wochenende", "pro woche", "pro tag"))
-            or __import__("re").search(r"\\b\\d+\\s*(?:mal|x)\\b", value)
+            or re.search(r"\\b\\d+\\s*(?:mal|x)\\b", value)
         )
     if slot == "sport_companion":
         return value.startswith("mit ") or any(x in value for x in ("freund", "famil", "allein", "kolleg"))
