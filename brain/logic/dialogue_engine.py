@@ -6,7 +6,8 @@ owns HOW a dialogue is practised; lesson content owns WHAT is practised.
 from brain.logic.lesson_loader import load_lesson_module
 from brain.knowledge.active_dialogues import get_active_dialogues
 from brain.logic.matcher import normalize
-from brain.logic.dialogue_knowledge import accepted_patterns, infer_intent, render_pattern
+import re
+from brain.logic.dialogue_knowledge import accepted_patterns, infer_intent, render_pattern, slot_names
 from brain.logic.dialogue_state_engine import (
     clear_semantic_state,
     initialise_dialogue_state,
@@ -90,7 +91,38 @@ def _accepted(turn, slots=None):
     }
 
 
-def answer_matches_dialogue_turn(user_message, turn, slots=None):
+def _match_slot_pattern(user_message, pattern, slots=None, variable_slots=None):
+    """Match a dialogue pattern while allowing explicitly variable semantic slots."""
+    variable_slots = dict(variable_slots or {})
+    names = set(slot_names(pattern))
+    if not names or not (names & set(variable_slots)):
+        return None
+
+    regex = re.escape(str(pattern or ""))
+    for name in names:
+        token = re.escape("{" + name + "}")
+        if name in variable_slots:
+            regex = regex.replace(token, rf"(?P<{name}>.+?)")
+        else:
+            value = str((slots or {}).get(name, ""))
+            regex = regex.replace(token, re.escape(value))
+
+    match = re.fullmatch(regex + r"[ .?!„“\"']*", str(user_message or "").strip(), flags=re.IGNORECASE)
+    if not match:
+        return None
+    captured = {
+        name: str(value or "").strip(" .?!„“\"'")
+        for name, value in match.groupdict().items()
+        if str(value or "").strip()
+    }
+    for name, value in captured.items():
+        allowed = {_norm(item) for item in variable_slots.get(name, []) if _norm(item)}
+        if allowed and _norm(value) not in allowed:
+            return None
+    return captured
+
+
+def answer_matches_dialogue_turn(user_message, turn, slots=None, variable_slots=None):
     message = _norm(user_message)
     if not message:
         return False
@@ -99,6 +131,9 @@ def answer_matches_dialogue_turn(user_message, turn, slots=None):
     accepted = _accepted(turn, slots)
     if message in accepted:
         return True
+    for pattern in accepted_patterns(turn):
+        if _match_slot_pattern(user_message, pattern, slots, variable_slots) is not None:
+            return True
     contains_all = turn.get("contains_all", [])
     if isinstance(contains_all, str):
         contains_all = [contains_all]
@@ -117,14 +152,14 @@ def _current_turn(state, dialogue):
     return turns[index]
 
 
-def _advance_to_learner(turns, index):
+def _advance_to_learner(turns, index, slots=None):
     spoken = []
     while index < len(turns):
         turn = turns[index]
         role = _norm(turn.get("role"))
         if role in {"student", "learner", "user", "du"}:
             return index, spoken
-        line = _text(turn.get("text"))
+        line = _text(render_pattern(turn.get("text"), slots or {}))
         if line:
             speaker = _text(turn.get("speaker")) or "Nele"
             spoken.append(f"{speaker}: {line}")
@@ -156,7 +191,8 @@ def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
     except (TypeError, ValueError):
         requested_start = 0
     requested_start = min(requested_start, len(turns) - 1)
-    index, spoken = _advance_to_learner(turns, requested_start)
+    dialogue_slots = dict(dialogue.get("slots", {}) or {})
+    index, spoken = _advance_to_learner(turns, requested_start, dialogue_slots)
     state["dialogue_active"] = True
     state["dialogue_level"] = str(level).upper()
     state["dialogue_lesson"] = int(lesson)
@@ -164,13 +200,13 @@ def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
     state["dialogue_turn"] = index
     state["last_activity"] = "dialogue"
     state["last_activity_detail"] = _text(dialogue.get("title") or dialogue_id)
-    state["dialogue_slots"] = dict(dialogue.get("slots", {}) or {})
+    state["dialogue_slots"] = dialogue_slots
     initialise_dialogue_state(state, dialogue)
 
     intro = _text(dialogue.get("intro"))
     prompt = ""
     if index < len(turns):
-        prompt = _text(turns[index].get("prompt") or turns[index].get("text"))
+        prompt = _text(render_pattern(turns[index].get("prompt") or turns[index].get("text"), dialogue_slots))
 
     return " ".join(part for part in [intro, *spoken, prompt] if part)
 
@@ -466,8 +502,19 @@ def handle_dialogue(user_message, state):
         clear_dialogue(state)
         return complete
 
+    variable_slots = {}
+    variations = set(dialogue.get("allowed_variations", []) or [])
+    slot_values = dialogue.get("slot_values", {}) or {}
+    if "change_country" in variations and slot_values.get("country"):
+        variable_slots["country"] = slot_values["country"]
+
     record_exchange(state)
-    if not answer_matches_dialogue_turn(user_message, turn, state.get("dialogue_slots")):
+    if not answer_matches_dialogue_turn(
+        user_message,
+        turn,
+        state.get("dialogue_slots"),
+        variable_slots=variable_slots,
+    ):
         expected = _text(turn.get("expected"))
         retry = _text(turn.get("retry"))
         if retry:
@@ -476,9 +523,24 @@ def handle_dialogue(user_message, state):
             return f"Fast. Sag bitte: „{expected}“"
         return "Fast. Versuch es bitte noch einmal."
 
+    for pattern in accepted_patterns(turn):
+        captured = _match_slot_pattern(
+            user_message,
+            pattern,
+            state.get("dialogue_slots"),
+            variable_slots=variable_slots,
+        )
+        if captured:
+            state.setdefault("dialogue_slots", {}).update(captured)
+            break
+
     mark_intent_complete(state, infer_intent(turn))
     success = _text(turn.get("success"))
-    next_index, spoken = _advance_to_learner(turns, int(state.get("dialogue_turn", 0)) + 1)
+    next_index, spoken = _advance_to_learner(
+        turns,
+        int(state.get("dialogue_turn", 0)) + 1,
+        state.get("dialogue_slots"),
+    )
 
     if next_index >= len(turns):
         complete = _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."

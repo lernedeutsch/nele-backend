@@ -215,6 +215,9 @@ LESSON_DIALOGUES = [
         "grammar": ["kommen aus", "Woher?"],
         "vocabulary": ["kommen", "Polen", "Österreich"],
         "slots": {"country": "Polen"},
+        "slot_values": {
+            "country": ["Polen", "Deutschland", "Österreich", "Schweiz", "Italien", "Spanien", "Frankreich"]
+        },
         "allowed_variations": ["change_country", "change_name"],
         "forbidden_variations": ["combine_unrelated_topics", "mix_formal_and_informal"],
         "next_allowed_topics": ["Wohnort"],
@@ -232,14 +235,14 @@ LESSON_DIALOGUES = [
                 "common_errors": {"verb_conjugation": "Ich kommen aus {country}", "missing_preposition": "Ich komme {country}"},
                 "retry": "Fast. Antworte mit einem ganzen Satz: „Ich komme aus Polen.“"
             },
-            {"role": "nele", "speaker": "Mia", "text": "Kommst du aus Polen?", "intent": "confirm_origin"},
+            {"role": "nele", "speaker": "Mia", "text": "Kommst du aus {country}?", "intent": "confirm_origin"},
             {
                 "role": "student",
                 "prompt": "Antworte Mia.",
                 "expected_intent": "confirm_origin",
                 "expected": "Ja, ich komme aus Polen.",
                 "accepted_patterns": ["Ja", "Ja, ich komme aus {country}", "Ich komme aus {country}"],
-                "retry": "Du kannst sagen: „Ja, ich komme aus Polen.“"
+                "retry": "Du kannst sagen: „Ja, ich komme aus {country}.“"
             },
             {"role": "nele", "speaker": "Mia", "text": "Und woher kommt Anna? Anna kommt aus Österreich.", "intent": "ask_third_person_origin"},
             {

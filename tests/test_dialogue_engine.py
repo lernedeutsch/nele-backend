@@ -63,6 +63,17 @@ class DialogueEngineTests(unittest.TestCase):
         self.assertIn("Woher kommst du", opening)
         self.assertEqual(state["dialogue_id"], "woher-kommst-du")
 
+    def test_real_a12_dialogue_accepts_declared_country_variation(self):
+        state = {}
+        opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+        self.assertIn("Woher kommst du", opening)
+
+        reply = handle_dialogue("Ich komme aus Deutschland.", state)
+
+        self.assertIn("Kommst du aus Deutschland", reply)
+        self.assertEqual(state["dialogue_slots"]["country"], "Deutschland")
+        self.assertEqual(state["dialogue_turn"], 3)
+
     def test_real_a12_dialogue_runs_end_to_end(self):
         state = {}
         opening = start_dialogue("A1", 2, "woher-kommst-du", state)
