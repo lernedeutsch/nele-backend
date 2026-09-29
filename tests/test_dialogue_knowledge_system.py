@@ -198,6 +198,27 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertIsNone(state.get("dialogue_id"))
         self.assertFalse(meta.get("dialogue_knowledge", False))
         self.assertIn("Geburtstag", reply)
+        self.assertEqual(meta.get("learner_turn", {}).get("slot"), "birthday")
+        self.assertEqual(meta.get("topic"), "personal")
+
+    def test_free_music_and_sport_questions_use_conversation_engine(self):
+        from brain.logic.free_conversation import generate_free_conversation_reply
+
+        cases = [
+            ("Welche Musik hörst du gern?", "music_genre"),
+            ("Welchen Sport machst du gern?", "sport_kind"),
+        ]
+        for message, expected_slot in cases:
+            with self.subTest(message=message):
+                state = {
+                    "student_progress": {"current_level": "A1.1"},
+                    "conversation_mode": "free",
+                }
+                reply, meta = generate_free_conversation_reply(message, state)
+                self.assertTrue(reply)
+                self.assertFalse(state.get("dialogue_active", False))
+                self.assertEqual(meta.get("learner_turn", {}).get("slot"), expected_slot)
+                self.assertEqual(meta.get("topic"), "hobby")
 
 
     def test_active_dialogue_switches_cleanly_to_explicit_new_topic(self):
