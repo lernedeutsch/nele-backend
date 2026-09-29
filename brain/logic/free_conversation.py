@@ -1486,7 +1486,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "food": "food",
                 "film_genre": "hobby",
                 "reading": "hobby",
+                "music_genre": "hobby",
+                "sport_kind": "hobby",
                 "activity": "hobby",
+                "birthday": "personal",
                 "work": "work",
             }.get(learner_turn.get("slot"))
             topic = slot_topic or ("today" if "heute" in _norm(user_message) else (free.get("last_topic") or "today"))
