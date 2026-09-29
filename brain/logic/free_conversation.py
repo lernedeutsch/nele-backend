@@ -699,6 +699,17 @@ def _social_a1_reply(text, free, state):
             free.setdefault("conversation_facts", {})["german_learning_duration"] = value
             return f"Super, {value} jeden Tag. Was übst du am liebsten: Sprechen, Hören oder Lesen?"
 
+    if "was übst du am liebsten" in last:
+        practice_followups = {
+            "sprechen": "Sprechen ist wichtig. Mit wem sprichst du gern Deutsch?",
+            "hören": "Hören ist wichtig. Was hörst du gern auf Deutsch?",
+            "hoeren": "Hören ist wichtig. Was hörst du gern auf Deutsch?",
+            "lesen": "Lesen ist wichtig. Was liest du gern auf Deutsch?",
+        }
+        if low in practice_followups:
+            free.setdefault("conversation_facts", {})["german_practice_preference"] = low
+            return practice_followups[low]
+
     if any(x in last for x in ("bei diesem wetter", "wenn es warm ist")):
         if low in {"radfahren", "rad fahren", "fahrrad fahren"}:
             return "Du kannst sagen: „Ich fahre gern Rad.“ Fährst du lieber allein oder mit jemandem?"
