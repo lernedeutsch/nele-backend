@@ -24,6 +24,8 @@ SLOT_CONTEXT = {
     "food_detail": ("food", "essen"),
     "food_frequency": ("food", "essen"),
     "birthday": ("personal", "birthday"),
+    "birthday_company": ("personal", "birthday"),
+    "birthday_activity": ("personal", "birthday"),
 }
 
 QUESTION_SLOT_CONTEXT = {

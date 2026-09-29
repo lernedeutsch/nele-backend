@@ -29,6 +29,10 @@ def question_slot(question):
         return "reading_genre"
     # Specific semantic domains must outrank broad interrogative words.
     if "geburtstag" in q:
+        if "mit wem" in q:
+            return "birthday_company"
+        if any(x in q for x in ("was machst", "wie feierst", "feierst du")):
+            return "birthday_activity"
         return "birthday"
     if q.startswith(("wann ", "um wie viel", "bis wann")):
         return "time"

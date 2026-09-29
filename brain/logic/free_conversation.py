@@ -280,6 +280,22 @@ SUBTOPIC_QUESTIONS = {
         ("food_detail", "Wie isst du das gern?"),
         ("food_frequency", "Wie oft isst du das?"),
     ],
+    ("personal", "birthday"): [
+        ("birthday", "Wann hast du Geburtstag?"),
+        ("birthday_company", "Mit wem feierst du deinen Geburtstag?"),
+        ("birthday_activity", "Was machst du an deinem Geburtstag gern?"),
+    ],
+}
+
+# Once a semantic mini-thread has collected its core slots, do not silently
+# fall back to a broad topic opener. Use one explicit bridge that stays related
+# to what the learner just said, then let normal topic-transition policy decide.
+SUBTOPIC_COMPLETION = {
+    ("hobby", "reading"): "Interessant. Liest du lieber zu Hause oder unterwegs?",
+    ("hobby", "music"): "Schön. Hörst du Musik lieber zu Hause oder unterwegs?",
+    ("hobby", "sport"): "Schön. Machst du diesen Sport lieber draußen oder drinnen?",
+    ("food", "essen"): "Verstehe. Isst du das lieber zu Hause oder im Restaurant?",
+    ("personal", "birthday"): "Schön. Magst du Geburtstage?",
 }
 
 
@@ -316,6 +332,17 @@ def _subtopic_followup(topic, subtopic, free, memory, state=None):
         if state is not None:
             set_active_slot_from_question(state, _slot)
         return question
+
+    completion = SUBTOPIC_COMPLETION.get((topic, subtopic))
+    completion_key = f"{key}/completion"
+    if completion and not slots.get(completion_key) and _norm(completion).strip(" ?!.") not in asked:
+        slots[completion_key] = 1
+        if state is not None:
+            # The bridge is deliberately conversational, not a required
+            # learning slot. Clear the expectation so its answer cannot
+            # overwrite a completed semantic value.
+            (state.get("conversation_state_v2") or {})["active_slot"] = None
+        return completion
     return None
 
 
