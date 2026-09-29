@@ -16,6 +16,10 @@ def question_slot(question):
     if not q:
         return None
     if any(x in q for x in ("isst du", "essen", "kochst du", "gericht", "frühstück", "fruehstueck")):
+        if "oft" in q or "wie oft" in q:
+            return "food_frequency"
+        if any(x in q for x in ("womit", "mit was", "dazu", "darauf")):
+            return "food_detail"
         return "food"
     if any(x in q for x in ("film", "kino", "serie")):
         return "film_genre"
