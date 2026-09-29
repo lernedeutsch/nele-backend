@@ -84,6 +84,19 @@ def is_learner_question(text):
         "siehst ", "gehst ", "fährst ", "faehrst ",
     ))
 
+def learner_question_context(text):
+    """Return stable semantic context for common learner-led questions."""
+    q = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", _norm(text))
+    if not q:
+        return None
+    if re.search(r"^was machst du(?: normalerweise)?(?: gern)? am wochenende$", q):
+        return {"slot": "activity", "context": "weekend", "topic": "hobby"}
+    if re.search(r"^was machst du(?: normalerweise)?(?: gern)? (?:in )?deiner freizeit$", q):
+        return {"slot": "activity", "context": "free_time", "topic": "hobby"}
+    if re.search(r"^was machst du(?: normalerweise)?(?: gern)? heute abend$", q):
+        return {"slot": "activity", "context": "evening", "topic": "today"}
+    return None
+
 def analyze_learner_turn(text, *, last_question=None):
     raw = str(text or "").strip()
     low = _norm(raw)
@@ -114,6 +127,14 @@ def direct_nele_answer(text):
         return "Heute Abend lese ich ein bisschen. Und du, was machst du heute Abend?"
     if re.search(r"^was machst du heute$", q):
         return "Heute übe ich Deutsch mit dir. Und du, was machst du heute?"
+    activity_context = learner_question_context(text)
+    if activity_context:
+        if activity_context["context"] == "weekend":
+            return "Am Wochenende höre ich gern Musik und lese. Und du, was machst du gern am Wochenende?"
+        if activity_context["context"] == "free_time":
+            return "Ich lese gern und höre gern Musik. Und du, was machst du gern in deiner Freizeit?"
+        if activity_context["context"] == "evening":
+            return "Heute Abend lese ich ein bisschen. Und du, was machst du heute Abend?"
     if re.search(r"^was machst du gern(?: in deiner freizeit)?$", q):
         return "Ich lese gern und höre gern Musik. Und du, was machst du gern?"
     if re.search(r"^was (?:liest|liest du)\b", q) or q == "was liest du gern":

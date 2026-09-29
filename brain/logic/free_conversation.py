@@ -29,7 +29,7 @@ from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
 from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue, clear_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
-from brain.logic.learner_turn import analyze_learner_turn, direct_nele_answer, question_slot
+from brain.logic.learner_turn import analyze_learner_turn, direct_nele_answer, learner_question_context, question_slot
 from brain.logic.knowledge_retriever import retrieve
 
 OPENERS = [
@@ -1544,6 +1544,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         if direct_reply:
             previous_question = free.get("last_question", "")
             record_answer(state, user_message, previous_question)
+            question_context = learner_question_context(user_message)
+            if question_context:
+                free["pending_learner_question"] = {
+                    **question_context,
+                    "question": str(user_message or "").strip(),
+                }
             slot_topic = {
                 "food": "food",
                 "film_genre": "hobby",
