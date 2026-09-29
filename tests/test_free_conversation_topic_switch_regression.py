@@ -36,6 +36,16 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertIn("Wie lange lernst du jeden Tag Deutsch?", reply)
         self.assertNotIn("Was machst du heute?", reply)
 
+    def test_daily_german_duration_keeps_learning_subthread(self):
+        state = self.fresh_state()
+        turn(state, "Was machst du heute Abend?")
+        turn(state, "Deutsch lernen")
+        turn(state, "ja")
+        reply = turn(state, "30 Minuten")
+        self.assertIn("30 Minuten jeden Tag", reply)
+        self.assertIn("Was übst du am liebsten", reply)
+        self.assertNotIn("Was machst du heute?", reply)
+
     def test_direct_wellbeing_question_beats_previous_topic(self):
         state = self.fresh_state()
         state["free_conversation"]["last_question"] = "Wie ist das Wetter bei dir?"
