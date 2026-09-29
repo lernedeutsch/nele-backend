@@ -16,6 +16,16 @@ class PersonalSentencesTests(unittest.TestCase):
         self.assertGreaterEqual(len(catalogue), 6)
         self.assertTrue(all(item.get("practice_prompt") for item in catalogue))
 
+    def test_work_questions_keep_nele_in_tutor_role(self):
+        state = create_empty_state()
+        today = handle_personal_sentence("Arbeitest du heute?", state, mode="free")
+        self.assertIn("Deutschlernen", today["reply"])
+        self.assertNotIn("einiges zu tun", today["reply"])
+
+        sunday = handle_personal_sentence("Arbeitest du am Sonntag?", state, mode="free")
+        self.assertIn("Deutschlernen", sunday["reply"])
+        self.assertNotIn("habe ich frei", sunday["reply"])
+
     def test_known_sentence_is_recognized_and_recorded(self):
         state = create_empty_state()
         result = handle_personal_sentence(
