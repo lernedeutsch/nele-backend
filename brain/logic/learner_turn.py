@@ -15,7 +15,7 @@ ELLIPTICAL_TOPIC_QUESTIONS = {
     "bücher": {"slot": "reading_genre", "topic": "hobby", "subtopic": "reading"},
     "buecher": {"slot": "reading_genre", "topic": "hobby", "subtopic": "reading"},
     "essen": {"slot": "food", "topic": "food", "subtopic": "essen"},
-    "arbeit": {"slot": "work", "topic": "work", "subtopic": "work"},
+    "arbeit": {"slot": "work_activity", "topic": "work", "subtopic": "work"},
 }
 
 def elliptical_topic_question(text):
@@ -34,6 +34,11 @@ def question_slot(question):
     q = _norm(question)
     if not q:
         return None
+    # The broad work activity question owns a semantic work slot. More generic
+    # shapes such as Wo/Mit wem/Bis wann keep their generic lexical slot here;
+    # Response Understanding refines them from the canonical active_slot.
+    if ("arbeit" in q or "job" in q) and any(x in q for x in ("was machst", "was arbeitest", "beruf")):
+        return "work_activity"
     # Completion bridges ask for a different semantic slot than their broad
     # domain wording suggests. Resolve these specific shapes before the generic
     # music/sport/food/reading/birthday rules below, otherwise sync state

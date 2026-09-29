@@ -285,6 +285,12 @@ SUBTOPIC_QUESTIONS = {
         ("birthday_company", "Mit wem feierst du deinen Geburtstag?"),
         ("birthday_activity", "Was machst du an deinem Geburtstag gern?"),
     ],
+    ("work", "work"): [
+        ("work_activity", "Was machst du bei der Arbeit?"),
+        ("work_place", "Wo arbeitest du?"),
+        ("work_companion", "Mit wem arbeitest du meistens?"),
+        ("work_end_time", "Bis wann arbeitest du normalerweise?"),
+    ],
 }
 
 # Once a semantic mini-thread has collected its core slots, do not silently

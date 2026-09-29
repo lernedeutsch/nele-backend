@@ -115,7 +115,7 @@ class LearnerTurnPriorityTests(unittest.TestCase):
             ("Und Sport?", "sport_kind", "hobby"),
             ("Und Musik?", "music_genre", "hobby"),
             ("Und Essen?", "food", "food"),
-            ("Und Arbeit?", "work", "work"),
+            ("Und Arbeit?", "work_activity", "work"),
         ]
         for message, slot, topic in cases:
             with self.subTest(message=message):
@@ -152,6 +152,32 @@ class LearnerTurnPriorityTests(unittest.TestCase):
         reply, meta = generate_free_conversation_reply("Badminton", state)
         self.assertEqual(meta["topic_manager"]["subtopic"], "sport")
         self.assertNotIn("Musik", reply)
+
+    def test_elliptical_work_switch_keeps_semantic_context_for_unexpected_answers(self):
+        state = {
+            "free_conversation": {
+                "last_question": "Hörst du oft Musik?",
+                "last_topic": "hobby",
+                "turn_count": 4,
+                "conversation_facts": {},
+            },
+            "student_progress": {"current_level": "A1.1"},
+        }
+        reply, meta = generate_free_conversation_reply("Und Arbeit?", state)
+        self.assertIn("Was machst du bei der Arbeit", reply)
+        self.assertEqual(meta["conversation_state"]["subtopic"], "work")
+
+        reply, meta = generate_free_conversation_reply("Gästezimmer vorbereiten", state)
+        self.assertEqual(meta["topic_manager"]["subtopic"], "work")
+        self.assertIn("Wo arbeitest du", reply)
+
+        reply, meta = generate_free_conversation_reply("In einer Pension", state)
+        self.assertEqual(meta["topic_manager"]["subtopic"], "work")
+        self.assertIn("Mit wem arbeitest du", reply)
+
+        reply, meta = generate_free_conversation_reply("Mit meinem Team", state)
+        self.assertEqual(meta["topic_manager"]["subtopic"], "work")
+        self.assertIn("Bis wann arbeitest du", reply)
 
     def test_valid_work_sentence_is_not_repeated_as_a_correction(self):
         state = {

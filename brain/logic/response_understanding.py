@@ -96,7 +96,7 @@ def understand_response(text, *, conversation_state=None, vocabulary_context=Non
     # precise than lexical question parsing. Never apply it to a new learner
     # question, which owns a new branch.
     active_slot = conversation_state.get("active_slot")
-    if active_slot and turn.get("intent") != "question_to_nele" and turn.get("slot") in {None, "content", "person"}:
+    if active_slot and turn.get("intent") != "question_to_nele" and turn.get("slot") in {None, "content", "person", "place", "time"}:
         turn = {**turn, "slot": active_slot}
 
     result = {
