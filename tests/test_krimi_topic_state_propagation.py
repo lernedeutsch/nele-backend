@@ -4,6 +4,7 @@ from brain.logic.free_conversation import (
     SUBTOPIC_QUESTIONS,
     _content_followup,
     _extract_facts,
+    _subtopic_followup,
 )
 
 
@@ -25,6 +26,27 @@ class KrimiTopicStatePropagationTests(unittest.TestCase):
 
     def test_reading_safety_net_has_more_than_one_followup(self):
         self.assertGreaterEqual(len(SUBTOPIC_QUESTIONS[("hobby", "reading")]), 2)
+
+    def test_reading_kind_skips_already_completed_genre_slot(self):
+        memory = {"reading_kind": "Krimis"}
+        free = {"recent_questions": ["Krimis? Welche Krimis liest du gern?"]}
+
+        reply = _subtopic_followup("hobby", "reading", free, memory)
+
+        self.assertEqual(reply, "Was gefällt dir daran?")
+        self.assertEqual(memory["subtopic_slots"]["hobby/reading"], 2)
+
+    def test_reading_subtopic_progresses_after_detail_followup(self):
+        memory = {"reading_kind": "Krimis"}
+        free = {"recent_questions": ["Krimis? Welche Krimis liest du gern?"]}
+
+        first = _subtopic_followup("hobby", "reading", free, memory)
+        free["recent_questions"].append(first)
+        second = _subtopic_followup("hobby", "reading", free, memory)
+
+        self.assertEqual(first, "Was gefällt dir daran?")
+        self.assertEqual(second, "Liest du oft?")
+        self.assertEqual(memory["subtopic_slots"]["hobby/reading"], 3)
 
 
 if __name__ == "__main__":
