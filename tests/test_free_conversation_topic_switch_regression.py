@@ -275,5 +275,49 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
             turn(state, question)
             self.assertEqual(state["free_conversation"].get("last_topic"), "food", question)
 
+
+    def test_explicit_wellbeing_switch_commits_canonical_state_and_clears_reading_slot(self):
+        state = self.fresh_state()
+        turn(state, "Was liest du gern?")
+        turn(state, "Krimis")
+        self.assertEqual((state.get("conversation_state_v2") or {}).get("active_slot"), "reading_detail")
+
+        reply, meta = generate_free_conversation_reply("Mir geht es schlecht", state)
+
+        self.assertIn("tut mir leid", reply.lower())
+        self.assertEqual(meta.get("topic"), "today")
+        self.assertEqual((meta.get("conversation_state") or {}).get("subtopic"), "wellbeing")
+        self.assertIsNone((state.get("conversation_state_v2") or {}).get("active_slot"))
+        self.assertEqual((state.get("conversation_state_v2") or {}).get("subtopic"), "wellbeing")
+        self.assertEqual((state.get("topic_manager_v2") or {}).get("topic"), "today")
+        self.assertEqual((state.get("topic_manager_v2") or {}).get("subtopic"), "wellbeing")
+        self.assertEqual((state.get("topic_manager_v2") or {}).get("source"), "wellbeing")
+
+    def test_wellbeing_followup_stays_canonical_then_explicit_reading_question_switches_back(self):
+        state = self.fresh_state()
+        turn(state, "Was liest du gern?")
+        turn(state, "Krimis")
+        turn(state, "Mir geht es schlecht")
+
+        reply, meta = generate_free_conversation_reply("Ich bin müde", state)
+        self.assertIn("müde", reply.lower())
+        self.assertEqual((meta.get("conversation_state") or {}).get("subtopic"), "wellbeing")
+        self.assertEqual((state.get("topic_manager_v2") or {}).get("subtopic"), "wellbeing")
+        self.assertIsNone((state.get("conversation_state_v2") or {}).get("active_slot"))
+
+        reply, meta = generate_free_conversation_reply("Und was liest du gern?", state)
+        self.assertIn("krimis", reply.lower())
+        self.assertEqual(meta.get("topic"), "hobby")
+        self.assertEqual((state.get("topic_manager_v2") or {}).get("subtopic"), "reading")
+
+    def test_bare_gut_in_reading_still_does_not_become_wellbeing(self):
+        state = self.fresh_state()
+        turn(state, "Was liest du gern?")
+        turn(state, "Krimis")
+        reply, meta = generate_free_conversation_reply("Gut", state)
+        self.assertNotIn("mir geht es gut", reply.lower())
+        self.assertEqual(meta.get("topic"), "hobby")
+        self.assertEqual((state.get("topic_manager_v2") or {}).get("subtopic"), "reading")
+
 if __name__ == "__main__":
     unittest.main()
