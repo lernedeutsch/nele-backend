@@ -2028,7 +2028,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
     reading_low = _norm(user_message).strip(" ?!.,")
     active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
-    if reading_active and active_semantic_slot != "reading_frequency" and (
+    if reading_active and active_semantic_slot not in {"reading_genre", "reading_detail", "reading_frequency", "reading_place"} and (
         re.search(r"\b(?:oft|manchmal|selten)\b", reading_low)
         or re.search(r"\b(?:am abend|abends|am wochenende)\b", reading_low)
     ):
