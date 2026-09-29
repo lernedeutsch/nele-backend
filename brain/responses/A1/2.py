@@ -215,6 +215,9 @@ LESSON_DIALOGUES = [
         "grammar": ["kommen aus", "Woher?"],
         "vocabulary": ["kommen", "Polen", "Österreich"],
         "slots": {"country": "Polen"},
+        "slot_values": {
+            "country": ["Polen", "Deutschland", "Österreich", "Schweiz", "Italien", "Spanien", "Frankreich"]
+        },
         "allowed_variations": ["change_country", "change_name"],
         "forbidden_variations": ["combine_unrelated_topics", "mix_formal_and_informal"],
         "next_allowed_topics": ["Wohnort"],
