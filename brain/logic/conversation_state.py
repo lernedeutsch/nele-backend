@@ -137,6 +137,15 @@ def infer_subtopic(topic, facts, question="", snapshot=None):
     if topic == "weather":
         return "wetter"
     if topic == "hobby":
+        # The delivered question is the strongest subtopic signal when the
+        # learner explicitly moves back from another context. This updates
+        # ownership without reopening an already-completed semantic slot.
+        if any(x in q for x in ("liest", "lesen", "buch", "bücher", "buecher", "krimi")):
+            return "reading"
+        if any(x in q for x in ("musik", "hörst", "hoerst", "sänger", "saenger")):
+            return "music"
+        if any(x in q for x in ("sport", "fußball", "fussball", "schwimmen")):
+            return "sport"
         if active in {"reading", "music", "sport"}:
             return active
         if activity in {"reading", "music", "sport"}:
