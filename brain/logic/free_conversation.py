@@ -7,7 +7,7 @@ clear A1 errors, and records recurring errors in shared learner state.
 import re
 
 from brain.logic.vocabulary_engine import build_personalized_conversation_vocabulary
-from brain.logic.conversation_state import reset_conversation_state, sync_conversation_state
+from brain.logic.conversation_state import apply_response_to_conversation_state, reset_conversation_state, set_active_slot_from_question, sync_conversation_state
 from brain.logic.topic_manager import choose_topic, update_topic_manager
 from brain.logic.error_engine import process_error
 from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
@@ -53,13 +53,12 @@ FALLBACKS = {
     "today": ["Was machst du heute?", "Was möchtest du heute noch machen?", "Wie ist dein Tag heute?"],
     "place": ["Wo bist du gerade?", "Bist du gern dort?", "Was machst du dort gern?"],
     "shopping": ["Was möchtest du kaufen?", "Welche Farbe möchtest du?", "Wo kaufst du gern ein?"],
-    "food": ["Was isst du gern?", "Was isst du heute?", "Was kochst du gern?"],
+    "food": ["Was isst du gern?", "Was isst du heute?", "Was kochst du gern?", "Was isst du gern zum Frühstück?", "Kochst du gern, oder isst du lieber im Restaurant?", "Magst du deutsches Essen?"],
     "work": ["Arbeitest du heute?", "Wann fängst du an?", "Was machst du bei der Arbeit?"],
     "hobby": ["Was machst du gern in deiner Freizeit?", "Hörst du gern Musik?", "Machst du gern Sport?"],
     "weather": ["Wie ist das Wetter bei dir?", "Ist es warm oder kalt?", "Magst du das Wetter heute?"],
     "holiday": ["Wo machst du gern Urlaub?", "Meer oder Berge – was magst du lieber?", "Was machst du gern im Urlaub?"],
     "yesterday": ["Was hast du gestern gemacht?", "Wie war dein Tag gestern?"],
-    "food": ["Was isst du gern zum Frühstück?", "Kochst du gern, oder isst du lieber im Restaurant?", "Magst du deutsches Essen?"],
     "family": ["Hast du Geschwister?", "Wie oft siehst du deine Familie?", "Wohnt deine Familie in der Nähe?"],
     "friends": ["Hast du viele Freunde hier?", "Wie oft triffst du deine Freunde?", "Was macht ihr zusammen?"],
     "housing": ["Wohnst du in einer Wohnung oder in einem Haus?", "Wohnst du allein oder mit anderen?", "Gefällt dir deine Wohnung?"],
@@ -249,7 +248,8 @@ def _remember_question(free, question):
     actual_question = parts[-1].strip() if parts else str(question).strip()
     actual_question = actual_question.lstrip("„“”\"' ").strip()
     free["last_question"] = actual_question
-    free["last_question_context"] = {"slot": question_slot(actual_question), "topic": free.get("last_topic")}
+    semantic_slot = question_slot(actual_question)
+    free["last_question_context"] = {"slot": semantic_slot, "topic": free.get("last_topic")}
     asked = free.setdefault("asked", [])
     key = _question_key(actual_question)
     if key and key not in asked:
@@ -261,24 +261,24 @@ def _remember_question(free, question):
 
 SUBTOPIC_QUESTIONS = {
     ("hobby", "reading"): [
-        ("genre", "Was liest du gern?"),
-        ("detail", "Was gefällt dir daran?"),
-        ("frequency", "Liest du oft?"),
+        ("reading_genre", "Was liest du gern?"),
+        ("reading_detail", "Was gefällt dir daran?"),
+        ("reading_frequency", "Liest du oft?"),
     ],
     ("hobby", "music"): [
-        ("genre", "Welche Musik hörst du gern?"),
-        ("artist", "Wer ist dein Lieblingssänger?"),
-        ("frequency", "Hörst du oft Musik?"),
+        ("music_genre", "Welche Musik hörst du gern?"),
+        ("music_artist", "Wer ist dein Lieblingssänger?"),
+        ("music_frequency", "Hörst du oft Musik?"),
     ],
     ("hobby", "sport"): [
-        ("kind", "Welchen Sport machst du gern?"),
-        ("detail", "Spielst du in einem Verein?"),
-        ("frequency", "Wie oft machst du das?"),
+        ("sport_kind", "Welchen Sport machst du gern?"),
+        ("sport_companion", "Mit wem machst du Sport?"),
+        ("sport_frequency", "Wie oft machst du das?"),
     ],
 }
 
 
-def _subtopic_followup(topic, subtopic, free, memory):
+def _subtopic_followup(topic, subtopic, free, memory, state=None):
     """Continue an established semantic subtopic without keyword hardcoding."""
     pool = SUBTOPIC_QUESTIONS.get((topic, subtopic))
     if not pool:
@@ -299,12 +299,17 @@ def _subtopic_followup(topic, subtopic, free, memory):
             filled = max(filled, 2)
         slots[key] = filled
 
+    semantic_slots = (((state or {}).get("conversation_state_v2") or {}).get("semantic_slots") or {})
     for i, (_slot, question) in enumerate(pool):
+        if _slot in semantic_slots:
+            continue
         if i < filled:
             continue
         if _norm(question).strip(" ?!.") in asked:
             continue
         slots[key] = i + 1
+        if state is not None:
+            set_active_slot_from_question(state, _slot)
         return question
     return None
 
@@ -1572,6 +1577,21 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     if contextual_reply:
         previous_question = free.get("last_question", "")
+        # This shortcut used to return before Response Understanding, so the
+        # learner received a contextual reply but canonical state forgot the
+        # value (e.g. Pizza -> next turn lost Pizza). Commit the answer against
+        # the question that actually produced it before storing Nele's next
+        # question.
+        early_understanding = understand_response(
+            user_message,
+            conversation_state={
+                **(state.get("conversation_state_v2") or {}),
+                "last_question": previous_question,
+            },
+            vocabulary_context=free.get("vocabulary_context") or {},
+        )
+        state["response_understanding_v1"] = early_understanding
+        apply_response_to_conversation_state(state, early_understanding)
         record_answer(state, user_message, previous_question)
         _remember_question(free, contextual_reply)
         free["last_user_message"] = str(user_message or "").strip()
@@ -1631,6 +1651,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "reason": "contextual_short_answer",
             },
             "contextual_short_answer": True,
+            "response_understanding": early_understanding,
         }
 
     # Priority -2: the reusable A1 lessons 1-10 router may enrich a neutral
@@ -1716,6 +1737,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         vocabulary_context=(state.get("free_conversation") or {}).get("vocabulary_context") or {},
     )
     state["response_understanding_v1"] = response_understanding
+    # CONTEXT stage: commit the understood answer into canonical working
+    # memory before topic selection, pedagogy or fallback routing can act.
+    apply_response_to_conversation_state(state, response_understanding)
 
     # Recovery must run before generic question selection. Otherwise an
     # obviously unclear learner turn can be converted into a perfectly valid
@@ -2059,7 +2083,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         and topic_source != "explicit"
     ):
         subtopic_followup = _subtopic_followup(
-            topic, previous_subtopic, free, memory
+            topic, previous_subtopic, free, memory, state=state
         )
     if subtopic_followup:
         _remember_question(free, subtopic_followup)

@@ -14,6 +14,7 @@ TOPIC_ALIASES = {
     "gestern": "yesterday", "yesterday": "yesterday",
     "alltag": "today", "today": "today",
     "shopping": "shopping", "place": "place",
+    "personal": "personal", "birthday": "personal",
 }
 
 CONTEXTUAL_SUBTOPICS = {

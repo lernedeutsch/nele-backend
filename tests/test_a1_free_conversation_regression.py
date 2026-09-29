@@ -1656,3 +1656,93 @@ class GeneratedTests(unittest.TestCase):
             _content_recovery("ich lese bücher", "hobby"),
             "Was liest du gern?",
         )
+
+    def test_semantic_state_tracks_music_sport_food_and_birthday(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state, sync_conversation_state
+        from brain.logic.response_understanding import understand_response
+
+        cases = [
+            ("hobby", "Welche Musik hörst du gern?", "Pop", "music_genre", "music"),
+            ("hobby", "Welchen Sport machst du gern?", "Fußball", "sport_kind", "sport"),
+            ("food", "Was isst du gern?", "Pizza", "food", "essen"),
+            ("personal", "Wann hast du Geburtstag?", "Am vierzehnten Februar", "birthday", "birthday"),
+        ]
+        for topic, question, answer, slot, subtopic in cases:
+            with self.subTest(answer=answer):
+                state = {"free_conversation": {"conversation_facts": {}, "last_topic": topic, "last_question": question}}
+                snap = sync_conversation_state(state, topic=topic, last_question=question, level="A1.1")
+                understood = understand_response(answer, conversation_state=snap)
+                apply_response_to_conversation_state(state, understood)
+                snap = state["conversation_state_v2"]
+                self.assertEqual(snap["subtopic"], subtopic)
+                self.assertEqual(snap["semantic_slots"][slot], understood["canonical"] or understood["content"])
+
+    def test_semantic_state_preserves_active_music_subtopic_on_sync(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state, sync_conversation_state
+        from brain.logic.response_understanding import understand_response
+
+        state = {"free_conversation": {"conversation_facts": {}, "last_topic": "hobby", "last_question": "Welche Musik hörst du gern?"}}
+        snap = sync_conversation_state(state, topic="hobby", last_question="Welche Musik hörst du gern?", level="A1.1")
+        apply_response_to_conversation_state(state, understand_response("Pop", conversation_state=snap))
+        snap = sync_conversation_state(state, topic="hobby", last_question="Wer ist dein Lieblingssänger?", level="A1.1")
+        self.assertEqual(snap["subtopic"], "music")
+        self.assertEqual(snap["active_slot"], "music_artist")
+        self.assertEqual(snap["semantic_slots"]["music_genre"], "pop")
+
+
+    def test_semantic_frequency_slot_rejects_companion_answer(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state
+        state = {"conversation_state_v2": {"topic": "hobby", "subtopic": "sport", "semantic_slots": {}, "active_slot": "sport_frequency"}}
+        apply_response_to_conversation_state(state, {
+            "slot": "sport_frequency", "canonical": "mit freunden", "content": "Mit Freunden",
+            "understood": True,
+        })
+        self.assertNotIn("sport_frequency", state["conversation_state_v2"]["semantic_slots"])
+        self.assertEqual(state["conversation_state_v2"]["subtopic"], "sport")
+
+    def test_topic_manager_keeps_personal_birthday_context(self):
+        from brain.logic.topic_manager import choose_topic
+        state = {"conversation_state_v2": {"topic": "personal", "subtopic": "birthday", "semantic_slots": {"birthday": "am vierzehnten februar"}}}
+        topic, source = choose_topic(state, vocabulary_topic=None)
+        self.assertEqual(topic, "personal")
+        self.assertEqual(source, "context")
+
+
+    def test_food_short_answer_fast_path_persists_item(self):
+        state = {"free_conversation": {
+            "last_question": "Was isst du gern?",
+            "last_topic": "food",
+            "recent_questions": ["Was isst du gern?"],
+            "conversation_facts": {},
+        }}
+        reply, meta = _turn(state, "Pizza")
+        self.assertTrue(meta.get("contextual_short_answer"))
+        self.assertEqual(state["conversation_state_v2"]["semantic_slots"].get("food"), "pizza")
+        self.assertEqual(state["conversation_state_v2"]["subtopic"], "essen")
+        self.assertIn("Pizza", reply)
+
+    def test_food_elaboration_rebinds_from_frequency_to_detail(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state
+        state = {"conversation_state_v2": {
+            "topic": "food", "subtopic": "essen", "active_slot": "food_frequency",
+            "semantic_slots": {"food": "pizza"},
+        }}
+        apply_response_to_conversation_state(state, {
+            "slot": "food_frequency", "canonical": "mit käse", "content": "Mit Käse",
+            "understood": True,
+        })
+        slots = state["conversation_state_v2"]["semantic_slots"]
+        self.assertEqual(slots["food"], "pizza")
+        self.assertEqual(slots["food_detail"], "mit käse")
+        self.assertNotIn("food_frequency", slots)
+
+    def test_generic_subtopic_question_uses_bound_active_slot(self):
+        from brain.logic.response_understanding import understand_response
+        state = {
+            "topic": "hobby", "subtopic": "reading",
+            "active_slot": "reading_detail",
+            "last_question": "Was gefällt dir daran?",
+        }
+        result = understand_response("Spannend", conversation_state=state)
+        self.assertEqual(result["slot"], "reading_detail")
+

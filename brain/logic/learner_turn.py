@@ -16,23 +16,37 @@ def question_slot(question):
     if not q:
         return None
     if any(x in q for x in ("isst du", "essen", "kochst du", "gericht", "frühstück", "fruehstueck")):
+        if "oft" in q or "wie oft" in q:
+            return "food_frequency"
+        if any(x in q for x in ("womit", "mit was", "dazu", "darauf")):
+            return "food_detail"
         return "food"
     if any(x in q for x in ("film", "kino", "serie")):
         return "film_genre"
     if any(x in q for x in ("buch", "bücher", "buecher", "liest du", "lesen")):
-        return "reading"
+        if "oft" in q:
+            return "reading_frequency"
+        return "reading_genre"
     # Specific semantic domains must outrank broad interrogative words.
     if "geburtstag" in q:
         return "birthday"
     if q.startswith(("wann ", "um wie viel", "bis wann")):
         return "time"
+    if any(x in q for x in ("musik", "hörst du", "hoerst du", "sänger", "saenger", "band", "künstler", "kuenstler")):
+        if "oft" in q:
+            return "music_frequency"
+        if any(x in q for x in ("sänger", "saenger", "band", "künstler", "kuenstler")):
+            return "music_artist"
+        return "music_genre"
+    if "mit wem" in q or "mit jemandem" in q:
+        if any(x in q for x in ("sport", "spiel", "fußball", "fussball", "schwimm")):
+            return "sport_companion"
+        return "person"
     if q.startswith(("wo ", "woher ", "wohin ")):
         return "place"
-    if "mit wem" in q or "mit jemandem" in q:
-        return "person"
-    if any(x in q for x in ("musik", "hörst du", "hoerst du")):
-        return "music_genre"
-    if any(x in q for x in ("sport", "schwimmen", "fußball", "fussball")):
+    if any(x in q for x in ("sport", "schwimmen", "fußball", "fussball", "spielst du")):
+        if "oft" in q or "wie oft" in q:
+            return "sport_frequency"
         return "sport_kind"
     if any(x in q for x in ("freizeit", "hobby", "machst du gern")):
         return "activity"

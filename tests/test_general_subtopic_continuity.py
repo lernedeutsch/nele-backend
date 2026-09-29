@@ -22,7 +22,7 @@ class GeneralSubtopicContinuityTests(unittest.TestCase):
         free = {"recent_questions": ["Welchen Sport machst du gern?"]}
         memory = {}
         reply = _subtopic_followup("hobby", "sport", free, memory)
-        self.assertIn(reply, {"Spielst du in einem Verein?", "Wie oft machst du das?"})
+        self.assertIn(reply, {"Mit wem machst du Sport?", "Wie oft machst du das?"})
 
     def test_subtopic_followup_does_not_repeat_recent_question(self):
         free = {"recent_questions": ["Was liest du gern?"]}
