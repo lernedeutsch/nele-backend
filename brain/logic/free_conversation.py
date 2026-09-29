@@ -639,6 +639,8 @@ def _social_a1_reply(text, free, state):
         if activity in {"schwimme", "schwimm"}:
             free["activity_thread"] = {"activity": "swimming", "stage": "place"}
             return "Schön! Wo schwimmst du gern?"
+        if activity in {"fahre", "fahr"} and detail == "rad":
+            return "Schön! Wo fährst du gern Rad?"
         return "Schön! Was machst du sonst noch gern?"
 
     # Common A1 verb/conjugation errors in the five everyday topics.
