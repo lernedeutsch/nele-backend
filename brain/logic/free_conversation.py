@@ -1225,25 +1225,36 @@ def generate_free_welcome(state, session_id=None):
     return OPENERS[index]
 
 def _should_activate_dialogue_in_free(dialogue):
-    """Only situational role-play may take ownership of Frei sprechen.
+    """Return True only when a dialogue represents a concrete role-play.
 
-    Dialogue matches about ordinary conversation topics remain knowledge:
-    Conversation Engine keeps ownership and may use the dialogue content later.
+    Active dialogues contain both conversational knowledge (birthday, hobbies,
+    music, sport, travel preferences) and transactional/situational practice
+    (directions, invitations, station, post, bus, package).  A knowledge match
+    must not by itself transfer ownership away from Conversation Engine.
     """
     if not isinstance(dialogue, dict):
         return False
+
+    topic = _norm(dialogue.get("topic", ""))
+    section = _norm(dialogue.get("section", ""))
     situation = _norm(dialogue.get("situation", ""))
-    practice_cues = (
-        "nach dem weg",
-        "am bahnhof",
-        "bei der post",
-        "im bus",
+    text = " ".join((topic, section, situation))
+
+    # Concrete role-play families. Keep this semantic and data-driven from
+    # dialogue metadata; do not key it to individual learner answers.
+    roleplay_cues = (
+        "weg",
+        "bahnhof",
+        "post",
+        "bus",
         "fahrkarte",
         "zugverbindung",
         "einladung",
+        "einladen",
+        "absagen",
         "paket",
     )
-    return any(cue in situation for cue in practice_cues)
+    return any(cue in text for cue in roleplay_cues)
 
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
