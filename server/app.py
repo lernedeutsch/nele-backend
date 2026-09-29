@@ -394,11 +394,16 @@ def create_nele_reply(
 
         # Meine Sätze are also understood in course mode. This is a global
         # learner layer, not content hard-coded into one lesson.
-        personal = handle_personal_sentence(
-            user_message,
-            state,
-            mode="course",
-        )
+        personal = None
+        # An active Meine-Sätze practice owns the next turn. Let the lesson
+        # router evaluate it instead of letting the global sentence matcher
+        # consume the exact sentence the exercise just asked for.
+        if not state.get("personal_sentence_practice"):
+            personal = handle_personal_sentence(
+                user_message,
+                state,
+                mode="course",
+            )
         if personal:
             answer = personal["reply"]
             remember_nele_output(answer, state)
