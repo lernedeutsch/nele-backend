@@ -157,6 +157,13 @@ from brain.memory.error_review import (
 )
 
 
+def _resume_course_after_side_answer(answer, state):
+    """Append the suspended course prompt once a side question was answered."""
+    if not state.pop("course_side_question_pending", False):
+        return answer
+    return continue_after_side_answer(answer, state)
+
+
 # ==========================================
 # GŁÓWNY ROUTER
 # ==========================================
@@ -756,7 +763,7 @@ def generate_conversation_reply(
     # can leak into the dialogue and ignore short contextual answers.
     # ======================================
 
-    if is_dialogue_active(state):
+    if is_dialogue_active(state) and not state.get("course_side_question_pending"):
         dialogue_answer = handle_dialogue(
             processed_message,
             state,
@@ -781,7 +788,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -799,7 +806,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -818,7 +825,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -836,7 +843,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -854,7 +861,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -872,7 +879,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -890,7 +897,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -909,7 +916,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -948,7 +955,7 @@ def generate_conversation_reply(
             )
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -976,7 +983,7 @@ def generate_conversation_reply(
         )
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -996,7 +1003,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -1014,7 +1021,7 @@ def generate_conversation_reply(
     if answer:
 
         return return_with_feedback(
-            answer,
+            _resume_course_after_side_answer(answer, state),
             feedback_text,
             session_id
         )
@@ -1035,7 +1042,7 @@ def generate_conversation_reply(
     if topic_follow_up:
 
         return return_with_feedback(
-            topic_follow_up,
+            _resume_course_after_side_answer(topic_follow_up, state),
             feedback_text,
             session_id
         )
@@ -1046,10 +1053,13 @@ def generate_conversation_reply(
     # ======================================
 
     return return_with_feedback(
-        (
-            "Ich habe dich verstanden, "
-            "aber diese Antwort habe ich "
-            "noch nicht gelernt."
+        _resume_course_after_side_answer(
+            (
+                "Ich habe dich verstanden, "
+                "aber diese Antwort habe ich "
+                "noch nicht gelernt."
+            ),
+            state,
         ),
         feedback_text,
         session_id

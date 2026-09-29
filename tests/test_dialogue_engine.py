@@ -5,6 +5,7 @@ from brain.logic.dialogue_engine import (
     answer_matches_dialogue_turn,
     handle_dialogue,
     start_dialogue,
+    get_current_dialogue_prompt,
     start_dialogue_for_section,
 )
 
@@ -125,3 +126,20 @@ class DialogueEngineTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_course_dialogue_side_question_keeps_exact_turn_for_resume():
+    state = {"conversation_mode": "course"}
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+    handle_dialogue("Aus Deutschland.", state)
+
+    turn_before = state["dialogue_turn"]
+    reply = handle_dialogue("Wie ist das Wetter?", state)
+
+    assert reply is None
+    assert state["dialogue_active"] is True
+    assert state["dialogue_turn"] == turn_before
+    assert state["course_side_question_pending"] is True
+    resumed = get_current_dialogue_prompt(state)
+    assert "Kommst du aus Deutschland?" in resumed
+    assert "Antworte Mia." in resumed

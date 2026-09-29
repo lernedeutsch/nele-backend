@@ -30,6 +30,11 @@ from brain.logic.lesson_teaching import (
     get_current_lesson_prompt
 )
 
+from brain.logic.dialogue_engine import (
+    is_dialogue_active,
+    get_current_dialogue_prompt,
+)
+
 
 # ==========================================
 # WZNOWIENIE AKTYWNEGO SŁOWNICTWA
@@ -464,7 +469,17 @@ def resume_current_training(
 
 
     # ======================================
-    # 3. LEKCJA
+    # 3. DIALOG KURSOWY
+    # ======================================
+
+    if is_dialogue_active(state):
+        answer = get_current_dialogue_prompt(state)
+        if answer:
+            return answer
+
+
+    # ======================================
+    # 4. LEKCJA
     # ======================================
 
     answer = resume_lesson_training(

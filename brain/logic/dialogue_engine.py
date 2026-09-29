@@ -421,6 +421,36 @@ def _complete_course_dialogue(dialogue, state):
     return next_section
 
 
+def get_current_dialogue_prompt(state):
+    """Return the exact learner prompt for an active dialogue without advancing it."""
+    if not is_dialogue_active(state):
+        return None
+    dialogue = get_dialogue(
+        state.get("dialogue_level"),
+        state.get("dialogue_lesson"),
+        state.get("dialogue_id"),
+    )
+    if dialogue is None:
+        return None
+    turns = _turns(dialogue)
+    turn = _current_turn(state, dialogue)
+    if turn is None:
+        return None
+    slots = state.get("dialogue_slots") or {}
+    index = int(state.get("dialogue_turn", 0) or 0)
+    spoken = ""
+    for previous in reversed(turns[:index]):
+        if _norm(previous.get("role")) not in {"student", "learner", "user", "du"}:
+            spoken = _text(render_pattern(previous.get("text"), slots))
+            if spoken:
+                speaker = _text(previous.get("speaker")) or "Nele"
+                spoken = f"{speaker}: {spoken}"
+                break
+    prompt = _text(render_pattern(turn.get("prompt") or turn.get("text"), slots))
+    body = " ".join(part for part in (spoken, prompt) if part)
+    return f"Jetzt machen wir weiter. {body}".strip() if body else None
+
+
 def clear_dialogue(state):
     for key, value in {
         "dialogue_active": False,
@@ -490,10 +520,14 @@ def handle_dialogue(user_message, state):
             return "Tschüss!"
         return "Gut, wir machen frei weiter."
 
-    # Free conversation must remain learner-led. A clear new question that is
-    # not a valid answer to the current scripted turn releases the dialogue and
-    # lets the normal conversation router answer it.
+    # A side question has different semantics in the two modes. In free mode
+    # it releases the scripted dialogue. In course mode it is a temporary
+    # digression: keep the exact dialogue turn in session state, let the shared
+    # routers answer the side question, then resume this prompt.
     if _learner_is_changing_topic(user_message, turn, state.get("dialogue_slots")):
+        if str(state.get("conversation_mode") or "").strip().lower() == "course":
+            state["course_side_question_pending"] = True
+            return None
         clear_dialogue(state)
         return None
 
