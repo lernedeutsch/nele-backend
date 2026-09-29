@@ -407,5 +407,15 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
             self.assertIn(expected, reply.lower(), opener)
             self.assertNotIn(forbidden, reply.lower(), opener)
 
+    def test_swimming_activity_keeps_context_after_place(self):
+        state = self.fresh_state()
+        turn(state, "Was machst du gern am Wochenende?")
+        self.assertIn("schwimm", turn(state, "schwimmen").lower())
+        reply = turn(state, "Draußen")
+        self.assertIn("schwimmst du oft", reply.lower())
+        reply = turn(state, "oft")
+        self.assertNotIn("musik", reply.lower())
+        self.assertIn("freizeit", reply.lower())
+
 if __name__ == "__main__":
     unittest.main()
