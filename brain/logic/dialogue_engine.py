@@ -6,7 +6,8 @@ owns HOW a dialogue is practised; lesson content owns WHAT is practised.
 from brain.logic.lesson_loader import load_lesson_module
 from brain.knowledge.active_dialogues import get_active_dialogues
 from brain.logic.matcher import normalize
-from brain.logic.dialogue_knowledge import accepted_patterns, infer_intent, render_pattern
+import re
+from brain.logic.dialogue_knowledge import accepted_patterns, infer_intent, render_pattern, slot_names
 from brain.logic.dialogue_state_engine import (
     clear_semantic_state,
     initialise_dialogue_state,
@@ -90,7 +91,33 @@ def _accepted(turn, slots=None):
     }
 
 
-def answer_matches_dialogue_turn(user_message, turn, slots=None):
+def _match_slot_pattern(user_message, pattern, slots=None, variable_slots=None):
+    """Match a dialogue pattern while allowing explicitly variable semantic slots."""
+    variable_slots = set(variable_slots or ())
+    names = set(slot_names(pattern))
+    if not names or not (names & variable_slots):
+        return None
+
+    regex = re.escape(str(pattern or ""))
+    for name in names:
+        token = re.escape("{" + name + "}")
+        if name in variable_slots:
+            regex = regex.replace(token, rf"(?P<{name}>.+?)")
+        else:
+            value = str((slots or {}).get(name, ""))
+            regex = regex.replace(token, re.escape(value))
+
+    match = re.fullmatch(regex + r"[ .?!„“\"']*", str(user_message or "").strip(), flags=re.IGNORECASE)
+    if not match:
+        return None
+    return {
+        name: str(value or "").strip(" .?!„“\"'")
+        for name, value in match.groupdict().items()
+        if str(value or "").strip()
+    }
+
+
+def answer_matches_dialogue_turn(user_message, turn, slots=None, variable_slots=None):
     message = _norm(user_message)
     if not message:
         return False
@@ -99,6 +126,9 @@ def answer_matches_dialogue_turn(user_message, turn, slots=None):
     accepted = _accepted(turn, slots)
     if message in accepted:
         return True
+    for pattern in accepted_patterns(turn):
+        if _match_slot_pattern(user_message, pattern, slots, variable_slots) is not None:
+            return True
     contains_all = turn.get("contains_all", [])
     if isinstance(contains_all, str):
         contains_all = [contains_all]
@@ -466,8 +496,18 @@ def handle_dialogue(user_message, state):
         clear_dialogue(state)
         return complete
 
+    variable_slots = set()
+    variations = set(dialogue.get("allowed_variations", []) or [])
+    if "change_country" in variations:
+        variable_slots.add("country")
+
     record_exchange(state)
-    if not answer_matches_dialogue_turn(user_message, turn, state.get("dialogue_slots")):
+    if not answer_matches_dialogue_turn(
+        user_message,
+        turn,
+        state.get("dialogue_slots"),
+        variable_slots=variable_slots,
+    ):
         expected = _text(turn.get("expected"))
         retry = _text(turn.get("retry"))
         if retry:
@@ -475,6 +515,17 @@ def handle_dialogue(user_message, state):
         if expected:
             return f"Fast. Sag bitte: „{expected}“"
         return "Fast. Versuch es bitte noch einmal."
+
+    for pattern in accepted_patterns(turn):
+        captured = _match_slot_pattern(
+            user_message,
+            pattern,
+            state.get("dialogue_slots"),
+            variable_slots=variable_slots,
+        )
+        if captured:
+            state.setdefault("dialogue_slots", {}).update(captured)
+            break
 
     mark_intent_complete(state, infer_intent(turn))
     success = _text(turn.get("success"))
