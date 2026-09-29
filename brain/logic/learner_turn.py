@@ -27,6 +27,12 @@ def question_slot(question):
         return "place"
     if "mit wem" in q or "mit jemandem" in q:
         return "person"
+    if "geburtstag" in q:
+        return "birthday"
+    if any(x in q for x in ("musik", "hörst du", "hoerst du")):
+        return "music_genre"
+    if any(x in q for x in ("sport", "schwimmen", "fußball", "fussball")):
+        return "sport_kind"
     if any(x in q for x in ("freizeit", "hobby", "machst du gern")):
         return "activity"
     if any(x in q for x in ("arbeit", "job")):
@@ -81,4 +87,10 @@ def direct_nele_answer(text):
         return "Ich lese gern Krimis. Und du, was liest du gern?"
     if re.search(r"^was isst du gern$", q):
         return "Ich mag gern Pizza. Und du, was isst du gern?"
+    if re.search(r"^wann hast du geburtstag$", q):
+        return "Ich habe keinen Geburtstag wie ein Mensch. Wann hast du Geburtstag?"
+    if re.search(r"^welche musik hörst du gern$", q) or re.search(r"^welche musik hoerst du gern$", q):
+        return "Ich höre nicht wirklich Musik, aber ich spreche gern darüber. Welche Musik hörst du gern?"
+    if re.search(r"^welchen sport machst du gern$", q):
+        return "Ich mache nicht wirklich Sport, aber ich spreche gern darüber. Welchen Sport machst du gern?"
     return None
