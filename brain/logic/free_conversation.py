@@ -2098,7 +2098,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         or (state.get("conversation_state_v2") or {}).get("subtopic")
     )
     explicit_content_followup = _content_followup(user_message, facts, memory, free, level)
-    if explicit_content_followup and memory.get("reading_kind") == "Krimis":
+    active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
+    if (
+        explicit_content_followup
+        and memory.get("reading_kind") == "Krimis"
+        and active_semantic_slot not in {"reading_detail", "reading_frequency", "reading_place"}
+    ):
         memory.setdefault("activity", "reading")
         _remember_question(free, explicit_content_followup)
         free["last_user_message"] = str(user_message or "").strip()
