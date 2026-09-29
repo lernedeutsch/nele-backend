@@ -291,11 +291,11 @@ SUBTOPIC_QUESTIONS = {
 # fall back to a broad topic opener. Use one explicit bridge that stays related
 # to what the learner just said, then let normal topic-transition policy decide.
 SUBTOPIC_COMPLETION = {
-    ("hobby", "reading"): "Interessant. Liest du lieber zu Hause oder unterwegs?",
-    ("hobby", "music"): "Schön. Hörst du Musik lieber zu Hause oder unterwegs?",
-    ("hobby", "sport"): "Schön. Machst du diesen Sport lieber draußen oder drinnen?",
-    ("food", "essen"): "Verstehe. Isst du das lieber zu Hause oder im Restaurant?",
-    ("personal", "birthday"): "Schön. Magst du Geburtstage?",
+    ("hobby", "reading"): ("reading_place", "Interessant. Liest du lieber zu Hause oder unterwegs?"),
+    ("hobby", "music"): ("music_place", "Schön. Hörst du Musik lieber zu Hause oder unterwegs?"),
+    ("hobby", "sport"): ("sport_environment", "Schön. Machst du diesen Sport lieber draußen oder drinnen?"),
+    ("food", "essen"): ("food_place", "Verstehe. Isst du das lieber zu Hause oder im Restaurant?"),
+    ("personal", "birthday"): ("birthday_preference", "Schön. Magst du Geburtstage?"),
 }
 
 
@@ -335,14 +335,16 @@ def _subtopic_followup(topic, subtopic, free, memory, state=None):
 
     completion = SUBTOPIC_COMPLETION.get((topic, subtopic))
     completion_key = f"{key}/completion"
-    if completion and not slots.get(completion_key) and _norm(completion).strip(" ?!.") not in asked:
+    if completion:
+        bridge_slot, bridge_question = completion
+    else:
+        bridge_slot, bridge_question = None, None
+    if bridge_question and not slots.get(completion_key) and _norm(bridge_question).strip(" ?!.") not in asked:
         slots[completion_key] = 1
         if state is not None:
-            # The bridge is deliberately conversational, not a required
-            # learning slot. Clear the expectation so its answer cannot
-            # overwrite a completed semantic value.
-            (state.get("conversation_state_v2") or {})["active_slot"] = None
-        return completion
+            set_active_slot_from_question(state, bridge_slot)
+            (state.get("conversation_state_v2") or {})["subtopic_status"] = "bridging"
+        return bridge_question
     return None
 
 
@@ -1427,7 +1429,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             wellbeing_context
             or wellbeing_analysis.get("type") in {"bad", "tired", "stressed", "sad", "sick"}
             or re.match(r"^(?:mir\s+geht|ich\s+bin)\b", _norm(user_message))
-            or _norm(user_message).strip(" ?!.,") in {"gut", "sehr gut", "ganz gut", "prima", "super", "so lala", "es geht", "geht so"}
+            or (
+                wellbeing_context
+                and _norm(user_message).strip(" ?!.,") in {"gut", "sehr gut", "ganz gut", "prima", "super", "so lala", "es geht", "geht so"}
+            )
         )
     )
     if explicit_wellbeing:
@@ -1591,7 +1596,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         re.search(r"\b(?:ich\s+lese|lese\s+ich)\b", early_content)
         or re.search(r"\bkrimis?\b", early_content)
     )
-    if not _is_explicit_learner_question(user_message) and not explicit_reading_content:
+    active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
+    if not active_semantic_slot and not _is_explicit_learner_question(user_message) and not explicit_reading_content:
         contextual_reply = _short_answer_followup(
             user_message,
             free.get("last_question", ""),
