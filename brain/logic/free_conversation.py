@@ -2018,7 +2018,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         or (state.get("conversation_state_v2") or {}).get("subtopic") == "reading"
     )
     reading_low = _norm(user_message).strip(" ?!.,")
-    if reading_active and (
+    active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
+    if reading_active and active_semantic_slot != "reading_frequency" and (
         re.search(r"\b(?:oft|manchmal|selten)\b", reading_low)
         or re.search(r"\b(?:am abend|abends|am wochenende)\b", reading_low)
     ):
