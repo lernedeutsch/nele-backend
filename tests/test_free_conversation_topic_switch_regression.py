@@ -168,6 +168,17 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertEqual(state["free_conversation"].get("last_topic"), "today")
 
 
+    def test_weekend_question_keeps_spazieren_in_the_same_activity_thread(self):
+        state = self.fresh_state()
+        reply = turn(state, "Was machst du gern am Wochenende?")
+        self.assertIn("was machst du gern am wochenende", reply.lower())
+        self.assertEqual(state["free_conversation"].get("last_topic"), "hobby")
+
+        reply = turn(state, "spazieren")
+        self.assertIn("spazieren", reply.lower())
+        self.assertIn("allein oder mit jemandem", reply.lower())
+        self.assertNotIn("sport", reply.lower())
+
     def test_food_intent_with_discourse_particle_overrides_hobby(self):
         state = self.fresh_state()
         turn(state, "Was machst du gern am Wochenende?")
