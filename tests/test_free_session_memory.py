@@ -74,12 +74,14 @@ class FreeSessionMemoryTests(unittest.TestCase):
         self.assertIn("Liest du Krimis lieber am Abend oder am Wochenende?", source)
 
     def test_explicit_krimi_content_precedes_social_router(self):
-        source = inspect.getsource(free_conversation.generate_free_conversation_reply)
-        content_pos = source.index("explicit_content_followup = None if canonical_reading_active")
-        social_pos = source.index("social_reply = None if curriculum_model_sentence else _social_a1_reply")
-        self.assertLess(content_pos, social_pos)
-        self.assertIn("canonical_reading_active", source)
-        self.assertIn('memory.get("reading_kind") == "Krimis"', source)
+        state = {}
+        free_conversation.generate_free_conversation_reply("Was liest du gern?", state)
+        reply, meta = free_conversation.generate_free_conversation_reply("Krimis", state)
+        semantic = state.get("conversation_state_v2") or {}
+        self.assertEqual((semantic.get("semantic_slots") or {}).get("reading_genre"), "krimis")
+        self.assertEqual(semantic.get("active_slot"), "reading_detail")
+        self.assertEqual(reply, "Was gefällt dir daran?")
+        self.assertEqual((meta.get("topic_manager") or {}).get("subtopic"), "reading")
 
     def test_food_topic_has_contextual_und_du_handback(self):
         source = inspect.getsource(free_conversation.generate_free_conversation_reply)
