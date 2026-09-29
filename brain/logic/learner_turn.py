@@ -47,7 +47,7 @@ def is_learner_question(text):
     q = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", _norm(raw))
     return q.startswith((
         "was ", "wie ", "wo ", "woher ", "wohin ", "wann ", "warum ", "wer ",
-        "welcher ", "welche ", "welches ", "arbeitest ", "wohnst ", "isst ",
+        "welcher ", "welche ", "welchen ", "welchem ", "welches ", "arbeitest ", "wohnst ", "isst ",
         "trinkst ", "magst ", "machst ", "hast ", "bist ", "kommst ", "liest ",
         "siehst ", "gehst ", "fährst ", "faehrst ",
     ))
