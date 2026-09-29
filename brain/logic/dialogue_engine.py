@@ -93,9 +93,9 @@ def _accepted(turn, slots=None):
 
 def _match_slot_pattern(user_message, pattern, slots=None, variable_slots=None):
     """Match a dialogue pattern while allowing explicitly variable semantic slots."""
-    variable_slots = set(variable_slots or ())
+    variable_slots = dict(variable_slots or {})
     names = set(slot_names(pattern))
-    if not names or not (names & variable_slots):
+    if not names or not (names & set(variable_slots)):
         return None
 
     regex = re.escape(str(pattern or ""))
@@ -110,11 +110,16 @@ def _match_slot_pattern(user_message, pattern, slots=None, variable_slots=None):
     match = re.fullmatch(regex + r"[ .?!„“\"']*", str(user_message or "").strip(), flags=re.IGNORECASE)
     if not match:
         return None
-    return {
+    captured = {
         name: str(value or "").strip(" .?!„“\"'")
         for name, value in match.groupdict().items()
         if str(value or "").strip()
     }
+    for name, value in captured.items():
+        allowed = {_norm(item) for item in variable_slots.get(name, []) if _norm(item)}
+        if allowed and _norm(value) not in allowed:
+            return None
+    return captured
 
 
 def answer_matches_dialogue_turn(user_message, turn, slots=None, variable_slots=None):
@@ -497,10 +502,11 @@ def handle_dialogue(user_message, state):
         clear_dialogue(state)
         return complete
 
-    variable_slots = set()
+    variable_slots = {}
     variations = set(dialogue.get("allowed_variations", []) or [])
-    if "change_country" in variations:
-        variable_slots.add("country")
+    slot_values = dialogue.get("slot_values", {}) or {}
+    if "change_country" in variations and slot_values.get("country"):
+        variable_slots["country"] = slot_values["country"]
 
     record_exchange(state)
     if not answer_matches_dialogue_turn(
