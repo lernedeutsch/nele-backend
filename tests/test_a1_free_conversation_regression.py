@@ -1689,3 +1689,21 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(snap["active_slot"], "music_artist")
         self.assertEqual(snap["semantic_slots"]["music_genre"], "pop")
 
+
+    def test_semantic_frequency_slot_rejects_companion_answer(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state
+        state = {"conversation_state_v2": {"topic": "hobby", "subtopic": "sport", "semantic_slots": {}, "active_slot": "sport_frequency"}}
+        apply_response_to_conversation_state(state, {
+            "slot": "sport_frequency", "canonical": "mit freunden", "content": "Mit Freunden",
+            "understood": True,
+        })
+        self.assertNotIn("sport_frequency", state["conversation_state_v2"]["semantic_slots"])
+        self.assertEqual(state["conversation_state_v2"]["subtopic"], "sport")
+
+    def test_topic_manager_keeps_personal_birthday_context(self):
+        from brain.logic.topic_manager import choose_topic
+        state = {"conversation_state_v2": {"topic": "personal", "subtopic": "birthday", "semantic_slots": {"birthday": "am vierzehnten februar"}}}
+        topic, source = choose_topic(state, vocabulary_topic=None)
+        self.assertEqual(topic, "personal")
+        self.assertEqual(source, "context")
+
