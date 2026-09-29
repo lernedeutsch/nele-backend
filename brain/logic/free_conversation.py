@@ -710,6 +710,11 @@ def _social_a1_reply(text, free, state):
             free.setdefault("conversation_facts", {})["german_practice_preference"] = low
             return practice_followups[low]
 
+    if "mit wem sprichst du gern deutsch" in last:
+        if low in {"mit dir", "ich spreche mit dir", "mit nele", "mit dir, nele"}:
+            free.setdefault("conversation_facts", {})["german_speaking_partner"] = "Nele"
+            return "Mit mir? Sehr gern! Worüber sprichst du gern auf Deutsch?"
+
     if any(x in last for x in ("bei diesem wetter", "wenn es warm ist")):
         if low in {"radfahren", "rad fahren", "fahrrad fahren"}:
             return "Du kannst sagen: „Ich fahre gern Rad.“ Fährst du lieber allein oder mit jemandem?"
