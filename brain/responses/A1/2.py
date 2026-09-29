@@ -169,7 +169,7 @@ LESSON_FLOW = {
                     "success": "Sehr gut."
                 },
                 {
-                    "prompt": "Sehr gut. Jetzt 6 bis 10 auf Deutsch. Du kannst auch die Ziffern schreiben.",
+                    "prompt": "Jetzt 6 bis 10 auf Deutsch. Du kannst auch die Ziffern schreiben.",
                     "accepted": ["sechs, sieben, acht, neun, zehn", "sechs sieben acht neun zehn", "6 7 8 9 10", "6, 7, 8, 9, 10"],
                     "correct_answer": "sechs, sieben, acht, neun, zehn",
                     "error_type": "vocabulary",
