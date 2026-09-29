@@ -71,6 +71,28 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
         self.assertEqual(semantic.get("subtopic_status"), "completed")
         self.assertIsNone(semantic.get("active_slot"))
 
+    def test_reading_bridge_answer_is_committed_and_completes_subtopic(self):
+        state = {}
+        turn(state, "Was liest du gern?")
+        turn(state, "Krimis")
+        turn(state, "Die Spannung")
+        turn(state, "Oft am Abend")
+        turn(state, "Unterwegs")
+        semantic = state.get("conversation_state_v2") or {}
+        self.assertEqual((semantic.get("semantic_slots") or {}).get("reading_place"), "unterwegs")
+        self.assertEqual(semantic.get("subtopic_status"), "completed")
+
+    def test_birthday_bridge_answer_is_committed_and_completes_subtopic(self):
+        state = {}
+        turn(state, "Wann hast du Geburtstag?")
+        turn(state, "Am vierzehnten Februar")
+        turn(state, "Mit meiner Familie")
+        turn(state, "Wir essen Kuchen")
+        turn(state, "Ja")
+        semantic = state.get("conversation_state_v2") or {}
+        self.assertEqual((semantic.get("semantic_slots") or {}).get("birthday_preference"), "ja")
+        self.assertEqual(semantic.get("subtopic_status"), "completed")
+
     def test_bare_gut_does_not_steal_music_question_as_wellbeing(self):
         state = {}
         turn(state, "Welche Musik hörst du gern?")
