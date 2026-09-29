@@ -1112,7 +1112,7 @@ def _content_followup(text, facts, memory, free, level):
         if "welche krimis liest du gern" in last_reading_question:
             if re.search(r"\bkommissar(?:e|en|in|innen)?\b", low):
                 memory["reading_detail"] = "Kommissare"
-                return "Magst du lieber spannende oder ruhige Krimis?"
+                return "Liest du solche Krimis oft?"
             return "Was gefällt dir an Krimis besonders?"
         return "Krimis? Welche Krimis liest du gern?"
     if memory.get("cooking_thread") and re.search(r"\b(?:ich meine\s+)?pizza\b", low):

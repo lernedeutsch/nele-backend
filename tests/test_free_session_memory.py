@@ -181,7 +181,7 @@ if __name__ == "__main__":
 def test_krimi_detail_deepens_instead_of_repeating_question():
     source = inspect.getsource(free_conversation._content_followup)
     assert "last_reading_question" in source
-    assert "Magst du lieber spannende oder ruhige Krimis?" in source
+    assert "Liest du solche Krimis oft?" in source
     assert "Was gefällt dir an Krimis besonders?" in source
 
 def test_final_delivered_question_is_persisted_after_recovery():
