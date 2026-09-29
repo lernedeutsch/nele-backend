@@ -1707,3 +1707,42 @@ class GeneratedTests(unittest.TestCase):
         self.assertEqual(topic, "personal")
         self.assertEqual(source, "context")
 
+
+    def test_food_short_answer_fast_path_persists_item(self):
+        state = {"free_conversation": {
+            "last_question": "Was isst du gern?",
+            "last_topic": "food",
+            "recent_questions": ["Was isst du gern?"],
+            "conversation_facts": {},
+        }}
+        reply, meta = _turn(state, "Pizza")
+        self.assertTrue(meta.get("contextual_short_answer"))
+        self.assertEqual(state["conversation_state_v2"]["semantic_slots"].get("food"), "pizza")
+        self.assertEqual(state["conversation_state_v2"]["subtopic"], "essen")
+        self.assertIn("Pizza", reply)
+
+    def test_food_elaboration_rebinds_from_frequency_to_detail(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state
+        state = {"conversation_state_v2": {
+            "topic": "food", "subtopic": "essen", "active_slot": "food_frequency",
+            "semantic_slots": {"food": "pizza"},
+        }}
+        apply_response_to_conversation_state(state, {
+            "slot": "food_frequency", "canonical": "mit käse", "content": "Mit Käse",
+            "understood": True,
+        })
+        slots = state["conversation_state_v2"]["semantic_slots"]
+        self.assertEqual(slots["food"], "pizza")
+        self.assertEqual(slots["food_detail"], "mit käse")
+        self.assertNotIn("food_frequency", slots)
+
+    def test_generic_subtopic_question_uses_bound_active_slot(self):
+        from brain.logic.response_understanding import understand_response
+        state = {
+            "topic": "hobby", "subtopic": "reading",
+            "active_slot": "reading_detail",
+            "last_question": "Was gefällt dir daran?",
+        }
+        result = understand_response("Spannend", conversation_state=state)
+        self.assertEqual(result["slot"], "reading_detail")
+
