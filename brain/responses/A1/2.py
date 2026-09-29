@@ -241,8 +241,13 @@ LESSON_DIALOGUES = [
                 "prompt": "Antworte Mia.",
                 "expected_intent": "confirm_origin",
                 "expected": "Ja, ich komme aus Polen.",
-                "accepted_patterns": ["Ja", "Ja, ich komme aus {country}", "Ich komme aus {country}"],
-                "retry": "Du kannst sagen: „Ja, ich komme aus {country}.“"
+                "accepted_patterns": [
+                    "Ja",
+                    "Ja, ich komme aus {country}",
+                    "Ich komme aus {country}",
+                    "Nein, ich komme aus {country}"
+                ],
+                "retry": "Du kannst sagen: „Ja.“ oder „Nein, ich komme aus …“"
             },
             {"role": "nele", "speaker": "Mia", "text": "Und woher kommt Anna? Anna kommt aus Österreich.", "intent": "ask_third_person_origin"},
             {
