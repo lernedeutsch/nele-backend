@@ -147,14 +147,14 @@ def _current_turn(state, dialogue):
     return turns[index]
 
 
-def _advance_to_learner(turns, index):
+def _advance_to_learner(turns, index, slots=None):
     spoken = []
     while index < len(turns):
         turn = turns[index]
         role = _norm(turn.get("role"))
         if role in {"student", "learner", "user", "du"}:
             return index, spoken
-        line = _text(turn.get("text"))
+        line = _text(render_pattern(turn.get("text"), slots or {}))
         if line:
             speaker = _text(turn.get("speaker")) or "Nele"
             spoken.append(f"{speaker}: {line}")
@@ -186,7 +186,8 @@ def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
     except (TypeError, ValueError):
         requested_start = 0
     requested_start = min(requested_start, len(turns) - 1)
-    index, spoken = _advance_to_learner(turns, requested_start)
+    dialogue_slots = dict(dialogue.get("slots", {}) or {})
+    index, spoken = _advance_to_learner(turns, requested_start, dialogue_slots)
     state["dialogue_active"] = True
     state["dialogue_level"] = str(level).upper()
     state["dialogue_lesson"] = int(lesson)
@@ -194,13 +195,13 @@ def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
     state["dialogue_turn"] = index
     state["last_activity"] = "dialogue"
     state["last_activity_detail"] = _text(dialogue.get("title") or dialogue_id)
-    state["dialogue_slots"] = dict(dialogue.get("slots", {}) or {})
+    state["dialogue_slots"] = dialogue_slots
     initialise_dialogue_state(state, dialogue)
 
     intro = _text(dialogue.get("intro"))
     prompt = ""
     if index < len(turns):
-        prompt = _text(turns[index].get("prompt") or turns[index].get("text"))
+        prompt = _text(render_pattern(turns[index].get("prompt") or turns[index].get("text"), dialogue_slots))
 
     return " ".join(part for part in [intro, *spoken, prompt] if part)
 
@@ -529,7 +530,11 @@ def handle_dialogue(user_message, state):
 
     mark_intent_complete(state, infer_intent(turn))
     success = _text(turn.get("success"))
-    next_index, spoken = _advance_to_learner(turns, int(state.get("dialogue_turn", 0)) + 1)
+    next_index, spoken = _advance_to_learner(
+        turns,
+        int(state.get("dialogue_turn", 0)) + 1,
+        state.get("dialogue_slots"),
+    )
 
     if next_index >= len(turns):
         complete = _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."
