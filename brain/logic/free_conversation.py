@@ -1033,6 +1033,12 @@ def _short_answer_followup(text, last_question, memory):
         memory.setdefault("filled_slots", {})["hobby_activity"] = "spazieren"
         return "Gehst du lieber allein oder mit jemandem spazieren?"
 
+    # Frequency directly answers the local walking-company follow-up.
+    # Consume it here instead of reopening the broad Freizeit question.
+    if "macht ihr das oft zusammen" in question and memory.get("activity_company"):
+        if low in {"oft", "sehr oft", "manchmal", "selten", "jeden tag", "jedes wochenende"}:
+            memory["activity_frequency"] = raw.strip(" .?!")
+            return "Schön, das klingt nach einer guten gemeinsamen Zeit. Was macht ihr sonst noch gern zusammen?"
     # Company: "Mit wem ...?" / "allein oder mit jemandem?"
     if "mit wem" in question or "allein oder mit jemandem" in question:
         if low in {"mit meinem mann", "mit meiner frau", "mit freunden", "mit meiner familie"}:
