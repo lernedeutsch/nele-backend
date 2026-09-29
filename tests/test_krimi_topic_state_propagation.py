@@ -1,29 +1,30 @@
 import unittest
-import inspect
 
-from brain.logic import free_conversation
+from brain.logic.free_conversation import (
+    SUBTOPIC_QUESTIONS,
+    _content_followup,
+    _extract_facts,
+)
 
 
 class KrimiTopicStatePropagationTests(unittest.TestCase):
-    def test_krimi_is_a_hobby_topic_keyword(self):
-        source = inspect.getsource(free_conversation.generate_free_conversation_reply)
-        self.assertIn('"buch", "krimi"', source)
+    def test_krimi_extracts_hobby_topic(self):
+        facts = _extract_facts("Krimi")
+        self.assertEqual(facts.get("topic"), "hobby")
 
-    def test_krimi_content_sets_reading_activity(self):
-        source = inspect.getsource(free_conversation.generate_free_conversation_reply)
-        self.assertIn('memory.setdefault("activity", "reading")', source)
-
-    def test_krimi_content_still_precedes_generic_subtopic_fallback(self):
-        source = inspect.getsource(free_conversation.generate_free_conversation_reply)
-        content_pos = source.index("explicit_content_followup = _content_followup")
-        fallback_pos = source.index("subtopic_followup = None")
-        self.assertLess(content_pos, fallback_pos)
-
-    def test_generic_reading_subtopic_exists_for_following_unexpected_turn(self):
-        self.assertIn(
-            ("hobby", "reading"),
-            free_conversation.SUBTOPIC_QUESTIONS,
+    def test_krimi_content_records_reading_kind(self):
+        memory = {}
+        reply = _content_followup(
+            "Krimi", {}, memory, {"last_question": "Was liest du gern?"}, "A1"
         )
+        self.assertEqual(memory.get("reading_kind"), "Krimis")
+        self.assertIn("Krimi", reply)
+
+    def test_generic_reading_subtopic_is_available(self):
+        self.assertIn(("hobby", "reading"), SUBTOPIC_QUESTIONS)
+
+    def test_reading_safety_net_has_more_than_one_followup(self):
+        self.assertGreaterEqual(len(SUBTOPIC_QUESTIONS[("hobby", "reading")]), 2)
 
 
 if __name__ == "__main__":
