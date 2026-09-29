@@ -14,6 +14,14 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         generate_free_welcome(state)
         return state
 
+    def test_deutsch_lernen_does_not_repeat_already_answered_question(self):
+        state = self.fresh_state()
+        turn(state, "Was machst du heute Abend?")
+        reply = turn(state, "Deutsch lernen")
+        self.assertIn("Ich lerne gerade Deutsch.", reply)
+        self.assertIn("Lernst du jeden Tag?", reply)
+        self.assertNotIn("Was lernst du gerade?", reply)
+
     def test_direct_wellbeing_question_beats_previous_topic(self):
         state = self.fresh_state()
         state["free_conversation"]["last_question"] = "Wie ist das Wetter bei dir?"
