@@ -7,7 +7,7 @@ clear A1 errors, and records recurring errors in shared learner state.
 import re
 
 from brain.logic.vocabulary_engine import build_personalized_conversation_vocabulary
-from brain.logic.conversation_state import reset_conversation_state, sync_conversation_state
+from brain.logic.conversation_state import apply_response_to_conversation_state, reset_conversation_state, set_active_slot_from_question, sync_conversation_state
 from brain.logic.topic_manager import choose_topic, update_topic_manager
 from brain.logic.error_engine import process_error
 from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
@@ -249,7 +249,8 @@ def _remember_question(free, question):
     actual_question = parts[-1].strip() if parts else str(question).strip()
     actual_question = actual_question.lstrip("„“”\"' ").strip()
     free["last_question"] = actual_question
-    free["last_question_context"] = {"slot": question_slot(actual_question), "topic": free.get("last_topic")}
+    semantic_slot = question_slot(actual_question)
+    free["last_question_context"] = {"slot": semantic_slot, "topic": free.get("last_topic")}
     asked = free.setdefault("asked", [])
     key = _question_key(actual_question)
     if key and key not in asked:
@@ -1716,6 +1717,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         vocabulary_context=(state.get("free_conversation") or {}).get("vocabulary_context") or {},
     )
     state["response_understanding_v1"] = response_understanding
+    # CONTEXT stage: commit the understood answer into canonical working
+    # memory before topic selection, pedagogy or fallback routing can act.
+    apply_response_to_conversation_state(state, response_understanding)
 
     # Recovery must run before generic question selection. Otherwise an
     # obviously unclear learner turn can be converted into a perfectly valid
