@@ -261,24 +261,24 @@ def _remember_question(free, question):
 
 SUBTOPIC_QUESTIONS = {
     ("hobby", "reading"): [
-        ("genre", "Was liest du gern?"),
-        ("detail", "Was gefällt dir daran?"),
-        ("frequency", "Liest du oft?"),
+        ("reading_genre", "Was liest du gern?"),
+        ("reading_detail", "Was gefällt dir daran?"),
+        ("reading_frequency", "Liest du oft?"),
     ],
     ("hobby", "music"): [
-        ("genre", "Welche Musik hörst du gern?"),
-        ("artist", "Wer ist dein Lieblingssänger?"),
-        ("frequency", "Hörst du oft Musik?"),
+        ("music_genre", "Welche Musik hörst du gern?"),
+        ("music_artist", "Wer ist dein Lieblingssänger?"),
+        ("music_frequency", "Hörst du oft Musik?"),
     ],
     ("hobby", "sport"): [
-        ("kind", "Welchen Sport machst du gern?"),
-        ("detail", "Spielst du in einem Verein?"),
-        ("frequency", "Wie oft machst du das?"),
+        ("sport_kind", "Welchen Sport machst du gern?"),
+        ("sport_companion", "Mit wem machst du Sport?"),
+        ("sport_frequency", "Wie oft machst du das?"),
     ],
 }
 
 
-def _subtopic_followup(topic, subtopic, free, memory):
+def _subtopic_followup(topic, subtopic, free, memory, state=None):
     """Continue an established semantic subtopic without keyword hardcoding."""
     pool = SUBTOPIC_QUESTIONS.get((topic, subtopic))
     if not pool:
@@ -299,7 +299,10 @@ def _subtopic_followup(topic, subtopic, free, memory):
             filled = max(filled, 2)
         slots[key] = filled
 
+    semantic_slots = (((state or {}).get("conversation_state_v2") or {}).get("semantic_slots") or {})
     for i, (_slot, question) in enumerate(pool):
+        if _slot in semantic_slots:
+            continue
         if i < filled:
             continue
         if _norm(question).strip(" ?!.") in asked:
@@ -2062,7 +2065,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         and topic_source != "explicit"
     ):
         subtopic_followup = _subtopic_followup(
-            topic, previous_subtopic, free, memory
+            topic, previous_subtopic, free, memory, state=state
         )
     if subtopic_followup:
         _remember_question(free, subtopic_followup)
