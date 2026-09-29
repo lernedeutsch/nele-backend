@@ -5,7 +5,56 @@ fields remain available while conversation_state_v2 becomes the canonical,
 structured snapshot other engines can consume.
 """
 
-STATE_VERSION = 2
+STATE_VERSION = 3
+
+SLOT_CONTEXT = {
+    "music_genre": ("hobby", "music"),
+    "music_artist": ("hobby", "music"),
+    "music_frequency": ("hobby", "music"),
+    "sport_kind": ("hobby", "sport"),
+    "sport_companion": ("hobby", "sport"),
+    "sport_frequency": ("hobby", "sport"),
+    "reading_genre": ("hobby", "reading"),
+    "reading_detail": ("hobby", "reading"),
+    "reading_frequency": ("hobby", "reading"),
+    "food_item": ("food", "essen"),
+    "food_detail": ("food", "essen"),
+    "food_frequency": ("food", "essen"),
+    "birthday": ("personal", "birthday"),
+}
+
+QUESTION_SLOT_CONTEXT = {
+    "music_genre": ("hobby", "music"),
+    "sport_kind": ("hobby", "sport"),
+    "birthday": ("personal", "birthday"),
+}
+
+
+def apply_response_to_conversation_state(state, response):
+    """Merge one understood learner turn into canonical working memory."""
+    snapshot = state.setdefault("conversation_state_v2", {})
+    slots = snapshot.setdefault("semantic_slots", {})
+    response = response or {}
+    slot = response.get("slot")
+    content = response.get("canonical") or response.get("content")
+    if slot in SLOT_CONTEXT and content and response.get("understood", True):
+        topic, subtopic = SLOT_CONTEXT[slot]
+        slots[slot] = content
+        snapshot["topic"] = topic
+        snapshot["subtopic"] = subtopic
+        snapshot["active_slot"] = None
+    return snapshot
+
+
+def set_active_slot_from_question(state, slot):
+    snapshot = state.setdefault("conversation_state_v2", {})
+    if slot in SLOT_CONTEXT:
+        topic, subtopic = SLOT_CONTEXT[slot]
+        snapshot["topic"] = topic
+        snapshot["subtopic"] = subtopic
+        snapshot["active_slot"] = slot
+    return snapshot
+
 
 
 def _free(state):
@@ -38,19 +87,27 @@ def infer_expected_answer(question):
     return "open"
 
 
-def infer_subtopic(topic, facts, question=""):
+def infer_subtopic(topic, facts, question="", snapshot=None):
     topic = str(topic or "today")
     q = str(question or "").lower()
+    snapshot = snapshot or {}
+    active = snapshot.get("subtopic")
     activity = str((facts or {}).get("work_activity") or (facts or {}).get("activity") or "").lower()
     if topic == "work" and (activity == "kochen" or "koch" in q):
         return "kochen"
     if topic == "weather":
         return "wetter"
     if topic == "hobby":
-        return activity or "freizeit"
+        if active in {"reading", "music", "sport"}:
+            return active
+        if activity in {"reading", "music", "sport"}:
+            return activity
+        return "freizeit"
     if topic == "food":
         return "essen"
-    return None
+    if topic == "personal" and active == "birthday":
+        return "birthday"
+    return active if snapshot.get("topic") == topic else None
 
 
 def infer_goal(topic, subtopic=None):
@@ -75,10 +132,12 @@ def sync_conversation_state(state, *, topic=None, last_question=None, level=None
     facts = _facts(free)
     current_topic = topic or free.get("last_topic") or "today"
     question = last_question if last_question is not None else free.get("last_question", "")
-    subtopic = infer_subtopic(current_topic, facts, question)
+    snapshot = state.setdefault("conversation_state_v2", {})
+    subtopic = infer_subtopic(current_topic, facts, question, snapshot=snapshot)
     current_level = str(level or (state.get("student_progress") or {}).get("current_level") or "A1.1")
 
-    snapshot = state.setdefault("conversation_state_v2", {})
+    snapshot.setdefault("semantic_slots", {})
+    snapshot.setdefault("active_slot", None)
     snapshot.update({
         "version": STATE_VERSION,
         "mode": "free",
