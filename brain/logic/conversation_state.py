@@ -197,10 +197,12 @@ def sync_conversation_state(state, *, topic=None, last_question=None, level=None
             and snapshot.get("subtopic") == slot_subtopic
             and explicit_active_slot is None
         )
+        already_filled = next_slot in snapshot.get("semantic_slots", {})
         if (
             explicit_active_slot is None
             and slot_topic == current_topic
             and not completed_same_subtopic
+            and not already_filled
         ):
             snapshot["active_slot"] = next_slot
             subtopic = slot_subtopic

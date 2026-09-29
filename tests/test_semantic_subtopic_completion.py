@@ -25,6 +25,50 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
         self.assertNotEqual(reply, "Was machst du gern in deiner Freizeit?")
         self.assertIn("Sport", reply)
 
+    def test_sport_kind_advances_to_companion_not_legacy_frequency(self):
+        state = {}
+        turn(state, "Welchen Sport machst du gern?")
+        reply, meta = turn(state, "Fußball")
+        semantic = state.get("conversation_state_v2") or {}
+        self.assertEqual((semantic.get("semantic_slots") or {}).get("sport_kind"), "fußball")
+        self.assertEqual(semantic.get("active_slot"), "sport_companion")
+        self.assertEqual(reply, "Mit wem machst du Sport?")
+        self.assertNotIn("oft", reply.lower())
+
+    def test_explicit_topic_switch_still_beats_active_semantic_thread(self):
+        state = {}
+        turn(state, "Welchen Sport machst du gern?")
+        reply, meta = turn(state, "Heute regnet es")
+        self.assertEqual(meta["topic"], "weather")
+        self.assertNotEqual((state.get("conversation_state_v2") or {}).get("subtopic"), "sport")
+
+    def test_sync_does_not_reopen_a_slot_that_was_just_answered(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state, sync_conversation_state
+        state = {
+            "conversation_state_v2": {
+                "topic": "hobby",
+                "subtopic": "sport",
+                "active_slot": "sport_kind",
+                "semantic_slots": {},
+                "subtopic_status": "active",
+                "last_question": "Welchen Sport machst du gern?",
+            },
+            "free_conversation": {"last_topic": "hobby"},
+        }
+        apply_response_to_conversation_state(
+            state,
+            {"slot": "sport_kind", "canonical": "fußball", "content": "Fußball", "understood": True},
+        )
+        sync_conversation_state(
+            state,
+            topic="hobby",
+            last_question="Welchen Sport machst du gern?",
+            level="A1.2",
+        )
+        semantic = state["conversation_state_v2"]
+        self.assertEqual(semantic["semantic_slots"]["sport_kind"], "fußball")
+        self.assertIsNone(semantic.get("active_slot"))
+
     def test_food_completion_stays_related(self):
         state = {}
         turn(state, "Was isst du gern?")
@@ -74,7 +118,7 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
     def test_reading_bridge_answer_is_committed_and_completes_subtopic(self):
         state = {}
         transcript = []
-        for message in ("Was liest du gern?", "Krimis", "Die Spannung", "Oft am Abend", "Oft", "Unterwegs"):
+        for message in ("Was liest du gern?", "Krimis", "Die Spannung", "Oft am Abend", "Unterwegs"):
             reply, meta = turn(state, message)
             semantic_now = state.get("conversation_state_v2") or {}
             transcript.append({
@@ -87,12 +131,13 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
                 "meta_topic": (meta or {}).get("topic"),
             })
         semantic = state.get("conversation_state_v2") or {}
-        self.assertEqual(
-            (semantic.get("semantic_slots") or {}).get("reading_place"),
-            "unterwegs",
-            msg=f"reading transcript: {transcript!r}",
-        )
+        semantic_slots = semantic.get("semantic_slots") or {}
+        self.assertEqual(semantic_slots.get("reading_genre"), "krimis", msg=f"reading transcript: {transcript!r}")
+        self.assertEqual(semantic_slots.get("reading_detail"), "die spannung", msg=f"reading transcript: {transcript!r}")
+        self.assertEqual(semantic_slots.get("reading_frequency"), "oft am abend", msg=f"reading transcript: {transcript!r}")
+        self.assertEqual(semantic_slots.get("reading_place"), "unterwegs", msg=f"reading transcript: {transcript!r}")
         self.assertEqual(semantic.get("subtopic_status"), "completed")
+        self.assertIsNone(semantic.get("active_slot"))
         self.assertNotEqual(transcript[-1]["reply"], "Was machst du gern in deiner Freizeit?")
         self.assertTrue(
             transcript[-1]["reply"].startswith("Das klingt gut."),

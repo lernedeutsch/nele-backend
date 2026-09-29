@@ -7,7 +7,7 @@ clear A1 errors, and records recurring errors in shared learner state.
 import re
 
 from brain.logic.vocabulary_engine import build_personalized_conversation_vocabulary
-from brain.logic.conversation_state import apply_response_to_conversation_state, reset_conversation_state, set_active_slot_from_question, sync_conversation_state
+from brain.logic.conversation_state import SLOT_CONTEXT, apply_response_to_conversation_state, reset_conversation_state, set_active_slot_from_question, sync_conversation_state
 from brain.logic.topic_manager import choose_topic, update_topic_manager
 from brain.logic.error_engine import process_error
 from brain.logic.teacher_engine import choose_teacher_action, render_teacher_prefix
@@ -2111,13 +2111,18 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         or (state.get("conversation_state_v2") or {}).get("subtopic")
     )
     active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
-    # Canonical semantic threads own their learner answers. Legacy content
-    # followups are only discovery/fallback logic and must not manufacture a
-    # parallel reading chain while a semantic reading slot is active.
-    canonical_reading_active = active_semantic_slot in {
-        "reading_genre", "reading_detail", "reading_frequency", "reading_place"
-    }
-    explicit_content_followup = None if canonical_reading_active else _content_followup(
+    understood_semantic_slot = (response_understanding or {}).get("slot")
+    # Canonical semantic threads own the whole learner turn. apply_response_to_
+    # conversation_state clears active_slot after a valid answer is committed,
+    # so use response_understanding as the same-turn ownership signal too.
+    # Otherwise a legacy content rule can ask a question for a different slot
+    # (for example sport_kind "Fußball" -> frequency) while canonical state is
+    # already progressing to sport_companion.
+    canonical_semantic_turn = (
+        active_semantic_slot in SLOT_CONTEXT
+        or understood_semantic_slot in SLOT_CONTEXT
+    )
+    explicit_content_followup = None if canonical_semantic_turn else _content_followup(
         user_message, facts, memory, free, level
     )
     if (
@@ -2159,7 +2164,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if (
         not explicit_content_followup
         and previous_subtopic
-        and topic_source != "explicit"
+        and (topic_source != "explicit" or canonical_semantic_turn)
     ):
         subtopic_followup = _subtopic_followup(
             topic, previous_subtopic, free, memory, state=state
