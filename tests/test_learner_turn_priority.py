@@ -109,6 +109,50 @@ class LearnerTurnPriorityTests(unittest.TestCase):
         reply, meta = generate_free_conversation_reply("Woher kommst du?", state)
         self.assertEqual(meta["topic_manager"]["topic"], "place")
 
+
+    def test_elliptical_topic_questions_use_shared_learner_turn_mechanism(self):
+        cases = [
+            ("Und Sport?", "sport_kind", "hobby"),
+            ("Und Musik?", "music_genre", "hobby"),
+            ("Und Essen?", "food", "food"),
+            ("Und Arbeit?", "work", "work"),
+        ]
+        for message, slot, topic in cases:
+            with self.subTest(message=message):
+                turn = analyze_learner_turn(message, last_question="Hörst du oft Musik?")
+                self.assertEqual(turn["intent"], "question_to_nele")
+                self.assertEqual(turn["slot"], slot)
+
+                state = {
+                    "free_conversation": {
+                        "last_question": "Hörst du oft Musik?",
+                        "last_topic": "hobby",
+                        "turn_count": 4,
+                        "conversation_facts": {},
+                    },
+                    "student_progress": {"current_level": "A1.1"},
+                }
+                reply, meta = generate_free_conversation_reply(message, state)
+                self.assertTrue(meta.get("answered_learner_question"))
+                self.assertEqual(meta["topic_manager"]["topic"], topic)
+                self.assertNotEqual(reply, "Was machst du gern in deiner Freizeit?")
+
+    def test_elliptical_sport_switch_keeps_three_turn_sport_context(self):
+        state = {
+            "free_conversation": {
+                "last_question": "Hörst du oft Musik?",
+                "last_topic": "hobby",
+                "turn_count": 4,
+                "conversation_facts": {},
+            },
+            "student_progress": {"current_level": "A1.1"},
+        }
+        reply, meta = generate_free_conversation_reply("Und Sport?", state)
+        self.assertIn("Welchen Sport", reply)
+        reply, meta = generate_free_conversation_reply("Badminton", state)
+        self.assertEqual(meta["topic_manager"]["subtopic"], "sport")
+        self.assertNotIn("Musik", reply)
+
     def test_valid_work_sentence_is_not_repeated_as_a_correction(self):
         state = {
             "free_conversation": {
