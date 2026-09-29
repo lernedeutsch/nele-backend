@@ -1242,19 +1242,19 @@ def _should_activate_dialogue_in_free(dialogue):
 
     # Concrete role-play families. Keep this semantic and data-driven from
     # dialogue metadata; do not key it to individual learner answers.
-    roleplay_cues = (
-        "weg",
-        "bahnhof",
-        "post",
-        "bus",
-        "fahrkarte",
-        "zugverbindung",
-        "einladung",
-        "einladen",
-        "absagen",
-        "paket",
+    roleplay_patterns = (
+        r"\bweg(?:beschreibung)?\b",
+        r"\bbahnhof\b",
+        r"\bpost\b",
+        r"\bbus\b",
+        r"\bfahrkarte\b",
+        r"\bzugverbindung\b",
+        r"\beinladung\b",
+        r"\beinladen\b",
+        r"\babsagen\b",
+        r"\bpaket\b",
     )
-    return any(cue in text for cue in roleplay_cues)
+    return any(re.search(pattern, text) for pattern in roleplay_patterns)
 
 
 def generate_free_conversation_reply(user_message, state, session_id=None):
