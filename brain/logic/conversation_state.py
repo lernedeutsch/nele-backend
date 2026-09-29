@@ -186,7 +186,16 @@ def sync_conversation_state(state, *, topic=None, last_question=None, level=None
         next_slot = None
     if next_slot in SLOT_CONTEXT:
         slot_topic, slot_subtopic = SLOT_CONTEXT[next_slot]
-        if slot_topic == current_topic:
+        # A completed semantic mini-thread must not be silently reopened by a
+        # broad follow-up question from the same topic. A bridge itself is
+        # activated explicitly by set_active_slot_from_question() before sync,
+        # while normal active threads may continue to infer their next slot.
+        completed_same_subtopic = (
+            snapshot.get("subtopic_status") == "completed"
+            and snapshot.get("subtopic") == slot_subtopic
+            and snapshot.get("active_slot") is None
+        )
+        if slot_topic == current_topic and not completed_same_subtopic:
             snapshot["active_slot"] = next_slot
             subtopic = slot_subtopic
 
