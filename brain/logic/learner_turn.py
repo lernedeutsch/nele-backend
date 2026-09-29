@@ -114,6 +114,8 @@ def direct_nele_answer(text):
         return "Heute Abend lese ich ein bisschen. Und du, was machst du heute Abend?"
     if re.search(r"^was machst du heute$", q):
         return "Heute übe ich Deutsch mit dir. Und du, was machst du heute?"
+    if re.search(r"^was machst du gern am wochenende$", q):
+        return "Am Wochenende höre ich gern Musik und lese. Und du, was machst du gern am Wochenende?"
     if re.search(r"^was machst du gern(?: in deiner freizeit)?$", q):
         return "Ich lese gern und höre gern Musik. Und du, was machst du gern?"
     if re.search(r"^was (?:liest|liest du)\b", q) or q == "was liest du gern":
