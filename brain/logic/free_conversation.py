@@ -1575,6 +1575,21 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     if contextual_reply:
         previous_question = free.get("last_question", "")
+        # This shortcut used to return before Response Understanding, so the
+        # learner received a contextual reply but canonical state forgot the
+        # value (e.g. Pizza -> next turn lost Pizza). Commit the answer against
+        # the question that actually produced it before storing Nele's next
+        # question.
+        early_understanding = understand_response(
+            user_message,
+            conversation_state={
+                **(state.get("conversation_state_v2") or {}),
+                "last_question": previous_question,
+            },
+            vocabulary_context=free.get("vocabulary_context") or {},
+        )
+        state["response_understanding_v1"] = early_understanding
+        apply_response_to_conversation_state(state, early_understanding)
         record_answer(state, user_message, previous_question)
         _remember_question(free, contextual_reply)
         free["last_user_message"] = str(user_message or "").strip()
@@ -1634,6 +1649,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "reason": "contextual_short_answer",
             },
             "contextual_short_answer": True,
+            "response_understanding": early_understanding,
         }
 
     # Priority -2: the reusable A1 lessons 1-10 router may enrich a neutral
