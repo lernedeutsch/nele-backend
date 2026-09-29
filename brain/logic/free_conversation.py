@@ -359,6 +359,38 @@ def _subtopic_followup(topic, subtopic, free, memory, state=None):
     return None
 
 
+def _commit_wellbeing_state(state, free, wellbeing_analysis):
+    """Commit wellbeing into the canonical free-conversation state."""
+    free["last_topic"] = "today"
+    wellbeing_type = wellbeing_analysis.get("type")
+    if wellbeing_type:
+        free.setdefault("conversation_facts", {})["wellbeing"] = wellbeing_type
+
+    # Wellbeing is an explicit learner-led context switch. A semantic slot
+    # waiting in the previous topic (for example reading_detail) must not own
+    # the next short answer after this switch.
+    snapshot = state.setdefault("conversation_state_v2", {})
+    snapshot["active_slot"] = None
+    snapshot["subtopic_status"] = "active"
+
+    level = str((state.get("student_progress") or {}).get("current_level") or "A1.1")
+    conversation_state = sync_conversation_state(
+        state,
+        topic="today",
+        last_question=free.get("last_question", ""),
+        level=level,
+    )
+    conversation_state["subtopic"] = "wellbeing"
+    conversation_state["conversation_goal"] = "über das Befinden sprechen"
+    topic_manager = update_topic_manager(
+        state,
+        topic="today",
+        source="wellbeing",
+        subtopic="wellbeing",
+    )
+    return conversation_state, topic_manager
+
+
 def _not_recent(free, candidates):
     asked = set(free.get("asked", []))
     return [q for q in candidates if _question_key(q) not in asked]
@@ -1391,13 +1423,15 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         _remember_question(free, reply)
         free["last_user_message"] = str(user_message or "").strip()
         free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
-        free["last_topic"] = "today"
+        conversation_state, topic_manager = _commit_wellbeing_state(state, free, early_wellbeing)
         return reply, {
             "conversation_mode": "free",
             "topic": "today",
             "shared_wellbeing": True,
             "wellbeing_type": early_wellbeing.get("type"),
             "wellbeing_correction": True,
+            "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
         }
 
     # Personal real-life sentences remain available when no dialogue was selected.
@@ -1456,7 +1490,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             _remember_question(free, social_reply)
             free["last_user_message"] = str(user_message or "").strip()
             free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
-            free["last_topic"] = "today"
+            conversation_state, topic_manager = _commit_wellbeing_state(state, free, wellbeing_analysis)
             # Early wellbeing routing still exposes the shared pipeline
             # diagnostics expected by every free-conversation turn.
             response_understanding = understand_response(
@@ -1476,6 +1510,8 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "topic": "today",
                 "shared_wellbeing": True,
                 "wellbeing_type": wellbeing_analysis.get("type"),
+                "conversation_state": conversation_state,
+                "topic_manager": topic_manager,
                 "response_understanding": response_understanding,
                 "error_engine": error_result,
             }
