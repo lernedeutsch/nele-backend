@@ -118,7 +118,7 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
     def test_reading_bridge_answer_is_committed_and_completes_subtopic(self):
         state = {}
         transcript = []
-        for message in ("Was liest du gern?", "Krimis", "Die Spannung", "Oft am Abend", "Oft", "Unterwegs"):
+        for message in ("Was liest du gern?", "Krimis", "Die Spannung", "Oft am Abend", "Unterwegs"):
             reply, meta = turn(state, message)
             semantic_now = state.get("conversation_state_v2") or {}
             transcript.append({
@@ -134,7 +134,7 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
         semantic_slots = semantic.get("semantic_slots") or {}
         self.assertEqual(semantic_slots.get("reading_genre"), "krimis", msg=f"reading transcript: {transcript!r}")
         self.assertEqual(semantic_slots.get("reading_detail"), "die spannung", msg=f"reading transcript: {transcript!r}")
-        self.assertEqual(semantic_slots.get("reading_frequency"), "oft", msg=f"reading transcript: {transcript!r}")
+        self.assertEqual(semantic_slots.get("reading_frequency"), "oft am abend", msg=f"reading transcript: {transcript!r}")
         self.assertEqual(semantic_slots.get("reading_place"), "unterwegs", msg=f"reading transcript: {transcript!r}")
         self.assertEqual(semantic.get("subtopic_status"), "completed")
         self.assertIsNone(semantic.get("active_slot"))
