@@ -29,6 +29,8 @@ SLOT_CONTEXT = {
 QUESTION_SLOT_CONTEXT = {
     "music_genre": ("hobby", "music"),
     "sport_kind": ("hobby", "sport"),
+    "reading_genre": ("hobby", "reading"),
+    "food": ("food", "essen"),
     "birthday": ("personal", "birthday"),
 }
 
