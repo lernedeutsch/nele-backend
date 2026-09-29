@@ -195,6 +195,22 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
             self.assertEqual(pending.get("topic"), "hobby", question)
             self.assertIn("wochenende", reply.lower(), question)
 
+    def test_weekend_activity_question_variants_own_topic_manager_state(self):
+        variants = (
+            "Was machst du gern am Wochenende?",
+            "Und was machst du gern am Wochenende?",
+            "Was machst du am Wochenende?",
+            "Was machst du normalerweise am Wochenende?",
+        )
+        for question in variants:
+            state = self.fresh_state()
+            reply = turn(state, question)
+            self.assertIn("wochenende", reply.lower(), question)
+            self.assertEqual(state["free_conversation"].get("last_topic"), "hobby", question)
+            manager = state.get("topic_manager_v2") or {}
+            self.assertEqual(manager.get("topic"), "hobby", question)
+            self.assertEqual(manager.get("subtopic"), "freizeit", question)
+
     def test_weekend_activity_answers_do_not_collapse_into_sport(self):
         cases = (
             ("spazieren", "spazieren"),
