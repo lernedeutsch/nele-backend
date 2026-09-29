@@ -138,6 +138,18 @@ def sync_conversation_state(state, *, topic=None, last_question=None, level=None
 
     snapshot.setdefault("semantic_slots", {})
     snapshot.setdefault("active_slot", None)
+    # The delivered question defines how a short next answer should be read.
+    try:
+        from brain.logic.learner_turn import question_slot
+        next_slot = question_slot(question)
+    except Exception:
+        next_slot = None
+    if next_slot in SLOT_CONTEXT:
+        slot_topic, slot_subtopic = SLOT_CONTEXT[next_slot]
+        if slot_topic == current_topic:
+            snapshot["active_slot"] = next_slot
+            subtopic = slot_subtopic
+
     snapshot.update({
         "version": STATE_VERSION,
         "mode": "free",
