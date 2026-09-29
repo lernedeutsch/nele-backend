@@ -1561,7 +1561,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "birthday": "personal",
                 "work": "work",
             }.get(learner_turn.get("slot"))
-            topic = slot_topic or ("today" if "heute" in _norm(user_message) else (free.get("last_topic") or "today"))
+            topic = (question_context or {}).get("topic") or slot_topic or ("today" if "heute" in _norm(user_message) else (free.get("last_topic") or "today"))
             free["last_topic"] = topic
             _remember_question(free, direct_reply)
             free["last_user_message"] = str(user_message or "").strip()
