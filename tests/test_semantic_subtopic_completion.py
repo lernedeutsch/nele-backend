@@ -74,7 +74,7 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
     def test_reading_bridge_answer_is_committed_and_completes_subtopic(self):
         state = {}
         transcript = []
-        for message in ("Was liest du gern?", "Krimis", "Die Spannung", "Oft am Abend", "Unterwegs"):
+        for message in ("Was liest du gern?", "Krimis", "Die Spannung", "Oft am Abend", "Oft", "Unterwegs"):
             reply, meta = turn(state, message)
             semantic_now = state.get("conversation_state_v2") or {}
             transcript.append({
