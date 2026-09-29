@@ -1434,12 +1434,19 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # This prevents stale generic chains from stealing questions such as
     # "Wie komme ich zum Bahnhof?" after a travel topic switch.
     if not is_dialogue_active(state) and _is_explicit_learner_question(user_message):
-        dialogue_reply = auto_start_dialogue_from_message(
+        late_dialogue_candidate = find_dialogue_for_message(
             user_message,
-            state,
-            level="A1",
+            "A1",
             min_score=0.92,
         )
+        dialogue_reply = None
+        if _should_activate_dialogue_in_free(late_dialogue_candidate):
+            dialogue_reply = auto_start_dialogue_from_message(
+                user_message,
+                state,
+                level="A1",
+                min_score=0.92,
+            )
         if dialogue_reply:
             state["dialogue_origin"] = "free"
             _remember_question(free, dialogue_reply)
