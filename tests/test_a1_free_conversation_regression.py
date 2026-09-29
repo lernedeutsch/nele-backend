@@ -1746,3 +1746,29 @@ class GeneratedTests(unittest.TestCase):
         result = understand_response("Spannend", conversation_state=state)
         self.assertEqual(result["slot"], "reading_detail")
 
+
+    def test_reading_question_starts_in_reading_context(self):
+        state = {}
+        reply, meta = _turn(state, "Was liest du gern?")
+        self.assertTrue(reply)
+        self.assertEqual(meta["topic"], "hobby")
+        self.assertEqual(meta["topic_manager"]["subtopic"], "reading")
+        self.assertEqual(state["conversation_state_v2"]["active_slot"], "reading_genre")
+
+    def test_food_detail_continues_to_frequency_without_reasking_food(self):
+        state = {"free_conversation": {
+            "last_question": "Was isst du gern?",
+            "last_topic": "food",
+            "recent_questions": ["Was isst du gern?"],
+            "conversation_facts": {},
+        }}
+        _turn(state, "Pizza")
+        reply, meta = _turn(state, "Mit Käse")
+        self.assertEqual(meta["topic"], "food")
+        self.assertEqual(meta["topic_manager"]["subtopic"], "essen")
+        self.assertNotEqual(reply, "Was isst du gern?")
+        self.assertIn("oft", reply.lower())
+        slots = state["conversation_state_v2"]["semantic_slots"]
+        self.assertEqual(slots.get("food"), "pizza")
+        self.assertEqual(slots.get("food_detail"), "mit käse")
+
