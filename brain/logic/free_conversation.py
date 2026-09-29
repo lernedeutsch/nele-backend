@@ -29,7 +29,7 @@ from brain.logic.personal_sentences import handle_personal_sentence
 from brain.logic.a1_everyday_conversation import a1_everyday_reply
 from brain.logic.dialogue_engine import auto_start_dialogue_from_message, find_dialogue_for_message, is_dialogue_active, handle_dialogue, clear_dialogue
 from brain.logic.wellbeing_feedback import analyze_wellbeing_response
-from brain.logic.learner_turn import analyze_learner_turn, direct_nele_answer, learner_question_context, question_slot
+from brain.logic.learner_turn import analyze_learner_turn, direct_nele_answer, learner_question_context, question_slot, semantic_statement_context
 from brain.logic.knowledge_retriever import retrieve
 
 OPENERS = [
@@ -1780,7 +1780,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         )
     )
     a1_reply = None
-    if current_semantic_topic not in protected_semantic_topics or explicit_place_turn:
+    if (current_semantic_topic not in protected_semantic_topics or explicit_place_turn) and not semantic_statement:
         a1_reply = a1_everyday_reply(user_message, free.get("last_question", ""), state)
     if a1_reply:
         previous_question = free.get("last_question", "")
@@ -1905,6 +1905,11 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             support = max(0, support - 1)
 
     facts = _extract_facts(user_message)
+    semantic_statement = semantic_statement_context(user_message)
+    if semantic_statement:
+        facts["topic"] = semantic_statement["topic"]
+        facts["activity"] = semantic_statement["subtopic"]
+        facts[semantic_statement["slot"]] = semantic_statement["content"]
     memory = free.setdefault("conversation_facts", {})
     user_low = _norm(user_message)
     if re.search(r"\bich\s+koche\b", user_low):
