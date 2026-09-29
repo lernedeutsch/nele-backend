@@ -287,6 +287,18 @@ def _subtopic_followup(topic, subtopic, free, memory):
     slots = memory.setdefault("subtopic_slots", {})
     key = f"{topic}/{subtopic}"
     filled = int(slots.get(key, 0) or 0)
+
+    # Specific content routes can establish semantic subtopic facts before the
+    # generic safety net is used. Infer already completed slots from those
+    # facts so the safety net continues the conversation instead of asking an
+    # earlier, equivalent question again.
+    if key == "hobby/reading":
+        if memory.get("reading_kind"):
+            filled = max(filled, 1)
+        if memory.get("reading_detail"):
+            filled = max(filled, 2)
+        slots[key] = filled
+
     for i, (_slot, question) in enumerate(pool):
         if i < filled:
             continue
