@@ -51,6 +51,24 @@ class GlobalConversationGuardTests(unittest.TestCase):
         self.assertTrue(result["changed"])
         self.assertIn("Wie alt", result["selected"])
 
+    def test_returns_no_question_when_candidate_and_all_alternatives_are_blocked(self):
+        state = {}
+        record_answer(state, "warm", "Wie ist das Wetter bei dir?")
+        record_answer(state, "spazieren", "Was machst du bei diesem Wetter gern?")
+        before_recent = list((state.get("global_conversation_guard_v1") or {}).get("recent") or [])
+        result = select_question(
+            state,
+            "Wie ist das Wetter bei dir?",
+            ["Was machst du bei diesem Wetter gern?"],
+        )
+        self.assertIsNone(result["selected"])
+        self.assertTrue(result["blocked"])
+        self.assertTrue(result["need_new_candidate"])
+        self.assertEqual(
+            (state.get("global_conversation_guard_v1") or {}).get("recent") or [],
+            before_recent,
+        )
+
     def test_question_intents_are_topic_agnostic(self):
         self.assertEqual(question_intent("Wo wohnst du?"), "place")
         self.assertEqual(question_intent("Wann kommt deine Schwester?"), "time")
