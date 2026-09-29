@@ -73,13 +73,25 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
 
     def test_reading_bridge_answer_is_committed_and_completes_subtopic(self):
         state = {}
-        turn(state, "Was liest du gern?")
-        turn(state, "Krimis")
-        turn(state, "Die Spannung")
-        turn(state, "Oft am Abend")
-        turn(state, "Unterwegs")
+        transcript = []
+        for message in ("Was liest du gern?", "Krimis", "Die Spannung", "Oft am Abend", "Unterwegs"):
+            reply, meta = turn(state, message)
+            semantic_now = state.get("conversation_state_v2") or {}
+            transcript.append({
+                "user": message,
+                "reply": reply,
+                "active_slot": semantic_now.get("active_slot"),
+                "subtopic": semantic_now.get("subtopic"),
+                "status": semantic_now.get("subtopic_status"),
+                "slots": dict(semantic_now.get("semantic_slots") or {}),
+                "meta_topic": (meta or {}).get("topic"),
+            })
         semantic = state.get("conversation_state_v2") or {}
-        self.assertEqual((semantic.get("semantic_slots") or {}).get("reading_place"), "unterwegs")
+        self.assertEqual(
+            (semantic.get("semantic_slots") or {}).get("reading_place"),
+            "unterwegs",
+            msg=f"reading transcript: {transcript!r}",
+        )
         self.assertEqual(semantic.get("subtopic_status"), "completed")
 
     def test_birthday_bridge_answer_is_committed_and_completes_subtopic(self):
