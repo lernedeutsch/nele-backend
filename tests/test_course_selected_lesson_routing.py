@@ -63,3 +63,29 @@ def test_course_reply_keeps_a1_lesson1_as_safe_default():
         lesson=1,
         session_id="course-default-lesson-test",
     )
+
+
+def test_active_personal_sentence_practice_owns_course_turn():
+    state = {
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "personal_sentence_practice": {"id": "arbeitest_du_am_sonntag", "attempts": 0},
+    }
+
+    with (
+        patch("server.app.get_conversation_state", return_value=state),
+        patch("server.app.ensure_upgrade_state"),
+        patch("server.app.handle_personal_sentence") as global_sentence,
+        patch("server.app.handle_upgrade_message", return_value=(False, None, None)),
+        patch("server.app.generate_conversation_reply", return_value='Sehr gut! „Arbeitest du am Sonntag?“') as generate,
+        patch("server.app.record_event"),
+        patch("server.app.save_conversation_state"),
+    ):
+        answer, _ = create_nele_reply(
+            "Arbeitest du am Sonntag?",
+            session_id="active-personal-practice-test",
+            conversation_mode="course",
+        )
+
+    assert answer == 'Sehr gut! „Arbeitest du am Sonntag?“'
+    global_sentence.assert_not_called()
+    generate.assert_called_once()
