@@ -280,25 +280,46 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertFalse(state["dialogue_active"])
         self.assertIn("geschafft", reply)
 
-    def test_free_conversation_can_start_dialogue_after_earlier_free_turns(self):
+    def test_free_conversation_keeps_ownership_for_ordinary_dialogue_topics(self):
+        from brain.logic.free_conversation import generate_free_conversation_reply
+
+        cases = [
+            "Welche Musik hörst du gern?",
+            "Welchen Sport machst du gern?",
+            "Was machst du gern in deiner Freizeit?",
+        ]
+        for message in cases:
+            with self.subTest(message=message):
+                state = {
+                    "student_progress": {"current_level": "A1.1"},
+                    "conversation_mode": "free",
+                }
+                generate_free_conversation_reply("Hallo Nele!", state)
+                generate_free_conversation_reply("gut", state)
+
+                reply, meta = generate_free_conversation_reply(message, state)
+
+                self.assertTrue(reply)
+                self.assertFalse(state.get("dialogue_active", False))
+                self.assertIsNone(state.get("dialogue_id"))
+                self.assertFalse(meta.get("dialogue_knowledge", False))
+
+    def test_free_conversation_still_activates_situational_dialogue(self):
         from brain.logic.free_conversation import generate_free_conversation_reply
 
         state = {
             "student_progress": {"current_level": "A1.1"},
             "conversation_mode": "free",
         }
-        generate_free_conversation_reply("Hallo Nele!", state)
-        generate_free_conversation_reply("gut", state)
-
         reply, meta = generate_free_conversation_reply(
-            "Welche Musik hörst du gern?",
+            "Wie komme ich zum Bahnhof?",
             state,
         )
 
         self.assertTrue(meta.get("dialogue_knowledge"))
-        self.assertEqual(state.get("dialogue_id"), "a1-l14-musik")
+        self.assertEqual(state.get("dialogue_id"), "a1-l15-weg-bahnhof")
         self.assertTrue(state.get("dialogue_active"))
-        self.assertIn("Musik", reply)
+        self.assertIn("Bahnhof", reply)
 
 
 if __name__ == "__main__":
