@@ -637,6 +637,7 @@ def _social_a1_reply(text, free, state):
         if activity in {"koche", "koch"}:
             return "Schön! Was kochst du gern?"
         if activity in {"schwimme", "schwimm"}:
+            free["activity_thread"] = {"activity": "swimming", "stage": "place"}
             return "Schön! Wo schwimmst du gern?"
         return "Schön! Was machst du sonst noch gern?"
 
