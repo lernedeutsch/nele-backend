@@ -31,6 +31,20 @@ QUESTION_SLOT_CONTEXT = {
 }
 
 
+def _slot_value_is_compatible(slot, content):
+    value = str(content or "").strip().lower()
+    if not value:
+        return False
+    if slot.endswith("_frequency"):
+        return bool(
+            any(x in value for x in ("oft", "manchmal", "selten", "immer", "nie", "jeden", "jede ", "am wochenende", "pro woche", "pro tag"))
+            or __import__("re").search(r"\\b\\d+\\s*(?:mal|x)\\b", value)
+        )
+    if slot == "sport_companion":
+        return value.startswith("mit ") or any(x in value for x in ("freund", "famil", "allein", "kolleg"))
+    return True
+
+
 def apply_response_to_conversation_state(state, response):
     """Merge one understood learner turn into canonical working memory."""
     snapshot = state.setdefault("conversation_state_v2", {})
@@ -38,7 +52,7 @@ def apply_response_to_conversation_state(state, response):
     response = response or {}
     slot = response.get("slot")
     content = response.get("canonical") or response.get("content")
-    if slot in SLOT_CONTEXT and content and response.get("understood", True):
+    if slot in SLOT_CONTEXT and content and response.get("understood", True) and _slot_value_is_compatible(slot, content):
         topic, subtopic = SLOT_CONTEXT[slot]
         slots[slot] = content
         snapshot["topic"] = topic
