@@ -685,6 +685,13 @@ def _social_a1_reply(text, free, state):
         if low in {"frei", "ich habe frei"}:
             return "Schön, du hast heute frei. Was möchtest du machen?"
 
+    # Keep the German-learning subthread after asking about daily practice.
+    if "lernst du jeden tag" in last:
+        if low in {"ja", "ja gern", "ja, gern"}:
+            return "Super! Wie lange lernst du jeden Tag Deutsch?"
+        if low in {"nein", "nicht jeden tag", "nein, nicht jeden tag"}:
+            return "Kein Problem. Wie oft lernst du Deutsch?"
+
     if any(x in last for x in ("bei diesem wetter", "wenn es warm ist")):
         if low in {"radfahren", "rad fahren", "fahrrad fahren"}:
             return "Du kannst sagen: „Ich fahre gern Rad.“ Fährst du lieber allein oder mit jemandem?"
