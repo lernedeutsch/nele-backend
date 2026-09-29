@@ -31,6 +31,10 @@ SLOT_CONTEXT = {
     "birthday_company": ("personal", "birthday"),
     "birthday_activity": ("personal", "birthday"),
     "birthday_preference": ("personal", "birthday"),
+    "work_activity": ("work", "work"),
+    "work_place": ("work", "work"),
+    "work_companion": ("work", "work"),
+    "work_end_time": ("work", "work"),
 }
 
 QUESTION_SLOT_CONTEXT = {
@@ -39,6 +43,7 @@ QUESTION_SLOT_CONTEXT = {
     "reading_genre": ("hobby", "reading"),
     "food": ("food", "essen"),
     "birthday": ("personal", "birthday"),
+    "work_activity": ("work", "work"),
 }
 
 
@@ -51,8 +56,8 @@ def _slot_value_is_compatible(slot, content):
             any(x in value for x in ("oft", "manchmal", "selten", "immer", "nie", "jeden", "jede ", "am wochenende", "am abend", "abends", "morgens", "pro woche", "pro tag"))
             or re.search(r"\b\d+\s*(?:mal|x)\b", value)
         )
-    if slot == "sport_companion":
-        return value.startswith("mit ") or any(x in value for x in ("freund", "famil", "allein", "kolleg"))
+    if slot in {"sport_companion", "work_companion"}:
+        return value.startswith("mit ") or any(x in value for x in ("freund", "famil", "allein", "kolleg", "team"))
     return True
 
 
@@ -71,6 +76,10 @@ def apply_response_to_conversation_state(state, response):
     active_subtopic = snapshot.get("subtopic")
     if active_subtopic == "sport" and value.startswith("mit "):
         slot = "sport_companion"
+    elif active_subtopic == "work" and value.startswith("mit "):
+        slot = "work_companion"
+    elif active_subtopic == "work" and re.match(r"^(?:im|in der|in einem|bei)\s+", value):
+        slot = "work_place"
     elif active_subtopic == "essen" and value.startswith("mit ") and any(k in slots for k in ("food", "food_item")):
         slot = "food_detail"
 
@@ -134,6 +143,10 @@ def infer_subtopic(topic, facts, question="", snapshot=None):
     activity = str((facts or {}).get("work_activity") or (facts or {}).get("activity") or "").lower()
     if topic == "work" and (activity == "kochen" or "koch" in q):
         return "kochen"
+    if topic == "work":
+        if active in {"work", "kochen"}:
+            return active
+        return "work"
     if topic == "weather":
         return "wetter"
     if topic == "hobby":
