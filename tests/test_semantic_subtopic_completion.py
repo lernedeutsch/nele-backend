@@ -35,6 +35,33 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
         self.assertEqual(reply, "Mit wem machst du Sport?")
         self.assertNotIn("oft", reply.lower())
 
+    def test_sync_does_not_reopen_a_slot_that_was_just_answered(self):
+        from brain.logic.conversation_state import apply_response_to_conversation_state, sync_conversation_state
+        state = {
+            "conversation_state_v2": {
+                "topic": "hobby",
+                "subtopic": "sport",
+                "active_slot": "sport_kind",
+                "semantic_slots": {},
+                "subtopic_status": "active",
+                "last_question": "Welchen Sport machst du gern?",
+            },
+            "free_conversation": {"last_topic": "hobby"},
+        }
+        apply_response_to_conversation_state(
+            state,
+            {"slot": "sport_kind", "canonical": "fußball", "content": "Fußball", "understood": True},
+        )
+        sync_conversation_state(
+            state,
+            topic="hobby",
+            last_question="Welchen Sport machst du gern?",
+            level="A1.2",
+        )
+        semantic = state["conversation_state_v2"]
+        self.assertEqual(semantic["semantic_slots"]["sport_kind"], "fußball")
+        self.assertIsNone(semantic.get("active_slot"))
+
     def test_food_completion_stays_related(self):
         state = {}
         turn(state, "Was isst du gern?")
