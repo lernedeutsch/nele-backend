@@ -308,6 +308,8 @@ def _subtopic_followup(topic, subtopic, free, memory, state=None):
         if _norm(question).strip(" ?!.") in asked:
             continue
         slots[key] = i + 1
+        if state is not None:
+            set_active_slot_from_question(state, _slot)
         return question
     return None
 
