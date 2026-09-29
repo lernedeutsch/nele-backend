@@ -178,7 +178,7 @@ def _extract_facts(text):
         facts["topic"] = "hobby"
     elif any(x in low for x in ("wetter", "sonne", "regen", "kalt", "warm")):
         facts["topic"] = "weather"
-    elif any(x in low for x in ("urlaub", "reise", "ferien", "meer", "berge")):
+    elif re.search(r"\b(?:urlaub|reise|ferien|meer|berge)\b", low):
         facts["topic"] = "holiday"
     elif "gestern" in low:
         facts["topic"] = "yesterday"
@@ -2010,7 +2010,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     detected_topic = explicit_topic
     if any(x in low_message for x in ("wetter", "sonne", "sonnig", "regen", "regnet", "windig", "schnee")):
         detected_topic = "weather"
-    elif any(x in low_message for x in ("urlaub", "reise", "ferien", "meer", "berge")):
+    elif re.search(r"\b(?:urlaub|reise|ferien|meer|berge)\b", low_message):
         detected_topic = "holiday"
     elif "gestern" in low_message:
         detected_topic = "yesterday"
