@@ -2158,12 +2158,14 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     # thread before the broad social A1 shortcut can turn it into a generic
     # "Machst du das oft?" response. Keep this narrow: only use content
     # followups that identify a concrete reading kind such as Krimis.
+    understood_semantic_slot = (response_understanding or {}).get("slot")
+    semantic_context = SLOT_CONTEXT.get(understood_semantic_slot) or ()
     previous_subtopic = (
-        (state.get("topic_manager_v2") or {}).get("subtopic")
+        (semantic_context[1] if len(semantic_context) > 1 else None)
         or (state.get("conversation_state_v2") or {}).get("subtopic")
+        or (state.get("topic_manager_v2") or {}).get("subtopic")
     )
     active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
-    understood_semantic_slot = (response_understanding or {}).get("slot")
     # Canonical semantic threads own the whole learner turn. apply_response_to_
     # conversation_state clears active_slot after a valid answer is committed,
     # so use response_understanding as the same-turn ownership signal too.
