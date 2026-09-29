@@ -692,6 +692,13 @@ def _social_a1_reply(text, free, state):
         if low in {"nein", "nicht jeden tag", "nein, nicht jeden tag"}:
             return "Kein Problem. Wie oft lernst du Deutsch?"
 
+    if "wie lange lernst du jeden tag deutsch" in last:
+        duration = re.fullmatch(r"(\d{1,3})\s*(minuten?|stunden?)", low)
+        if duration:
+            value = raw.strip(" .?!")
+            free.setdefault("conversation_facts", {})["german_learning_duration"] = value
+            return f"Super, {value} jeden Tag. Was übst du am liebsten: Sprechen, Hören oder Lesen?"
+
     if any(x in last for x in ("bei diesem wetter", "wenn es warm ist")):
         if low in {"radfahren", "rad fahren", "fahrrad fahren"}:
             return "Du kannst sagen: „Ich fahre gern Rad.“ Fährst du lieber allein oder mit jemandem?"
