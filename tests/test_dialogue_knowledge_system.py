@@ -220,6 +220,20 @@ class GoldenDialogueSystemTests(unittest.TestCase):
                 self.assertEqual(meta.get("learner_turn", {}).get("slot"), expected_slot)
                 self.assertEqual(meta.get("topic"), "hobby")
 
+    def test_inflected_welcher_questions_are_learner_questions(self):
+        from brain.logic.learner_turn import analyze_learner_turn, is_learner_question
+
+        cases = [
+            ("Welchen Sport machst du gern?", "sport_kind"),
+            ("Welche Musik hörst du gern?", "music_genre"),
+        ]
+        for message, slot in cases:
+            with self.subTest(message=message):
+                self.assertTrue(is_learner_question(message))
+                turn = analyze_learner_turn(message)
+                self.assertEqual(turn.get("intent"), "question_to_nele")
+                self.assertEqual(turn.get("slot"), slot)
+
 
     def test_active_dialogue_switches_cleanly_to_explicit_new_topic(self):
         state = {}
