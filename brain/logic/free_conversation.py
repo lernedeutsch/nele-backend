@@ -2033,7 +2033,12 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     )
     reading_low = _norm(user_message).strip(" ?!.,")
     active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
-    if reading_active and active_semantic_slot not in {"reading_genre", "reading_detail", "reading_frequency", "reading_place"} and (
+    understood_semantic_slot = (response_understanding or {}).get("slot")
+    canonical_reading_turn = (
+        active_semantic_slot in {"reading_genre", "reading_detail", "reading_frequency", "reading_place"}
+        or understood_semantic_slot in {"reading_genre", "reading_detail", "reading_frequency", "reading_place"}
+    )
+    if reading_active and not canonical_reading_turn and (
         re.search(r"\b(?:oft|manchmal|selten)\b", reading_low)
         or re.search(r"\b(?:am abend|abends|am wochenende)\b", reading_low)
     ):
