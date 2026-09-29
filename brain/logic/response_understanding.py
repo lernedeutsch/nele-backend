@@ -91,6 +91,13 @@ def understand_response(text, *, conversation_state=None, vocabulary_context=Non
     candidates = _candidate_words(topic, subtopic, vocabulary_context)
 
     turn = analyze_learner_turn(raw, last_question=question)
+    # Generated semantic questions may be phrased generically ("Was gefällt
+    # dir daran?"). In that case the canonical state's active_slot is more
+    # precise than lexical question parsing. Never apply it to a new learner
+    # question, which owns a new branch.
+    active_slot = conversation_state.get("active_slot")
+    if active_slot and turn.get("intent") != "question_to_nele" and turn.get("slot") in {None, "content", "person"}:
+        turn = {**turn, "slot": active_slot}
 
     result = {
         "version": ENGINE_VERSION,
