@@ -2100,12 +2100,19 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         (state.get("topic_manager_v2") or {}).get("subtopic")
         or (state.get("conversation_state_v2") or {}).get("subtopic")
     )
-    explicit_content_followup = _content_followup(user_message, facts, memory, free, level)
     active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
+    # Canonical semantic threads own their learner answers. Legacy content
+    # followups are only discovery/fallback logic and must not manufacture a
+    # parallel reading chain while a semantic reading slot is active.
+    canonical_reading_active = active_semantic_slot in {
+        "reading_genre", "reading_detail", "reading_frequency", "reading_place"
+    }
+    explicit_content_followup = None if canonical_reading_active else _content_followup(
+        user_message, facts, memory, free, level
+    )
     if (
         explicit_content_followup
         and memory.get("reading_kind") == "Krimis"
-        and active_semantic_slot not in {"reading_detail", "reading_frequency", "reading_place"}
     ):
         memory.setdefault("activity", "reading")
         _remember_question(free, explicit_content_followup)
