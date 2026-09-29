@@ -688,6 +688,7 @@ def _social_a1_reply(text, free, state):
         if low in {"spazieren", "spazieren gehen", "spaziergang"}:
             return "Du kannst sagen: „Ich gehe gern spazieren.“ Wo gehst du gern spazieren?"
         if low in {"schwimmen", "baden"}:
+            free["activity_thread"] = {"activity": "swimming", "stage": "place"}
             return "Du kannst sagen: „Ich gehe gern schwimmen.“ Wo schwimmst du gern?"
 
     if any(x in last for x in ("freizeit", "hobby", "was machst du gern")):
@@ -700,7 +701,19 @@ def _social_a1_reply(text, free, state):
         if low in {"rad fahren", "fahrrad fahren"}:
             return "Du fährst gern Rad. Wo fährst du gern Rad?"
         if low in {"schwimmen", "schwimmbad"}:
+            free["activity_thread"] = {"activity": "swimming", "stage": "place"}
             return "Du schwimmst gern. Wo schwimmst du gern?"
+
+    activity_thread = free.get("activity_thread") or {}
+    if activity_thread.get("activity") == "swimming":
+        if activity_thread.get("stage") == "place" and "wo schwimmst du gern" in last:
+            activity_thread["place"] = raw.strip(" .?!")
+            activity_thread["stage"] = "frequency"
+            return "Schwimmst du oft?"
+        if activity_thread.get("stage") == "frequency" and "schwimmst du oft" in last:
+            activity_thread["frequency"] = raw.strip(" .?!")
+            free.pop("activity_thread", None)
+            return "Schön. Was machst du sonst gern in deiner Freizeit?"
 
     # Cooking subthread must win over the broad "Arbeit" context.
     # These are contextual yes/no answers, not a new answer to "Arbeitest du?".
