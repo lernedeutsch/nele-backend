@@ -309,18 +309,24 @@ def _subtopic_followup(topic, subtopic, free, memory, state=None):
     key = f"{topic}/{subtopic}"
     filled = int(slots.get(key, 0) or 0)
 
-    # Specific content routes can establish semantic subtopic facts before the
-    # generic safety net is used. Infer already completed slots from those
-    # facts so the safety net continues the conversation instead of asking an
-    # earlier, equivalent question again.
-    if key == "hobby/reading":
+    # Canonical semantic_slots is the primary owner of completed semantic
+    # answers. Legacy reading memory remains only as a compatibility hint for
+    # older routes; it must not decide progression ahead of canonical state.
+    semantic_slots = (((state or {}).get("conversation_state_v2") or {}).get("semantic_slots") or {})
+    canonical_filled = 0
+    for slot_name, _question in pool:
+        if slot_name in semantic_slots:
+            canonical_filled += 1
+        else:
+            break
+    filled = max(filled, canonical_filled)
+    if key == "hobby/reading" and canonical_filled == 0:
         if memory.get("reading_kind"):
             filled = max(filled, 1)
         if memory.get("reading_detail"):
             filled = max(filled, 2)
-        slots[key] = filled
+    slots[key] = filled
 
-    semantic_slots = (((state or {}).get("conversation_state_v2") or {}).get("semantic_slots") or {})
     for i, (_slot, question) in enumerate(pool):
         if _slot in semantic_slots:
             continue
