@@ -309,22 +309,33 @@ def _subtopic_followup(topic, subtopic, free, memory, state=None):
     key = f"{topic}/{subtopic}"
     filled = int(slots.get(key, 0) or 0)
 
-    # Specific content routes can establish semantic subtopic facts before the
-    # generic safety net is used. Infer already completed slots from those
-    # facts so the safety net continues the conversation instead of asking an
-    # earlier, equivalent question again.
-    if key == "hobby/reading":
+    # Canonical semantic_slots is the primary owner of completed semantic
+    # answers. Legacy reading memory remains only as a compatibility hint for
+    # older routes; it must not decide progression ahead of canonical state.
+    semantic_slots = (((state or {}).get("conversation_state_v2") or {}).get("semantic_slots") or {})
+    canonical_filled = 0
+    for slot_name, _question in pool:
+        if slot_name in semantic_slots:
+            canonical_filled += 1
+        else:
+            break
+    # Once canonical semantic state exists, it alone determines progression.
+    # The legacy numeric cursor is only a bootstrap fallback for conversations
+    # that have not produced any canonical slot yet. Combining both owners can
+    # skip unanswered slots and rewind reading threads.
+    if canonical_filled:
+        filled = canonical_filled
+    elif key == "hobby/reading":
         if memory.get("reading_kind"):
             filled = max(filled, 1)
         if memory.get("reading_detail"):
             filled = max(filled, 2)
-        slots[key] = filled
+    slots[key] = filled
 
-    semantic_slots = (((state or {}).get("conversation_state_v2") or {}).get("semantic_slots") or {})
     for i, (_slot, question) in enumerate(pool):
         if _slot in semantic_slots:
             continue
-        if i < filled:
+        if canonical_filled == 0 and i < filled:
             continue
         if _norm(question).strip(" ?!.") in asked:
             continue
@@ -1574,7 +1585,10 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
 
     # A yes/no answer cannot satisfy an open content question. Repair the
     # answer shape and stay on the same topic instead of jumping elsewhere.
-    answer_type_repair = _content_question_repair(user_message, free.get("last_question", ""))
+    active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
+    answer_type_repair = None
+    if not active_semantic_slot:
+        answer_type_repair = _content_question_repair(user_message, free.get("last_question", ""))
     if answer_type_repair:
         _remember_question(free, answer_type_repair)
         free["last_user_message"] = str(user_message or "").strip()
@@ -2018,7 +2032,13 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         or (state.get("conversation_state_v2") or {}).get("subtopic") == "reading"
     )
     reading_low = _norm(user_message).strip(" ?!.,")
-    if reading_active and (
+    active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
+    understood_semantic_slot = (response_understanding or {}).get("slot")
+    canonical_reading_turn = (
+        active_semantic_slot in {"reading_genre", "reading_detail", "reading_frequency", "reading_place"}
+        or understood_semantic_slot in {"reading_genre", "reading_detail", "reading_frequency", "reading_place"}
+    )
+    if reading_active and not canonical_reading_turn and (
         re.search(r"\b(?:oft|manchmal|selten)\b", reading_low)
         or re.search(r"\b(?:am abend|abends|am wochenende)\b", reading_low)
     ):
@@ -2090,8 +2110,20 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         (state.get("topic_manager_v2") or {}).get("subtopic")
         or (state.get("conversation_state_v2") or {}).get("subtopic")
     )
-    explicit_content_followup = _content_followup(user_message, facts, memory, free, level)
-    if explicit_content_followup and memory.get("reading_kind") == "Krimis":
+    active_semantic_slot = (state.get("conversation_state_v2") or {}).get("active_slot")
+    # Canonical semantic threads own their learner answers. Legacy content
+    # followups are only discovery/fallback logic and must not manufacture a
+    # parallel reading chain while a semantic reading slot is active.
+    canonical_reading_active = active_semantic_slot in {
+        "reading_genre", "reading_detail", "reading_frequency", "reading_place"
+    }
+    explicit_content_followup = None if canonical_reading_active else _content_followup(
+        user_message, facts, memory, free, level
+    )
+    if (
+        explicit_content_followup
+        and memory.get("reading_kind") == "Krimis"
+    ):
         memory.setdefault("activity", "reading")
         _remember_question(free, explicit_content_followup)
         free["last_user_message"] = str(user_message or "").strip()
@@ -2127,7 +2159,6 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
     if (
         not explicit_content_followup
         and previous_subtopic
-        and not facts.get("activity")
         and topic_source != "explicit"
     ):
         subtopic_followup = _subtopic_followup(
@@ -2219,7 +2250,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                         FALLBACKS.get(explicit_topic or previous_topic, FALLBACKS["today"]),
                     )
                 guard = select_question(state, next_question, social_alternatives)
-                guarded_question = guard.get("selected") or next_question
+                guarded_question = guard.get("selected")
+                if guarded_question is None:
+                    guarded_question = "Erzähl mir noch etwas darüber."
             social_reply = replace_final_question(
                 social_reply, next_question, guarded_question
             )
@@ -2350,7 +2383,13 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         free, _semantic_fallbacks(topic, state)
     )
     guard = select_question(state, question, branch_alternatives)
-    question = guard.get("selected") or question
+    guarded_question = guard.get("selected")
+    if guarded_question is None:
+        # All candidates were semantically blocked. Do not resurrect the
+        # blocked original; continue openly inside the current conversation.
+        question = "Erzähl mir noch etwas darüber."
+    else:
+        question = guarded_question
 
     # Final safety fallback: never reopen a question merely because it fell
     # outside the short recent window. The session-wide normalized `asked`

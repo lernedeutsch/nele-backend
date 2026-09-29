@@ -15,6 +15,20 @@ def question_slot(question):
     q = _norm(question)
     if not q:
         return None
+    # Completion bridges ask for a different semantic slot than their broad
+    # domain wording suggests. Resolve these specific shapes before the generic
+    # music/sport/food/reading/birthday rules below, otherwise sync state
+    # overwrites the bridge slot immediately after it was activated.
+    if ("musik" in q or "hörst du" in q or "hoerst du" in q) and any(x in q for x in ("zu hause", "unterwegs")):
+        return "music_place"
+    if any(x in q for x in ("sport", "machst du diesen sport")) and any(x in q for x in ("draußen", "draussen", "drinnen")):
+        return "sport_environment"
+    if any(x in q for x in ("isst du", "essen")) and any(x in q for x in ("zu hause", "restaurant")):
+        return "food_place"
+    if any(x in q for x in ("liest du", "lesen")) and any(x in q for x in ("zu hause", "unterwegs")):
+        return "reading_place"
+    if "geburtstag" in q and q.startswith(("magst ", "magst du ")):
+        return "birthday_preference"
     if any(x in q for x in ("isst du", "essen", "kochst du", "gericht", "frühstück", "fruehstueck")):
         if "oft" in q or "wie oft" in q:
             return "food_frequency"

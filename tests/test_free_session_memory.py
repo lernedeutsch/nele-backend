@@ -75,9 +75,10 @@ class FreeSessionMemoryTests(unittest.TestCase):
 
     def test_explicit_krimi_content_precedes_social_router(self):
         source = inspect.getsource(free_conversation.generate_free_conversation_reply)
-        content_pos = source.index("explicit_content_followup = _content_followup")
+        content_pos = source.index("explicit_content_followup = None if canonical_reading_active")
         social_pos = source.index("social_reply = None if curriculum_model_sentence else _social_a1_reply")
         self.assertLess(content_pos, social_pos)
+        self.assertIn("canonical_reading_active", source)
         self.assertIn('memory.get("reading_kind") == "Krimis"', source)
 
     def test_food_topic_has_contextual_und_du_handback(self):

@@ -186,7 +186,22 @@ def sync_conversation_state(state, *, topic=None, last_question=None, level=None
         next_slot = None
     if next_slot in SLOT_CONTEXT:
         slot_topic, slot_subtopic = SLOT_CONTEXT[next_slot]
-        if slot_topic == current_topic:
+        # An explicitly activated semantic slot is authoritative. It is set by
+        # the semantic follow-up planner for the question Nele is about to ask.
+        # sync() may infer a slot from question text only when no explicit slot
+        # is already waiting; otherwise stale/legacy wording can rewind the
+        # canonical thread (for example reading_detail -> reading_genre).
+        explicit_active_slot = snapshot.get("active_slot")
+        completed_same_subtopic = (
+            snapshot.get("subtopic_status") == "completed"
+            and snapshot.get("subtopic") == slot_subtopic
+            and explicit_active_slot is None
+        )
+        if (
+            explicit_active_slot is None
+            and slot_topic == current_topic
+            and not completed_same_subtopic
+        ):
             snapshot["active_slot"] = next_slot
             subtopic = slot_subtopic
 

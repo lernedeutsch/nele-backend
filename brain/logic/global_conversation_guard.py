@@ -103,7 +103,7 @@ def assess_question(state, question):
 
 def select_question(state, candidate, alternatives=None):
     first = assess_question(state, candidate)
-    selected = candidate
+    selected = candidate if not first["blocked"] else None
     decision = first
     if first["blocked"]:
         for alt in alternatives or []:
@@ -112,15 +112,17 @@ def select_question(state, candidate, alternatives=None):
                 selected, decision = alt, checked
                 break
     store = state["global_conversation_guard_v1"]
-    sig = signature(selected)
-    recent = store.setdefault("recent", [])
-    recent.append(sig)
-    del recent[:-12]
+    if selected is not None:
+        sig = signature(selected)
+        recent = store.setdefault("recent", [])
+        recent.append(sig)
+        del recent[:-12]
     return {
         **decision,
         "selected": selected,
         "changed": selected != candidate,
         "original": candidate if selected != candidate else None,
+        "need_new_candidate": selected is None,
     }
 
 def replace_final_question(reply, old_question, new_question):
