@@ -373,5 +373,25 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
         self.assertIn("oft", reply.lower())
         self.assertNotIn("musik", reply.lower())
 
+
+    def test_und_du_answers_the_delivered_housing_question(self):
+        state = self.fresh_state()
+        turn(state, "Ich wohne in Heidelberg")
+        reply = turn(state, "Und du?")
+        self.assertIn("haus", reply.lower())
+        self.assertIn("wohnung", reply.lower())
+        self.assertNotIn("was machst du gern", reply.lower())
+
+    def test_reciprocal_question_reuses_reading_and_food_meaning(self):
+        cases = (
+            ("Was liest du gern?", "Und du?", "krimis"),
+            ("Was isst du gern?", "Und bei dir?", "essen"),
+        )
+        for question, reciprocal, expected in cases:
+            state = self.fresh_state()
+            turn(state, question)
+            reply = turn(state, reciprocal)
+            self.assertIn(expected, reply.lower(), question)
+
 if __name__ == "__main__":
     unittest.main()

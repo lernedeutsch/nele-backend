@@ -84,6 +84,24 @@ def is_learner_question(text):
         "siehst ", "gehst ", "fährst ", "faehrst ",
     ))
 
+def is_reciprocal_question(text):
+    return _norm(text) in {"und du", "du", "und bei dir", "bei dir"}
+
+def reciprocal_nele_answer(text, last_question):
+    if not is_reciprocal_question(text): return None
+    q = _norm(last_question)
+    if not q: return None
+    if ("haus" in q and "wohnung" in q) or "wohnst du allein" in q: return "Ich wohne nicht wirklich in einem Haus oder in einer Wohnung."
+    if q.startswith(("wo wohnst du", "wo lebst du")): return "Ich wohne nicht wirklich an einem Ort."
+    if "woher kommst du" in q: return "Ich komme nicht wirklich aus einem Land. Ich bin deine Deutschtrainerin."
+    if any(x in q for x in ("was liest du", "liest du gern")): return "Ich lese gern Krimis."
+    if any(x in q for x in ("welche musik", "hörst du gern", "hoerst du gern")): return "Ich höre nicht wirklich Musik, aber ich spreche gern darüber."
+    if any(x in q for x in ("welchen sport", "machst du sport", "spielst du")): return "Ich mache nicht wirklich Sport, aber ich spreche gern darüber."
+    if any(x in q for x in ("was isst du", "isst du gern")): return "Ich esse nicht wirklich, aber ich spreche gern über Essen."
+    if "was machst du heute" in q: return "Heute übe ich Deutsch mit dir."
+    if any(x in q for x in ("freizeit", "was machst du gern")): return "Ich lese gern und höre gern Musik."
+    return None
+
 def learner_question_context(text):
     """Return stable semantic context for common learner-led questions."""
     q = re.sub(r"^(?:(?:und|aber|also)\s+)+", "", _norm(text))
