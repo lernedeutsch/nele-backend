@@ -1664,7 +1664,7 @@ class GeneratedTests(unittest.TestCase):
         cases = [
             ("hobby", "Welche Musik hörst du gern?", "Pop", "music_genre", "music"),
             ("hobby", "Welchen Sport machst du gern?", "Fußball", "sport_kind", "sport"),
-            ("food", "Was isst du gern?", "Pizza", "food_item", "essen"),
+            ("food", "Was isst du gern?", "Pizza", "food", "essen"),
             ("personal", "Wann hast du Geburtstag?", "Am vierzehnten Februar", "birthday", "birthday"),
         ]
         for topic, question, answer, slot, subtopic in cases:
