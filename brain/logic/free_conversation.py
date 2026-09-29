@@ -275,6 +275,11 @@ SUBTOPIC_QUESTIONS = {
         ("sport_companion", "Mit wem machst du Sport?"),
         ("sport_frequency", "Wie oft machst du das?"),
     ],
+    ("food", "essen"): [
+        ("food", "Was isst du gern?"),
+        ("food_detail", "Wie isst du das gern?"),
+        ("food_frequency", "Wie oft isst du das?"),
+    ],
 }
 
 
@@ -1491,6 +1496,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                 "food": "food",
                 "film_genre": "hobby",
                 "reading": "hobby",
+                "reading_genre": "hobby",
                 "music_genre": "hobby",
                 "sport_kind": "hobby",
                 "activity": "hobby",
