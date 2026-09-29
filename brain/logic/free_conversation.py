@@ -2226,7 +2226,9 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
                         FALLBACKS.get(explicit_topic or previous_topic, FALLBACKS["today"]),
                     )
                 guard = select_question(state, next_question, social_alternatives)
-                guarded_question = guard.get("selected") or next_question
+                guarded_question = guard.get("selected")
+                if guarded_question is None:
+                    guarded_question = "Erzähl mir noch etwas darüber."
             social_reply = replace_final_question(
                 social_reply, next_question, guarded_question
             )
@@ -2357,7 +2359,13 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         free, _semantic_fallbacks(topic, state)
     )
     guard = select_question(state, question, branch_alternatives)
-    question = guard.get("selected") or question
+    guarded_question = guard.get("selected")
+    if guarded_question is None:
+        # All candidates were semantically blocked. Do not resurrect the
+        # blocked original; continue openly inside the current conversation.
+        question = "Erzähl mir noch etwas darüber."
+    else:
+        question = guarded_question
 
     # Final safety fallback: never reopen a question merely because it fell
     # outside the short recent window. The session-wide normalized `asked`
