@@ -319,8 +319,13 @@ def _subtopic_followup(topic, subtopic, free, memory, state=None):
             canonical_filled += 1
         else:
             break
-    filled = max(filled, canonical_filled)
-    if key == "hobby/reading" and canonical_filled == 0:
+    # Once canonical semantic state exists, it alone determines progression.
+    # The legacy numeric cursor is only a bootstrap fallback for conversations
+    # that have not produced any canonical slot yet. Combining both owners can
+    # skip unanswered slots and rewind reading threads.
+    if canonical_filled:
+        filled = canonical_filled
+    elif key == "hobby/reading":
         if memory.get("reading_kind"):
             filled = max(filled, 1)
         if memory.get("reading_detail"):
@@ -330,7 +335,7 @@ def _subtopic_followup(topic, subtopic, free, memory, state=None):
     for i, (_slot, question) in enumerate(pool):
         if _slot in semantic_slots:
             continue
-        if i < filled:
+        if canonical_filled == 0 and i < filled:
             continue
         if _norm(question).strip(" ?!.") in asked:
             continue
