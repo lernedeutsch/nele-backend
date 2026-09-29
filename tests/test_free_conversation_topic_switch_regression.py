@@ -407,6 +407,14 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
             self.assertIn(expected, reply.lower(), opener)
             self.assertNotIn(forbidden, reply.lower(), opener)
 
+    def test_full_cycling_gern_statement_reaches_cycling_followup(self):
+        state = self.fresh_state()
+        reply = turn(state, "Ich fahre gern Rad")
+        self.assertIn("wo fährst du gern rad", reply.lower())
+        self.assertNotIn("was machst du sonst noch gern", reply.lower())
+        reply = turn(state, "Im Park")
+        self.assertIn("fährst du dort oft rad", reply.lower())
+
     def test_full_swimming_gern_statement_keeps_context_after_place(self):
         state = self.fresh_state()
         reply = turn(state, "Ich schwimme gern")
