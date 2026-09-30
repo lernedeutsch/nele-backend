@@ -81,6 +81,18 @@ def get_curriculum_state(state):
         key for key, item in progress.items()
         if key not in A1_SKILL_GRAPH and item.get("status") == "needs_review"
     )
+    course_mastered = sorted(
+        key for key, item in progress.items()
+        if key.startswith("course:") and item.get("status") == "mastered"
+    )
+    course_in_progress = sorted(
+        key for key, item in progress.items()
+        if key.startswith("course:") and item.get("status") in {"introduced", "practicing", "improving"}
+    )
+    course_review = sorted(
+        key for key, item in progress.items()
+        if key.startswith("course:") and item.get("status") == "needs_review"
+    )
 
     return {
         "version": GRAPH_VERSION,
@@ -90,6 +102,9 @@ def get_curriculum_state(state):
         "blocked": sorted(blocked),
         "needs_review": sorted(review),
         "dynamic_needs_review": dynamic_review,
+        "course_mastered": course_mastered,
+        "course_in_progress": course_in_progress,
+        "course_needs_review": course_review,
     }
 
 
@@ -116,8 +131,12 @@ def choose_next_curriculum_skill(state):
         review = curriculum["needs_review"]
         ready = curriculum["ready"]
 
+    if curriculum["course_needs_review"]:
+        return {"skill": curriculum["course_needs_review"][0], "reason": "course_review"}
     if review:
         return {"skill": review[0], "reason": "curriculum_review"}
+    if course_mode and curriculum["course_in_progress"]:
+        return {"skill": curriculum["course_in_progress"][0], "reason": "course_mastery_in_progress"}
     if curriculum["dynamic_needs_review"]:
         return {"skill": curriculum["dynamic_needs_review"][0], "reason": "dynamic_review"}
     if ready:
