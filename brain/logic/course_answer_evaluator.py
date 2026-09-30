@@ -126,3 +126,36 @@ def answer_matches_course_definition(user_message, definition, render=None, vali
             return True
 
     return False
+
+
+def evaluate_course_answer(user_message, definition, *, render=None, validator=None):
+    """Classify a course answer once for all course surfaces.
+
+    Returns:
+      {"kind": "correct", "correct": True, "partial": None}
+      {"kind": "partial", "correct": False, "partial": {...}}
+      {"kind": "wrong", "correct": False, "partial": None}
+    """
+    if answer_matches_course_definition(
+        user_message,
+        definition,
+        render=render,
+        validator=validator,
+    ):
+        return {"kind": "correct", "correct": True, "partial": None}
+
+    accepted = (definition or {}).get("accepted", []) if isinstance(definition, dict) else []
+    if isinstance(accepted, str):
+        accepted = [accepted]
+    if not isinstance(accepted, list):
+        accepted = []
+
+    partial = sequence_partial_progress(
+        user_message,
+        accepted,
+        render=render,
+    )
+    if partial:
+        return {"kind": "partial", "correct": False, "partial": partial}
+
+    return {"kind": "wrong", "correct": False, "partial": None}
