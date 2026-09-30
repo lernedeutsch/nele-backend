@@ -101,3 +101,22 @@ class GenericCourseMasteryRoutingGateTests(unittest.TestCase):
             record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True, final_step=False)
         progress = record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True, final_step=True)
         self.assertNotEqual(progress["status"], "mastered")
+
+
+class GenericCoursePartialSequenceTests(unittest.TestCase):
+    def test_correct_prefix_of_number_sequence_is_partial_not_complete(self):
+        from brain.logic.generic_lesson_engine import _sequence_partial_progress, answer_matches_step
+        step = {
+            "accepted": ["eins, zwei, drei, vier, fünf", "1 2 3 4 5"],
+            "correct_answer": "eins, zwei, drei, vier, fünf",
+        }
+        self.assertFalse(answer_matches_step("eins zwei drei", step, {}))
+        partial = _sequence_partial_progress("eins zwei drei", step["accepted"], {})
+        self.assertEqual(partial["matched"], 3)
+        self.assertEqual(partial["total"], 5)
+
+    def test_wrong_or_out_of_order_sequence_is_not_partial(self):
+        from brain.logic.generic_lesson_engine import _sequence_partial_progress
+        accepted = ["eins, zwei, drei, vier, fünf"]
+        self.assertIsNone(_sequence_partial_progress("eins drei", accepted, {}))
+        self.assertIsNone(_sequence_partial_progress("zwölf", accepted, {}))
