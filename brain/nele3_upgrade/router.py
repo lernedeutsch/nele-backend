@@ -86,43 +86,10 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
             }
 
         if norm in no_answers:
-            declined_activity = str(
-                pending.get("activity") or ""
-            ).strip()
-
-            excluded = list(
-                pending.get("excluded") or []
-            )
-
-            if declined_activity and declined_activity not in excluded:
-                excluded.append(declined_activity)
-
             clear_pending_recommendation(state)
-
-            alternative = build_adaptive_recommendation(
-                state,
-                excluded=excluded,
-            )
-
-            if isinstance(alternative, dict):
-                set_pending_recommendation(
-                    state,
-                    alternative,
-                )
-
-                return True, (
-                    "Okay. Dann nehmen wir etwas anderes. "
-                    + str(alternative.get("message") or "").strip()
-                ), {
-                    "adaptive_recommendation_declined": True,
-                    "alternative_recommendation": alternative.get("activity"),
-                }
-
-            return True, (
-                "Okay. Dann entscheiden wir später, "
-                "was wir als Nächstes üben."
-            ), {
-                "adaptive_recommendation_declined": True
+            return True, "Okay, kein Problem. Wir machen später weiter.", {
+                "adaptive_recommendation_declined": True,
+                "recommendation_chain_stopped": True,
             }
 
     active = get_active_task(state)
@@ -139,6 +106,14 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
         active = None
 
     if active:
+        if norm in {"nein", "nein danke", "nicht jetzt", "lieber nicht", "jetzt nicht"}:
+            set_active_task(state, None)
+            record_event(state, "activity_cancelled", detail=active.get("type"))
+            return True, "Okay, kein Problem. Wir machen später weiter.", {
+                "activity_cancelled": True,
+                "activity": active.get("type"),
+            }
+
         if norm in {"stop", "stopp", "abbrechen", "übung beenden", "ubung beenden"}:
             set_active_task(state, None)
             record_event(state, "activity_cancelled", detail=active.get("type"))
