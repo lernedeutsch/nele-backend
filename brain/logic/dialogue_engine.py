@@ -17,7 +17,10 @@ from brain.logic.dialogue_state_engine import (
 )
 from brain.memory.lesson_progress import mark_section_completed, get_next_incomplete_section
 from brain.logic.learning_progress_engine import update_learning_progress
-from brain.logic.course_answer_evaluator import answer_matches_course_definition
+from brain.logic.course_answer_evaluator import (
+    answer_matches_course_definition,
+    evaluate_course_answer,
+)
 from brain.logic.learner_model import build_learner_model
 from brain.logic.course_teacher_engine import (
     choose_course_teacher_action,
@@ -200,11 +203,11 @@ def answer_matches_dialogue_turn(user_message, turn, slots=None, variable_slots=
         if not slot_names(pattern)
         or all(name in (slots or {}) for name in slot_names(pattern))
     ]
-    return answer_matches_course_definition(
+    return evaluate_course_answer(
         user_message,
         shared_definition,
         render=lambda value: str(value or ""),
-    )
+    )["correct"]
 
 
 def is_dialogue_active(state):
