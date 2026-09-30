@@ -79,6 +79,16 @@ def _open_choice_short_answer(message, task):
         return False
     if answer in {"ja", "nein", "bitte", "danke"}:
         return False
+    # This shortcut is only for a noun/quantity choice. Full clauses such as
+    # "ich möchte ..." must still pass the normal semantic/keyword evaluator,
+    # otherwise a wrong verb phrase could be falsely accepted.
+    clause_markers = {
+        "ich", "du", "sie", "wir", "ihr",
+        "möchte", "mochte", "möchten", "mochten",
+        "hätte", "hatte", "will", "nehme",
+    }
+    if set(tokens) & clause_markers:
+        return False
     return True
 
 
