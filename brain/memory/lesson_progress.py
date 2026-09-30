@@ -472,6 +472,39 @@ def set_current_section(
 
 
 # ==========================================
+# COURSE MASTERY = JEDNO ŹRÓDŁO PRAWDY
+# ==========================================
+
+def _course_mode(state):
+    return str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
+
+
+def _course_section_skill_candidates(state, level, lesson, section):
+    """Return mastery records that can prove a course section is learned."""
+    skills = ((((state or {}).get("learning_progress_v1") or {}).get("skills")) or {})
+    prefix = f"course:{str(level or '').strip().lower()}:{lesson}:"
+    section_slug = str(section or "").strip().lower().strip(" .?!„“\\\"'").replace(" ", "_")
+    exact = prefix + section_slug
+    candidates = [exact] if exact in skills else []
+    lesson_skills = [key for key in skills if key.startswith(prefix)]
+    if len(lesson_skills) == 1 and not candidates:
+        candidates.extend(lesson_skills)
+    return candidates
+
+
+def is_course_section_mastered(state, level, lesson, section):
+    """In course mode, completion is derived from learning_progress_v1 mastery."""
+    if not _course_mode(state):
+        return True
+    skills = ((((state or {}).get("learning_progress_v1") or {}).get("skills")) or {})
+    candidates = _course_section_skill_candidates(state, level, lesson, section)
+    return bool(candidates) and all(
+        (skills.get(key) or {}).get("status") == "mastered"
+        for key in candidates
+    )
+
+
+# ==========================================
 # OZNACZENIE CZĘŚCI JAKO UKOŃCZONEJ
 # ==========================================
 
@@ -483,7 +516,7 @@ def mark_section_completed(
 ):
 
     if not section:
-        return
+        return False
 
 
     section = str(
@@ -492,7 +525,14 @@ def mark_section_completed(
 
 
     if not section:
-        return
+        return False
+
+
+    # In course mode a UI/dialogue event may request completion, but only
+    # durable mastery may authorize it. This closes every legacy bypass at
+    # the shared persistence boundary.
+    if not is_course_section_mastered(state, level, lesson, section):
+        return False
 
 
     lesson_progress = get_lesson_progress(
@@ -551,6 +591,9 @@ def mark_section_completed(
         ] = True
 
 
+    return True
+
+
 # ==========================================
 # CZY CZĘŚĆ JEST UKOŃCZONA
 # ==========================================
@@ -567,6 +610,10 @@ def is_section_completed(
         level,
         lesson
     )
+
+
+    if _course_mode(state):
+        return is_course_section_mastered(state, level, lesson, section)
 
 
     return section in lesson_progress.get(
@@ -590,6 +637,14 @@ def get_completed_sections(
         level,
         lesson
     )
+
+
+    if _course_mode(state):
+        return [
+            section
+            for section in lesson_progress.get("sections", [])
+            if is_course_section_mastered(state, level, lesson, section)
+        ]
 
 
     return list(
@@ -624,10 +679,7 @@ def get_next_incomplete_section(
 
 
     completed_sections = set(
-        lesson_progress.get(
-            "completed_sections",
-            []
-        )
+        get_completed_sections(state, level, lesson)
     )
 
 
@@ -670,10 +722,7 @@ def get_lesson_completion_percent(
 
 
     completed_sections = set(
-        lesson_progress.get(
-            "completed_sections",
-            []
-        )
+        get_completed_sections(state, level, lesson)
     )
 
 
@@ -713,9 +762,9 @@ def is_lesson_fully_completed(
     )
 
 
-    if lesson_progress.get(
-        "completed",
-        False
+    if (
+        not _course_mode(state)
+        and lesson_progress.get("completed", False)
     ):
 
         return True
