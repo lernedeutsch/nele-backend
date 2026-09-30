@@ -1,4 +1,6 @@
-import re\n\n# ==========================================
+import re
+
+# ==========================================
 # NELE – REAKCJA NA SAMOPOCZUCIE UCZNIA
 # WELLBEING FEEDBACK
 # STUDENT MEMORY 2.0
