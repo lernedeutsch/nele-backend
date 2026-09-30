@@ -563,7 +563,8 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
         score = _keyword_score(message, task.get("keywords", []))
         if not task.get("keywords"):
             score = min(100, 45 + len(_normalize(message).split()) * 8)
-        completed = score >= 45
+        model_score = _similarity_score(message, task.get("model_answer")) if task.get("model_answer") else 0
+        completed = score >= 60 or model_score >= 55
         if completed:
             reply = "Sehr gut. Das passt in dieser Situation."
         else:
@@ -573,7 +574,7 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
                 if activity_type == "dialogue"
                 else None
             )
-            reply = "Fast. Versuch es noch einmal als kurzen, natürlichen Satz."
+            reply = ("Gut, ein Teil passt. Ergänze bitte noch den fehlenden Teil." if activity_type == "speaking" and score > 0 else "Das passt noch nicht ganz zur Situation. Versuch es noch einmal.")
             if correction:
                 reply += f" Du kannst sagen: „{correction}“"
             elif model and len(_normalize(message).split()) <= 2:
