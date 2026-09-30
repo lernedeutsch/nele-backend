@@ -119,8 +119,13 @@ def main():
             bootstrap_answers = [
                 f"ich heiße {os.environ.get('NELE_LIVE_STUDENT_NAME', 'Moni')}",
                 os.environ.get("NELE_LIVE_BOOTSTRAP_ORIGIN", "ich komme aus Polen"),
-                os.environ.get("NELE_LIVE_BOOTSTRAP_RESIDENCE", "ich wohne in Heidelberg"),
             ]
+            origin_confirm = str(os.environ.get("NELE_LIVE_BOOTSTRAP_ORIGIN_CONFIRM", "") or "").strip()
+            if origin_confirm:
+                bootstrap_answers.append(origin_confirm)
+            bootstrap_answers.append(
+                os.environ.get("NELE_LIVE_BOOTSTRAP_RESIDENCE", "ich wohne in Heidelberg")
+            )
             for answer in bootstrap_answers:
                 bootstrap = requests.post(
                     CHAT_URL,
