@@ -223,3 +223,10 @@ def test_course_dialogue_completes_only_after_shared_mastery():
     assert skill["status"] == "mastered"
     assert "Herkunftsdialog geschafft" in reply
     assert state["dialogue_active"] is False
+    assert state["learner_model_v2"]["version"] == 2
+    assert state["course_teaching_decision"] == {
+        "decision": "teach_next",
+        "skill": "course:a1:2:das_verb_kommen",
+        "reason": "course_prerequisites_met",
+    }
+    assert state["pending_new_learning"]["skill"] == "course:a1:2:das_verb_kommen"

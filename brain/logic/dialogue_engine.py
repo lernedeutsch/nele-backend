@@ -18,6 +18,7 @@ from brain.logic.dialogue_state_engine import (
 from brain.memory.lesson_progress import mark_section_completed, get_next_incomplete_section
 from brain.logic.learning_progress_engine import update_learning_progress
 from brain.logic.course_answer_evaluator import answer_matches_course_definition
+from brain.logic.learner_model import build_learner_model
 
 
 def _text(value):
@@ -514,6 +515,15 @@ def _complete_course_dialogue(dialogue, state):
         return None
     mark_section_completed(state, level, lesson, section)
     next_section = get_next_incomplete_section(state, level, lesson)
+    learner_model = build_learner_model(state)
+    course_learning = learner_model.get("course_learning") or {}
+    next_skill = course_learning.get("next_skill")
+    next_decision = course_learning.get("teaching_decision")
+    state["course_teaching_decision"] = {
+        "decision": next_decision,
+        "skill": next_skill,
+        "reason": course_learning.get("next_reason"),
+    }
     if next_section:
         state["pending_new_learning"] = {
             "type": "new_section",
@@ -521,6 +531,8 @@ def _complete_course_dialogue(dialogue, state):
             "lesson": int(lesson),
             "section": next_section,
             "topic": next_section,
+            "skill": next_skill,
+            "decision": next_decision,
         }
         state["last_question"] = "continue_new_learning"
     return next_section

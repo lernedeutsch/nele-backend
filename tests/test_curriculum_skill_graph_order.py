@@ -146,3 +146,21 @@ def test_persistent_course_memory_does_not_activate_course_graph_in_free_mode():
     }
     curriculum = get_curriculum_state(state)
     assert curriculum["course_ready"] == []
+
+
+def test_selected_lesson_is_course_routing_entry_point():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {
+            "version": 1,
+            "skills": {
+                "course:a1:2:woher_kommen_sie": {"status": "mastered"},
+            },
+        },
+    }
+    choice = choose_next_curriculum_skill(state)
+    assert choice == {
+        "skill": "course:a1:2:das_verb_kommen",
+        "reason": "course_prerequisites_met",
+    }
