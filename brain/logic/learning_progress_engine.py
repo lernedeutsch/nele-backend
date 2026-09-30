@@ -10,6 +10,9 @@ STATES = ("introduced", "practicing", "improving", "mastered", "needs_review")
 
 
 def _skill_key(outcome):
+    explicit = (outcome or {}).get("skill")
+    if explicit:
+        return str(explicit).strip()
     expected = (outcome or {}).get("expected_outcome")
     target = (outcome or {}).get("target_word")
     model = (outcome or {}).get("model")
@@ -38,7 +41,8 @@ def _derive_status(item):
     # A failure after mastery deliberately reopens the skill for review.
     if previous == "mastered" and item.get("last_result") == "NOT_YET":
         return "needs_review"
-    if successes >= 3 and streak >= 2 and successes > failures:
+    mastery_eligible = item.get("mastery_eligible", True)
+    if mastery_eligible and successes >= 3 and streak >= 2 and successes > failures:
         return "mastered"
     if failures >= 2 and failures >= successes:
         return "needs_review"
@@ -69,9 +73,12 @@ def update_learning_progress(state, outcome):
         "last_result": None,
         "target_word": outcome.get("target_word"),
         "model": outcome.get("model"),
+        "mastery_eligible": bool(outcome.get("mastery_eligible", True)),
     })
 
     result = outcome.get("status")
+    if "mastery_eligible" in outcome:
+        item["mastery_eligible"] = bool(outcome.get("mastery_eligible"))
     item["attempts"] += 1
     item["last_result"] = result
     if result == "SUCCESS":
