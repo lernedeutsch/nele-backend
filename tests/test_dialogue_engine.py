@@ -94,6 +94,17 @@ class DialogueEngineTests(unittest.TestCase):
         self.assertEqual(state["dialogue_slots"]["country"], "Deutschland")
         self.assertEqual(state["dialogue_turn"], 3)
 
+    def test_real_a12_dialogue_accepts_semantic_country_variation(self):
+        state = {}
+        opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+        self.assertIn("Woher kommst du", opening)
+
+        reply = handle_dialogue("Komme aus Spanien.", state)
+
+        self.assertIn("Kommst du aus Spanien", reply)
+        self.assertEqual(state["dialogue_slots"]["country"], "Spanien")
+        self.assertEqual(state["dialogue_turn"], 3)
+
     def test_real_a12_dialogue_accepts_negative_country_correction(self):
         state = {}
         start_dialogue("A1", 2, "woher-kommst-du", state)
