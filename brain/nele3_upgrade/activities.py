@@ -78,7 +78,7 @@ def _task_semantic_score(message, task):
         "gast", "bitte", "guten", "morgen", "ihnen", "ihre", "einen",
         "eine", "noch", "sehr", "gerne", "sofort", "möchten", "mochten",
         "verkäuferin", "verkauferin", "entschuldigung", "brauche",
-        "bringe", "bringen", "natürlich", "naturlich", "frisches",
+        "bringe", "bringen", "natürlich", "naturlich", "frisches", "möchte", "mochte",
     }
     target_content = {
         token for token in (prompt_tokens | model_tokens)
