@@ -22,6 +22,7 @@ from brain.logic.course_answer_evaluator import (
     evaluate_course_answer,
 )
 from brain.logic.learner_model import build_learner_model
+from brain.logic.curriculum_skill_graph import get_skill
 from brain.logic.course_teacher_engine import (
     choose_course_teacher_action,
     render_course_teacher_action,
@@ -526,11 +527,25 @@ def _complete_course_dialogue(dialogue, state):
     if not section or not lesson:
         return None
     mark_section_completed(state, level, lesson, section)
-    next_section = get_next_incomplete_section(state, level, lesson)
     learner_model = build_learner_model(state)
     course_learning = learner_model.get("course_learning") or {}
     next_skill = course_learning.get("next_skill")
     next_decision = course_learning.get("teaching_decision")
+
+    # Course routing is owned by mastery + Learner Model + Course Skill Graph.
+    # Legacy lesson_progress is only a compatibility fallback. In production a
+    # dialogue can be entered without a populated legacy section list, so using
+    # it first can falsely report that the lesson has no next section.
+    next_section = None
+    graph_item = get_skill(next_skill) if next_skill else None
+    if (
+        next_decision == "teach_next"
+        and isinstance(graph_item, dict)
+        and int(graph_item.get("lesson") or 0) == int(lesson)
+    ):
+        next_section = _text(graph_item.get("section"))
+    if not next_section:
+        next_section = get_next_incomplete_section(state, level, lesson)
     state["course_teaching_decision"] = {
         "decision": next_decision,
         "skill": next_skill,

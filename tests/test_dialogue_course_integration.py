@@ -168,3 +168,23 @@ if __name__ == "__main__":
             reply = handle_message("ja", "A1", 2, session_id="test-course-handoff")
 
         self.assertIn("NEXT_SECTION_STARTED", str(reply))
+
+
+
+def test_real_course_dialogue_offers_graph_next_section_without_legacy_sections():
+    from brain.logic.dialogue_engine import start_dialogue
+
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+    }
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+    handle_dialogue("Polen", state)
+    handle_dialogue("Ja", state)
+    reply = handle_dialogue("Anna kommt aus Österreich", state)
+
+    assert "Herkunftsdialog geschafft" in reply
+    assert "Das Verb kommen" in reply
+    assert state["last_question"] == "continue_new_learning"
+    assert state["pending_new_learning"]["section"] == "Das Verb kommen"
+    assert state["pending_new_learning"]["skill"] == "course:a1:2:das_verb_kommen"
