@@ -217,6 +217,42 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertIn("hätte gern", result["reply"])
         self.assertNotIn("Brötchen", result["reply"])
 
+    def test_work_german_accepts_natural_towel_response(self):
+        state = {
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "work_german",
+                    "title": "Handtuch bringen",
+                    "prompt": "Gast: Entschuldigung, ich brauche noch ein Handtuch.",
+                    "keywords": ["natürlich", "handtuch"],
+                    "model_answer": "Natürlich. Ich bringe Ihnen sofort ein frisches Handtuch.",
+                }
+            }
+        }
+
+        result = answer_active_task(state, "Natürlich, ich bringe ein Tuch.")
+
+        self.assertTrue(result["completed"])
+        self.assertIn("passt", result["reply"])
+
+    def test_dialogue_accepts_natural_product_request_without_model_product(self):
+        state = {
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "dialogue",
+                    "title": "In der Bäckerei",
+                    "prompt": "Ich bin die Verkäuferin: Guten Morgen. Was möchten Sie?",
+                    "keywords": ["ich möchte", "bitte"],
+                    "model_answer": "Ich möchte zwei Brötchen, bitte.",
+                }
+            }
+        }
+
+        result = answer_active_task(state, "Ich möchte Äpfel, bitte.")
+
+        self.assertTrue(result["completed"])
+        self.assertNotIn("Brötchen", result["reply"])
+
     def test_dialogue_correction_never_replaces_concrete_answer_with_model(self):
         state = {
             "nele3_upgrade": {

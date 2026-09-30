@@ -55,6 +55,46 @@ def _similarity_score(message, expected):
     overlap = len(expected_tokens & got) / len(expected_tokens)
     return int(round(overlap * 100))
 
+def _task_semantic_score(message, task):
+    """Score fulfilment of a practical situation without memorised wording."""
+    tokens = _tokens(message)
+    prompt_tokens = _tokens((task or {}).get("prompt"))
+    model_tokens = _tokens((task or {}).get("model_answer"))
+    if not tokens:
+        return 0
+
+    # Verbs/politeness show the learner is performing the requested speech act.
+    response_markers = {
+        "bringe", "bringen", "hole", "holen", "kümmere", "kuemmere",
+        "darum", "natürlich", "naturlich", "gerne", "gern", "möchte",
+        "mochte", "hätte", "hatte", "nehme",
+    }
+    response_hit = bool(tokens & response_markers)
+
+    # Require a concrete object from the situation/model (or a common compound
+    # fragment such as Tuch in Handtuch). This blocks nonsense that merely
+    # contains a polite verb.
+    stop = {
+        "gast", "bitte", "guten", "morgen", "ihnen", "ihre", "einen",
+        "eine", "noch", "sehr", "gerne", "sofort", "möchten", "mochten",
+        "verkäuferin", "verkauferin", "entschuldigung", "brauche",
+        "bringe", "bringen", "natürlich", "naturlich", "frisches", "möchte", "mochte",
+    }
+    target_content = {
+        token for token in (prompt_tokens | model_tokens)
+        if len(token) >= 4 and token not in stop
+    }
+    content_hit = any(
+        learner == target
+        or (min(len(learner), len(target)) >= 4 and (learner in target or target in learner))
+        for learner in tokens
+        for target in target_content
+    )
+
+    if not (content_hit and response_hit):
+        return 0
+    return 80 if len(tokens) >= 3 else 70
+
 
 def _preserve_dialogue_intent_correction(message):
     """Correct a few high-confidence A1 forms without replacing learner meaning."""
@@ -564,16 +604,29 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
         if not task.get("keywords"):
             score = min(100, 45 + len(_normalize(message).split()) * 8)
         model_score = _similarity_score(message, task.get("model_answer")) if task.get("model_answer") else 0
-        completed = score >= 60 or model_score >= 55
+        # Model-token overlap is supporting evidence only; a weak two-word
+        # overlap must not complete a dialogue by itself.
+        model_pass = model_score >= 55 and len(_tokens(message)) >= 3 and _task_semantic_score(message, task) > 0
+        semantic_score = _task_semantic_score(message, task)
+        correction = (
+            _preserve_dialogue_intent_correction(message)
+            if activity_type == "dialogue"
+            else None
+        )
+        keyword_count = len(task.get("keywords", []) or [])
+        keyword_pass = score >= 60 and (
+            (keyword_count <= 1 and len(_tokens(message)) >= 2)
+            or (score >= 100 and len(_tokens(message)) >= 4)
+        )
+        completed = (
+            keyword_pass
+            or model_pass
+            or (semantic_score >= 70 and not correction)
+        )
         if completed:
             reply = "Sehr gut. Das passt in dieser Situation."
         else:
             model = task.get("model_answer")
-            correction = (
-                _preserve_dialogue_intent_correction(message)
-                if activity_type == "dialogue"
-                else None
-            )
             reply = ("Gut, ein Teil passt. Ergänze bitte noch den fehlenden Teil." if activity_type == "speaking" and score > 0 else "Das passt noch nicht ganz zur Situation. Versuch es noch einmal.")
             if correction:
                 reply += f" Du kannst sagen: „{correction}“"

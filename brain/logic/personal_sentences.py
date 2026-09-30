@@ -345,6 +345,14 @@ def should_offer_personal_sentence_practice(
         or state.get("dialogue_active")
         or state.get("pending_new_learning")
         or state.get("last_question") == "continue_new_learning"
+        # A course-completion adaptive offer already owns the next turn. Do
+        # not append a second unrelated Meine-Sätze prompt to the same answer.
+        or (
+            isinstance(
+                ((state.get("nele3_upgrade") or {}).get("pending_recommendation")),
+                dict,
+            )
+        )
         or learner_needs_support
         or has_active_error
     ):
