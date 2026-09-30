@@ -124,6 +124,33 @@ def _match_slot_pattern(user_message, pattern, slots=None, variable_slots=None):
     return captured
 
 
+def _match_slot_semantic_pattern(user_message, pattern, slots=None, variable_slots=None):
+    """Use the shared course evaluator after substituting declared slot values.
+
+    This keeps natural word order / omitted-pronoun handling identical to lesson
+    exercises while still limiting dialogue variations to explicitly declared
+    semantic slot values.
+    """
+    variable_slots = dict(variable_slots or {})
+    names = set(slot_names(pattern))
+    changing = [name for name in names if name in variable_slots]
+    if len(changing) != 1:
+        return None
+
+    name = changing[0]
+    for candidate in variable_slots.get(name, []) or []:
+        candidate_slots = dict(slots or {})
+        candidate_slots[name] = candidate
+        rendered = render_pattern(pattern, candidate_slots)
+        if answer_matches_course_definition(
+            user_message,
+            {"accepted": [rendered]},
+            render=lambda value: str(value or ""),
+        ):
+            return {name: str(candidate)}
+    return None
+
+
 def _contradicts_dialogue_context(user_message, turn, slots=None):
     """Reject answers whose polarity contradicts the active semantic slot.
 
@@ -157,6 +184,8 @@ def answer_matches_dialogue_turn(user_message, turn, slots=None, variable_slots=
         return True
     for pattern in accepted_patterns(turn):
         if _match_slot_pattern(user_message, pattern, slots, variable_slots) is not None:
+            return True
+        if _match_slot_semantic_pattern(user_message, pattern, slots, variable_slots) is not None:
             return True
 
     shared_definition = dict(turn)
@@ -649,6 +678,13 @@ def handle_dialogue(user_message, state):
             state.get("dialogue_slots"),
             variable_slots=variable_slots,
         )
+        if not captured:
+            captured = _match_slot_semantic_pattern(
+                user_message,
+                pattern,
+                state.get("dialogue_slots"),
+                variable_slots=variable_slots,
+            )
         if captured:
             state.setdefault("dialogue_slots", {}).update(captured)
             break
