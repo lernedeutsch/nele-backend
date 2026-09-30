@@ -180,6 +180,38 @@ def get_curriculum_state(state):
     }
 
 
+def _focused_course_choice(state, curriculum):
+    """Keep explicit course lesson selection inside that lesson.
+
+    Entering a lesson directly is a valid course action. Earlier lessons must
+    not steal routing, while section order inside the selected lesson remains
+    strict.
+    """
+    student = (state or {}).get("student_progress") or {}
+    try:
+        lesson = int(student.get("current_lesson"))
+    except (TypeError, ValueError):
+        return None
+    prefix = f"course:a1:{lesson}:"
+    ordered = [skill for skill in A1_COURSE_SKILL_GRAPH if skill.startswith(prefix)]
+    if not ordered:
+        return None
+    progress = _progress_skills(state)
+    for index, skill in enumerate(ordered):
+        status = (progress.get(skill) or {}).get("status")
+        if status == "needs_review":
+            return {"skill": skill, "reason": "course_review"}
+        if status in {"introduced", "practicing", "improving"}:
+            return {"skill": skill, "reason": "course_mastery_in_progress"}
+        if status == "mastered":
+            continue
+        earlier_in_lesson = ordered[:index]
+        if all(_mastered(required, progress) for required in earlier_in_lesson):
+            return {"skill": skill, "reason": "course_prerequisites_met"}
+        return None
+    return None
+
+
 def choose_next_curriculum_skill(state):
     curriculum = get_curriculum_state(state)
     course_mode = str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
@@ -201,6 +233,10 @@ def choose_next_curriculum_skill(state):
         review = curriculum["needs_review"]
         ready = curriculum["ready"]
 
+    if course_mode:
+        focused = _focused_course_choice(state, curriculum)
+        if focused:
+            return focused
     if curriculum["course_needs_review"]:
         return {"skill": curriculum["course_needs_review"][0], "reason": "course_review"}
     if course_mode and curriculum["course_in_progress"]:
