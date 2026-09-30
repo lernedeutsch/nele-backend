@@ -200,6 +200,12 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertIn("Ich komme aus Polen", retry)
         self.assertNotIn("Ich komme aus Komme", retry)
 
+    def test_onboarding_rejects_multiword_text_as_origin_shortcut(self):
+        self.assertEqual(get_short_answer_value("Wie ist das Wetter", 2), "")
+        self.assertEqual(get_short_answer_value("Aus Frankreich kommst du", 2), "")
+        retry = get_onboarding_retry(2, "Wie ist das Wetter")
+        self.assertNotIn("Ich komme aus Wie", retry)
+
     def test_onboarding_name_moves_to_short_origin_question(self):
         from brain.logic.onboarding import handle_onboarding_answer
 
