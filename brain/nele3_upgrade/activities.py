@@ -614,8 +614,13 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
             if activity_type == "dialogue"
             else None
         )
+        keyword_count = len(task.get("keywords", []) or [])
+        keyword_pass = score >= 60 and (
+            keyword_count <= 1
+            or score >= 100
+        )
         completed = (
-            score >= 60
+            keyword_pass
             or model_score >= 55
             or (semantic_score >= 70 and not correction)
         )
