@@ -35,6 +35,7 @@ from brain.logic.onboarding import (
     extract_name_sentence,
     extract_learning_goal_sentence,
     get_short_answer_value,
+    get_onboarding_retry,
 )
 from brain.logic.lesson_teaching import (
     is_morning_greeting,
@@ -135,6 +136,12 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "Hallo! Ich bin Nele. Wie heißt du?",
         )
 
+    def test_onboarding_natural_origin_fragment_keeps_only_country(self):
+        self.assertEqual(get_short_answer_value("komme aus Polen", 2), "Polen")
+        retry = get_onboarding_retry(2, "komme aus Polen")
+        self.assertIn("Ich komme aus Polen", retry)
+        self.assertNotIn("Ich komme aus Komme", retry)
+
     def test_onboarding_name_moves_to_short_origin_question(self):
         from brain.logic.onboarding import handle_onboarding_answer
 
@@ -234,6 +241,33 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
         self.assertTrue(result["completed"])
         self.assertIn("passt", result["reply"])
+
+    def test_work_german_accepts_natural_towel_response_without_natuerlich(self):
+        state = {
+            "nele3_upgrade": {
+                "active_task": {
+                    "type": "work_german",
+                    "title": "Handtuch bringen",
+                    "prompt": "Gast: Entschuldigung, ich brauche noch ein Handtuch.",
+                    "keywords": ["natürlich", "handtuch"],
+                    "model_answer": "Natürlich. Ich bringe Ihnen sofort ein frisches Handtuch.",
+                }
+            }
+        }
+
+        for answer in (
+            "Ich bringe Ihnen ein Tuch.",
+            "Ich gebe Ihnen ein Handtuch.",
+        ):
+            state["nele3_upgrade"]["active_task"] = {
+                "type": "work_german",
+                "title": "Handtuch bringen",
+                "prompt": "Gast: Entschuldigung, ich brauche noch ein Handtuch.",
+                "keywords": ["natürlich", "handtuch"],
+                "model_answer": "Natürlich. Ich bringe Ihnen sofort ein frisches Handtuch.",
+            }
+            result = answer_active_task(state, answer)
+            self.assertTrue(result["completed"], answer)
 
     def test_dialogue_accepts_natural_product_request_without_model_product(self):
         state = {

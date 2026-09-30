@@ -89,3 +89,36 @@ def test_active_personal_sentence_practice_owns_course_turn():
     assert answer == 'Sehr gut! „Arbeitest du am Sonntag?“'
     global_sentence.assert_not_called()
     generate.assert_called_once()
+
+
+def test_course_owned_personal_practice_bypasses_pending_upgrade_recommendation():
+    state = {
+        "student_progress": {"current_level": "A1", "current_lesson": 1},
+        "personal_sentence_practice": {"id": "arbeitest_du_am_sonntag", "attempts": 0},
+        "nele3_upgrade": {
+            "pending_recommendation": {
+                "activity": "dialogue",
+                "message": "Möchtest du jetzt einen kurzen Alltagsdialog machen?",
+            }
+        },
+    }
+
+    with (
+        patch("server.app.get_conversation_state", return_value=state),
+        patch("server.app.ensure_upgrade_state"),
+        patch("server.app.handle_personal_sentence") as global_sentence,
+        patch("server.app.handle_upgrade_message") as upgrade,
+        patch("server.app.generate_conversation_reply", return_value='Fast. Du kannst sagen: „Arbeitest du am Sonntag?“') as generate,
+        patch("server.app.record_event"),
+        patch("server.app.save_conversation_state"),
+    ):
+        answer, _ = create_nele_reply(
+            "ja",
+            session_id="course-practice-before-upgrade-test",
+            conversation_mode="course",
+        )
+
+    assert "Arbeitest du am Sonntag" in answer
+    global_sentence.assert_not_called()
+    upgrade.assert_not_called()
+    generate.assert_called_once()

@@ -698,20 +698,21 @@ def get_short_answer_value(
 
     # ======================================
     # POCHODZENIE:
-    # "AUS POLEN"
+    # "AUS POLEN" / naturalny skrót "KOMME AUS POLEN"
     # ======================================
 
-    if (
-        step == 2
-        and
-        normalized.startswith(
-            "aus "
+    if step == 2:
+        origin_prefixes = (
+            "aus ",
+            "komme aus ",
         )
-    ):
-
-        return clean_value(
-            normalized[4:]
-        )
+        for prefix in origin_prefixes:
+            if normalized.startswith(prefix):
+                value = normalized[len(prefix):].strip()
+                # Keep only the semantic value. Never echo the learner's
+                # incomplete phrase inside "Ich komme aus ...".
+                if value:
+                    return clean_value(value)
 
 
     # ======================================
