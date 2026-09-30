@@ -234,3 +234,45 @@ def test_mastery_authorizes_course_completion_and_advances_section():
     assert mark_section_completed(state, "A1", 2, "Woher kommen Sie?") is True
     assert is_section_completed(state, "A1", 2, "Woher kommen Sie?")
     assert get_next_incomplete_section(state, "A1", 2) == "Das Verb kommen"
+
+
+
+def test_selected_lesson_does_not_depend_on_previous_lesson_tail():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {"skills": {}},
+    }
+    choice = choose_next_curriculum_skill(state)
+    assert choice == {
+        "skill": "course:a1:2:woher_kommen_sie",
+        "reason": "course_prerequisites_met",
+    }
+
+
+def test_lesson_two_second_skill_waits_for_first_skill_mastery():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {"skills": {
+            "course:a1:2:woher_kommen_sie": {"status": "practicing"},
+        }},
+    }
+    assert choose_next_curriculum_skill(state) == {
+        "skill": "course:a1:2:woher_kommen_sie",
+        "reason": "course_mastery_in_progress",
+    }
+
+
+def test_lesson_two_advances_in_pedagogical_order_after_mastery():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {"skills": {
+            "course:a1:2:woher_kommen_sie": {"status": "mastered"},
+        }},
+    }
+    assert choose_next_curriculum_skill(state) == {
+        "skill": "course:a1:2:das_verb_kommen",
+        "reason": "course_prerequisites_met",
+    }
