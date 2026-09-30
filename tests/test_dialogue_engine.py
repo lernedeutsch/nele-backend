@@ -43,6 +43,25 @@ class DialogueEngineTests(unittest.TestCase):
             )
         )
 
+
+    def test_dialogue_uses_same_semantic_word_order_rule_as_course_step(self):
+        turn = {
+            "expected": "Du kommst aus Frankreich.",
+            "accepted": ["Du kommst aus Frankreich."],
+        }
+        self.assertTrue(
+            answer_matches_dialogue_turn("Aus Frankreich kommst du.", turn)
+        )
+
+    def test_dialogue_shared_semantics_still_reject_wrong_conjugation(self):
+        turn = {
+            "expected": "Ich komme aus Spanien.",
+            "accepted": ["Ich komme aus Spanien."],
+        }
+        self.assertTrue(answer_matches_dialogue_turn("Komme aus Spanien.", turn))
+        self.assertFalse(answer_matches_dialogue_turn("Ich kommen aus Spanien.", turn))
+        self.assertFalse(answer_matches_dialogue_turn("Wir wohnen in Spanien.", turn))
+
     @patch("brain.logic.dialogue_engine.get_dialogue", return_value=SAMPLE)
     def test_dialogue_advances_and_finishes(self, _):
         state = {}
