@@ -71,3 +71,21 @@ class GenericCourseDigressionTests(unittest.TestCase):
         self.assertFalse(
             is_course_digression_question("Kommst du aus Frankreich?", step, {})
         )
+
+
+class GenericCourseMasteryEvidenceTests(unittest.TestCase):
+    def test_course_skill_cannot_master_before_final_step(self):
+        from brain.logic.generic_lesson_engine import record_course_step_outcome
+        state = {}
+        for _ in range(5):
+            progress = record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True, final_step=False)
+        self.assertNotEqual(progress["status"], "mastered")
+        progress = record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True, final_step=True)
+        self.assertEqual(progress["status"], "mastered")
+
+    def test_wrong_course_attempt_is_recorded_and_not_mastered(self):
+        from brain.logic.generic_lesson_engine import record_course_step_outcome
+        state = {}
+        progress = record_course_step_outcome(state, "A1", 2, "Das Verb kommen", False, final_step=False)
+        self.assertEqual(progress["not_yet"], 1)
+        self.assertNotEqual(progress["status"], "mastered")
