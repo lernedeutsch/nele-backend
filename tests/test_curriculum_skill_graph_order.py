@@ -8,7 +8,7 @@ from brain.logic.curriculum_skill_graph import (
 
 class CurriculumSkillGraphOrderTests(unittest.TestCase):
     def test_ready_skills_follow_graph_order_not_alphabetical_order(self):
-        state = {"learning_progress_v1": {"skills": {
+        state = {"conversation_mode": "course", "learning_progress_v1": {"skills": {
             "conversation:supported_answer": {"status": "mastered"},
         }}}
 
