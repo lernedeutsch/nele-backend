@@ -98,6 +98,13 @@ def classify(user_message, task):
     if kind=="origin":
         key,c=_country_from(n)
         if not c: return {"status":"UNCLEAR","correct":expected}
+        expected_key, _expected_country = _country_from(expected)
+        # A recognized country is only semantically correct when it matches
+        # the country this task actually asks for. Previously any bare country
+        # name (e.g. "Deutschland" for an expected "Polen") was accepted as
+        # CORRECT_SHORT and could create false mastery evidence.
+        if expected_key and key != expected_key:
+            return {"status":"ORIGIN_MISMATCH","correct":expected}
         if n in c["aliases"] or n==key or n==_norm(c["aus"]): return {"status":"CORRECT_SHORT","correct":expected}
         if n in c["typos"]: return {"status":"CORRECT_WITH_TYPO","correct":expected}
         if re.match(r"^ich\s+(kommen|kommst|kommt)\b",n):
