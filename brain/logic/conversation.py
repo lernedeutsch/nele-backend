@@ -51,7 +51,6 @@ from brain.logic.lesson_teaching import (
 
 from brain.logic.dialogue_engine import (
     auto_start_dialogue_from_message,
-    find_dialogue_for_message,
     is_dialogue_active,
     handle_dialogue,
 )
