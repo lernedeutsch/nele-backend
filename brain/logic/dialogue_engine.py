@@ -16,6 +16,7 @@ from brain.logic.dialogue_state_engine import (
     within_turn_limit,
 )
 from brain.memory.lesson_progress import mark_section_completed, get_next_incomplete_section
+from brain.logic.learning_progress_engine import update_learning_progress
 
 
 def _text(value):
@@ -420,6 +421,49 @@ def _learner_is_ending_dialogue(user_message, turn, slots=None):
     return _norm(user_message) in _DIALOGUE_EXIT_PHRASES
 
 
+def _course_dialogue_skill_key(dialogue, state):
+    section = _text((dialogue or {}).get("section") or state.get("lesson_teaching_section") or (dialogue or {}).get("title") or (dialogue or {}).get("id"))
+    level = _text((dialogue or {}).get("level") or state.get("dialogue_level") or "A1").lower()
+    lesson = (dialogue or {}).get("lesson") or state.get("dialogue_lesson")
+    slug = _norm(section).replace(" ", "_")
+    if not slug or not lesson:
+        return None
+    return f"course:{level}:{lesson}:{slug}"
+
+
+def _record_course_dialogue_outcome(dialogue, state, success):
+    if str(state.get("conversation_mode") or "").strip().lower() != "course":
+        return None
+    skill = _course_dialogue_skill_key(dialogue, state)
+    if not skill:
+        return None
+    outcome = {
+        "skill": skill,
+        "expected_outcome": "course_dialogue_turn",
+        "status": "SUCCESS" if success else "NOT_YET",
+        "mastery_eligible": True,
+    }
+    progress = update_learning_progress(state, outcome)
+    state["last_course_learning_outcome"] = dict(outcome, progress=progress)
+    return progress
+
+
+def _repeat_dialogue_for_mastery(dialogue, state, progress):
+    if str(state.get("conversation_mode") or "").strip().lower() != "course":
+        return None
+    if (progress or {}).get("status") == "mastered":
+        return None
+    opening = start_dialogue(
+        state.get("dialogue_level") or (dialogue or {}).get("level") or "A1",
+        state.get("dialogue_lesson") or (dialogue or {}).get("lesson") or 1,
+        (dialogue or {}).get("id"),
+        state,
+    )
+    if not opening:
+        return None
+    return "Gut, wir festigen das noch einmal, bevor wir weitergehen. " + opening
+
+
 def _complete_course_dialogue(dialogue, state):
     """Connect a completed lesson dialogue back to the course progression."""
     if not state or not isinstance(dialogue, dict):
@@ -579,6 +623,7 @@ def handle_dialogue(user_message, state):
         state.get("dialogue_slots"),
         variable_slots=variable_slots,
     ):
+        _record_course_dialogue_outcome(dialogue, state, False)
         expected = _text(turn.get("expected"))
         retry = _text(turn.get("retry"))
         if retry:
@@ -599,6 +644,7 @@ def handle_dialogue(user_message, state):
             break
 
     mark_intent_complete(state, infer_intent(turn))
+    course_progress = _record_course_dialogue_outcome(dialogue, state, True)
     success = _text(turn.get("success"))
     next_index, spoken = _advance_to_learner(
         turns,
@@ -607,6 +653,9 @@ def handle_dialogue(user_message, state):
     )
 
     if next_index >= len(turns):
+        repeat = _repeat_dialogue_for_mastery(dialogue, state, course_progress)
+        if repeat:
+            return " ".join(part for part in [success, *spoken, repeat] if part)
         complete = _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."
         next_section = _complete_course_dialogue(dialogue, state)
         clear_dialogue(state)
@@ -620,6 +669,9 @@ def handle_dialogue(user_message, state):
         _norm(item.get("role")) in {"student", "learner", "user", "du"}
         for item in turns[next_index:]
     ):
+        repeat = _repeat_dialogue_for_mastery(dialogue, state, course_progress)
+        if repeat:
+            return " ".join(part for part in [success, *spoken, repeat] if part)
         complete = _text(dialogue.get("complete"))
         next_section = _complete_course_dialogue(dialogue, state)
         clear_dialogue(state)

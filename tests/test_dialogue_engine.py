@@ -175,5 +175,21 @@ def test_course_turn_limit_never_counts_wrong_answer_as_mastery():
         assert state["dialogue_turn"] == 5
 
     reply = handle_dialogue("Anna kommt aus Österreich", state)
+    assert "Herkunftsdialog geschafft" not in reply
+    assert "festigen" in reply
+    assert state["dialogue_active"] is True
+    skill = state["learning_progress_v1"]["skills"]["course:a1:2:woher_kommen_sie"]
+    assert skill["status"] != "mastered"
+
+
+def test_course_dialogue_completes_only_after_shared_mastery():
+    state = {"conversation_mode": "course"}
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+    handle_dialogue("Ich komme aus Polen", state)
+    handle_dialogue("Ja", state)
+    reply = handle_dialogue("Anna kommt aus Österreich", state)
+
+    skill = state["learning_progress_v1"]["skills"]["course:a1:2:woher_kommen_sie"]
+    assert skill["status"] == "mastered"
     assert "Herkunftsdialog geschafft" in reply
     assert state["dialogue_active"] is False
