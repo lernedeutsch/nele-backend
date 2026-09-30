@@ -97,6 +97,8 @@ from brain.logic.speaking_support import (
     handle_pending_course_model,
 )
 
+from brain.logic.learning_progress_engine import update_learning_progress
+
 
 # ==========================================
 # TEXT
@@ -1593,6 +1595,34 @@ def complete_generic_section(
     return completion
 
 
+
+
+# ==========================================
+# KURS-UMIEJĘTNOŚĆ / MASTERY EVIDENCE
+# ==========================================
+
+def _course_skill_key(level, lesson, section):
+    slug = normalize_text(section).replace(" ", "_")
+    return f"course:{str(level).strip().lower()}:{lesson}:{slug}"
+
+
+def record_course_step_outcome(state, level, lesson, section, success, final_step=False):
+    """Feed real course answers into the shared learner progress model.
+
+    A course skill cannot become mastered before the final step of its section.
+    Wrong attempts remain evidence and can reopen/reduce progress naturally.
+    """
+    outcome = {
+        "skill": _course_skill_key(level, lesson, section),
+        "expected_outcome": "course_step",
+        "status": "SUCCESS" if success else "NOT_YET",
+        "mastery_eligible": bool(success and final_step),
+    }
+    progress = update_learning_progress(state, outcome)
+    state["last_course_learning_outcome"] = dict(outcome, progress=progress)
+    return progress
+
+
 # ==========================================
 # GENERISCHE ANTWORT VERARBEITEN
 # ==========================================
@@ -1693,6 +1723,10 @@ def handle_generic_lesson_teaching(
 
     if not support.get("answer_matches"):
 
+        record_course_step_outcome(
+            state, level, lesson, real_section, False, final_step=False
+        )
+
         remember_generic_mistake(
             state,
             step,
@@ -1760,6 +1794,15 @@ def handle_generic_lesson_teaching(
     next_step = get_step(
         definition,
         next_step_number
+    )
+
+    record_course_step_outcome(
+        state,
+        level,
+        lesson,
+        real_section,
+        True,
+        final_step=(next_step is None),
     )
 
 
