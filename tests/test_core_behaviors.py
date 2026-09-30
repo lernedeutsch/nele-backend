@@ -44,6 +44,9 @@ from brain.logic.lesson_teaching import (
     is_relevant_greeting_mistake,
     handle_alphabet_section,
     handle_introduction_section,
+    complete_active_section,
+    register_course_success,
+    remember_lesson_mistake,
 )
 from brain.logic.error_practice import (
     is_relevant_error_example,
@@ -66,6 +69,61 @@ from brain.memory.error_review import (
 
 class NeleCoreBehaviorTests(unittest.TestCase):
 
+
+    def test_legacy_course_section_cannot_complete_before_shared_mastery(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_active": True,
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 6,
+            "learning_progress_v1": {
+                "version": 1,
+                "skills": {
+                    "course:a1:1:wir_begrüßen_uns": {
+                        "status": "practicing",
+                    },
+                },
+            },
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ), patch(
+            "brain.logic.lesson_teaching.mark_section_completed"
+        ) as mark_completed:
+            next_section = complete_active_section(state)
+
+        self.assertEqual(next_section, "Wir begrüßen uns")
+        self.assertEqual(state["lesson_teaching_step"], 1)
+        mark_completed.assert_not_called()
+
+    def test_legacy_course_success_and_error_feed_same_mastery_skill(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 1,
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ), patch(
+            "brain.logic.lesson_teaching.remember_error",
+            return_value=True,
+        ), patch(
+            "brain.logic.lesson_teaching.record_mistake_today"
+        ):
+            register_course_success(state)
+            remember_lesson_mistake(
+                state,
+                "vocabulary",
+                "Guten Abend",
+                "Guten Morgen",
+            )
+
+        item = state["learning_progress_v1"]["skills"]["course:a1:1:wir_begrüßen_uns"]
+        self.assertEqual(item["successes"], 1)
+        self.assertEqual(item["not_yet"], 1)
+        self.assertEqual(item["last_result"], "NOT_YET")
 
     def test_lesson1_successes_fade_global_speaking_help(self):
         intro_state = {

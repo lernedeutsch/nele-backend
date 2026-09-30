@@ -54,8 +54,10 @@ from brain.logic.speaking_support import (
     legacy_course_support,
     handle_pending_course_model,
     progressive_course_support,
-    register_course_success,
+    register_course_success as _register_speaking_course_success,
 )
+
+from brain.logic.learning_progress_engine import update_learning_progress
 
 
 # ==========================================
@@ -88,6 +90,44 @@ def clean_normalized_answer(
             text
         )
     ).strip()
+
+
+# ==========================================
+# LEGACY COURSE -> SHARED MASTERY
+# ==========================================
+
+def _legacy_course_skill_key(state):
+    if state is None:
+        return None
+    section = str(state.get("lesson_teaching_section") or "").strip()
+    if not section:
+        return None
+    level, lesson = get_lesson_context_for_section(state, section)
+    if not (level and lesson):
+        return None
+    section_key = normalize(section).strip(" .?!„“\\\"'").replace(" ", "_")
+    return f"course:{str(level).lower()}:{lesson}:{section_key}"
+
+
+def _record_legacy_course_mastery(state, success):
+    skill = _legacy_course_skill_key(state)
+    if not skill:
+        return None
+    return update_learning_progress(
+        state,
+        {
+            "skill": skill,
+            "expected_outcome": "course_step",
+            "status": "SUCCESS" if success else "NOT_YET",
+            "mastery_eligible": True,
+        },
+    )
+
+
+def register_course_success(state):
+    """Keep legacy speaking support and shared course mastery in one path."""
+    _register_speaking_course_success(state)
+    return _record_legacy_course_mastery(state, True)
 
 
 # ==========================================
@@ -305,6 +345,11 @@ def remember_lesson_mistake(
             f"Daily lesson mistake error: {error}"
         )
 
+    # A real wrong answer in a legacy course section must count against the
+    # same mastery state that correct answers build.  Otherwise a learner can
+    # accumulate errors and still complete the section merely by reaching its
+    # final scripted turn.
+    _record_legacy_course_mastery(state, False)
 
     return saved
 
@@ -797,6 +842,17 @@ def complete_active_section(
         # ==================================
         # AKTUELLE SEKTION ABSCHLIESSEN
         # ==================================
+
+        skill = _legacy_course_skill_key(state)
+        progress = ((((state or {}).get("learning_progress_v1") or {}).get("skills")) or {})
+        mastery = (progress.get(skill) or {}) if skill else {}
+
+        # Reaching the last scripted turn is not proof that the learner has
+        # mastered the section.  Legacy A1 must obey the same shared mastery
+        # gate as generic lessons and dialogues.
+        if mastery.get("status") != "mastered":
+            state["lesson_teaching_step"] = 1
+            return section
 
         mark_section_completed(
             state,
