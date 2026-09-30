@@ -1747,6 +1747,22 @@ def handle_generic_lesson_teaching(
         )
 
     if not support.get("answer_matches"):
+        accepted_values = step.get("accepted", [])
+        if isinstance(accepted_values, str):
+            accepted_values = [accepted_values]
+        partial = _sequence_partial_progress(
+            user_message,
+            accepted_values if isinstance(accepted_values, list) else [],
+            state,
+        )
+        if partial:
+            correct_answer = render_text(
+                step.get("correct_answer"), state, level, lesson, real_section
+            )
+            return (
+                f"Gut, {partial['matched']} von {partial['total']} sind richtig. "
+                f"Mach weiter: „{correct_answer}“"
+            )
 
         record_course_step_outcome(
             state, level, lesson, real_section, False, final_step=False
