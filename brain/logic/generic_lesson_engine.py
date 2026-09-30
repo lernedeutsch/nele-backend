@@ -941,6 +941,58 @@ def answer_matches_step(
 
 
 # ==========================================
+# KURS-DYGRSJA ERKENNEN
+# ==========================================
+
+_COURSE_QUESTION_WORDS = {
+    "wer", "was", "wann", "wo", "woher", "wohin", "warum", "wieso", "weshalb",
+    "wie", "welche", "welcher", "welches", "kann", "kannst", "ist", "sind", "hast",
+}
+
+
+def is_course_digression_question(user_message, step, state):
+    """Recognize an off-task learner question without consuming lesson progress.
+
+    A question that substantially reuses the current target remains a normal
+    lesson attempt (for example turning a statement into a question). A clearly
+    unrelated question is a digression and must not be recorded as a mistake.
+    """
+    raw = clean_text(user_message)
+    low = normalize_text(raw)
+    if not low:
+        return False
+
+    words = low.split()
+    looks_like_question = raw.rstrip().endswith("?") or (
+        words and words[0] in _COURSE_QUESTION_WORDS
+    )
+    if not looks_like_question:
+        return False
+
+    target = render_text((step or {}).get("correct_answer"), state)
+    target_words = set(_semantic_tokens(target))
+    learner_words = set(_semantic_tokens(raw))
+
+    # If the learner is using the lesson's own content, let the normal answer
+    # evaluator decide whether the grammatical form is correct.
+    if target_words and learner_words:
+        overlap = len(target_words & learner_words) / max(1, len(target_words))
+        if overlap >= 0.5:
+            return False
+
+    return True
+
+
+def build_course_digression_resume(step, state, level, lesson, section):
+    prompt = render_text(
+        (step or {}).get("prompt"), state, level, lesson, section
+    )
+    if prompt:
+        return f"Gute Frage. Wir kommen gleich darauf zurück. Jetzt machen wir genau hier weiter: {prompt}"
+    return "Gute Frage. Wir kommen gleich darauf zurück. Jetzt machen wir genau hier weiter."
+
+
+# ==========================================
 # FEHLER MERKEN
 # ==========================================
 
@@ -1627,6 +1679,16 @@ def handle_generic_lesson_teaching(
             support,
             step,
             state,
+        )
+
+    # An unrelated learner question is a temporary digression, not a wrong
+    # grammar/vocabulary answer. Keep the exact lesson step and resume it.
+    if (
+        not support.get("answer_matches")
+        and is_course_digression_question(user_message, step, state)
+    ):
+        return build_course_digression_resume(
+            step, state, level, lesson, real_section
         )
 
     if not support.get("answer_matches"):
