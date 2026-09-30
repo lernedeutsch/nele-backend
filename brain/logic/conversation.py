@@ -51,6 +51,7 @@ from brain.logic.lesson_teaching import (
 
 from brain.logic.dialogue_engine import (
     auto_start_dialogue_from_message,
+    find_dialogue_for_message,
     is_dialogue_active,
     handle_dialogue,
 )
@@ -405,6 +406,19 @@ def generate_conversation_reply(
         print(
             f"Error review refresh error: {error}"
         )
+
+
+    # A returning-course welcome asks about wellbeing, but an explicit
+    # validated course-dialogue intent must be allowed to start the selected
+    # learning activity instead of being trapped as an invalid wellbeing
+    # answer. This is generic across dialogue knowledge: no sentence or lesson
+    # is hard-coded here.
+    if (
+        str(state.get("conversation_mode") or "").strip().lower() == "course"
+        and state.get("last_question") == "wellbeing"
+        and find_dialogue_for_message(user_message, level=level) is not None
+    ):
+        state["last_question"] = None
 
 
     # ======================================
