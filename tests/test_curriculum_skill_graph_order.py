@@ -134,3 +134,15 @@ def test_course_in_progress_uses_curriculum_order_not_alphabetical_order():
         "skill": "course:a1:2:das_verb_kommen",
         "reason": "course_mastery_in_progress",
     }
+
+
+def test_persistent_course_memory_does_not_activate_course_graph_in_free_mode():
+    state = {
+        "conversation_mode": "free",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {"skills": {
+            "course:a1:1:wir_begrüßen_uns": {"status": "mastered"},
+        }},
+    }
+    curriculum = get_curriculum_state(state)
+    assert curriculum["course_ready"] == []
