@@ -1796,7 +1796,7 @@ def handle_generic_lesson_teaching(
         next_step_number
     )
 
-    record_course_step_outcome(
+    course_progress = record_course_step_outcome(
         state,
         level,
         lesson,
@@ -1838,6 +1838,28 @@ def handle_generic_lesson_teaching(
             parts
         )
 
+
+    # The last correct click is not enough by itself. If the shared learner
+    # model still says this course skill is not mastered (for example after
+    # repeated mistakes), keep the learner in this section and review it.
+    if (course_progress or {}).get("status") != "mastered":
+        state["lesson_teaching_step"] = 1
+        first_step = get_step(definition, 1)
+        first_prompt = render_text(
+            (first_step or {}).get("prompt"),
+            state,
+            level,
+            lesson,
+            real_section,
+        )
+        parts = [
+            part for part in (
+                success,
+                "Gut, wir festigen das noch einmal, bevor wir weitergehen.",
+                first_prompt,
+            ) if part
+        ]
+        return " ".join(parts)
 
     completion_answer = complete_generic_section(
         state,
