@@ -709,10 +709,11 @@ def get_short_answer_value(
         for prefix in origin_prefixes:
             if normalized.startswith(prefix):
                 value = normalized[len(prefix):].strip()
-                # Keep only the semantic value. Never echo the learner's
-                # incomplete phrase inside "Ich komme aus ...".
-                if value:
+                # Only accept an unambiguous short country value here.
+                # Multi-word free text must stay in the normal course flow.
+                if value and len(value.split()) == 1:
                     return clean_value(value)
+                return ""
 
 
     # ======================================
