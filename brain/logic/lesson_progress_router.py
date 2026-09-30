@@ -6,6 +6,7 @@
 import re
 
 from brain.logic.matcher import normalize
+from brain.logic.activity_resume import resume_current_training
 
 from brain.memory.lesson_progress import (
     set_lesson_sections,
@@ -756,6 +757,39 @@ def create_section_completed_message(
     )
 
 
+def _section_skill_candidates(state, level, lesson, section):
+    """Return shared course-mastery skills that can prove this section."""
+    prefix = f"course:{str(level or '').lower()}:{lesson}:"
+    progress = ((((state or {}).get("learning_progress_v1") or {}).get("skills")) or {})
+    section_norm = normalize(str(section or "")).strip(" .?!„“\\\"'").replace(" ", "_")
+    exact = prefix + section_norm
+    candidates = []
+    if exact in progress:
+        candidates.append(exact)
+    # Dialogue titles/aliases can differ from the lesson-section display name.
+    # A course section is only provable when there is real mastery evidence for
+    # this lesson; never create completion from the learner's claim itself.
+    lesson_skills = [key for key in progress if key.startswith(prefix)]
+    if len(lesson_skills) == 1 and not candidates:
+        candidates.extend(lesson_skills)
+    return candidates
+
+
+def _section_is_mastered(state, level, lesson, section):
+    progress = ((((state or {}).get("learning_progress_v1") or {}).get("skills")) or {})
+    candidates = _section_skill_candidates(state, level, lesson, section)
+    return bool(candidates) and all((progress.get(key) or {}).get("status") == "mastered" for key in candidates)
+
+
+def _mastery_required_message(state, section):
+    resume = resume_current_training(state)
+    base = (
+        f"„{section}“ ist noch nicht als gelernt bestätigt. "
+        "Wir schließen den Teil erst ab, wenn du die Aufgabe wirklich sicher kannst."
+    )
+    return " ".join(part for part in [base, resume] if part)
+
+
 # ==========================================
 # GŁÓWNY ROUTER POSTĘPU LEKCJI
 # ==========================================
@@ -807,6 +841,12 @@ def handle_lesson_progress(
     if not section:
         return None
 
+
+    # A learner saying "fertig" is not evidence of mastery.  The old
+    # progress router used to turn that declaration directly into completion,
+    # bypassing the shared course-learning model.
+    if not _section_is_mastered(state, level, lesson, section):
+        return _mastery_required_message(state, section)
 
     # ======================================
     # ZAPIS DO STUDENT MEMORY 2.0
