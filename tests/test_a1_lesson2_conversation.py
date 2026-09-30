@@ -132,3 +132,15 @@ def test_incomplete_gap_sentence_is_not_accepted():
 def test_wrong_netherlands_article_is_detected():
     t=task("origin","Max kommt aus den Niederlanden.")
     assert classify("Max kommt aus der Niederlanden",t)["status"]=="ARTICLE_ERROR"
+
+
+def test_wrong_recognized_country_is_not_accepted_as_short_origin_answer():
+    t=task("origin","Ich komme aus Polen.",intent="ASK_USER_ORIGIN")
+    assert classify("Deutschland",t)["status"]=="ORIGIN_MISMATCH"
+    assert classify("aus Deutschland",t)["status"]=="ORIGIN_MISMATCH"
+
+
+def test_wrong_country_in_person_origin_task_is_not_accepted():
+    t=task("origin","Paul kommt aus Österreich.",intent="ASK_PERSON_ORIGIN")
+    assert classify("Schweiz",t)["status"]=="ORIGIN_MISMATCH"
+    assert classify("Österreich",t)["status"]=="CORRECT_SHORT"
