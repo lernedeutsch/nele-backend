@@ -165,21 +165,25 @@ def handle_wellbeing_reply(
         "recognized",
         False
     ):
+        # A returning-course wellbeing question is optional small talk, not a
+        # gate that may trap the learner forever. If the learner answers with a
+        # clear course utterance or simply wants to continue ("ja"), release
+        # the gate and let the normal course router own this same turn.
+        text = str(user_message or "").strip()
+        normalized = text.lower().strip(" .?!„“\\\"'")
+        course_mode = str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
+        course_continuation = normalized in {
+            "ja", "ja gern", "ja gerne", "gerne", "gern", "okay", "ok", "weiter"
+        }
+        looks_like_course_utterance = bool(
+            len(normalized.split()) >= 3
+            or "?" in text
+        )
 
-        # Nele hat gerade ausdrücklich
-        # "Wie geht es dir?" gefragt.
-        #
-        # Eine unklare Antwort darf deshalb
-        # NICHT an die aktive Lektion
-        # weitergereicht werden. Sonst würde
-        # z.B. "Gu" beim Alphabet plötzlich
-        # als Antwort auf "Was kommt nach M?"
-        # behandelt und als Fehler "Gu -> N"
-        # gespeichert.
-        #
-        # Wir lassen last_question bewusst
-        # auf "wellbeing", bis eine sinnvolle
-        # Antwort kommt.
+        if course_mode and (course_continuation or looks_like_course_utterance):
+            state["last_question"] = None
+            return (False, None, None)
+
         return (
             True,
             (
