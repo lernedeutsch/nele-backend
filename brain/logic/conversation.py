@@ -1,4 +1,5 @@
 # ==========================================
+from brain.nele3_upgrade.state import get_pending_recommendation
 # NELE – GŁÓWNY ROUTER ROZMOWY
 # TEACHER MODE
 # ==========================================
@@ -738,11 +739,14 @@ def generate_conversation_reply(
         support_turn = any(marker in answer_low for marker in (
             "fast.", "richtig:", "sag bitte", "noch einmal", "du kannst sagen"
         ))
-        if should_offer_personal_sentence_practice(
-            state,
-            normal_turns=scheduler["turns_since_practice"],
-            learner_needs_support=support_turn,
-            has_active_error=bool(state.get("active_error_practice")),
+        if (
+            get_pending_recommendation(state) is None
+            and should_offer_personal_sentence_practice(
+                state,
+                normal_turns=scheduler["turns_since_practice"],
+                learner_needs_support=support_turn,
+                has_active_error=bool(state.get("active_error_practice")),
+            )
         ):
             personal_prompt = start_personal_sentence_practice(state)
             if personal_prompt:
