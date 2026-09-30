@@ -72,6 +72,20 @@ class GenericCourseDigressionTests(unittest.TestCase):
             is_course_digression_question("Wie ist das Wetter heute?", step, {})
         )
 
+    def test_digression_is_answered_then_resumes_exact_prompt(self):
+        from brain.logic.generic_lesson_engine import build_course_digression_resume
+        step = {
+            "prompt": "Jetzt „du“. Ergänze: „Du … aus Frankreich.“",
+            "correct_answer": "Du kommst aus Frankreich.",
+        }
+        reply = build_course_digression_resume(
+            step, {}, "A1", 2, "Das Verb kommen",
+            user_message="Wie ist das Wetter heute?",
+        )
+        self.assertIn("Wie ist das Wetter bei dir?", reply)
+        self.assertIn("Du … aus Frankreich", reply)
+        self.assertNotIn("Wir kommen gleich darauf zurück", reply)
+
     def test_question_using_target_content_remains_lesson_attempt(self):
         from brain.logic.generic_lesson_engine import is_course_digression_question
         step = {
