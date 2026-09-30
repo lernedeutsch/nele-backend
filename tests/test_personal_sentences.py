@@ -112,5 +112,10 @@ class PersonalSentencesTests(unittest.TestCase):
         )
 
 
+    def test_strict_course_never_injects_meine_saetze_scheduler(self):
+        state = {"conversation_mode": "course"}
+        self.assertFalse(should_offer_personal_sentence_practice(state, normal_turns=99))
+
+
 if __name__ == "__main__":
     unittest.main()
