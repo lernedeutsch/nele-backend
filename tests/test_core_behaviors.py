@@ -287,6 +287,23 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertTrue(result["completed"])
         self.assertNotIn("Brötchen", result["reply"])
 
+    def test_dialogue_accepts_short_contextual_product_choice(self):
+        for answer in ("Apfel", "Äpfel", "zwei Äpfel"):
+            state = {
+                "nele3_upgrade": {
+                    "active_task": {
+                        "type": "dialogue",
+                        "title": "In der Bäckerei",
+                        "prompt": "Ich bin die Verkäuferin: Guten Morgen. Was möchten Sie?",
+                        "keywords": ["ich möchte", "bitte"],
+                        "model_answer": "Ich möchte zwei Brötchen, bitte.",
+                    }
+                }
+            }
+            result = answer_active_task(state, answer)
+            self.assertTrue(result["completed"], answer)
+            self.assertNotIn("Brötchen", result["reply"])
+
     def test_dialogue_correction_never_replaces_concrete_answer_with_model(self):
         state = {
             "nele3_upgrade": {
