@@ -1,4 +1,4 @@
-# ==========================================
+import re\n\n# ==========================================
 # NELE – REAKCJA NA SAMOPOCZUCIE UCZNIA
 # WELLBEING FEEDBACK
 # STUDENT MEMORY 2.0
@@ -566,6 +566,13 @@ def detect_wellbeing_type(
     message = clean_wellbeing_message(
         user_message
     )
+
+    semantic_message = re.sub(
+        r"\\b(?:heute|gerade|im moment|momentan)\\b",
+        " ",
+        message,
+    )
+    semantic_message = " ".join(semantic_message.split())
 
 
     # ======================================
