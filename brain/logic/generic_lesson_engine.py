@@ -744,6 +744,23 @@ def _semantic_equivalent_to_accepted(user_message, accepted_values, state):
             continue
         if learner_bag == sorted(target_tokens):
             return True
+
+        # In short spoken answers German often drops an obvious subject
+        # pronoun ("Komme aus Spanien."). Accept that only when every other
+        # token, including the tested finite verb form, is still present.
+        # This stays conservative: "aus Spanien" does not pass because
+        # "komme" is missing, and "kommen aus Spanien" does not pass because
+        # morphology differs.
+        subject_pronouns = {"ich", "du", "er", "sie", "es", "wir", "ihr"}
+        removable = [
+            token for token in target_tokens
+            if token in subject_pronouns
+        ]
+        if len(removable) == 1:
+            reduced = list(target_tokens)
+            reduced.remove(removable[0])
+            if len(reduced) >= 2 and learner_bag == sorted(reduced):
+                return True
     return False
 
 
