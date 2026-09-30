@@ -553,7 +553,15 @@ def handle_dialogue(user_message, state):
         clear_dialogue(state)
         return None
 
-    if not within_turn_limit(state, dialogue):
+    # A safety turn limit is not evidence of mastery. In strict course mode
+    # the learner must still satisfy the current turn before the dialogue can
+    # complete; otherwise a sequence of wrong answers could falsely mark the
+    # lesson section as learned. Free mode keeps the existing bounded-dialogue
+    # behaviour.
+    if (
+        str(state.get("conversation_mode") or "").strip().lower() != "course"
+        and not within_turn_limit(state, dialogue)
+    ):
         complete = _text(dialogue.get("complete")) or "Sehr gut. Wir gehen jetzt weiter."
         clear_dialogue(state)
         return complete
