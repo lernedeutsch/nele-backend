@@ -688,6 +688,7 @@ def validate_named(
 from brain.logic.course_answer_evaluator import (
     answer_matches_course_definition,
     sequence_partial_progress as _sequence_partial_progress,
+    semantic_tokens as _semantic_tokens,
 )
 
 
