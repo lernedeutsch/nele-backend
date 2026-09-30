@@ -85,10 +85,10 @@ def get_curriculum_state(state):
     return {
         "version": GRAPH_VERSION,
         "level": "A1.1",
-        "mastered": sorted(mastered),
-        "ready": sorted(ready),
-        "blocked": sorted(blocked),
-        "needs_review": sorted(review),
+        "mastered": mastered,
+        "ready": ready,
+        "blocked": blocked,
+        "needs_review": review,
         "dynamic_needs_review": dynamic_review,
     }
 
