@@ -85,3 +85,52 @@ def test_manual_fertig_is_allowed_after_real_course_mastery():
     reply = handle_lesson_progress("Teil 1 ist fertig.", state)
     assert "noch nicht als gelernt bestätigt" not in reply
     assert "abgeschlossen" in reply
+
+
+def test_course_graph_follows_real_a1_section_order():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 1},
+        "learning_progress_v1": {"skills": {
+            "course:a1:1:wir_begrüßen_uns": {"status": "mastered"},
+        }},
+    }
+    assert choose_next_curriculum_skill(state) == {
+        "skill": "course:a1:1:ich_stelle_mich_vor",
+        "reason": "course_prerequisites_met",
+    }
+
+
+def test_course_graph_blocks_later_skill_until_prerequisite_is_mastered():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {"skills": {
+            "course:a1:2:das_verb_kommen": {"status": "mastered"},
+        }},
+    }
+    curriculum = get_curriculum_state(state)
+    assert "course:a1:2:zahlen_1–20" in curriculum["course_blocked"]
+    assert choose_next_curriculum_skill(state)["skill"] != "course:a1:2:zahlen_1–20"
+
+
+def test_course_review_uses_curriculum_order_not_alphabetical_order():
+    state = {"conversation_mode": "course", "learning_progress_v1": {"skills": {
+        "course:a1:1:das_deutsche_alphabet": {"status": "needs_review"},
+        "course:a1:1:ich_stelle_mich_vor": {"status": "needs_review"},
+    }}}
+    assert choose_next_curriculum_skill(state) == {
+        "skill": "course:a1:1:ich_stelle_mich_vor",
+        "reason": "course_review",
+    }
+
+
+def test_course_in_progress_uses_curriculum_order_not_alphabetical_order():
+    state = {"conversation_mode": "course", "learning_progress_v1": {"skills": {
+        "course:a1:2:zahlen_1–20": {"status": "practicing"},
+        "course:a1:2:das_verb_kommen": {"status": "practicing"},
+    }}}
+    assert choose_next_curriculum_skill(state) == {
+        "skill": "course:a1:2:das_verb_kommen",
+        "reason": "course_mastery_in_progress",
+    }
