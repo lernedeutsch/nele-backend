@@ -73,6 +73,8 @@ def _task_semantic_score(message, task):
         if len(token) >= 4 and token not in {
             "gast", "bitte", "guten", "morgen", "ihnen", "ihre", "einen",
             "eine", "noch", "sehr", "gerne", "sofort", "möchten", "mochten",
+            "verkäuferin", "verkauferin", "entschuldigung", "brauche",
+            "bringe", "bringen", "natürlich", "naturlich", "frisches",
         }
     }
     content_hit = bool(tokens & content)
