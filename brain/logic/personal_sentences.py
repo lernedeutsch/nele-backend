@@ -335,7 +335,10 @@ def should_offer_personal_sentence_practice(
     learner_needs_support=False,
     has_active_error=False,
 ):
-    """Return True only at calm course boundaries; never interrupt an active lesson."""
+    """Offer shared sentence practice only outside the strict A1 course path."""
+    if str((state or {}).get("conversation_mode") or "").strip().lower() == "course":
+        return False
+
     if (
         not state
         or state.get("lesson_teaching_active")
