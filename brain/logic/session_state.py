@@ -88,12 +88,24 @@ def prepare_new_conversation(state):
 
     Durable learning memory stays intact. Every transient active exercise,
     including old lesson-teaching state and Nele-3 active_task, is cleared.
+
+    If onboarding has just finished, keep its explicit start gate. Reopening
+    the page must not replace start_after_onboarding with the generic
+    returning-user wellbeing flow before the learner can answer "ja".
     """
 
     if not isinstance(state, dict):
         return
 
+    preserve_onboarding_start = (
+        state.get("onboarding_completed") is True
+        and state.get("last_question") == "start_after_onboarding"
+    )
+
     _clear_common_transient_state(state)
+
+    if preserve_onboarding_start:
+        state["last_question"] = "start_after_onboarding"
 
     # Nele-3 active activity.
     set_active_task(state, None)
@@ -103,8 +115,10 @@ def prepare_new_conversation(state):
     state["lesson_teaching_section"] = None
     state["lesson_teaching_step"] = 0
 
-    # The next response will be the new wellbeing flow.
-    state["last_question"] = None
+    # The next response will be the new wellbeing flow unless onboarding
+    # just handed ownership to the explicit course-start gate.
+    if not preserve_onboarding_start:
+        state["last_question"] = None
 
     record_event(
         state,
