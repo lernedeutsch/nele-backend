@@ -2289,6 +2289,42 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
             "global_conversation_guard": {"version": 2, "blocked": False, "reason": "explicit_content_followup"},
         }
 
+    # Conversation controls and explicit "nothing else" answers outrank an
+    # active semantic subtopic. Otherwise the subtopic safety net consumes the
+    # turn first and can turn "Pause" or "nichts" into another hobby question.
+    control_low = _norm(user_message).strip(" ?!.,")
+    control_reply = None
+    if control_low in {"pause", "eine pause", "pause bitte"}:
+        memory["conversation_paused"] = True
+        control_reply = "Klar, machen wir eine Pause."
+    elif (
+        "was machst du sonst gern in deiner freizeit" in _norm(last_question)
+        and control_low in {"nichts", "nichts besonderes", "nichts besonderes gerade"}
+    ):
+        memory["leisure_complete"] = True
+        control_reply = "Auch gut. Dann wechseln wir das Thema. Was kochst du gern?"
+
+    if control_reply:
+        _remember_question(free, control_reply)
+        free["last_user_message"] = str(user_message or "").strip()
+        free["turn_count"] = int(free.get("turn_count", 0) or 0) + 1
+        free["last_topic"] = topic
+        conversation_state = sync_conversation_state(
+            state, topic=topic, last_question=free.get("last_question", ""), level=level
+        )
+        topic_manager = update_topic_manager(
+            state, topic=topic, source="conversation_control", subtopic=conversation_state.get("subtopic")
+        )
+        return control_reply, {
+            "conversation_mode": "free",
+            "topic": topic,
+            "conversation_facts": dict(memory),
+            "conversation_state": conversation_state,
+            "topic_manager": topic_manager,
+            "response_understanding": response_understanding,
+            "global_conversation_guard": {"version": 2, "blocked": False, "reason": "conversation_control"},
+        }
+
     # Generic subtopic safety net. Existing specific content routes above keep
     # priority; this only preserves an already established subtopic when the
     # current short/unexpected answer has no explicit new activity/topic.
