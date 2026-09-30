@@ -87,6 +87,17 @@ class NeleArchitectureSecurityTests(unittest.TestCase):
         )
 
 
+    def test_new_conversation_preserves_start_after_onboarding_gate(self):
+        state = {
+            "onboarding_completed": True,
+            "last_question": "start_after_onboarding",
+            "user_facts": {"name": "Moni"},
+            "student_progress": {"current_level": "A1", "current_lesson": 2},
+        }
+
+        prepare_new_conversation(state)
+
+        self.assertEqual(state["last_question"], "start_after_onboarding")
     def test_welcome_new_conversation_clears_legacy_and_nele3_active_state(self):
         state = {
             "onboarding_completed": True,
