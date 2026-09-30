@@ -754,6 +754,18 @@ def get_short_answer_value(
         )
 
 
+    if step == 2:
+        # A short origin answer must be one unambiguous country/token.
+        # Multi-word free text such as "Wie ist das Wetter" or
+        # "Aus Frankreich kommst du" must never be reinterpreted as a country.
+        if len(words) != 1:
+            return ""
+
+        return clean_value(
+            normalized
+        )
+
+
     if len(words) > 4:
 
         return ""
