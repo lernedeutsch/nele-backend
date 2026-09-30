@@ -8,6 +8,7 @@ from brain.logic.personal_sentences import (
     get_current_personal_sentence_practice_prompt,
     get_personal_sentence_catalog,
     validate_personal_sentence_catalog,
+    should_offer_personal_sentence_practice,
 )
 
 
@@ -84,6 +85,21 @@ class PersonalSentencesTests(unittest.TestCase):
         )
         self.assertTrue(result["correct"])
         self.assertNotIn("course_side_question_pending", state)
+
+    def test_personal_sentence_does_not_compete_with_pending_adaptive_offer(self):
+        state = create_empty_state()
+        state["nele3_upgrade"] = {
+            "pending_recommendation": {
+                "activity": "dialogue",
+                "message": "Möchtest du jetzt einen kurzen Alltagsdialog machen?",
+            }
+        }
+        memory = ensure_personal_sentence_memory(state)
+        memory["scheduler"] = {"turns_since_practice": 10}
+
+        self.assertFalse(
+            should_offer_personal_sentence_practice(state, normal_turns=10)
+        )
 
     def test_progress_survives_state_completion(self):
         state = create_empty_state()
