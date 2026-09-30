@@ -17,6 +17,7 @@ from brain.logic.dialogue_state_engine import (
 )
 from brain.memory.lesson_progress import mark_section_completed, get_next_incomplete_section
 from brain.logic.learning_progress_engine import update_learning_progress
+from brain.logic.course_answer_evaluator import answer_matches_course_definition
 
 
 def _text(value):
@@ -157,10 +158,19 @@ def answer_matches_dialogue_turn(user_message, turn, slots=None, variable_slots=
     for pattern in accepted_patterns(turn):
         if _match_slot_pattern(user_message, pattern, slots, variable_slots) is not None:
             return True
-    contains_all = turn.get("contains_all", [])
-    if isinstance(contains_all, str):
-        contains_all = [contains_all]
-    return bool(contains_all) and all(_norm(x) in message for x in contains_all)
+
+    shared_definition = dict(turn)
+    shared_definition["accepted"] = [
+        render_pattern(pattern, slots or {})
+        for pattern in accepted_patterns(turn)
+        if not slot_names(pattern)
+        or all(name in (slots or {}) for name in slot_names(pattern))
+    ]
+    return answer_matches_course_definition(
+        user_message,
+        shared_definition,
+        render=lambda value: str(value or ""),
+    )
 
 
 def is_dialogue_active(state):
