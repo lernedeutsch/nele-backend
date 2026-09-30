@@ -91,12 +91,16 @@ def prerequisites_met(skill, state):
 
 
 def _course_graph_active(state, progress):
+    # Course prerequisites must never influence Frei sprechen, even when the
+    # learner carries course mastery in persistent memory from an earlier
+    # course session.
+    if str((state or {}).get("conversation_mode") or "").strip().lower() != "course":
+        return False
     if any(key.startswith("course:") for key in progress):
         return True
     student = (state or {}).get("student_progress") or {}
     return (
-        str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
-        and str(student.get("current_level") or "").strip().upper() == "A1"
+        str(student.get("current_level") or "").strip().upper() == "A1"
         and bool(student.get("current_lesson"))
     )
 
