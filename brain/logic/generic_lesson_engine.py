@@ -699,6 +699,31 @@ def _semantic_tokens(value):
     ]
 
 
+def _sequence_partial_progress(user_message, accepted_values, state):
+    """Recognize a correct prefix of a lesson-owned ordered sequence.
+
+    This is useful for beginner tasks such as numbers or alphabet chunks: a
+    learner may know only the first items. A correct prefix is evidence of
+    partial knowledge, not a wrong answer and not completion.
+    """
+    learner_tokens = normalize_text(user_message).replace(",", " ").split()
+    if not learner_tokens:
+        return None
+
+    for value in accepted_values:
+        rendered = render_text(value, state)
+        target_tokens = normalize_text(rendered).replace(",", " ").split()
+        if len(target_tokens) < 3 or len(learner_tokens) >= len(target_tokens):
+            continue
+        if learner_tokens == target_tokens[:len(learner_tokens)]:
+            return {
+                "matched": len(learner_tokens),
+                "total": len(target_tokens),
+                "target": rendered,
+            }
+    return None
+
+
 def _semantic_equivalent_to_accepted(user_message, accepted_values, state):
     """Accept conservative word-order/paraphrase variants of lesson-owned forms.
 
