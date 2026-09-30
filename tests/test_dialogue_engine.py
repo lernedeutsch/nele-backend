@@ -87,6 +87,19 @@ class DialogueEngineTests(unittest.TestCase):
         self.assertEqual(state["dialogue_slots"]["country"], "Polen")
         self.assertEqual(state["dialogue_turn"], 5)
 
+    def test_real_a12_dialogue_rejects_self_contradictory_negative_confirmation(self):
+        state = {}
+        start_dialogue("A1", 2, "woher-kommst-du", state)
+        first = handle_dialogue("Ich komme aus Frankreich.", state)
+        self.assertIn("Kommst du aus Frankreich", first)
+
+        reply = handle_dialogue("Nein, ich komme aus Frankreich.", state)
+
+        self.assertIn("Ja", reply)
+        self.assertIn("Nein", reply)
+        self.assertEqual(state["dialogue_slots"]["country"], "Frankreich")
+        self.assertEqual(state["dialogue_turn"], 3)
+
     def test_real_a12_dialogue_runs_end_to_end(self):
         state = {}
         opening = start_dialogue("A1", 2, "woher-kommst-du", state)
