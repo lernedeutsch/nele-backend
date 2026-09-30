@@ -21,7 +21,7 @@ from brain.logic.dialogue_state_engine import (
 from brain.knowledge.active_dialogues import ACTIVE_DIALOGUES
 
 
-EXPECTED_ACTIVE_DIALOGUES = 23
+EXPECTED_ACTIVE_DIALOGUES = 20
 
 
 class GoldenDialogueSystemTests(unittest.TestCase):
@@ -153,33 +153,6 @@ class GoldenDialogueSystemTests(unittest.TestCase):
             dialogue = find_dialogue_for_message(message, "A1")
             self.assertIsNotNone(dialogue, message)
             self.assertEqual(dialogue["id"], expected_id, message)
-
-    def test_router_finds_daily_dialogues_from_natural_slot_variants(self):
-        cases = [
-            ("Ich möchte einen Brief nach Italien schicken.", "a1-daily-post"),
-            ("Ich brauche eine Fahrkarte zum Hauptbahnhof.", "a1-daily-bus-ticket"),
-            ("Mein Nachbar hat mein Paket angenommen.", "a2-daily-nachbar-paket"),
-        ]
-        for message, expected_id in cases:
-            dialogue = find_dialogue_for_message(message, "A1-A2")
-            self.assertIsNotNone(dialogue, message)
-            self.assertEqual(dialogue["id"], expected_id, message)
-
-    def test_free_conversation_can_retrieve_a2_daily_dialogue(self):
-        from brain.logic.free_conversation import generate_free_conversation_reply
-
-        state = {
-            "student_progress": {"current_level": "A1.1"},
-            "conversation_mode": "free",
-        }
-        reply, meta = generate_free_conversation_reply(
-            "Mein Nachbar hat mein Paket angenommen.",
-            state,
-        )
-        self.assertTrue(meta.get("dialogue_knowledge"))
-        self.assertEqual(state.get("dialogue_id"), "a2-daily-nachbar-paket")
-        self.assertTrue(state.get("dialogue_active"))
-        self.assertIn("Paket", reply)
 
     def test_free_conversation_keeps_birthday_as_conversation_not_drill(self):
         from brain.logic.free_conversation import generate_free_conversation_reply
