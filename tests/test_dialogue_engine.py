@@ -156,3 +156,24 @@ def test_course_dialogue_side_question_keeps_exact_turn_for_resume():
     resumed = get_current_dialogue_prompt(state)
     assert "Kommst du aus Deutschland?" in resumed
     assert "Antworte Mia." in resumed
+
+
+def test_course_turn_limit_never_counts_wrong_answer_as_mastery():
+    state = {"conversation_mode": "course"}
+    opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+    assert "Woher kommst du" in opening
+
+    handle_dialogue("ich komme aus Polen", state)
+    handle_dialogue("ja", state)
+    assert state["dialogue_turn"] == 5
+
+    # Exhaust the dialogue's ordinary safety budget with wrong answers.
+    for wrong in ("Berlin", "zwölf", "20", "polnisch", "nein"):
+        reply = handle_dialogue(wrong, state)
+        assert "Herkunftsdialog geschafft" not in reply
+        assert state["dialogue_active"] is True
+        assert state["dialogue_turn"] == 5
+
+    reply = handle_dialogue("Anna kommt aus Österreich", state)
+    assert "Herkunftsdialog geschafft" in reply
+    assert state["dialogue_active"] is False
