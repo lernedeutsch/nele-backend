@@ -1,10 +1,14 @@
-"""Curriculum / Skill Graph v1 for Nele A1.
+"""Curriculum / Skill Graph v2 for Nele A1.
 
-Defines prerequisite relationships between skills Nele already measures.
-It does not invent lesson completion and does not replace A1_LESSONS.
+The fixed conversation graph remains available for shared speaking skills.
+Course skills are derived from the real A1 lesson structure, so routing follows
+pedagogical lesson/section order instead of alphabetical skill-key order.
 """
 
-GRAPH_VERSION = 1
+from brain.knowledge.A1.lessons import A1_LESSONS
+from brain.logic.matcher import normalize
+
+GRAPH_VERSION = 2
 
 A1_SKILL_GRAPH = {
     "conversation:supported_answer": {
@@ -35,17 +39,46 @@ A1_SKILL_GRAPH = {
 }
 
 
+def _course_slug(section):
+    return normalize(str(section or "")).strip(" .?!„“\\\"'").replace(" ", "_")
+
+
+def _build_a1_course_graph():
+    graph = {}
+    previous = None
+    for lesson in sorted(A1_LESSONS):
+        data = A1_LESSONS[lesson]
+        for section in data.get("sections") or []:
+            skill = f"course:a1:{lesson}:{_course_slug(section)}"
+            graph[skill] = {
+                "title": section,
+                "level": "A1",
+                "lesson": int(lesson),
+                "section": section,
+                "prerequisites": [previous] if previous else [],
+            }
+            previous = skill
+    return graph
+
+
+A1_COURSE_SKILL_GRAPH = _build_a1_course_graph()
+
+
 def _progress_skills(state):
     return dict((((state or {}).get("learning_progress_v1") or {}).get("skills")) or {})
 
 
+def _graph_item(skill):
+    return A1_COURSE_SKILL_GRAPH.get(skill) or A1_SKILL_GRAPH.get(skill)
+
+
 def get_skill(skill):
-    item = A1_SKILL_GRAPH.get(skill)
+    item = _graph_item(skill)
     return dict(item) if item else None
 
 
 def get_prerequisites(skill):
-    return list((A1_SKILL_GRAPH.get(skill) or {}).get("prerequisites") or [])
+    return list((_graph_item(skill) or {}).get("prerequisites") or [])
 
 
 def _mastered(skill, progress):
@@ -55,6 +88,30 @@ def _mastered(skill, progress):
 def prerequisites_met(skill, state):
     progress = _progress_skills(state)
     return all(_mastered(required, progress) for required in get_prerequisites(skill))
+
+
+def _course_graph_active(state, progress):
+    # Course prerequisites must never influence Frei sprechen, even when the
+    # learner carries course mastery in persistent memory from an earlier
+    # course session.
+    if str((state or {}).get("conversation_mode") or "").strip().lower() != "course":
+        return False
+    if any(key.startswith("course:") for key in progress):
+        return True
+    student = (state or {}).get("student_progress") or {}
+    return (
+        str(student.get("current_level") or "").strip().upper() == "A1"
+        and bool(student.get("current_lesson"))
+    )
+
+
+def _ordered_course_skills(skills):
+    wanted = set(skills)
+    ordered = [skill for skill in A1_COURSE_SKILL_GRAPH if skill in wanted]
+    # Preserve unknown future/dynamic course skills after known curriculum
+    # nodes rather than letting their spelling reorder the real A1 syllabus.
+    ordered.extend(sorted(wanted - set(ordered)))
+    return ordered
 
 
 def get_curriculum_state(state):
@@ -75,24 +132,37 @@ def get_curriculum_state(state):
         else:
             blocked.append(skill)
 
-    # Dynamic vocabulary and correct-form skills are valid learning-progress
-    # skills, but they are practice targets rather than fixed curriculum nodes.
     dynamic_review = sorted(
         key for key, item in progress.items()
-        if key not in A1_SKILL_GRAPH and item.get("status") == "needs_review"
+        if key not in A1_SKILL_GRAPH
+        and not key.startswith("course:")
+        and item.get("status") == "needs_review"
     )
-    course_mastered = sorted(
+
+    course_mastered = _ordered_course_skills(
         key for key, item in progress.items()
         if key.startswith("course:") and item.get("status") == "mastered"
     )
-    course_in_progress = sorted(
+    course_in_progress = _ordered_course_skills(
         key for key, item in progress.items()
         if key.startswith("course:") and item.get("status") in {"introduced", "practicing", "improving"}
     )
-    course_review = sorted(
+    course_review = _ordered_course_skills(
         key for key, item in progress.items()
         if key.startswith("course:") and item.get("status") == "needs_review"
     )
+
+    course_ready = []
+    course_blocked = []
+    if _course_graph_active(state, progress):
+        for skill in A1_COURSE_SKILL_GRAPH:
+            status = (progress.get(skill) or {}).get("status")
+            if status in {"mastered", "needs_review", "introduced", "practicing", "improving"}:
+                continue
+            if prerequisites_met(skill, state):
+                course_ready.append(skill)
+            else:
+                course_blocked.append(skill)
 
     return {
         "version": GRAPH_VERSION,
@@ -105,6 +175,8 @@ def get_curriculum_state(state):
         "course_mastered": course_mastered,
         "course_in_progress": course_in_progress,
         "course_needs_review": course_review,
+        "course_ready": course_ready,
+        "course_blocked": course_blocked,
     }
 
 
@@ -112,8 +184,6 @@ def choose_next_curriculum_skill(state):
     curriculum = get_curriculum_state(state)
     course_mode = str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
 
-    # Course routing must follow the pedagogical order encoded by the graph,
-    # not the alphabetical presentation order used by the shared model.
     if course_mode:
         progress = _progress_skills(state)
         review = [
@@ -133,10 +203,12 @@ def choose_next_curriculum_skill(state):
 
     if curriculum["course_needs_review"]:
         return {"skill": curriculum["course_needs_review"][0], "reason": "course_review"}
-    if review:
-        return {"skill": review[0], "reason": "curriculum_review"}
     if course_mode and curriculum["course_in_progress"]:
         return {"skill": curriculum["course_in_progress"][0], "reason": "course_mastery_in_progress"}
+    if course_mode and curriculum["course_ready"]:
+        return {"skill": curriculum["course_ready"][0], "reason": "course_prerequisites_met"}
+    if review:
+        return {"skill": review[0], "reason": "curriculum_review"}
     if curriculum["dynamic_needs_review"]:
         return {"skill": curriculum["dynamic_needs_review"][0], "reason": "dynamic_review"}
     if ready:
