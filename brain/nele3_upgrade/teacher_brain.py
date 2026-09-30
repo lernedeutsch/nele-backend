@@ -115,7 +115,10 @@ def _weakest_upgrade_skill(state, excluded=None):
 
 
 def build_adaptive_recommendation(state, excluded=None):
-    """Zbuduj krótką, uzasadnioną propozycję następnego treningu."""
+    """Zbuduj propozycję dodatku tylko poza ścisłym trybem kursowym."""
+    if str((state or {}).get("conversation_mode") or "").strip().lower() == "course":
+        return None
+
     skills = get_skills(state)
     excluded = list(dict.fromkeys(excluded or []))
 

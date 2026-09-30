@@ -36,6 +36,21 @@ class NaturalCourseFlowTests(unittest.TestCase):
         self.assertIsNone(get_active_task(state))
         self.assertNotIn("Versuch es noch einmal", answer)
 
+    def test_course_mode_never_offers_adaptive_addon(self):
+        state = {"conversation_mode": "course"}
+        self.assertIsNone(build_adaptive_recommendation(state))
+
+    def test_course_mode_clears_stale_addon_and_returns_to_course(self):
+        state = {"conversation_mode": "course"}
+        set_pending_recommendation(state, {"activity": "work_german"})
+        start_activity(state, "speaking", "A1")
+        handled, answer, meta = handle_upgrade_message("ja", state)
+        self.assertFalse(handled)
+        self.assertIsNone(answer)
+        self.assertTrue(meta.get("course_only"))
+        self.assertIsNone(get_pending_recommendation(state))
+        self.assertIsNone(get_active_task(state))
+
 
 if __name__ == "__main__":
     unittest.main()
