@@ -67,7 +67,7 @@ def _task_semantic_score(message, task):
     response_markers = {
         "bringe", "bringen", "hole", "holen", "kümmere", "kuemmere",
         "darum", "natürlich", "naturlich", "gerne", "gern", "möchte",
-        "mochte", "hätte", "hatte", "nehme",
+        "mochte", "hätte", "hatte", "nehme", "gebe", "geben", "reiche", "reichen",
     }
     response_hit = bool(tokens & response_markers)
 
@@ -79,6 +79,7 @@ def _task_semantic_score(message, task):
         "eine", "noch", "sehr", "gerne", "sofort", "möchten", "mochten",
         "verkäuferin", "verkauferin", "entschuldigung", "brauche",
         "bringe", "bringen", "natürlich", "naturlich", "frisches", "möchte", "mochte",
+        "brauche",
     }
     target_content = {
         token for token in (prompt_tokens | model_tokens)
@@ -613,6 +614,9 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
             if activity_type == "dialogue"
             else None
         )
+        # For practical dialogues, a natural learner response can fulfil the
+        # speech act without copying the model's politeness marker. Semantic
+        # evidence (action + situation object) is authoritative.
         keyword_count = len(task.get("keywords", []) or [])
         keyword_pass = score >= 60 and (
             (keyword_count <= 1 and len(_tokens(message)) >= 2)
