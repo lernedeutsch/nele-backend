@@ -37,6 +37,17 @@ def handle_upgrade_message(user_message, state, session_id="default", transcript
     message = str(user_message or "").strip()
     norm = _n(message)
 
+    # 📚 Mit dem Kurs üben is a closed curriculum path. Nele-3 addon
+    # activities (Alltagsdialog, Arbeitsdeutsch, Aussprache, Sprechen) must
+    # never interrupt or extend an A1 lesson. Clear stale addon state left by
+    # older deployments and hand the turn back to the normal course router.
+    if str(state.get("conversation_mode") or "").strip().lower() == "course":
+        if get_pending_recommendation(state):
+            clear_pending_recommendation(state)
+        if get_active_task(state):
+            set_active_task(state, None)
+        return False, None, {"course_only": True}
+
     # Po ponownym otwarciu strony Nele najpierw pyta
     # "Wie geht es dir?". Odpowiedź na to pytanie nie może
     # zostać potraktowana jako odpowiedź do zachowanego
