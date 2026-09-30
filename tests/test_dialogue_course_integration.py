@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from brain.logic.dialogue_engine import handle_dialogue
+from brain.logic.conversation import _release_wellbeing_for_course_dialogue_intent
 from brain.logic.new_learning_resume import handle_new_learning_resume
 
 
@@ -86,6 +87,37 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
 
         self.assertEqual(continued, "NEXT_SECTION_STARTED")
         start_next.assert_called_once()
+
+
+    def test_explicit_course_dialogue_intent_releases_returning_wellbeing_prompt(self):
+        state = {
+            "conversation_mode": "course",
+            "last_question": "wellbeing",
+        }
+
+        released = _release_wellbeing_for_course_dialogue_intent(
+            "Woher kommst du?",
+            state,
+            "A1",
+        )
+
+        self.assertTrue(released)
+        self.assertIsNone(state["last_question"])
+
+    def test_unrelated_answer_still_belongs_to_returning_wellbeing_prompt(self):
+        state = {
+            "conversation_mode": "course",
+            "last_question": "wellbeing",
+        }
+
+        released = _release_wellbeing_for_course_dialogue_intent(
+            "Müde",
+            state,
+            "A1",
+        )
+
+        self.assertFalse(released)
+        self.assertEqual(state["last_question"], "wellbeing")
 
     def test_unrelated_answer_does_not_advance_origin_dialogue(self):
         from brain.logic.dialogue_engine import start_dialogue
