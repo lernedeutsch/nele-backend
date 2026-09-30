@@ -89,3 +89,15 @@ class GenericCourseMasteryEvidenceTests(unittest.TestCase):
         progress = record_course_step_outcome(state, "A1", 2, "Das Verb kommen", False, final_step=False)
         self.assertEqual(progress["not_yet"], 1)
         self.assertNotEqual(progress["status"], "mastered")
+
+
+class GenericCourseMasteryRoutingGateTests(unittest.TestCase):
+    def test_many_failures_prevent_mastery_even_after_final_success(self):
+        from brain.logic.generic_lesson_engine import record_course_step_outcome
+        state = {}
+        for _ in range(7):
+            record_course_step_outcome(state, "A1", 2, "Das Verb kommen", False, final_step=False)
+        for _ in range(5):
+            record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True, final_step=False)
+        progress = record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True, final_step=True)
+        self.assertNotEqual(progress["status"], "mastered")
