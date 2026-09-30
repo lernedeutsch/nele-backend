@@ -570,7 +570,7 @@ def detect_wellbeing_type(
     )
 
     semantic_message = re.sub(
-        r"\\b(?:heute|gerade|im moment|momentan)\\b",
+        r"\b(?:heute|gerade|im moment|momentan)\b",
         " ",
         message,
     )
