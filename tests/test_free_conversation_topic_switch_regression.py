@@ -499,3 +499,35 @@ class FreeConversationTopicSwitchRegressionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FreeConversationControlPriorityTests(unittest.TestCase):
+    def _state(self, last_question, status="active"):
+        state = {"student_progress": {"current_level": "A1.1"}, "conversation_mode": "free"}
+        state["free_conversation"] = {
+            "last_question": last_question,
+            "last_topic": "hobby",
+            "turn_count": 8,
+            "conversation_facts": {},
+        }
+        state["conversation_state_v2"] = {
+            "topic": "hobby",
+            "subtopic": "sport",
+            "subtopic_status": status,
+            "active_slot": "sport_environment" if status == "active" else None,
+            "semantic_slots": {},
+        }
+        return state
+
+    def test_pause_outranks_active_sport_subtopic(self):
+        state = self._state("Machst du diesen Sport lieber draußen oder drinnen?")
+        reply, meta = generate_free_conversation_reply("Pause", state)
+        self.assertEqual(reply, "Klar, machen wir eine Pause.")
+        self.assertEqual(meta["global_conversation_guard"]["reason"], "conversation_control")
+
+    def test_nichts_closes_broad_freizeit_question_before_subtopic_reopens_it(self):
+        state = self._state("Das klingt gut. Und was machst du sonst gern in deiner Freizeit?", status="completed")
+        reply, meta = generate_free_conversation_reply("nichts", state)
+        self.assertNotIn("was machst du sonst gern in deiner freizeit", reply.lower())
+        self.assertIn("wechseln wir das thema", reply.lower())
+        self.assertEqual(meta["global_conversation_guard"]["reason"], "conversation_control")
