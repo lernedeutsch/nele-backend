@@ -243,3 +243,15 @@ def test_course_dialogue_completes_only_after_shared_mastery():
         "reason": "course_prerequisites_met",
     }
     assert state["pending_new_learning"]["skill"] == "course:a1:2:das_verb_kommen"
+
+
+
+def test_dialogue_and_lesson_share_same_semantic_classification():
+    from brain.logic.course_answer_evaluator import evaluate_course_answer
+    turn = {
+        "expected": "Du kommst aus Frankreich.",
+        "accepted": ["Du kommst aus Frankreich."],
+    }
+    result = evaluate_course_answer("Aus Frankreich kommst du.", turn)
+    assert result["kind"] == "correct"
+    assert answer_matches_dialogue_turn("Aus Frankreich kommst du.", turn)

@@ -691,26 +691,46 @@ def validate_named(
 
 from brain.logic.course_answer_evaluator import (
     answer_matches_course_definition,
-    sequence_partial_progress as _sequence_partial_progress,
+    evaluate_course_answer,
+    sequence_partial_progress as _shared_sequence_partial_progress,
     semantic_tokens as _semantic_tokens,
 )
+
+
+
+def _sequence_partial_progress(user_message, accepted_values, state=None, render=None):
+    """Compatibility wrapper; shared evaluator owns the actual logic."""
+    return _shared_sequence_partial_progress(
+        user_message,
+        accepted_values,
+        state=state,
+        render=render,
+    )
 
 
 # ==========================================
 # ANTWORT PRÜFEN
 # ==========================================
 
-def answer_matches_step(
+def evaluate_step_answer(
     user_message,
     step,
     state
 ):
-    return answer_matches_course_definition(
+    return evaluate_course_answer(
         user_message,
         step,
         render=lambda value: render_text(value, state),
         validator=lambda name, message: validate_named(name, message, state),
     )
+
+
+def answer_matches_step(
+    user_message,
+    step,
+    state
+):
+    return evaluate_step_answer(user_message, step, state)["correct"]
 
 
 # ==========================================

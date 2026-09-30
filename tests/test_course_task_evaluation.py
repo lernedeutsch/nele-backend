@@ -144,3 +144,33 @@ class GenericCoursePartialSequenceTests(unittest.TestCase):
         accepted = ["eins, zwei, drei, vier, fünf"]
         self.assertIsNone(_sequence_partial_progress("eins drei", accepted, {}))
         self.assertIsNone(_sequence_partial_progress("zwölf", accepted, {}))
+
+
+
+class SharedCourseAnswerClassificationTests(unittest.TestCase):
+    def test_shared_evaluator_classifies_correct_partial_and_wrong(self):
+        from brain.logic.course_answer_evaluator import evaluate_course_answer
+        definition = {
+            "accepted": ["eins, zwei, drei, vier, fünf"],
+            "correct_answer": "eins, zwei, drei, vier, fünf",
+        }
+        self.assertEqual(
+            evaluate_course_answer("eins zwei drei vier fünf", definition)["kind"],
+            "correct",
+        )
+        partial = evaluate_course_answer("eins zwei drei", definition)
+        self.assertEqual(partial["kind"], "partial")
+        self.assertEqual(partial["partial"]["matched"], 3)
+        self.assertEqual(partial["partial"]["total"], 5)
+        self.assertEqual(
+            evaluate_course_answer("eins drei", definition)["kind"],
+            "wrong",
+        )
+
+    def test_lesson_wrapper_uses_shared_classification(self):
+        from brain.logic.generic_lesson_engine import evaluate_step_answer
+        step = {
+            "accepted": ["eins, zwei, drei, vier, fünf"],
+            "correct_answer": "eins, zwei, drei, vier, fünf",
+        }
+        self.assertEqual(evaluate_step_answer("eins zwei drei", step, {})["kind"], "partial")
