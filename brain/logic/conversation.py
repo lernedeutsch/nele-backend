@@ -164,6 +164,19 @@ def _resume_course_after_side_answer(answer, state):
     return continue_after_side_answer(answer, state)
 
 
+def _release_wellbeing_for_course_dialogue_intent(user_message, state, level):
+    """Do not trap an explicit learner question inside returning-welcome small talk."""
+    del level  # kept in the signature for course-routing compatibility
+    if (
+        str((state or {}).get("conversation_mode") or "").strip().lower() != "course"
+        or (state or {}).get("last_question") != "wellbeing"
+        or "?" not in str(user_message or "")
+    ):
+        return False
+    state["last_question"] = None
+    return True
+
+
 # ==========================================
 # GŁÓWNY ROUTER
 # ==========================================
@@ -405,6 +418,18 @@ def generate_conversation_reply(
         print(
             f"Error review refresh error: {error}"
         )
+
+
+    # A returning-course welcome asks about wellbeing, but an explicit
+    # validated course-dialogue intent must be allowed to start the selected
+    # learning activity instead of being trapped as an invalid wellbeing
+    # answer. This is generic across dialogue knowledge: no sentence or lesson
+    # is hard-coded here.
+    _release_wellbeing_for_course_dialogue_intent(
+        user_message,
+        state,
+        level,
+    )
 
 
     # ======================================
