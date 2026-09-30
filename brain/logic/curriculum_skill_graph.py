@@ -85,20 +85,41 @@ def get_curriculum_state(state):
     return {
         "version": GRAPH_VERSION,
         "level": "A1.1",
-        "mastered": mastered,
-        "ready": ready,
-        "blocked": blocked,
-        "needs_review": review,
+        "mastered": sorted(mastered),
+        "ready": sorted(ready),
+        "blocked": sorted(blocked),
+        "needs_review": sorted(review),
         "dynamic_needs_review": dynamic_review,
     }
 
 
 def choose_next_curriculum_skill(state):
     curriculum = get_curriculum_state(state)
-    if curriculum["needs_review"]:
-        return {"skill": curriculum["needs_review"][0], "reason": "curriculum_review"}
+    course_mode = str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
+
+    # Course routing must follow the pedagogical order encoded by the graph,
+    # not the alphabetical presentation order used by the shared model.
+    if course_mode:
+        progress = _progress_skills(state)
+        review = [
+            skill for skill in A1_SKILL_GRAPH
+            if (progress.get(skill) or {}).get("status") == "needs_review"
+        ]
+        ready = [
+            skill for skill in A1_SKILL_GRAPH
+            if (
+                (progress.get(skill) or {}).get("status") not in {"mastered", "needs_review"}
+                and prerequisites_met(skill, state)
+            )
+        ]
+    else:
+        review = curriculum["needs_review"]
+        ready = curriculum["ready"]
+
+    if review:
+        return {"skill": review[0], "reason": "curriculum_review"}
     if curriculum["dynamic_needs_review"]:
         return {"skill": curriculum["dynamic_needs_review"][0], "reason": "dynamic_review"}
-    if curriculum["ready"]:
-        return {"skill": curriculum["ready"][0], "reason": "prerequisites_met"}
+    if ready:
+        return {"skill": ready[0], "reason": "prerequisites_met"}
     return None
