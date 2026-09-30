@@ -373,6 +373,18 @@ def generate_welcome_reply(
     # ZNANY UŻYTKOWNIK
     # ======================================
 
+    # If onboarding has just finished, reopening the page must preserve the
+    # explicit course-start gate instead of replacing it with wellbeing.
+    if state.get("last_question") == "start_after_onboarding":
+        answer = (
+            f"Hallo {name}! Bist du bereit?"
+            if name
+            else "Hallo! Bist du bereit?"
+        )
+        return save_and_return(
+            answer,
+            session_id
+        )
     state[
         "last_question"
     ] = "wellbeing"
