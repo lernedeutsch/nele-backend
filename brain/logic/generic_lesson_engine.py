@@ -692,8 +692,20 @@ def validate_named(
 from brain.logic.course_answer_evaluator import (
     answer_matches_course_definition,
     evaluate_course_answer,
+    sequence_partial_progress as _shared_sequence_partial_progress,
     semantic_tokens as _semantic_tokens,
 )
+
+
+
+def _sequence_partial_progress(user_message, accepted_values, state=None, render=None):
+    """Compatibility wrapper; shared evaluator owns the actual logic."""
+    return _shared_sequence_partial_progress(
+        user_message,
+        accepted_values,
+        state=state,
+        render=render,
+    )
 
 
 # ==========================================
