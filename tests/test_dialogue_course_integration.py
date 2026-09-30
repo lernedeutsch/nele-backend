@@ -139,3 +139,32 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+    def test_conversation_routes_yes_to_pending_course_section_after_dialogue(self):
+        from brain.logic.new_learning_resume import set_new_learning_offer
+        from brain.logic.conversation import handle_message
+
+        state = {
+            "conversation_mode": "course",
+            "pending_new_learning": {
+                "type": "new_section",
+                "level": "A1",
+                "lesson": 2,
+                "section": "Das Verb kommen",
+                "topic": "Das Verb kommen",
+            },
+            "last_question": "continue_new_learning",
+        }
+        set_new_learning_offer(state, state["pending_new_learning"])
+        with patch(
+            "brain.logic.conversation.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "brain.logic.new_learning_resume.start_new_learning",
+            return_value="NEXT_SECTION_STARTED",
+        ):
+            reply = handle_message("ja", "A1", 2, session_id="test-course-handoff")
+
+        self.assertIn("NEXT_SECTION_STARTED", str(reply))

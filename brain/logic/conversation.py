@@ -718,6 +718,25 @@ def generate_conversation_reply(
             session_id
         )
 
+    # A completed course dialogue may create the next-section offer during
+    # this same turn. When the learner answers "ja" on the following turn,
+    # no other router may consume it first just because the dialogue is now
+    # inactive. Keep the pending course handoff authoritative.
+    if (
+        str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
+        and state.get("pending_new_learning")
+        and state.get("last_question") == "continue_new_learning"
+    ):
+        normalized_resume = normalize(processed_message).strip(" .?!„“\"'")
+        if normalized_resume in {"ja", "ja gern", "ja gerne", "gern", "gerne", "klar", "okay", "ok", "natürlich", "ja bitte", "machen wir", "los gehts", "los geht's", "weiter", "und jetzt", "was jetzt", "weiter bitte"}:
+            answer = handle_new_learning_resume(processed_message, state)
+            if answer:
+                return return_with_feedback(
+                    answer,
+                    feedback_text,
+                    session_id
+                )
+
 
     # ======================================
     # 9. AKTYWNA LEKCJA
