@@ -680,6 +680,47 @@ def validate_named(
 
 
 # ==========================================
+# GEMEINSAME SEMANTISCHE ANTWORTPRÜFUNG
+# ==========================================
+
+_SEMANTIC_FUNCTION_WORDS = {
+    "ich", "du", "er", "sie", "es", "wir", "ihr", "aus", "der", "die", "das",
+    "den", "dem", "ein", "eine", "einen", "am", "im", "in", "zu", "zum", "zur",
+}
+
+
+def _semantic_tokens(value):
+    return [
+        token
+        for token in normalize_text(value).split()
+        if token and token not in _SEMANTIC_FUNCTION_WORDS
+    ]
+
+
+def _semantic_equivalent_to_accepted(user_message, accepted_values, state):
+    """Accept conservative word-order/paraphrase variants of lesson-owned forms.
+
+    This deliberately does not repair morphology: all content-bearing words from
+    an accepted answer must still be present. It therefore accepts ordinary
+    word-order variation but rejects forms such as "ich kommen" for "ich komme".
+    """
+    learner = normalize_text(user_message)
+    learner_tokens = _semantic_tokens(learner)
+    if len(learner_tokens) < 2:
+        return False
+
+    learner_bag = sorted(learner_tokens)
+    for value in accepted_values:
+        rendered = render_text(value, state)
+        target_tokens = _semantic_tokens(rendered)
+        if len(target_tokens) < 2:
+            continue
+        if learner_bag == sorted(target_tokens):
+            return True
+    return False
+
+
+# ==========================================
 # ANTWORT PRÜFEN
 # ==========================================
 
@@ -765,6 +806,15 @@ def answer_matches_step(
             ):
 
                 return True
+
+        # Shared course matcher: allow conservative word-order variants of
+        # lesson-owned correct forms instead of requiring one literal string.
+        if _semantic_equivalent_to_accepted(
+            user_message,
+            accepted,
+            state,
+        ):
+            return True
 
 
     regex_patterns = step.get(

@@ -18,3 +18,34 @@ class CourseTaskEvaluationTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class GenericCourseSemanticAnswerTests(unittest.TestCase):
+    def test_word_order_variant_is_accepted_by_shared_course_matcher(self):
+        from brain.logic.generic_lesson_engine import answer_matches_step
+        step = {
+            "accepted": ["Du kommst aus Frankreich."],
+            "correct_answer": "Du kommst aus Frankreich.",
+        }
+        self.assertTrue(
+            answer_matches_step("Aus Frankreich kommst du.", step, {})
+        )
+
+    def test_wrong_conjugation_is_not_semantically_accepted(self):
+        from brain.logic.generic_lesson_engine import answer_matches_step
+        step = {
+            "accepted": ["Ich komme aus Spanien."],
+            "correct_answer": "Ich komme aus Spanien.",
+        }
+        self.assertFalse(
+            answer_matches_step("Ich kommen aus Spanien.", step, {})
+        )
+
+    def test_unrelated_answer_is_not_semantically_accepted(self):
+        from brain.logic.generic_lesson_engine import answer_matches_step
+        step = {
+            "accepted": ["Wir kommen aus der Schweiz."],
+            "correct_answer": "Wir kommen aus der Schweiz.",
+        }
+        self.assertFalse(
+            answer_matches_step("Wir wohnen in der Schweiz.", step, {})
+        )
