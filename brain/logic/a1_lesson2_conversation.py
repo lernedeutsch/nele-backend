@@ -2,6 +2,8 @@
 
 import re
 from brain.memory.error_memory import remember_error
+from brain.logic.learning_progress_engine import update_learning_progress
+
 from brain.logic.speaking_support import (
     handle_pending_course_model,
     progressive_course_support,
@@ -213,6 +215,26 @@ def _correction(result, user_message, task, state):
         prefix=prefix,
     )
 
+def _lesson2_skill_key(state):
+    section = _norm(_mem(state).get("section", "lesson2")).replace(" ", "_")
+    return f"course:a1:2:{section}"
+
+
+def _record_lesson2_mastery(state, success):
+    """Record real Lektion 2 answers in the shared mastery model."""
+    outcome = {
+        "skill": _lesson2_skill_key(state),
+        "expected_outcome": "course_step",
+        "status": "SUCCESS" if success else "NOT_YET",
+        # Lektion 2 generates varied tasks continuously, so every genuine
+        # answer is independent mastery evidence rather than a UI completion.
+        "mastery_eligible": True,
+    }
+    progress = update_learning_progress(state, outcome)
+    state["last_course_learning_outcome"] = dict(outcome, progress=progress)
+    return progress
+
+
 def _set_task(state, task):
     m=_mem(state); m["task"]=task
     m["recent_intents"].append(task["intent"]); m["recent_intents"]=m["recent_intents"][-8:]
@@ -286,6 +308,7 @@ def handle(user_message,state):
     result=classify(user_message,task)
     m["last_result"]=result
     if result["status"] in {"CORRECT_FULL","CORRECT_SHORT","CORRECT_WITH_TYPO"}:
+        _record_lesson2_mastery(state, True)
         # mark matching pending error as resolved only after a later successful transfer
         if task.get("intent")=="ERROR_REVIEW":
             for item in m["errors"].values(): item["resolved"]=True
@@ -298,6 +321,7 @@ def handle(user_message,state):
         nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
         if correction: return correction+" "+nxt
         return "Genau! "+nxt
+    _record_lesson2_mastery(state, False)
     correction=_correction(result,user_message,task,state)
     # Keep the same target until the learner succeeds. The global speaking
     # engine now owns escalation and decides when to expose the full model.

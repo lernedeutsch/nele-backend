@@ -144,3 +144,32 @@ def test_wrong_country_in_person_origin_task_is_not_accepted():
     t=task("origin","Paul kommt aus Österreich.",intent="ASK_PERSON_ORIGIN")
     assert classify("Schweiz",t)["status"]=="ORIGIN_MISMATCH"
     assert classify("Österreich",t)["status"]=="CORRECT_SHORT"
+
+
+def test_lesson2_answers_feed_shared_course_mastery():
+    state={}
+    start("Zahlen 1–20",state)
+    for number in (3, 7, 12):
+        state["a1_l2_tutor"]["task"]=task(
+            "number", NUMBERS[number], number=number, intent="NUMBER_PRODUCTION"
+        )
+        handle(NUMBERS[number],state)
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:zahlen_1–20"]
+    assert skill["status"]=="mastered"
+    assert skill["successes"]==3
+
+
+def test_lesson2_wrong_answer_reopens_mastered_course_skill():
+    state={}
+    start("Zahlen 1–20",state)
+    for number in (3, 7, 12):
+        state["a1_l2_tutor"]["task"]=task(
+            "number", NUMBERS[number], number=number, intent="NUMBER_PRODUCTION"
+        )
+        handle(NUMBERS[number],state)
+    state["a1_l2_tutor"]["task"]=task(
+        "number", NUMBERS[9], number=9, intent="NUMBER_PRODUCTION"
+    )
+    handle("fünf",state)
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:zahlen_1–20"]
+    assert skill["status"]=="needs_review"
