@@ -606,7 +606,7 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
         model_score = _similarity_score(message, task.get("model_answer")) if task.get("model_answer") else 0
         # Model-token overlap is supporting evidence only; a weak two-word
         # overlap must not complete a dialogue by itself.
-        model_pass = model_score >= 55 and len(_tokens(message)) >= 3
+        model_pass = model_score >= 55 and len(_tokens(message)) >= 3 and _task_semantic_score(message, task) > 0
         semantic_score = _task_semantic_score(message, task)
         correction = (
             _preserve_dialogue_intent_correction(message)
