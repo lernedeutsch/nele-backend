@@ -184,7 +184,7 @@ def test_pending_spelling_accepts_equivalent_letter_separators_without_weakening
     assert handle_pending_course_model("ich-heiße-monika", state) is not None
     assert state["course_pending_speaking_model"] == "Ich heiße Monika."
 
-def test_accepted_semantic_fragment_still_practises_multiword_target():
+def test_accepted_semantic_fragment_is_real_course_success():
     state = {}
     step = _step(
         "Ich komme aus Polen.",
@@ -192,8 +192,9 @@ def test_accepted_semantic_fragment_still_practises_multiword_target():
     )
     result = assess_course_answer("Polen", step, state, answer_matches=True)
     assert result["answer_matches"] is True
-    assert result["intercept"] is True
-    assert result["kind"] == "short_answer_expansion"
+    assert result["intercept"] is False
+    assert result["kind"] == "independent_success"
+    assert state.get("course_pending_speaking_model") is None
 
 
 def test_natural_short_answer_is_not_forced_into_full_sentence():

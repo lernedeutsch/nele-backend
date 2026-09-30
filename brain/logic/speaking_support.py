@@ -142,24 +142,11 @@ def assess_course_answer(user_message, step, state, *, answer_matches=False):
         result["kind"] = "natural_short_success"
         return result
 
-    # Meaning is present, but the learner has not yet produced the lesson's
-    # target construction. Treat this as communicative success + speaking
-    # opportunity, never as an error. A generic lesson may intentionally list
-    # short semantic forms in "accepted" so comprehension is recognized; that
-    # must not silently skip production of a multiword target.
-    target_words = _words(target)
-    learner_words = _words(user_message)
-    needs_target_production = bool(
-        target
-        and semantic_short
-        and len(target_words) > 2
-        and len(learner_words) <= 2
-        and _norm(user_message) != _norm(target)
-    )
-    if needs_target_production:
-        result.update(intercept=True, kind="short_answer_expansion")
-        return result
-
+    # Lesson-owned accepted variants are real success. The shared support
+    # layer must not override the lesson validator and force an exact full
+    # model after the author has explicitly declared a shorter/natural form
+    # correct. Steps that require full production simply omit that short form
+    # from their accepted variants.
     if answer_matches:
         _set_support(state, max(0, _support_level(state) - 1))
         result["kind"] = "independent_success"
