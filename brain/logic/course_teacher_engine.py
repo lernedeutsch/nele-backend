@@ -5,6 +5,7 @@ next. It intentionally contains no lesson- or dialogue-specific phrases.
 """
 
 from brain.logic.learner_model import build_learner_model
+from brain.logic.speaking_support import progressive_course_support, register_course_success
 
 
 def choose_course_teacher_action(
@@ -28,11 +29,19 @@ def choose_course_teacher_action(
             "model": correct_answer,
         }
     elif answer_correct is False:
+        target = str(correct_answer or "").strip()
+        hint = str(retry or "").strip()
+        support = progressive_course_support(
+            target,
+            state,
+            first_hint=hint,
+        ) if target else (hint or "Fast. Noch einmal.")
         action = {
             "action": "correct_and_retry",
             "reason": "answer_not_yet",
             "model": correct_answer,
             "retry": retry,
+            "support": support,
         }
     elif mastery_status and mastery_status != "mastered":
         action = {
@@ -41,6 +50,8 @@ def choose_course_teacher_action(
             "skill": course.get("next_skill"),
         }
     else:
+        if answer_correct is True:
+            register_course_success(state)
         decision = course.get("teaching_decision") or "practice"
         action = {
             "action": decision,
@@ -66,6 +77,9 @@ def render_course_teacher_action(action, *, prompt=None):
             return f"Gut, {matched} von {total} sind richtig. Mach weiter: „{model}“"
 
     if kind == "correct_and_retry":
+        support = str(action.get("support") or "").strip()
+        if support:
+            return support
         retry = str(action.get("retry") or "").strip()
         if retry:
             return retry
