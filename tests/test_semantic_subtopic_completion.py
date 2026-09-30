@@ -145,6 +145,41 @@ class SemanticSubtopicCompletionTests(unittest.TestCase):
         )
         self.assertIn("sonst", transcript[-1]["reply"].lower())
 
+
+    def test_unseen_short_answers_follow_canonical_slots_across_topics(self):
+        cases = [
+            (
+                ("Welche Musik hörst du gern?", "Synthwave", "Neon Vela", "Fast jeden Morgen"),
+                "music",
+                {"music_genre": "synthwave", "music_artist": "neon vela", "music_frequency": "fast jeden morgen"},
+            ),
+            (
+                ("Welchen Sport machst du gern?", "Padel", "Mit meiner Nachbarin", "Zweimal pro Woche"),
+                "sport",
+                {"sport_kind": "padel", "sport_companion": "mit meiner nachbarin", "sport_frequency": "zweimal pro woche"},
+            ),
+            (
+                ("Was liest du gern?", "Biografien", "Die Lebensgeschichten", "Jeden Sonntag"),
+                "reading",
+                {"reading_genre": "biografien", "reading_detail": "die lebensgeschichten", "reading_frequency": "jeden sonntag"},
+            ),
+            (
+                ("Was machst du bei der Arbeit?", "Reservierungen prüfen", "In einem Gästehaus", "Mit der Frühschicht"),
+                "work",
+                {"work_activity": "reservierungen prüfen", "work_place": "in einem gästehaus", "work_companion": "mit der frühschicht"},
+            ),
+        ]
+        for messages, subtopic, expected_slots in cases:
+            with self.subTest(subtopic=subtopic):
+                state = {}
+                for message in messages:
+                    reply, meta = turn(state, message)
+                semantic = state.get("conversation_state_v2") or {}
+                self.assertEqual(semantic.get("subtopic"), subtopic)
+                for slot, value in expected_slots.items():
+                    self.assertEqual((semantic.get("semantic_slots") or {}).get(slot), value)
+                self.assertEqual(meta["topic_manager"]["subtopic"], subtopic)
+
     def test_birthday_bridge_answer_is_committed_and_completes_subtopic(self):
         state = {}
         turn(state, "Wann hast du Geburtstag?")
