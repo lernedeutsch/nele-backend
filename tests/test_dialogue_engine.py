@@ -212,6 +212,19 @@ def test_course_turn_limit_never_counts_wrong_answer_as_mastery():
     assert skill["status"] != "mastered"
 
 
+def test_course_dialogue_wrong_answer_records_shared_teacher_action():
+    state = {"conversation_mode": "course"}
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+
+    reply = handle_dialogue("Berlin", state)
+
+    assert state["course_teacher_action"]["action"] == "correct_and_retry"
+    assert state["course_teacher_action"]["reason"] == "answer_not_yet"
+    assert state["dialogue_active"] is True
+    assert state["dialogue_turn"] == 1
+    assert reply
+
+
 def test_course_dialogue_completes_only_after_shared_mastery():
     state = {"conversation_mode": "course"}
     start_dialogue("A1", 2, "woher-kommst-du", state)
