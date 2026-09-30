@@ -35,6 +35,10 @@ from brain.logic.dialogue_engine import (
     get_current_dialogue_prompt,
 )
 
+from brain.logic.personal_sentences import (
+    get_current_personal_sentence_practice_prompt,
+)
+
 
 # ==========================================
 # WZNOWIENIE AKTYWNEGO SŁOWNICTWA
@@ -479,7 +483,19 @@ def resume_current_training(
 
 
     # ======================================
-    # 4. LEKCJA
+    # 4. MEINE SÄTZE
+    # ======================================
+
+    answer = get_current_personal_sentence_practice_prompt(
+        state
+    )
+
+    if answer:
+        return "Jetzt machen wir genau dort weiter. " + answer
+
+
+    # ======================================
+    # 5. LEKCJA
     # ======================================
 
     answer = resume_lesson_training(

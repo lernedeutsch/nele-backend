@@ -4,6 +4,8 @@ from brain.logic.memory import complete_state, create_empty_state
 from brain.logic.personal_sentences import (
     ensure_personal_sentence_memory,
     handle_personal_sentence,
+    handle_personal_sentence_practice,
+    get_current_personal_sentence_practice_prompt,
     get_personal_sentence_catalog,
     validate_personal_sentence_catalog,
 )
@@ -50,6 +52,38 @@ class PersonalSentencesTests(unittest.TestCase):
             result["item"]["id"],
             "ich_bringe_ihnen_sofort_frische_handtuecher",
         )
+
+    def test_side_question_suspends_practice_without_counting_failure(self):
+        state = create_empty_state()
+        state["personal_sentence_practice"] = {
+            "id": "arbeitest_du_am_sonntag",
+            "attempts": 0,
+        }
+        result = handle_personal_sentence_practice(
+            "Apropos, wie ist das Wetter?",
+            state,
+        )
+        self.assertTrue(result["digression"])
+        self.assertIsNone(result["reply"])
+        self.assertEqual(state["personal_sentence_practice"]["attempts"], 0)
+        self.assertTrue(state["course_side_question_pending"])
+        self.assertIn(
+            "am Sonntag arbeitet",
+            get_current_personal_sentence_practice_prompt(state),
+        )
+
+    def test_target_question_is_not_misclassified_as_digression(self):
+        state = create_empty_state()
+        state["personal_sentence_practice"] = {
+            "id": "arbeitest_du_am_sonntag",
+            "attempts": 0,
+        }
+        result = handle_personal_sentence_practice(
+            "Arbeitest du am Sonntag?",
+            state,
+        )
+        self.assertTrue(result["correct"])
+        self.assertNotIn("course_side_question_pending", state)
 
     def test_progress_survives_state_completion(self):
         state = create_empty_state()
