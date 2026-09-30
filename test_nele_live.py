@@ -118,8 +118,8 @@ def main():
         if "Wie heißt du?" in str(welcome_payload.get("reply") or ""):
             bootstrap_answers = [
                 f"ich heiße {os.environ.get('NELE_LIVE_STUDENT_NAME', 'Moni')}",
-                "ich komme aus Polen",
-                "ich wohne in Heidelberg",
+                os.environ.get("NELE_LIVE_BOOTSTRAP_ORIGIN", "ich komme aus Polen"),
+                os.environ.get("NELE_LIVE_BOOTSTRAP_RESIDENCE", "ich wohne in Heidelberg"),
             ]
             for answer in bootstrap_answers:
                 bootstrap = requests.post(
