@@ -1102,7 +1102,7 @@ def _short_answer_followup(text, last_question, memory):
         if low in {"mit jemanden", "mit jemand"}:
             memory["activity_company"] = "mit jemandem"
             return "Fast. Richtig: „mit jemandem“. Wie oft machst du das?"
-        if low.startswith("mit ") and len(_words(low)) <= 5:
+        if low.startswith("mit ") and low not in {"mit dir", "mit ihnen"} and len(_words(low)) <= 5:
             memory["activity_company"] = raw.strip(" .?!")
             echoed = raw.strip(" .?!")
             echoed = echoed[:1].upper() + echoed[1:] if echoed else echoed
