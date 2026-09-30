@@ -616,7 +616,7 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
         keyword_count = len(task.get("keywords", []) or [])
         keyword_pass = score >= 60 and (
             (keyword_count <= 1 and len(_tokens(message)) >= 2)
-            or (score >= 100 and len(_tokens(message)) >= 3)
+            or (score >= 100 and len(_tokens(message)) >= 4)
         )
         completed = (
             keyword_pass
