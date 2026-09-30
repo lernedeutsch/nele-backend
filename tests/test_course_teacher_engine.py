@@ -41,3 +41,51 @@ def test_not_mastered_skill_is_reinforced():
     reply = render_course_teacher_action(action, prompt="Versuch es noch einmal.")
     assert "festigen" in reply
     assert "Versuch es noch einmal." in reply
+
+
+
+def test_repeated_wrong_answers_escalate_shared_teacher_support():
+    state = {"conversation_mode": "course"}
+
+    first = render_course_teacher_action(
+        choose_course_teacher_action(
+            state,
+            answer_correct=False,
+            correct_answer="Du kommst aus Frankreich.",
+            retry='Bei „du“: komm + st. Sag: „Du kommst aus Frankreich.“',
+        )
+    )
+    second = render_course_teacher_action(
+        choose_course_teacher_action(
+            state,
+            answer_correct=False,
+            correct_answer="Du kommst aus Frankreich.",
+            retry='Bei „du“: komm + st. Sag: „Du kommst aus Frankreich.“',
+        )
+    )
+    third = render_course_teacher_action(
+        choose_course_teacher_action(
+            state,
+            answer_correct=False,
+            correct_answer="Du kommst aus Frankreich.",
+            retry='Bei „du“: komm + st. Sag: „Du kommst aus Frankreich.“',
+        )
+    )
+
+    assert "komm + st" in first
+    assert second != first
+    assert "Du kommst" in second
+    assert third != second
+    assert state["course_pending_speaking_model"] == "Du kommst aus Frankreich."
+
+
+def test_success_fades_shared_course_support():
+    state = {
+        "conversation_mode": "course",
+        "course_speaking_support_level": 3,
+    }
+    choose_course_teacher_action(
+        state,
+        answer_correct=True,
+    )
+    assert state["course_speaking_support_level"] == 2
