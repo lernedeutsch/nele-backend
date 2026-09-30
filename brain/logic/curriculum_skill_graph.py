@@ -44,10 +44,17 @@ def _course_slug(section):
 
 
 def _build_a1_course_graph():
+    """Build explicit pedagogical order inside each lesson.
+
+    Selecting lesson 2 directly is a supported course action, so lesson 2 must
+    not secretly depend on the final skill from lesson 1.  Prerequisites define
+    section order within the selected lesson; lesson selection itself decides
+    which lesson is active.
+    """
     graph = {}
-    previous = None
     for lesson in sorted(A1_LESSONS):
         data = A1_LESSONS[lesson]
+        previous_in_lesson = None
         for section in data.get("sections") or []:
             skill = f"course:a1:{lesson}:{_course_slug(section)}"
             graph[skill] = {
@@ -55,9 +62,9 @@ def _build_a1_course_graph():
                 "level": "A1",
                 "lesson": int(lesson),
                 "section": section,
-                "prerequisites": [previous] if previous else [],
+                "prerequisites": [previous_in_lesson] if previous_in_lesson else [],
             }
-            previous = skill
+            previous_in_lesson = skill
     return graph
 
 
