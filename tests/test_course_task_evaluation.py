@@ -30,6 +30,16 @@ class GenericCourseSemanticAnswerTests(unittest.TestCase):
             answer_matches_step("Aus Frankreich kommst du.", step, {})
         )
 
+    def test_natural_subject_drop_keeps_tested_verb_and_is_accepted(self):
+        from brain.logic.generic_lesson_engine import answer_matches_step
+        step = {
+            "accepted": ["Ich komme aus Spanien."],
+            "correct_answer": "Ich komme aus Spanien.",
+        }
+        self.assertTrue(answer_matches_step("Komme aus Spanien.", step, {}))
+        self.assertFalse(answer_matches_step("aus Spanien", step, {}))
+        self.assertFalse(answer_matches_step("Kommen aus Spanien", step, {}))
+
     def test_wrong_conjugation_is_not_semantically_accepted(self):
         from brain.logic.generic_lesson_engine import answer_matches_step
         step = {
