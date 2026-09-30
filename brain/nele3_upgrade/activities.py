@@ -55,6 +55,49 @@ def _similarity_score(message, expected):
     overlap = len(expected_tokens & got) / len(expected_tokens)
     return int(round(overlap * 100))
 
+def _task_semantic_score(message, task):
+    """Score whether the learner fulfils the situation, not a memorised sentence."""
+    message_n = _normalize(message)
+    tokens = _tokens(message)
+    prompt_tokens = _tokens((task or {}).get("prompt"))
+    model_tokens = _tokens((task or {}).get("model_answer"))
+    keywords = [_normalize(value) for value in (task or {}).get("keywords", []) if _normalize(value)]
+
+    if not message_n or not tokens:
+        return 0
+
+    # Content nouns from the situation/model are useful evidence even when the
+    # learner chooses a different polite formulation.
+    content = {
+        token for token in (prompt_tokens | model_tokens)
+        if len(token) >= 4 and token not in {
+            "gast", "bitte", "guten", "morgen", "ihnen", "ihre", "einen",
+            "eine", "noch", "sehr", "gerne", "sofort", "möchten", "mochten",
+        }
+    }
+    content_hit = bool(tokens & content)
+
+    # Recognise common service/response acts generically instead of requiring
+    # every literal keyword from one model answer.
+    response_markers = {
+        "bringe", "bringen", "hole", "holen", "kümmere", "kuemmere",
+        "darum", "natürlich", "naturlich", "gerne", "gern", "möchte",
+        "mochte", "hätte", "hatte", "nehme", "brauche",
+    }
+    response_hit = bool(tokens & response_markers)
+    keyword_hit = any(keyword in message_n for keyword in keywords)
+
+    score = 0
+    if content_hit:
+        score += 45
+    if response_hit:
+        score += 40
+    if keyword_hit:
+        score += 20
+    if len(tokens) >= 3:
+        score += 10
+    return min(100, score)
+
 
 def _preserve_dialogue_intent_correction(message):
     """Correct a few high-confidence A1 forms without replacing learner meaning."""
@@ -564,7 +607,8 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
         if not task.get("keywords"):
             score = min(100, 45 + len(_normalize(message).split()) * 8)
         model_score = _similarity_score(message, task.get("model_answer")) if task.get("model_answer") else 0
-        completed = score >= 60 or model_score >= 55
+        semantic_score = _task_semantic_score(message, task)
+        completed = score >= 60 or model_score >= 55 or semantic_score >= 70
         if completed:
             reply = "Sehr gut. Das passt in dieser Situation."
         else:
