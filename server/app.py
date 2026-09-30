@@ -392,39 +392,19 @@ def create_nele_reply(
             save_conversation_state(session_id)
             return answer, meta or {}
 
-        # Meine Sätze are also understood in course mode. This is a global
-        # learner layer, not content hard-coded into one lesson.
-        personal = None
-        # An active Meine-Sätze practice owns the next turn. Let the lesson
-        # router evaluate it instead of letting the global sentence matcher
-        # consume the exact sentence the exercise just asked for.
-        if not state.get("personal_sentence_practice"):
-            personal = handle_personal_sentence(
-                user_message,
-                state,
-                mode="course",
-            )
-        if personal:
-            answer = personal["reply"]
-            remember_nele_output(answer, state)
-            save_conversation_state(session_id)
-            return answer, personal.get("meta", {})
+        # Strict course mode is owned only by the selected lesson/curriculum.
+        # Global Meine-Sätze matching and stale practice state must never
+        # consume a lesson turn before the lesson router sees the learner's
+        # answer. Clear practice left by older deployments when entering course.
+        state.pop("personal_sentence_practice", None)
 
-        # An active course-owned sentence practice must keep routing priority
-        # over adaptive Nele-3 recommendations. Otherwise a pending "Alltagsdialog"
-        # can consume the learner's "ja" and start an unrelated bakery task.
-        course_owned_practice = bool(state.get("personal_sentence_practice"))
-
-        if course_owned_practice:
-            handled, answer, meta = False, None, {}
-        else:
-            handled, answer, meta = handle_upgrade_message(
-                user_message,
-                state,
-                session_id=session_id,
-                transcript=transcript,
-                input_mode=mode,
-            )
+        handled, answer, meta = handle_upgrade_message(
+            user_message,
+            state,
+            session_id=session_id,
+            transcript=transcript,
+            input_mode=mode,
+        )
 
         if handled:
             remember_nele_output(
