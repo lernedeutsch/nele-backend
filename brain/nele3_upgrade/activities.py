@@ -56,50 +56,44 @@ def _similarity_score(message, expected):
     return int(round(overlap * 100))
 
 def _task_semantic_score(message, task):
-    """Score whether the learner fulfils the situation, not a memorised sentence."""
-    message_n = _normalize(message)
+    """Score fulfilment of a practical situation without memorised wording."""
     tokens = _tokens(message)
     prompt_tokens = _tokens((task or {}).get("prompt"))
     model_tokens = _tokens((task or {}).get("model_answer"))
-    keywords = [_normalize(value) for value in (task or {}).get("keywords", []) if _normalize(value)]
-
-    if not message_n or not tokens:
+    if not tokens:
         return 0
 
-    # Content nouns from the situation/model are useful evidence even when the
-    # learner chooses a different polite formulation.
-    content = {
-        token for token in (prompt_tokens | model_tokens)
-        if len(token) >= 4 and token not in {
-            "gast", "bitte", "guten", "morgen", "ihnen", "ihre", "einen",
-            "eine", "noch", "sehr", "gerne", "sofort", "möchten", "mochten",
-            "verkäuferin", "verkauferin", "entschuldigung", "brauche",
-            "bringe", "bringen", "natürlich", "naturlich", "frisches",
-        }
-    }
-    content_hit = bool(tokens & content)
-
-    # Recognise common service/response acts generically instead of requiring
-    # every literal keyword from one model answer.
+    # Verbs/politeness show the learner is performing the requested speech act.
     response_markers = {
         "bringe", "bringen", "hole", "holen", "kümmere", "kuemmere",
         "darum", "natürlich", "naturlich", "gerne", "gern", "möchte",
-        "mochte", "hätte", "hatte", "nehme", "brauche",
+        "mochte", "hätte", "hatte", "nehme",
     }
     response_hit = bool(tokens & response_markers)
-    keyword_hit = any(keyword in message_n for keyword in keywords)
 
-    # A semantic pass needs both situation content and a response act. This
-    # keeps weak keyword overlap ("ich möchte abfallen") from being accepted.
+    # Require a concrete object from the situation/model (or a common compound
+    # fragment such as Tuch in Handtuch). This blocks nonsense that merely
+    # contains a polite verb.
+    stop = {
+        "gast", "bitte", "guten", "morgen", "ihnen", "ihre", "einen",
+        "eine", "noch", "sehr", "gerne", "sofort", "möchten", "mochten",
+        "verkäuferin", "verkauferin", "entschuldigung", "brauche",
+        "bringe", "bringen", "natürlich", "naturlich", "frisches",
+    }
+    target_content = {
+        token for token in (prompt_tokens | model_tokens)
+        if len(token) >= 4 and token not in stop
+    }
+    content_hit = any(
+        learner == target
+        or (min(len(learner), len(target)) >= 4 and (learner in target or target in learner))
+        for learner in tokens
+        for target in target_content
+    )
+
     if not (content_hit and response_hit):
         return 0
-
-    score = 70
-    if keyword_hit:
-        score += 15
-    if len(tokens) >= 4:
-        score += 10
-    return min(100, score)
+    return 80 if len(tokens) >= 3 else 70
 
 
 def _preserve_dialogue_intent_correction(message):
@@ -610,6 +604,9 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
         if not task.get("keywords"):
             score = min(100, 45 + len(_normalize(message).split()) * 8)
         model_score = _similarity_score(message, task.get("model_answer")) if task.get("model_answer") else 0
+        # Model-token overlap is supporting evidence only; a weak two-word
+        # overlap must not complete a dialogue by itself.
+        model_pass = model_score >= 55 and len(_tokens(message)) >= 3
         semantic_score = _task_semantic_score(message, task)
         correction = (
             _preserve_dialogue_intent_correction(message)
@@ -623,7 +620,7 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
         )
         completed = (
             keyword_pass
-            or model_score >= 55
+            or model_pass
             or (semantic_score >= 70 and not correction)
         )
         if completed:
