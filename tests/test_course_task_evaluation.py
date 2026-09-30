@@ -49,3 +49,25 @@ class GenericCourseSemanticAnswerTests(unittest.TestCase):
         self.assertFalse(
             answer_matches_step("Wir wohnen in der Schweiz.", step, {})
         )
+
+
+class GenericCourseDigressionTests(unittest.TestCase):
+    def test_unrelated_question_is_course_digression(self):
+        from brain.logic.generic_lesson_engine import is_course_digression_question
+        step = {
+            "prompt": "Jetzt du. Ergänze: Du … aus Frankreich.",
+            "correct_answer": "Du kommst aus Frankreich.",
+        }
+        self.assertTrue(
+            is_course_digression_question("Wie ist das Wetter heute?", step, {})
+        )
+
+    def test_question_using_target_content_remains_lesson_attempt(self):
+        from brain.logic.generic_lesson_engine import is_course_digression_question
+        step = {
+            "prompt": "Jetzt du. Ergänze: Du … aus Frankreich.",
+            "correct_answer": "Du kommst aus Frankreich.",
+        }
+        self.assertFalse(
+            is_course_digression_question("Kommst du aus Frankreich?", step, {})
+        )
