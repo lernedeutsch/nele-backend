@@ -588,7 +588,7 @@ def detect_wellbeing_type(
     # BARDZO DOBRZE
     # ======================================
 
-    if message in VERY_GOOD_ANSWERS:
+    if message in VERY_GOOD_ANSWERS or semantic_message in VERY_GOOD_ANSWERS:
 
         return "very_good"
 
@@ -597,7 +597,7 @@ def detect_wellbeing_type(
     # DOBRZE
     # ======================================
 
-    if message in GOOD_ANSWERS:
+    if message in GOOD_ANSWERS or semantic_message in GOOD_ANSWERS:
 
         return "good"
 
@@ -606,7 +606,7 @@ def detect_wellbeing_type(
     # CAŁKIEM DOBRZE
     # ======================================
 
-    if message in QUITE_GOOD_ANSWERS:
+    if message in QUITE_GOOD_ANSWERS or semantic_message in QUITE_GOOD_ANSWERS:
 
         return "quite_good"
 
@@ -615,7 +615,7 @@ def detect_wellbeing_type(
     # NEUTRALNIE
     # ======================================
 
-    if message in NEUTRAL_ANSWERS:
+    if message in NEUTRAL_ANSWERS or semantic_message in NEUTRAL_ANSWERS:
 
         return "neutral"
 
@@ -624,7 +624,7 @@ def detect_wellbeing_type(
     # ŹLE
     # ======================================
 
-    if message in BAD_ANSWERS:
+    if message in BAD_ANSWERS or semantic_message in BAD_ANSWERS:
 
         return "bad"
 
@@ -633,7 +633,7 @@ def detect_wellbeing_type(
     # ZMĘCZONY
     # ======================================
 
-    if message in TIRED_ANSWERS:
+    if message in TIRED_ANSWERS or semantic_message in TIRED_ANSWERS:
 
         return "tired"
 
@@ -642,7 +642,7 @@ def detect_wellbeing_type(
     # STRES
     # ======================================
 
-    if message in STRESSED_ANSWERS:
+    if message in STRESSED_ANSWERS or semantic_message in STRESSED_ANSWERS:
 
         return "stressed"
 
@@ -651,7 +651,7 @@ def detect_wellbeing_type(
     # SMUTEK
     # ======================================
 
-    if message in SAD_ANSWERS:
+    if message in SAD_ANSWERS or semantic_message in SAD_ANSWERS:
 
         return "sad"
 
@@ -660,7 +660,7 @@ def detect_wellbeing_type(
     # CHOROBA
     # ======================================
 
-    if message in SICK_ANSWERS:
+    if message in SICK_ANSWERS or semantic_message in SICK_ANSWERS:
 
         return "sick"
 
