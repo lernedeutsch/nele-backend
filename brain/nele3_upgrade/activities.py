@@ -573,7 +573,7 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
                 if activity_type == "dialogue"
                 else None
             )
-            reply = "Fast. Versuch es noch einmal als kurzen, natürlichen Satz."
+            reply = ("Gut, ein Teil passt. Ergänze bitte noch den fehlenden Teil." if activity_type == "speaking" and score > 0 else "Das passt noch nicht ganz zur Situation. Versuch es noch einmal.")
             if correction:
                 reply += f" Du kannst sagen: „{correction}“"
             elif model and len(_normalize(message).split()) <= 2:
