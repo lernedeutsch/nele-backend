@@ -1027,13 +1027,30 @@ def is_course_digression_question(user_message, step, state):
     return True
 
 
-def build_course_digression_resume(step, state, level, lesson, section):
+def build_course_digression_resume(step, state, level, lesson, section, user_message=None):
     prompt = render_text(
         (step or {}).get("prompt"), state, level, lesson, section
     )
+
+    # A digression should be answered without handing control to free mode.
+    # Reuse its A1 social/question understanding against isolated temporary
+    # state, so course progress and the exact active step cannot be mutated.
+    digression_reply = ""
+    if user_message:
+        try:
+            from brain.logic.free_conversation import _social_a1_reply
+            digression_reply = clean_text(
+                _social_a1_reply(user_message, {}, {})
+            )
+        except Exception:
+            digression_reply = ""
+
+    if not digression_reply:
+        digression_reply = "Gute Frage."
+
     if prompt:
-        return f"Gute Frage. Wir kommen gleich darauf zurück. Jetzt machen wir genau hier weiter: {prompt}"
-    return "Gute Frage. Wir kommen gleich darauf zurück. Jetzt machen wir genau hier weiter."
+        return f"{digression_reply} Jetzt machen wir genau hier weiter: {prompt}"
+    return f"{digression_reply} Jetzt machen wir genau hier weiter."
 
 
 # ==========================================
@@ -1760,7 +1777,7 @@ def handle_generic_lesson_teaching(
         and is_course_digression_question(user_message, step, state)
     ):
         return build_course_digression_resume(
-            step, state, level, lesson, real_section
+            step, state, level, lesson, real_section, user_message=user_message
         )
 
     if not support.get("answer_matches"):
