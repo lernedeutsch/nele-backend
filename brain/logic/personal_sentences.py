@@ -250,6 +250,39 @@ def start_personal_sentence_practice(state, category=None):
     return item.get("practice_prompt") or f'Sag bitte: „{item["text"]}“'
 
 
+def get_current_personal_sentence_practice_prompt(state):
+    """Return the exact suspended Meine-Sätze prompt without changing progress."""
+    active = (state or {}).get("personal_sentence_practice") or {}
+    sentence_id = active.get("id")
+    item = next((x for x in PERSONAL_SENTENCES if x["id"] == sentence_id), None)
+    if not item:
+        return None
+    return item.get("practice_prompt") or f'Sag bitte: „{item["text"]}“'
+
+
+def _personal_practice_is_digression(user_message, item):
+    """Recognize an unrelated learner question during shared sentence practice."""
+    raw = str(user_message or "").strip()
+    value = _norm(raw)
+    if not value:
+        return False
+
+    words = value.split()
+    question_words = {
+        "wer", "was", "wann", "wo", "woher", "wohin", "warum", "wieso",
+        "wie", "welche", "welcher", "welches", "kann", "kannst", "ist",
+        "sind", "hast",
+    }
+    looks_like_question = raw.endswith("?") or (words and words[0] in question_words)
+    if not looks_like_question:
+        return False
+
+    target_words = set(_norm(item.get("text")).split())
+    learner_words = set(words)
+    overlap = len(target_words & learner_words) / max(1, len(target_words))
+    return overlap < 0.5
+
+
 def handle_personal_sentence_practice(user_message, state):
     """Evaluate an active practice turn and update mastery without endless repetition."""
     active = state.get("personal_sentence_practice") or {}
@@ -260,6 +293,13 @@ def handle_personal_sentence_practice(user_message, state):
     if not item:
         state.pop("personal_sentence_practice", None)
         return None
+
+    # A side question must not be counted as a failed sentence attempt.
+    # Suspend this exact shared practice turn, let normal conversation routers
+    # answer the question, then resume via course_side_question_pending.
+    if _personal_practice_is_digression(user_message, item):
+        state["course_side_question_pending"] = True
+        return {"reply": None, "digression": True, "item": item}
 
     if find_personal_sentence(user_message) == item:
         progress = record_personal_sentence_use(state, item, mode="course")
