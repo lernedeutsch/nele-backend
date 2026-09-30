@@ -36,5 +36,25 @@ class CurriculumSkillGraphOrderTests(unittest.TestCase):
         )
 
 
+    def test_active_course_mastery_is_routed_before_unrelated_generic_skill(self):
+        state = {"conversation_mode": "course", "learning_progress_v1": {"skills": {
+            "course:a1:2:zahlen_1–20": {"status": "improving"},
+        }}}
+        self.assertEqual(
+            choose_next_curriculum_skill(state),
+            {"skill": "course:a1:2:zahlen_1–20", "reason": "course_mastery_in_progress"},
+        )
+
+    def test_course_review_has_priority_in_course_mode(self):
+        state = {"conversation_mode": "course", "learning_progress_v1": {"skills": {
+            "course:a1:2:zahlen_1–20": {"status": "needs_review"},
+            "conversation:supported_answer": {"status": "needs_review"},
+        }}}
+        self.assertEqual(
+            choose_next_curriculum_skill(state),
+            {"skill": "course:a1:2:zahlen_1–20", "reason": "course_review"},
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
