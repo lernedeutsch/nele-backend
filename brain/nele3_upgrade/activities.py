@@ -55,6 +55,33 @@ def _similarity_score(message, expected):
     overlap = len(expected_tokens & got) / len(expected_tokens)
     return int(round(overlap * 100))
 
+def _open_choice_short_answer(message, task):
+    """Accept a short concrete choice when the prompt explicitly asks for one.
+
+    In a contextual role-play, "Was möchten Sie?" can be answered naturally
+    with a product noun. Requiring the model sentence would test memorisation,
+    not whether the learner can fulfil the conversational turn.
+    """
+    prompt = _normalize((task or {}).get("prompt"))
+    answer = _normalize(message)
+    tokens = answer.split()
+    if not prompt or not answer or not tokens:
+        return False
+    open_choice_markers = (
+        "was möchten sie",
+        "was moechten sie",
+        "was möchtest du",
+        "was moechtest du",
+    )
+    if not any(marker in prompt for marker in open_choice_markers):
+        return False
+    if len(tokens) > 4 or "?" in str(message or ""):
+        return False
+    if answer in {"ja", "nein", "bitte", "danke"}:
+        return False
+    return True
+
+
 def _task_semantic_score(message, task):
     """Score fulfilment of a practical situation without memorised wording."""
     tokens = _tokens(message)
@@ -111,7 +138,6 @@ def _preserve_dialogue_intent_correction(message):
         (r"\bein\s+kilo\b", "ein Kilo"),
         (r"\bapfeln\b", "Äpfel"),
         (r"\bäpfeln\b", "Äpfel"),
-        (r"\bapfel\b", "Äpfel"),
         (r"\bbitt\b", "bitte"),
     ]
     for pattern, value in replacements:
@@ -622,10 +648,16 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
             (keyword_count <= 1 and len(_tokens(message)) >= 2)
             or (score >= 100 and len(_tokens(message)) >= 4)
         )
+        contextual_short_pass = (
+            activity_type == "dialogue"
+            and _open_choice_short_answer(message, task)
+            and not correction
+        )
         completed = (
             keyword_pass
             or model_pass
             or (semantic_score >= 70 and not correction)
+            or contextual_short_pass
         )
         if completed:
             reply = "Sehr gut. Das passt in dieser Situation."
