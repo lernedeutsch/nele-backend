@@ -165,6 +165,18 @@ def _resume_course_after_side_answer(answer, state):
     return continue_after_side_answer(answer, state)
 
 
+def _release_wellbeing_for_course_dialogue_intent(user_message, state, level):
+    """Let an explicit validated course-dialogue intent outrank welcome small talk."""
+    if (
+        str((state or {}).get("conversation_mode") or "").strip().lower() != "course"
+        or (state or {}).get("last_question") != "wellbeing"
+        or find_dialogue_for_message(user_message, level=level) is None
+    ):
+        return False
+    state["last_question"] = None
+    return True
+
+
 # ==========================================
 # GŁÓWNY ROUTER
 # ==========================================
@@ -413,12 +425,11 @@ def generate_conversation_reply(
     # learning activity instead of being trapped as an invalid wellbeing
     # answer. This is generic across dialogue knowledge: no sentence or lesson
     # is hard-coded here.
-    if (
-        str(state.get("conversation_mode") or "").strip().lower() == "course"
-        and state.get("last_question") == "wellbeing"
-        and find_dialogue_for_message(user_message, level=level) is not None
-    ):
-        state["last_question"] = None
+    _release_wellbeing_for_course_dialogue_intent(
+        user_message,
+        state,
+        level,
+    )
 
 
     # ======================================
