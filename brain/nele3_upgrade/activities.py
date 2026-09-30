@@ -87,14 +87,15 @@ def _task_semantic_score(message, task):
     response_hit = bool(tokens & response_markers)
     keyword_hit = any(keyword in message_n for keyword in keywords)
 
-    score = 0
-    if content_hit:
-        score += 45
-    if response_hit:
-        score += 40
+    # A semantic pass needs both situation content and a response act. This
+    # keeps weak keyword overlap ("ich möchte abfallen") from being accepted.
+    if not (content_hit and response_hit):
+        return 0
+
+    score = 70
     if keyword_hit:
-        score += 20
-    if len(tokens) >= 3:
+        score += 15
+    if len(tokens) >= 4:
         score += 10
     return min(100, score)
 
@@ -608,16 +609,20 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
             score = min(100, 45 + len(_normalize(message).split()) * 8)
         model_score = _similarity_score(message, task.get("model_answer")) if task.get("model_answer") else 0
         semantic_score = _task_semantic_score(message, task)
-        completed = score >= 60 or model_score >= 55 or semantic_score >= 70
+        correction = (
+            _preserve_dialogue_intent_correction(message)
+            if activity_type == "dialogue"
+            else None
+        )
+        completed = (
+            score >= 60
+            or model_score >= 55
+            or (semantic_score >= 70 and not correction)
+        )
         if completed:
             reply = "Sehr gut. Das passt in dieser Situation."
         else:
             model = task.get("model_answer")
-            correction = (
-                _preserve_dialogue_intent_correction(message)
-                if activity_type == "dialogue"
-                else None
-            )
             reply = ("Gut, ein Teil passt. Ergänze bitte noch den fehlenden Teil." if activity_type == "speaking" and score > 0 else "Das passt noch nicht ganz zur Situation. Versuch es noch einmal.")
             if correction:
                 reply += f" Du kannst sagen: „{correction}“"
