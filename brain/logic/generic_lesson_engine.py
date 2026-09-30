@@ -98,6 +98,10 @@ from brain.logic.speaking_support import (
 )
 
 from brain.logic.learning_progress_engine import update_learning_progress
+from brain.logic.course_teacher_engine import (
+    choose_course_teacher_action,
+    render_course_teacher_action,
+)
 
 
 # ==========================================
@@ -1518,10 +1522,13 @@ def handle_generic_lesson_teaching(
             correct_answer = render_text(
                 step.get("correct_answer"), state, level, lesson, real_section
             )
-            return (
-                f"Gut, {partial['matched']} von {partial['total']} sind richtig. "
-                f"Mach weiter: „{correct_answer}“"
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=False,
+                partial=partial,
+                correct_answer=correct_answer,
             )
+            return render_course_teacher_action(action)
 
         record_course_step_outcome(
             state, level, lesson, real_section, False, final_step=False
@@ -1535,44 +1542,26 @@ def handle_generic_lesson_teaching(
 
 
         retry = render_text(
-            step.get(
-                "retry"
-            ),
+            step.get("retry"),
             state,
             level,
             lesson,
-            real_section
+            real_section,
         )
-
-
-        if retry:
-
-            return retry
-
-
         correct_answer = render_text(
-            step.get(
-                "correct_answer"
-            ),
+            step.get("correct_answer"),
             state,
             level,
             lesson,
-            real_section
+            real_section,
         )
-
-
-        if correct_answer:
-
-            return (
-                f"Fast. Richtig ist: "
-                f"„{correct_answer}“ "
-                "Versuch es bitte noch einmal."
-            )
-
-
-        return (
-            "Fast. Versuch es bitte noch einmal."
+        action = choose_course_teacher_action(
+            state,
+            answer_correct=False,
+            correct_answer=correct_answer,
+            retry=retry,
         )
+        return render_course_teacher_action(action)
 
 
     success = render_text(
@@ -1652,14 +1641,13 @@ def handle_generic_lesson_teaching(
             lesson,
             real_section,
         )
-        parts = [
-            part for part in (
-                success,
-                "Gut, wir festigen das noch einmal, bevor wir weitergehen.",
-                first_prompt,
-            ) if part
-        ]
-        return " ".join(parts)
+        action = choose_course_teacher_action(
+            state,
+            answer_correct=True,
+            mastery_status=(course_progress or {}).get("status"),
+        )
+        reinforcement = render_course_teacher_action(action, prompt=first_prompt)
+        return " ".join(part for part in (success, reinforcement) if part)
 
     completion_answer = complete_generic_section(
         state,

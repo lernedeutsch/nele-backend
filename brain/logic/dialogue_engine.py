@@ -19,6 +19,10 @@ from brain.memory.lesson_progress import mark_section_completed, get_next_incomp
 from brain.logic.learning_progress_engine import update_learning_progress
 from brain.logic.course_answer_evaluator import answer_matches_course_definition
 from brain.logic.learner_model import build_learner_model
+from brain.logic.course_teacher_engine import (
+    choose_course_teacher_action,
+    render_course_teacher_action,
+)
 
 
 def _text(value):
@@ -501,7 +505,12 @@ def _repeat_dialogue_for_mastery(dialogue, state, progress):
     )
     if not opening:
         return None
-    return "Gut, wir festigen das noch einmal, bevor wir weitergehen. " + opening
+    action = choose_course_teacher_action(
+        state,
+        answer_correct=True,
+        mastery_status=(progress or {}).get("status"),
+    )
+    return render_course_teacher_action(action, prompt=opening)
 
 
 def _complete_course_dialogue(dialogue, state):
@@ -677,11 +686,13 @@ def handle_dialogue(user_message, state):
         _record_course_dialogue_outcome(dialogue, state, False)
         expected = _text(turn.get("expected"))
         retry = _text(turn.get("retry"))
-        if retry:
-            return retry
-        if expected:
-            return f"Fast. Sag bitte: „{expected}“"
-        return "Fast. Versuch es bitte noch einmal."
+        action = choose_course_teacher_action(
+            state,
+            answer_correct=False,
+            correct_answer=expected,
+            retry=retry,
+        )
+        return render_course_teacher_action(action)
 
     for pattern in accepted_patterns(turn):
         captured = _match_slot_pattern(
