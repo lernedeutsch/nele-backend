@@ -1,4 +1,4 @@
-"""Learner Model v1: one read model over Nele's existing student memory.
+"""Learner Model v2: one pedagogical read model over Nele's student memory.
 
 It does not replace Error Memory or Vocabulary Memory. It summarizes them,
 together with conversational independence/support, for Teacher Engine.
@@ -10,7 +10,7 @@ from brain.logic.learning_progress_engine import summarize_learning_progress
 from brain.logic.curriculum_skill_graph import get_curriculum_state, choose_next_curriculum_skill
 
 
-MODEL_VERSION = 1
+MODEL_VERSION = 2
 
 
 def _safe_int(value):
@@ -18,6 +18,35 @@ def _safe_int(value):
         return int(value or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def _course_learning_state(state, curriculum, next_skill):
+    """Expose one course-facing truth for mastery, review and routing."""
+    progress = ((((state or {}).get("learning_progress_v1") or {}).get("skills")) or {})
+    current = (next_skill or {}).get("skill")
+    item = dict(progress.get(current) or {}) if current else {}
+    reason = (next_skill or {}).get("reason")
+    if not current:
+        decision = "course_complete"
+    elif reason == "course_review":
+        decision = "review"
+    elif reason == "course_mastery_in_progress":
+        decision = "practice"
+    elif reason == "course_prerequisites_met":
+        decision = "teach_next"
+    else:
+        decision = "practice"
+    return {
+        "mastered": list(curriculum.get("course_mastered") or []),
+        "in_progress": list(curriculum.get("course_in_progress") or []),
+        "review_due": list(curriculum.get("course_needs_review") or []),
+        "ready": list(curriculum.get("course_ready") or []),
+        "blocked": list(curriculum.get("course_blocked") or []),
+        "next_skill": current,
+        "next_reason": reason,
+        "next_status": item.get("status"),
+        "teaching_decision": decision,
+    }
 
 
 def build_learner_model(state):
@@ -64,6 +93,7 @@ def build_learner_model(state):
     learning_progress = summarize_learning_progress(state)
     curriculum = get_curriculum_state(state)
     next_curriculum_skill = choose_next_curriculum_skill(state)
+    course_learning = _course_learning_state(state, curriculum, next_curriculum_skill)
     recent_outcomes = list(state.get("learning_outcomes") or [])[-10:]
     recent_knowledge_usage = list(free.get("knowledge_usage") or [])[-10:]
     outcome_successes = sum(1 for item in recent_outcomes if item.get("status") == "SUCCESS")
@@ -112,6 +142,7 @@ def build_learner_model(state):
         "learning_progress": learning_progress,
         "curriculum": curriculum,
         "next_curriculum_skill": next_curriculum_skill,
+        "course_learning": course_learning,
         "knowledge_usage": {
             "recent_count": len(recent_knowledge_usage),
             "recent": [dict(item) for item in recent_knowledge_usage if isinstance(item, dict)],
@@ -124,9 +155,11 @@ def build_learner_model(state):
             "last": dict(state.get("last_learning_outcome") or {}),
         },
     }
-    state["learner_model_v1"] = model
+    state["learner_model_v2"] = model
+    state["learner_model_v1"] = model  # compatibility for existing consumers
     return model
 
 
 def get_learner_model(state):
-    return dict((state or {}).get("learner_model_v1") or {})
+    state = state or {}
+    return dict(state.get("learner_model_v2") or state.get("learner_model_v1") or {})
