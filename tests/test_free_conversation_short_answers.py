@@ -58,3 +58,37 @@ class GeneratedTests(unittest.TestCase):
         self.assertNotIn("was machst du gern in deiner freizeit", reply.lower())
         self.assertIn("zusammen", reply.lower())
         self.assertEqual(memory["activity_frequency"], "oft")
+
+
+    def test_mit_jemanden_keeps_company_context_and_corrects_case(self):
+        memory = {"hobby_activity": "spazieren"}
+        reply = _short_answer_followup(
+            "mit jemanden",
+            "Gehst du lieber allein oder mit jemandem spazieren?",
+            memory,
+        )
+        self.assertIn("mit jemandem", reply)
+        self.assertIn("Wie oft", reply)
+        self.assertEqual(memory["activity_company"], "mit jemandem")
+
+    def test_alleine_keeps_company_context(self):
+        memory = {}
+        reply = _short_answer_followup("alleine", "Mit wem machst du Sport?", memory)
+        self.assertIn("allein", reply.lower())
+        self.assertIn("Wie oft", reply)
+
+    def test_nichts_closes_completed_freizeit_thread(self):
+        memory = {}
+        reply = _short_answer_followup(
+            "nichts", "Was machst du sonst gern in deiner Freizeit?", memory
+        )
+        self.assertNotIn("was machst du sonst gern in deiner freizeit", reply.lower())
+        self.assertTrue(memory["leisure_complete"])
+
+    def test_pause_is_respected_in_completed_freizeit_thread(self):
+        memory = {}
+        reply = _short_answer_followup(
+            "Pause", "Was machst du sonst gern in deiner Freizeit?", memory
+        )
+        self.assertEqual(reply, "Klar, machen wir eine Pause.")
+        self.assertTrue(memory["leisure_complete"])
