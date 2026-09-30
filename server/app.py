@@ -410,13 +410,21 @@ def create_nele_reply(
             save_conversation_state(session_id)
             return answer, personal.get("meta", {})
 
-        handled, answer, meta = handle_upgrade_message(
-            user_message,
-            state,
-            session_id=session_id,
-            transcript=transcript,
-            input_mode=mode,
-        )
+        # An active course-owned sentence practice must keep routing priority
+        # over adaptive Nele-3 recommendations. Otherwise a pending "Alltagsdialog"
+        # can consume the learner's "ja" and start an unrelated bakery task.
+        course_owned_practice = bool(state.get("personal_sentence_practice"))
+
+        if course_owned_practice:
+            handled, answer, meta = False, None, {}
+        else:
+            handled, answer, meta = handle_upgrade_message(
+                user_message,
+                state,
+                session_id=session_id,
+                transcript=transcript,
+                input_mode=mode,
+            )
 
         if handled:
             remember_nele_output(
