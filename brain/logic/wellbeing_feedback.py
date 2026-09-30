@@ -576,6 +576,9 @@ def detect_wellbeing_type(
     )
     semantic_message = " ".join(semantic_message.split())
 
+    if re.fullmatch(r"(?:mir geht es|mir gehts|mir geht's|es geht mir|geht es mir) gut", semantic_message):
+        return "good"
+
 
     # ======================================
     # NAJPIERW BŁĘDY
