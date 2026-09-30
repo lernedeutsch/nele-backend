@@ -166,11 +166,12 @@ def _resume_course_after_side_answer(answer, state):
 
 
 def _release_wellbeing_for_course_dialogue_intent(user_message, state, level):
-    """Let an explicit validated course-dialogue intent outrank welcome small talk."""
+    """Do not trap an explicit learner question inside returning-welcome small talk."""
+    del level  # kept in the signature for course-routing compatibility
     if (
         str((state or {}).get("conversation_mode") or "").strip().lower() != "course"
         or (state or {}).get("last_question") != "wellbeing"
-        or find_dialogue_for_message(user_message, level=level) is None
+        or "?" not in str(user_message or "")
     ):
         return False
     state["last_question"] = None
