@@ -1092,15 +1092,32 @@ def _short_answer_followup(text, last_question, memory):
             memory["activity_frequency"] = raw.strip(" .?!")
             return "Schön, das klingt nach einer guten gemeinsamen Zeit. Was macht ihr sonst noch gern zusammen?"
     # Company: "Mit wem ...?" / "allein oder mit jemandem?"
+    # Interpret the answer by the semantic question, not by a tiny phrase list.
+    # This keeps natural beginner variants (including a case error such as
+    # "mit jemanden") inside the same activity thread.
     if "mit wem" in question or "allein oder mit jemandem" in question:
-        if low in {"mit meinem mann", "mit meiner frau", "mit freunden", "mit meiner familie"}:
+        if low in {"allein", "alleine"}:
+            memory["activity_company"] = "allein"
+            return "Du machst das also allein. Wie oft machst du das?"
+        if low in {"mit jemanden", "mit jemand"}:
+            memory["activity_company"] = "mit jemandem"
+            return "Fast. Richtig: „mit jemandem“. Wie oft machst du das?"
+        if low.startswith("mit ") and low not in {"mit dir", "mit ihnen"} and len(_words(low)) <= 5:
             memory["activity_company"] = raw.strip(" .?!")
-            # Preserve the learner's original internal capitalization (Mann,
-            # Familie, names) instead of str.capitalize(), which lowercases
-            # every character after the first one.
             echoed = raw.strip(" .?!")
             echoed = echoed[:1].upper() + echoed[1:] if echoed else echoed
             return f"Schön! {echoed}. Macht ihr das oft zusammen?"
+
+    # A completed leisure thread must not reopen the same broad question.
+    # "nichts" is a valid answer; "Pause" is a conversational command. Both
+    # should be consumed here rather than routed back into the Freizeit pool.
+    if "was machst du sonst gern in deiner freizeit" in question:
+        if low in {"nichts", "nichts besonderes", "nichts besonderes gerade"}:
+            memory["leisure_complete"] = True
+            return "Auch gut. Dann wechseln wir das Thema. Was kochst du gern?"
+        if low in {"pause", "eine pause", "pause bitte"}:
+            memory["leisure_complete"] = True
+            return "Klar, machen wir eine Pause."
 
     return None
 
