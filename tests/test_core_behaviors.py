@@ -174,6 +174,25 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             reply,
         )
 
+    def test_returning_welcome_keeps_course_start_gate_after_onboarding(self):
+        state = {
+            "onboarding_completed": True,
+            "onboarding_step": 0,
+            "last_question": "start_after_onboarding",
+            "user_facts": {"name": "Moni"},
+            "name": "Moni",
+        }
+
+        with patch(
+            "brain.logic.welcome.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "brain.logic.welcome.save_conversation_state"
+        ):
+            reply = generate_welcome_reply("test-course-start-gate")
+
+        self.assertEqual(reply, "Hallo Moni! Bist du bereit?")
+        self.assertEqual(state["last_question"], "start_after_onboarding")
     def test_resumed_first_a1_welcome_stays_short(self):
         state = {
             "onboarding_completed": False,
