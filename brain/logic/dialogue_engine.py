@@ -122,9 +122,31 @@ def _match_slot_pattern(user_message, pattern, slots=None, variable_slots=None):
     return captured
 
 
+def _contradicts_dialogue_context(user_message, turn, slots=None):
+    """Reject answers whose polarity contradicts the active semantic slot.
+
+    Confirmation turns may allow a negative correction with a different slot
+    value (for example: "Nein, ich komme aus Polen.").  A negative answer that
+    repeats the value being denied is self-contradictory and must not count as
+    successful evidence.
+    """
+    message = _norm(user_message)
+    intent = _norm((turn or {}).get("expected_intent"))
+    if not message.startswith("nein") or not intent.startswith("confirm"):
+        return False
+
+    for name, value in (slots or {}).items():
+        value_norm = _norm(value)
+        if value_norm and value_norm in message:
+            return True
+    return False
+
+
 def answer_matches_dialogue_turn(user_message, turn, slots=None, variable_slots=None):
     message = _norm(user_message)
     if not message:
+        return False
+    if _contradicts_dialogue_context(user_message, turn, slots):
         return False
     if turn.get("allow_any") is True:
         return True
