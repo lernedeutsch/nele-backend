@@ -563,7 +563,7 @@ def answer_active_task(state, message, transcript=None, input_mode=None):
         score = _keyword_score(message, task.get("keywords", []))
         if not task.get("keywords"):
             score = min(100, 45 + len(_normalize(message).split()) * 8)
-        completed = score >= 45
+        model_score = _similarity_score(message, task.get("model_answer")) if task.get("model_answer") else 0\n        completed = score >= 60 or model_score >= 55
         if completed:
             reply = "Sehr gut. Das passt in dieser Situation."
         else:
