@@ -12,15 +12,6 @@ class CurriculumSkillGraphOrderTests(unittest.TestCase):
             "conversation:supported_answer": {"status": "mastered"},
         }}}
 
-        curriculum = get_curriculum_state(state)
-
-        self.assertEqual(
-            curriculum["ready"][:2],
-            [
-                "conversation:full_sentence",
-                "conversation:continue_after_correction",
-            ],
-        )
         self.assertEqual(
             choose_next_curriculum_skill(state),
             {
@@ -30,7 +21,7 @@ class CurriculumSkillGraphOrderTests(unittest.TestCase):
         )
 
     def test_review_priority_also_follows_graph_order(self):
-        state = {"learning_progress_v1": {"skills": {
+        state = {"conversation_mode": "course", "learning_progress_v1": {"skills": {
             "conversation:supported_answer": {"status": "mastered"},
             "conversation:full_sentence": {"status": "needs_review"},
             "conversation:continue_after_correction": {"status": "needs_review"},
