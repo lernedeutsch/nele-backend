@@ -1,5 +1,6 @@
 import unittest
 
+from brain.logic.lesson_progress_router import handle_lesson_progress
 from brain.logic.curriculum_skill_graph import (
     choose_next_curriculum_skill,
     get_curriculum_state,
@@ -58,3 +59,29 @@ class CurriculumSkillGraphOrderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_manual_fertig_cannot_bypass_course_mastery():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {"skills": {
+            "course:a1:2:woher_kommen_sie": {"status": "practicing"},
+        }},
+    }
+    reply = handle_lesson_progress("Teil 1 ist fertig.", state)
+    assert "noch nicht als gelernt bestätigt" in reply
+    assert "completed_sections" not in str(state)
+
+
+def test_manual_fertig_is_allowed_after_real_course_mastery():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {"skills": {
+            "course:a1:2:woher_kommen_sie": {"status": "mastered"},
+        }},
+    }
+    reply = handle_lesson_progress("Teil 1 ist fertig.", state)
+    assert "noch nicht als gelernt bestätigt" not in reply
+    assert "abgeschlossen" in reply
