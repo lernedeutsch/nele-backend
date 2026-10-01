@@ -461,7 +461,18 @@ def handle_new_learning_resume(
     # ======================================
     # INNA ODPOWIEDŹ
     #
-    # Nie blokujemy normalnej rozmowy.
+    # In strict course mode the handoff to the next section remains the
+    # active teaching question. Falling through here lets general conversation
+    # consume the turn and strands the learner outside the lesson.
     # ======================================
+
+    if str(state.get("conversation_mode") or "").strip().lower() == "course":
+        offer = get_new_learning_offer(state) or {}
+        section = str(offer.get("section") or "").strip()
+        if section:
+            return (
+                f"Wir sind noch im Kurs. Als Nächstes kommt „{section}“. "
+                "Möchtest du weitermachen? Antworte bitte mit „ja“ oder „nein“."
+            )
 
     return None
