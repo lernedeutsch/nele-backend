@@ -61,12 +61,10 @@ def semantic_equivalent(user_message, accepted_values, render=None):
             if target_tokens[0] in subject_pronouns and len(target_tokens) >= 3:
                 if learner_tokens == target_tokens:
                     return True
+                model_subject = target_tokens[0]
                 model_verb = target_tokens[1]
-                if (
-                    len(learner_tokens) >= 3
-                    and learner_tokens[1] == model_verb
-                    and target_tokens[0] in learner_tokens[2:]
-                ):
+                tail = target_tokens[2:]
+                if learner_tokens == tail + [model_verb, model_subject]:
                     return True
                 continue
             return True
