@@ -16,6 +16,7 @@ from brain.logic.course_teacher_engine import (
     render_course_teacher_action,
 )
 from brain.logic.matcher import normalize
+from brain.logic.onboarding import extract_name_sentence
 
 from brain.memory.lesson_review import (
     mark_lesson_review_completed,
@@ -450,35 +451,13 @@ def is_greeting_range_answer(
 # SPRAWDZENIE PRZEDSTAWIENIA SIĘ
 # ==========================================
 
-def is_valid_name_answer(
-    text
-):
+def is_valid_name_answer(text):
+    """Accept only a real self-introduction, not arbitrary Ich bin text.
 
-    answer = clean_normalized_answer(
-        text
-    )
-
-
-    starts = [
-        "ich heiße ",
-        "ich heisse ",
-        "ich bin ",
-        "mein name ist "
-    ]
-
-
-    return any(
-        answer.startswith(
-            start
-        )
-        and
-        len(
-            answer[
-                len(start):
-            ].strip()
-        ) > 0
-        for start in starts
-    )
+    Reuse onboarding semantic name extraction so age, wellbeing or other
+    statements cannot count as name-introduction evidence in review.
+    """
+    return bool(extract_name_sentence(text))
 
 
 # ==========================================
