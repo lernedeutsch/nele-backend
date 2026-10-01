@@ -4,13 +4,16 @@
 # ==========================================
 
 from brain.logic.speaking_support import (
-    legacy_course_support,
     handle_pending_course_model,
     register_course_success as register_speaking_course_success,
 )
 
 from brain.logic.learning_progress_engine import update_learning_progress
 from brain.logic.course_answer_evaluator import evaluate_course_answer
+from brain.logic.course_teacher_engine import (
+    choose_course_teacher_action,
+    render_course_teacher_action,
+)
 from brain.logic.matcher import normalize
 
 from brain.memory.lesson_review import (
@@ -740,13 +743,13 @@ def handle_a1_lesson_1_review(
 
             remember_wrong_answer(state)
             record_review_course_outcome(state, step, False)
-            support = legacy_course_support(
-                user_message, "Guten Morgen", state, context="review"
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=False,
+                correct_answer="Guten Morgen",
+                retry="Sag es noch einmal.",
             )
-            if support:
-                return support
-            state["course_pending_speaking_model"] = "Guten Morgen"
-            return "Fast. Du kannst sagen: „Guten Morgen“. Sag es mal."
+            return render_course_teacher_action(action)
 
 
         state[
@@ -790,13 +793,13 @@ def handle_a1_lesson_1_review(
                 or "Moni"
             ).strip()
             target = f"Ich heiße {name}."
-            support = legacy_course_support(
-                user_message, target, state, context="review"
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=False,
+                correct_answer=target,
+                retry="Stell dich noch einmal kurz vor.",
             )
-            if support:
-                return support
-            state["course_pending_speaking_model"] = target
-            return f"Fast. Du kannst sagen: „{target}“ Sag es mal."
+            return render_course_teacher_action(action)
 
 
         state[
@@ -832,13 +835,13 @@ def handle_a1_lesson_1_review(
 
             remember_wrong_answer(state)
             record_review_course_outcome(state, step, False)
-            support = legacy_course_support(
-                user_message, "Wie heißt du?", state, context="review"
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=False,
+                correct_answer="Wie heißt du?",
+                retry="Frag deinen Freund noch einmal.",
             )
-            if support:
-                return support
-            state["course_pending_speaking_model"] = "Wie heißt du?"
-            return "Fast. Du kannst sagen: „Wie heißt du?“ Sag es mal."
+            return render_course_teacher_action(action)
 
 
         state[
@@ -874,13 +877,13 @@ def handle_a1_lesson_1_review(
 
             remember_wrong_answer(state)
             record_review_course_outcome(state, step, False)
-            support = legacy_course_support(
-                user_message, "Wie heißen Sie?", state, context="review"
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=False,
+                correct_answer="Wie heißen Sie?",
+                retry="Frag noch einmal höflich.",
             )
-            if support:
-                return support
-            state["course_pending_speaking_model"] = "Wie heißen Sie?"
-            return "Fast. Du kannst sagen: „Wie heißen Sie?“ Sag es mal."
+            return render_course_teacher_action(action)
 
 
         state[
@@ -919,12 +922,13 @@ def handle_a1_lesson_1_review(
             )
             record_review_course_outcome(state, step, False)
 
-            # Stay on the same review task. The correction is guided support,
-            # not evidence that the learner can produce the answer independently.
-            return (
-                "Fast. Die drei Umlaute sind Ä, Ö und Ü. "
-                "Sag sie jetzt selbst."
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=False,
+                correct_answer="Ä, Ö und Ü",
+                retry="Die drei Umlaute sind Ä, Ö und Ü. Sag sie jetzt selbst.",
             )
+            return render_course_teacher_action(action)
 
 
         state[
@@ -962,14 +966,13 @@ def handle_a1_lesson_1_review(
             )
             record_review_course_outcome(state, step, False)
 
-            # Do not finish the review after exposing the answer. Require the
-            # learner to produce it on the same task first; that retry remains
-            # assisted evidence because record_review_course_outcome() set the
-            # shared course assistance flag on the miss.
-            return (
-                "Fast. Das Zeichen heißt „Eszett“ oder „scharfes S“. "
-                "Sag es jetzt selbst."
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=False,
+                correct_answer="Eszett",
+                retry="Das Zeichen heißt „Eszett“ oder „scharfes S“. Sag es jetzt selbst.",
             )
+            return render_course_teacher_action(action)
 
 
         result = (

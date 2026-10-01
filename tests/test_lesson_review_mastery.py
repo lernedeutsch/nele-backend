@@ -110,6 +110,24 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "mastered",
         )
 
+    def test_review_wrong_answer_uses_shared_teacher_engine(self):
+        state = self.base_state()
+        state["lesson_review_training_step"] = 3
+
+        reply = handle_a1_lesson_1_review("Wie geht es dir?", state)
+
+        self.assertTrue(reply)
+        self.assertEqual(state["lesson_review_training_step"], 3)
+        self.assertEqual(state["course_teacher_action"]["action"], "correct_and_retry")
+        self.assertEqual(state["course_teacher_action"]["reason"], "answer_not_yet")
+        self.assertEqual(state["course_teacher_action"]["model"], "Wie heißt du?")
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:ich_stelle_mich_vor"
+            ]["status"],
+            "needs_review",
+        )
+
     def test_wrong_umlauts_require_retry_before_advancing(self):
         state = self.base_state()
         state["lesson_review_training_step"] = 5
