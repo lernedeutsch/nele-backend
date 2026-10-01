@@ -166,6 +166,30 @@ class SharedMasteryIndependentConfirmationTests(unittest.TestCase):
         self.assertEqual(progress["status"], "mastered")
 
 
+class SharedMasteryFreshConfirmationTests(unittest.TestCase):
+    def test_assisted_final_needs_fresh_independent_confirmation(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        base = {
+            "skill": "course:a1:2:das_verb_kommen",
+            "expected_outcome": "course_step",
+            "status": "SUCCESS",
+            "requires_independent_confirmation": True,
+            "mastery_eligible": False,
+        }
+        earlier = dict(base)
+        earlier["independent_confirmation"] = True
+        update_learning_progress(state, earlier)
+        update_learning_progress(state, dict(base))
+        final = dict(base)
+        final["mastery_eligible"] = True
+        progress = update_learning_progress(state, final)
+        self.assertNotEqual(progress["status"], "mastered")
+        final["independent_confirmation"] = True
+        progress = update_learning_progress(state, final)
+        self.assertEqual(progress["status"], "mastered")
+
+
 class GenericCourseMasteryRoutingGateTests(unittest.TestCase):
     def test_many_failures_prevent_mastery_even_after_final_success(self):
         from brain.logic.generic_lesson_engine import record_course_step_outcome
