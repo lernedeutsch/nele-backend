@@ -455,3 +455,50 @@ class CourseGapFillShortAnswerTests(unittest.TestCase):
                 evaluate_course_answer(answer, definition)["kind"],
                 "wrong",
             )
+
+
+class SharedMasteryStaleEvidenceRegressionTests(unittest.TestCase):
+    def test_failure_invalidates_old_multi_part_evidence_before_remastery(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+
+        state = {}
+        required = ["a", "b", "c"]
+
+        # First prove the whole skill independently.
+        for evidence in required:
+            progress = update_learning_progress(state, {
+                "skill": "course:a1:99:multi-review",
+                "status": "SUCCESS",
+                "mastery_eligible": True,
+                "requires_independent_confirmation": True,
+                "independent_confirmation": True,
+                "required_evidence": required,
+                "evidence": evidence,
+            })
+        self.assertEqual(progress["status"], "mastered")
+
+        # A later real error means the old breadth proof is stale.
+        progress = update_learning_progress(state, {
+            "skill": "course:a1:99:multi-review",
+            "status": "NOT_YET",
+            "mastery_eligible": False,
+            "requires_independent_confirmation": True,
+            "required_evidence": required,
+            "evidence": "a",
+        })
+        self.assertEqual(progress["status"], "needs_review")
+        self.assertEqual(progress["independent_evidence"], [])
+
+        # Repeating only one different part must not recycle the old a/b proof.
+        for _ in range(3):
+            progress = update_learning_progress(state, {
+                "skill": "course:a1:99:multi-review",
+                "status": "SUCCESS",
+                "mastery_eligible": True,
+                "requires_independent_confirmation": True,
+                "independent_confirmation": True,
+                "required_evidence": required,
+                "evidence": "c",
+            })
+        self.assertNotEqual(progress["status"], "mastered")
+        self.assertEqual(progress["independent_evidence"], ["c"])
