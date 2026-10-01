@@ -102,6 +102,37 @@ LESSON_FLOW = {
             "complete": "Du kannst jetzt nach der Herkunft fragen und mit „Ich komme aus …“ antworten."
         },
 
+        "Länder und Nationalitäten": {
+            "intro": "Jetzt üben wir Länder und Nationalitäten. Achte auf die passende Form für die Person.",
+            "steps": [
+                {
+                    "prompt": "Anna kommt aus Polen. Ergänze: „Anna ist …“",
+                    "accepted": ["Anna ist Polin.", "Polin"],
+                    "correct_answer": "Anna ist Polin.",
+                    "error_type": "vocabulary",
+                    "retry": "Polen → Polin. Sag: „Anna ist Polin.“",
+                    "success": "Genau."
+                },
+                {
+                    "prompt": "Thomas kommt aus Deutschland. Ergänze: „Thomas ist …“",
+                    "accepted": ["Thomas ist Deutscher.", "Deutscher"],
+                    "correct_answer": "Thomas ist Deutscher.",
+                    "error_type": "vocabulary",
+                    "retry": "Deutschland → Deutscher. Sag: „Thomas ist Deutscher.“",
+                    "success": "Richtig."
+                },
+                {
+                    "prompt": "Maria kommt aus Italien. Ergänze: „Maria ist …“",
+                    "accepted": ["Maria ist Italienerin.", "Italienerin"],
+                    "correct_answer": "Maria ist Italienerin.",
+                    "error_type": "vocabulary",
+                    "retry": "Italien → Italienerin. Sag: „Maria ist Italienerin.“",
+                    "success": "Sehr gut."
+                }
+            ],
+            "complete": "Du kannst jetzt zu Ländern passende Nationalitäten nennen."
+        },
+
         "Das Verb kommen": {
             "intro": "Jetzt lernen wir „kommen“. Hör zuerst: ich komme, du kommst, er oder sie kommt, wir kommen, ihr kommt, sie kommen. Jetzt üben wir langsam.",
             "steps": [
