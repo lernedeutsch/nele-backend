@@ -884,6 +884,7 @@ def complete_active_section(
             state["lesson_teaching_step"] = 1
             state["course_mastery_assistance_used"] = False
             state["course_mastery_section_assistance_used"] = False
+            state["course_mastery_restart_required"] = True
             return section
 
         mark_section_completed(
@@ -1780,6 +1781,10 @@ def handle_greeting_section(
         )
 
 
+        if state.pop("course_mastery_restart_required", False):
+            restart_prompt = start_lesson_teaching(next_section, state)
+            return f"Wir wiederholen „{next_section}“. {restart_prompt}"
+
         if next_section:
 
             return (
@@ -2163,6 +2168,10 @@ def handle_introduction_section(
         )
 
 
+        if state.pop("course_mastery_restart_required", False):
+            restart_prompt = start_lesson_teaching(next_section, state)
+            return f"Wir wiederholen „{next_section}“. {restart_prompt}"
+
         if next_section:
 
             return (
@@ -2517,6 +2526,10 @@ def handle_alphabet_section(
         next_section = complete_active_section(
             state
         )
+
+        if state.pop("course_mastery_restart_required", False):
+            restart_prompt = start_lesson_teaching(next_section, state)
+            return f"Wir wiederholen „{next_section}“. {restart_prompt}"
 
         if next_section:
 

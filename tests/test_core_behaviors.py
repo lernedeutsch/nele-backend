@@ -44,6 +44,7 @@ from brain.logic.lesson_teaching import (
     is_relevant_greeting_mistake,
     handle_alphabet_section,
     handle_introduction_section,
+    handle_greeting_section,
     complete_active_section,
     register_course_success,
     remember_lesson_mistake,
@@ -266,6 +267,39 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(state["lesson_teaching_step"], 1)
         self.assertIn("Das deutsche Alphabet", reply)
         self.assertFalse(state["course_mastery_section_assistance_used"])
+
+
+    def test_guided_legacy_pass_restarts_with_real_first_prompt(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_active": True,
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 6,
+            "course_mastery_section_assistance_used": True,
+            "lesson_progress": {
+                "lessons": {
+                    "A1:1": {
+                        "level": "A1",
+                        "lesson": 1,
+                        "current_section": "Wir begrüßen uns",
+                        "completed_sections": [],
+                        "completed": False,
+                    }
+                }
+            },
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ):
+            register_course_success(state)
+            register_course_success(state)
+            reply = handle_greeting_section("Guten Morgen", state)
+
+        self.assertIn("Es ist Morgen. Was sagst du?", reply)
+        self.assertNotIn("Möchtest du weitermachen", reply)
+        self.assertEqual(state["lesson_teaching_step"], 1)
+        self.assertTrue(state["lesson_teaching_active"])
 
 
     def test_legacy_clean_success_can_confirm_mastery_after_guided_practice(self):
