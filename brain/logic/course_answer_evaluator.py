@@ -74,6 +74,37 @@ def sequence_partial_progress(user_message, accepted_values, state=None, render=
     return None
 
 
+def _gap_fill_fragment(definition, render=None):
+    """Return the exact missing fragment for a simple quoted gap-fill prompt."""
+    if not isinstance(definition, dict):
+        return None
+    render = render or (lambda value: str(value or ""))
+    prompt = render(definition.get("prompt", ""))
+    correct = render(definition.get("correct_answer", ""))
+    if not prompt or not correct:
+        return None
+
+    quoted = re.findall(r'[„"]([^„“"]*(?:…|___+)[^„“"]*)[“"]', prompt)
+    for template in quoted:
+        parts = re.split(r'(?:…|___+)', template, maxsplit=1)
+        if len(parts) != 2:
+            continue
+        prefix = _norm(parts[0])
+        suffix = _norm(parts[1])
+        target = _norm(correct)
+        if prefix and not target.startswith(prefix):
+            continue
+        if suffix and not target.endswith(suffix):
+            continue
+
+        start = len(prefix)
+        end = len(target) - len(suffix) if suffix else len(target)
+        missing = target[start:end].strip()
+        if missing:
+            return missing
+    return None
+
+
 def answer_matches_course_definition(user_message, definition, render=None, validator=None):
     if not isinstance(definition, dict):
         return False
@@ -100,6 +131,13 @@ def answer_matches_course_definition(user_message, definition, render=None, vali
     if any(message == _norm(value) for value in rendered_accepted):
         return True
     if semantic_equivalent(user_message, accepted, render=render):
+        return True
+
+    # In a real gap-fill task, the learner may naturally say only the missing
+    # word/form. Infer that fragment from the prompt + correct answer instead
+    # of forcing every lesson to duplicate it in `accepted`.
+    gap_fragment = _gap_fill_fragment(definition, render=render)
+    if gap_fragment and message == gap_fragment:
         return True
 
     regex_patterns = definition.get("regex", [])
