@@ -104,7 +104,10 @@ class GenericCourseMasteryEvidenceTests(unittest.TestCase):
         for _ in range(5):
             progress = record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True, final_step=False)
         self.assertNotEqual(progress["status"], "mastered")
-        progress = record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True, final_step=True)
+        progress = record_course_step_outcome(
+            state, "A1", 2, "Das Verb kommen", True,
+            final_step=True, independent_confirmation=True,
+        )
         self.assertEqual(progress["status"], "mastered")
 
     def test_wrong_course_attempt_is_recorded_and_not_mastered(self):
