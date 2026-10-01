@@ -157,6 +157,28 @@ def get_student_name(
     )
 
 
+def get_student_origin(
+    state
+):
+
+    if state is None:
+        return ""
+
+    origin = get_user_fact(
+        state,
+        "origin"
+    )
+
+    if not origin:
+        origin = state.get(
+            "origin"
+        )
+
+    return clean_text(
+        origin
+    )
+
+
 def get_spelled_name(
     state
 ):
@@ -225,6 +247,14 @@ def get_template_values(
         "spelled_name":
             get_spelled_name(
                 state
+            ),
+
+        "origin":
+            (
+                get_student_origin(
+                    state
+                )
+                or "Polen"
             ),
 
         "level":
