@@ -161,32 +161,32 @@ LESSON_FLOW = {
             "intro": "Zum Schluss üben wir die Zahlen von 1 bis 20. Du kannst sie sagen oder schreiben. Ich helfe dir, wenn du sie noch nicht kennst.",
             "steps": [
                 {
-                    "prompt": "Sag die Zahlen 1 bis 5 auf Deutsch. Wenn du sie noch nicht weißt, kannst du auch 1 2 3 4 5 schreiben.",
-                    "accepted": ["eins, zwei, drei, vier, fünf", "eins zwei drei vier fünf", "1 2 3 4 5", "1, 2, 3, 4, 5"],
+                    "prompt": "Sag die Zahlen 1 bis 5 auf Deutsch. Wenn du sie noch nicht weißt, helfe ich dir.",
+                    "accepted": ["eins, zwei, drei, vier, fünf", "eins zwei drei vier fünf"],
                     "correct_answer": "eins, zwei, drei, vier, fünf",
                     "error_type": "vocabulary",
                     "retry": "Hör zu: eins, zwei, drei, vier, fünf. Sag sie bitte noch einmal.",
                     "success": "Sehr gut."
                 },
                 {
-                    "prompt": "Jetzt 6 bis 10 auf Deutsch. Du kannst auch die Ziffern schreiben.",
-                    "accepted": ["sechs, sieben, acht, neun, zehn", "sechs sieben acht neun zehn", "6 7 8 9 10", "6, 7, 8, 9, 10"],
+                    "prompt": "Jetzt 6 bis 10 auf Deutsch.",
+                    "accepted": ["sechs, sieben, acht, neun, zehn", "sechs sieben acht neun zehn"],
                     "correct_answer": "sechs, sieben, acht, neun, zehn",
                     "error_type": "vocabulary",
                     "retry": "Hör zu: sechs, sieben, acht, neun, zehn. Sag sie bitte noch einmal.",
                     "success": "Richtig."
                 },
                 {
-                    "prompt": "Jetzt 11 bis 15 auf Deutsch. Du kannst auch die Ziffern schreiben.",
-                    "accepted": ["elf, zwölf, dreizehn, vierzehn, fünfzehn", "elf zwölf dreizehn vierzehn fünfzehn", "11 12 13 14 15", "11, 12, 13, 14, 15"],
+                    "prompt": "Jetzt 11 bis 15 auf Deutsch.",
+                    "accepted": ["elf, zwölf, dreizehn, vierzehn, fünfzehn", "elf zwölf dreizehn vierzehn fünfzehn"],
                     "correct_answer": "elf, zwölf, dreizehn, vierzehn, fünfzehn",
                     "error_type": "vocabulary",
                     "retry": "Hör zu: elf, zwölf, dreizehn, vierzehn, fünfzehn. Sag sie bitte noch einmal.",
                     "success": "Sehr gut."
                 },
                 {
-                    "prompt": "Und jetzt 16 bis 20 auf Deutsch. Du kannst auch die Ziffern schreiben.",
-                    "accepted": ["sechzehn, siebzehn, achtzehn, neunzehn, zwanzig", "sechzehn siebzehn achtzehn neunzehn zwanzig", "16 17 18 19 20", "16, 17, 18, 19, 20"],
+                    "prompt": "Und jetzt 16 bis 20 auf Deutsch.",
+                    "accepted": ["sechzehn, siebzehn, achtzehn, neunzehn, zwanzig", "sechzehn siebzehn achtzehn neunzehn zwanzig"],
                     "correct_answer": "sechzehn, siebzehn, achtzehn, neunzehn, zwanzig",
                     "error_type": "vocabulary",
                     "retry": "Hör zu: sechzehn, siebzehn, achtzehn, neunzehn, zwanzig. Sag sie bitte noch einmal.",
