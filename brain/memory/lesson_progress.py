@@ -485,11 +485,10 @@ def _course_section_skill_candidates(state, level, lesson, section):
     prefix = f"course:{str(level or '').strip().lower()}:{lesson}:"
     section_slug = str(section or "").strip().lower().strip(" .?!„“\\\"'").replace(" ", "_")
     exact = prefix + section_slug
-    candidates = [exact] if exact in skills else []
-    lesson_skills = [key for key in skills if key.startswith(prefix)]
-    if len(lesson_skills) == 1 and not candidates:
-        candidates.extend(lesson_skills)
-    return candidates
+    # A section may only be proven by its own skill.  Reusing the sole
+    # lesson skill for another section makes every later section look mastered
+    # as soon as the first one is mastered.
+    return [exact] if exact in skills else []
 
 
 def is_course_section_mastered(state, level, lesson, section):
