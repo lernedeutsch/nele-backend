@@ -127,14 +127,15 @@ def _record_legacy_course_mastery(state, success, independent_confirmation=False
     )
 
 
-def register_course_success(state):
-    """Record accepted legacy work without mistaking guided work for mastery."""
+def register_course_success(state, final_step=False):
+    """Record legacy practice; only a clean final production may prove mastery."""
     assisted = bool((state or {}).get("course_mastery_assistance_used"))
     _register_speaking_course_success(state)
+    independent_confirmation = bool(final_step and not assisted)
     result = _record_legacy_course_mastery(
         state,
         True,
-        independent_confirmation=not assisted,
+        independent_confirmation=independent_confirmation,
     )
     # Assistance belongs to the task that just finished. The next legacy task
     # starts clean and can provide independent evidence if no new help is used.
@@ -1754,7 +1755,7 @@ def handle_greeting_section(
             )
 
 
-        register_course_success(state)
+        register_course_success(state, final_step=True)
 
         next_section = complete_active_section(
             state
@@ -2138,7 +2139,7 @@ def handle_introduction_section(
             )
 
 
-        register_course_success(state)
+        register_course_success(state, final_step=True)
 
         next_section = complete_active_section(
             state
@@ -2465,7 +2466,7 @@ def handle_alphabet_section(
                 "Buchstabe für Buchstabe."
             )
 
-        register_course_success(state)
+        register_course_success(state, final_step=True)
 
         next_section = complete_active_section(
             state
