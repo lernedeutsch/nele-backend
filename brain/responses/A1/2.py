@@ -52,8 +52,8 @@ LESSON_FLOW = {
             "steps": [
                 {
                     "prompt": "{name}, woher kommst du? Antworte: „Ich komme aus …“",
-                    "accepted": ["Ich komme aus Polen.", "Polen", "aus Polen"],
-                    "correct_answer": "Ich komme aus Polen.",
+                    "accepted": ["Ich komme aus {origin}.", "{origin}", "aus {origin}"],
+                    "correct_answer": "Ich komme aus {origin}.",
                     "error_type": "grammar",
                     "retry": "Fast. Sag den ganzen Satz: „Ich komme aus Polen.“ Sprich ihn bitte nach.",
                     "success": "Sehr gut. Jetzt fragst du mich."
