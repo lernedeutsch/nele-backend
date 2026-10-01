@@ -181,6 +181,28 @@ A1_LESSON_1_REVIEW_SECTIONS = {
     6: "Das deutsche Alphabet",
 }
 
+# A review may restore mastery only after it has independently covered every
+# review evidence item required for that course skill.  This prevents one
+# narrow success from restoring a broader multi-part skill.
+A1_LESSON_1_REVIEW_EVIDENCE = {
+    1: "greeting_range",
+    2: "introduce_self",
+    3: "ask_name_informal",
+    4: "ask_name_formal",
+    5: "umlauts",
+    6: "eszett",
+}
+
+A1_LESSON_1_REQUIRED_REVIEW_EVIDENCE = {
+    "Wir begrüßen uns": {"greeting_range"},
+    "Ich stelle mich vor": {
+        "introduce_self",
+        "ask_name_informal",
+        "ask_name_formal",
+    },
+    "Das deutsche Alphabet": {"umlauts", "eszett"},
+}
+
 
 def _course_skill_key(level, lesson, section):
     section_key = normalize(str(section or "")).strip(
@@ -206,6 +228,22 @@ def record_review_course_outcome(state, step, success):
     assisted = bool(state.get("course_mastery_assistance_used"))
     independent = bool(success and not assisted)
 
+    evidence_key = A1_LESSON_1_REVIEW_EVIDENCE.get(int(step or 0))
+    evidence_state = state.setdefault("course_review_evidence", {})
+    skill_evidence = set(evidence_state.get(skill) or [])
+    if independent and evidence_key:
+        skill_evidence.add(evidence_key)
+        evidence_state[skill] = sorted(skill_evidence)
+
+    required_evidence = set(
+        A1_LESSON_1_REQUIRED_REVIEW_EVIDENCE.get(section) or []
+    )
+    coverage_complete = bool(
+        independent
+        and required_evidence
+        and required_evidence.issubset(skill_evidence)
+    )
+
     if success:
         register_speaking_course_success(state)
     else:
@@ -218,10 +256,10 @@ def record_review_course_outcome(state, step, success):
             "skill": skill,
             "expected_outcome": "course_review",
             "status": "SUCCESS" if success else "NOT_YET",
-            "mastery_eligible": bool(success and independent),
+            "mastery_eligible": bool(success and coverage_complete),
             "requires_independent_confirmation": True,
-            "independent_confirmation": independent,
-            "review_confirmation": independent,
+            "independent_confirmation": coverage_complete,
+            "review_confirmation": coverage_complete,
         },
     )
 
@@ -380,12 +418,14 @@ def start_lesson_review_training(
         "lesson_review_training_wrong"
     ] = 0
 
+    state["course_review_evidence"] = {}
 
     return (
         "Heute ist die Wiederholung von "
         "A1, Lektion 1 dran. "
         "Wir machen eine kurze Wiederholung. "
-        "Es ist morgens. Was sagst du?"
+        "Nenne passende Grüße für morgens, tagsüber, abends "
+        "und beim Gehen."
     )
 
 
@@ -393,18 +433,16 @@ def start_lesson_review_training(
 # SPRAWDZENIE POWITANIA
 # ==========================================
 
-def is_morning_greeting(
+def is_greeting_range_answer(
     text
 ):
-
-    answer = clean_normalized_answer(
-        text
-    )
-
-    return answer in {
-        "guten morgen",
-        "morgen"
-    }
+    """Require independent coverage of the greeting situations taught by the skill."""
+    answer = clean_normalized_answer(text)
+    has_morning = "guten morgen" in answer or answer.startswith("morgen")
+    has_day = "guten tag" in answer
+    has_evening = "guten abend" in answer
+    has_goodbye = "tschüss" in answer or "auf wiedersehen" in answer
+    return has_morning and has_day and has_evening and has_goodbye
 
 
 # ==========================================
@@ -536,7 +574,7 @@ def is_eszett_answer(
 # ==========================================
 
 A1_LESSON_1_REVIEW_ANSWERS = {
-    1: {"accepted": ["Guten Morgen", "Morgen"]},
+    1: {"validator": "review_greeting_range"},
     2: {"validator": "review_name_introduction"},
     3: {"accepted": ["Wie heißt du?", "Wie heisst du?"]},
     4: {"accepted": ["Wie heißen Sie?", "Wie heissen Sie?"]},
@@ -556,6 +594,8 @@ A1_LESSON_1_REVIEW_ANSWERS = {
 
 def _review_answer_validator(name, user_message):
     """Keep structural review rules behind the shared evaluator contract."""
+    if name == "review_greeting_range":
+        return is_greeting_range_answer(user_message)
     if name == "review_name_introduction":
         return is_valid_name_answer(user_message)
     if name == "review_umlauts":
@@ -736,7 +776,7 @@ def handle_a1_lesson_1_review(
             record_review_course_outcome(state, step, True)
 
             feedback = (
-                "Richtig! „Guten Morgen“ passt."
+                "Richtig! Du kannst die Grüße passend zur Situation verwenden."
             )
 
         else:
@@ -746,8 +786,8 @@ def handle_a1_lesson_1_review(
             action = choose_course_teacher_action(
                 state,
                 answer_correct=False,
-                correct_answer="Guten Morgen",
-                retry="Sag es noch einmal.",
+                correct_answer="Guten Morgen, Guten Tag, Guten Abend und Tschüss",
+                retry="Nenne noch einmal passende Grüße für morgens, tagsüber, abends und beim Gehen.",
             )
             return render_course_teacher_action(action)
 
