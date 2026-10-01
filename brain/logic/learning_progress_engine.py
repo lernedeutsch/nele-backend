@@ -41,6 +41,20 @@ def _derive_status(item):
     # A failure after mastery deliberately reopens the skill for review.
     if previous == "mastered" and item.get("last_result") == "NOT_YET":
         return "needs_review"
+    # A fresh independent review answer can restore a reopened skill. Guided
+    # repetition cannot do this because it is not a review confirmation.
+    if (
+        previous == "needs_review"
+        and item.get("last_result") == "SUCCESS"
+        and item.get("last_review_confirmation") is True
+    ):
+        return "mastered"
+    if (
+        previous == "needs_review"
+        and item.get("last_result") == "SUCCESS"
+        and item.get("last_review_attempt") is True
+    ):
+        return "needs_review"
     mastery_eligible = item.get("mastery_eligible", True)
     requires_independent_confirmation = bool(item.get("requires_independent_confirmation", False))
     independent_confirmations = int(item.get("independent_confirmations", 0) or 0)
@@ -91,6 +105,12 @@ def update_learning_progress(state, outcome):
         item["requires_independent_confirmation"] = bool(outcome.get("requires_independent_confirmation"))
     if outcome.get("independent_confirmation") and outcome.get("status") == "SUCCESS":
         item["independent_confirmations"] = int(item.get("independent_confirmations", 0) or 0) + 1
+    item["last_review_attempt"] = "review_confirmation" in outcome
+    item["last_review_confirmation"] = bool(
+        outcome.get("review_confirmation")
+        and outcome.get("independent_confirmation")
+        and outcome.get("status") == "SUCCESS"
+    )
     item["attempts"] += 1
     item["last_result"] = result
     if result == "SUCCESS":
