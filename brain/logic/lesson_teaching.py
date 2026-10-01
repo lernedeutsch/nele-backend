@@ -53,6 +53,7 @@ from brain.logic.dialogue_engine import handle_dialogue, is_dialogue_active
 from brain.logic.speaking_support import (
     legacy_course_support,
     handle_pending_course_model,
+    consume_course_model_exhaustion,
     progressive_course_support,
     register_course_success as _register_speaking_course_success,
 )
@@ -2583,6 +2584,30 @@ def handle_lesson_teaching(
                 return pending_reply
             # The learner produced the requested model. Continue processing
             # the same utterance in the active legacy step exactly once.
+
+        exhausted = consume_course_model_exhaustion(state)
+        if exhausted:
+            _record_legacy_course_mastery(state, False)
+            state["course_mastery_assistance_used"] = True
+            state["course_mastery_section_assistance_used"] = True
+            # Reset the active section to a fresh teaching pass instead of
+            # starting the same support ladder again on the exhausted step.
+            state["lesson_teaching_step"] = 1
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=True,
+                mastery_status="needs_review",
+            )
+            section = state.get("lesson_teaching_section")
+            if normalize(section) == normalize("Wir begrüßen uns"):
+                prompt = "Es ist Morgen. Was sagst du?"
+            elif normalize(section) == normalize("Ich stelle mich vor"):
+                prompt = "Guten Morgen!"
+            elif normalize(section) == normalize("Das deutsche Alphabet"):
+                prompt = "Hör zu: A. Sag: A."
+            else:
+                prompt = None
+            return render_course_teacher_action(action, prompt=prompt)
 
 
     if is_generic_lesson_active(
