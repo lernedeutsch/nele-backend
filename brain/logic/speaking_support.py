@@ -173,6 +173,7 @@ def progressive_course_support(target, state, *, first_hint=None, prefix=""):
     while this shared engine owns escalation (HOW much help is revealed).
     """
     target = _text(target)
+    state["course_mastery_assistance_used"] = True
     level = min(5, _support_level(state) + 1)
     _set_support(state, level)
 
@@ -198,6 +199,10 @@ def handle_pending_course_model(user_message, state):
     target = _text((state or {}).get("course_pending_speaking_model"))
     if not target:
         return None
+
+    # Repeating a model that Nele has already exposed is guided practice,
+    # never independent mastery evidence.
+    state["course_mastery_assistance_used"] = True
 
     if _same_course_production(user_message, target):
         state["course_pending_speaking_model"] = None
@@ -261,6 +266,7 @@ def legacy_course_support(
     # A one/two-token fragment that is literally part of the target is evidence
     # that the learner knows what they mean but may lack the construction.
     if len(learner_tokens) <= 2 and set(learner_tokens).issubset(set(target_tokens)):
+        state["course_mastery_assistance_used"] = True
         state["course_pending_speaking_model"] = target
         return f"Genau. Sag: „{target}“"
 
@@ -268,6 +274,7 @@ def legacy_course_support(
     # begin with a small cue instead of immediately exposing the whole answer.
     shared = set(learner_tokens) & set(target_tokens)
     if shared or semantic_attempt:
+        state["course_mastery_assistance_used"] = True
         level = min(5, _support_level(state) + 1)
         _set_support(state, level)
 
