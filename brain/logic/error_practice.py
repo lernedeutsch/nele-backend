@@ -1395,6 +1395,11 @@ def handle_error_practice_step_one(
         )
     ):
 
+        # Choosing from a visible 1/2 pair is recognition with assistance,
+        # not independent recall. Preserve that evidence for Adaptive Review.
+        if is_second_answer(user_message):
+            state["error_practice_used_hint"] = True
+
         state[
             "error_practice_step"
         ] = 2
