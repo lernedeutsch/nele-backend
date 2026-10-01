@@ -1782,7 +1782,8 @@ def handle_greeting_section(
 
 
         if state.pop("course_mastery_restart_required", False):
-            return start_lesson_teaching(next_section, state)
+            restart_prompt = start_lesson_teaching(next_section, state)
+            return f"Wir wiederholen „{next_section}“. {restart_prompt}"
 
         if next_section:
 
@@ -2168,7 +2169,8 @@ def handle_introduction_section(
 
 
         if state.pop("course_mastery_restart_required", False):
-            return start_lesson_teaching(next_section, state)
+            restart_prompt = start_lesson_teaching(next_section, state)
+            return f"Wir wiederholen „{next_section}“. {restart_prompt}"
 
         if next_section:
 
@@ -2526,7 +2528,8 @@ def handle_alphabet_section(
         )
 
         if state.pop("course_mastery_restart_required", False):
-            return start_lesson_teaching(next_section, state)
+            restart_prompt = start_lesson_teaching(next_section, state)
+            return f"Wir wiederholen „{next_section}“. {restart_prompt}"
 
         if next_section:
 
