@@ -723,6 +723,7 @@ def handle_dialogue(user_message, state):
         )
         expected = _text(turn.get("expected"))
         if evaluation.get("kind") == "partial":
+            state["course_mastery_assistance_used"] = True
             _record_course_dialogue_outcome(dialogue, state, False, partial=True)
             action = choose_course_teacher_action(
                 state,
@@ -732,6 +733,7 @@ def handle_dialogue(user_message, state):
             )
             return render_course_teacher_action(action)
 
+        state["course_mastery_assistance_used"] = True
         _record_course_dialogue_outcome(dialogue, state, False)
         retry = _text(turn.get("retry"))
         action = choose_course_teacher_action(
@@ -776,8 +778,7 @@ def handle_dialogue(user_message, state):
     )
     independent_confirmation = bool(
         dialogue_finishes
-        and not state.get("course_pending_speaking_model")
-        and int(state.get("course_speaking_support_level", 0) or 0) == 0
+        and not state.get("course_mastery_assistance_used")
     )
     course_progress = _record_course_dialogue_outcome(
         dialogue,
@@ -785,13 +786,10 @@ def handle_dialogue(user_message, state):
         True,
         independent_confirmation=independent_confirmation,
     )
-    next_index, spoken = _advance_to_learner(
-        turns,
-        int(state.get("dialogue_turn", 0)) + 1,
-        state.get("dialogue_slots"),
-    )
 
     if next_index >= len(turns):
+        if not independent_confirmation:
+            state["course_mastery_assistance_used"] = False
         repeat = _repeat_dialogue_for_mastery(dialogue, state, course_progress)
         if repeat:
             return " ".join(part for part in [success, *spoken, repeat] if part)
@@ -808,6 +806,8 @@ def handle_dialogue(user_message, state):
         _norm(item.get("role")) in {"student", "learner", "user", "du"}
         for item in turns[next_index:]
     ):
+        if not independent_confirmation:
+            state["course_mastery_assistance_used"] = False
         repeat = _repeat_dialogue_for_mastery(dialogue, state, course_progress)
         if repeat:
             return " ".join(part for part in [success, *spoken, repeat] if part)
