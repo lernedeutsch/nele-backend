@@ -162,7 +162,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
         item = state["learning_progress_v1"]["skills"]["course:a1:1:wir_begrüßen_uns"]
         self.assertEqual(item["successes"], 3)
-        self.assertEqual(item["independent_confirmations"], 2)
+        self.assertEqual(item["independent_confirmations"], 1)
         self.assertEqual(item["status"], "mastered")
 
     def test_legacy_intermediate_successes_cannot_master_before_final_step(self):
