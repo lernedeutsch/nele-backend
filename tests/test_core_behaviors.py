@@ -856,6 +856,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             list(sections.keys()),
             [
                 "Woher kommen Sie?",
+                "Länder und Nationalitäten",
                 "Das Verb kommen",
                 "Zahlen 1–20",
             ],
