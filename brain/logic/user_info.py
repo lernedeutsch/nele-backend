@@ -286,6 +286,11 @@ def extract_user_information(
         "ich bin "
     ]
 
+    # Do not reinterpret later "Ich bin ..." statements (for example
+    # "Ich bin 30 Jahre alt") as a new name once the learner's name is known.
+    if state.get("name"):
+        name_prefixes = []
+
     for prefix in name_prefixes:
 
         normalized_prefix = normalize(
