@@ -220,15 +220,21 @@ def _lesson2_skill_key(state):
     return f"course:a1:2:{section}"
 
 
-def _record_lesson2_mastery(state, success):
-    """Record real Lektion 2 answers in the shared mastery model."""
+def _record_lesson2_mastery(state, success, independent_confirmation=False):
+    """Record Lektion 2 evidence under the shared course mastery contract.
+
+    Generated tasks are useful practice evidence, but only a correct answer
+    produced without scaffolding on that task may independently confirm
+    mastery. This keeps the specialised Lektion 2 tutor aligned with the
+    generic lesson/dialogue engines.
+    """
     outcome = {
         "skill": _lesson2_skill_key(state),
         "expected_outcome": "course_step",
         "status": "SUCCESS" if success else "NOT_YET",
-        # Lektion 2 generates varied tasks continuously, so every genuine
-        # answer is independent mastery evidence rather than a UI completion.
-        "mastery_eligible": True,
+        "mastery_eligible": bool(success and independent_confirmation),
+        "requires_independent_confirmation": True,
+        "independent_confirmation": bool(success and independent_confirmation),
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -308,7 +314,16 @@ def handle(user_message,state):
     result=classify(user_message,task)
     m["last_result"]=result
     if result["status"] in {"CORRECT_FULL","CORRECT_SHORT","CORRECT_WITH_TYPO"}:
-        _record_lesson2_mastery(state, True)
+        assisted = bool(state.get("course_mastery_assistance_used"))
+        independent = (
+            result["status"] in {"CORRECT_FULL", "CORRECT_SHORT"}
+            and not assisted
+        )
+        _record_lesson2_mastery(
+            state,
+            True,
+            independent_confirmation=independent,
+        )
         # mark matching pending error as resolved only after a later successful transfer
         if task.get("intent")=="ERROR_REVIEW":
             for item in m["errors"].values(): item["resolved"]=True
@@ -317,10 +332,14 @@ def handle(user_message,state):
         # a fuller sentence, stop here and let the learner actually say it.
         if state.get("course_pending_speaking_model"):
             return correction
+        # An assisted task is learned/practised, but cannot itself confirm
+        # mastery. The next generated task starts clean and can do so.
+        state["course_mastery_assistance_used"] = False
         m["turn"]+=1
         nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
         if correction: return correction+" "+nxt
         return "Genau! "+nxt
+    state["course_mastery_assistance_used"] = True
     _record_lesson2_mastery(state, False)
     correction=_correction(result,user_message,task,state)
     # Keep the same target until the learner succeeds. The global speaking
