@@ -55,7 +55,7 @@ EXPECTED_OUTCOMES = {
 
 def build_turn_plan(*, teacher_policy=None, topic=None, struggle=False,
                     explicit_topic=None, error_result=None,
-                    response_understanding=None):
+                    response_understanding=None, learner_model=None):
     teacher_policy = teacher_policy or {}
     error_result = error_result or {}
     action = teacher_policy.get("action") or "CONTINUE"
