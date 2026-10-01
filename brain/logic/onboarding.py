@@ -272,7 +272,6 @@ def extract_name_sentence(
         user_message,
         [
             r"^\s*ich\s+hei(?:ß|ss)e\s+(.+?)\s*[.!?]*\s*$",
-            r"^\s*ich\s+bin\s+(.+?)\s*[.!?]*\s*$",
             r"^\s*mein\s+name\s+ist\s+(.+?)\s*[.!?]*\s*$"
         ]
     )
@@ -778,6 +777,31 @@ def get_short_answer_value(
 
 
 # ==========================================
+# WALIDACJA KRÓTKICH SLOTÓW ONBOARDINGU
+# ==========================================
+
+_NON_SLOT_SHORT_ANSWERS = {
+    "gut", "sehr gut", "prima", "super", "okay", "ok",
+    "schlecht", "müde", "muede", "ja", "nein", "danke",
+}
+
+def is_plausible_onboarding_short_value(value, step):
+    """Reject obvious conversational/status answers before teaching a slot."""
+    normalized = normalize_answer(value)
+    if not normalized or normalized in _NON_SLOT_SHORT_ANSWERS:
+        return False
+    if re.search(r"\b\d+\b", normalized):
+        return False
+    if any(token in normalized for token in ("jahre alt", "jahr alt")):
+        return False
+    # Name/origin/residence shortcuts must stay compact; full sentences are
+    # handled by their dedicated extractors instead.
+    if step in {1, 2, 3} and len(normalized.split()) > 2:
+        return False
+    return True
+
+
+# ==========================================
 # POZIOM Z KRÓTKIEJ ODPOWIEDZI
 # ==========================================
 
@@ -961,7 +985,7 @@ def get_onboarding_retry(
                 "Sag es bitte noch einmal."
             )
 
-        if short_value:
+        if short_value and is_plausible_onboarding_short_value(short_value, step):
 
             return (
                 "Genau! "
@@ -1004,7 +1028,7 @@ def get_onboarding_retry(
                 "Sag es bitte noch einmal."
             )
 
-        if short_value:
+        if short_value and is_plausible_onboarding_short_value(short_value, step):
 
             return (
                 "Genau! "
@@ -1047,7 +1071,7 @@ def get_onboarding_retry(
                 "Sag es bitte noch einmal."
             )
 
-        if short_value:
+        if short_value and is_plausible_onboarding_short_value(short_value, step):
 
             return (
                 "Genau! "
