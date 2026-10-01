@@ -5,6 +5,7 @@ from brain.logic.memory import (
     save_conversation_state,
 )
 from brain.logic.session_state import prepare_new_conversation
+from brain.logic.activity_resume import resume_current_training
 from brain.logic.welcome import generate_welcome_reply
 from brain.nele3_upgrade.state import (
     ensure_upgrade_state,
@@ -26,6 +27,15 @@ def start_conversation_session(
         prepare_new_conversation(state)
 
     start_upgrade_session(state)
-    save_conversation_state(session_id)
 
+    # A normal page reopen must show the prompt that will actually own the
+    # learner's next answer. Otherwise Nele can ask a generic wellbeing
+    # question while an unfinished course dialogue silently consumes the turn.
+    if not new_conversation:
+        resume_reply = resume_current_training(state)
+        if resume_reply:
+            save_conversation_state(session_id)
+            return resume_reply
+
+    save_conversation_state(session_id)
     return generate_welcome_reply(session_id)
