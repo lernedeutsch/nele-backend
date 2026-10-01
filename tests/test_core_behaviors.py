@@ -84,6 +84,31 @@ def test_error_practice_choice_records_assistance_for_adaptive_review():
     assert state["error_practice_used_hint"] is True
 
 
+def test_legacy_course_exhausted_support_restarts_section_as_review():
+    from brain.logic.lesson_teaching import handle_lesson_teaching
+    state = {
+        "conversation_mode": "course",
+        "lesson_teaching_active": True,
+        "lesson_teaching_level": "A1",
+        "lesson_teaching_lesson": 1,
+        "lesson_teaching_section": "Wir begrüßen uns",
+        "lesson_teaching_step": 1,
+        "course_model_practice_exhausted": "Guten Morgen",
+    }
+    with patch(
+        "brain.logic.lesson_teaching.get_lesson_context_for_section",
+        return_value=("A1", 1),
+    ):
+        reply = handle_lesson_teaching("falsch", state)
+
+    self.assertIn("festigen", reply)
+    self.assertIn("Es ist Morgen", reply)
+    self.assertEqual(state["lesson_teaching_step"], 1)
+    self.assertIsNone(state.get("course_model_practice_exhausted"))
+    item = state["learning_progress_v1"]["skills"]["course:a1:1:wir_begrüßen_uns"]
+    self.assertEqual(item["last_result"], "NOT_YET")
+
+
 class NeleCoreBehaviorTests(unittest.TestCase):
 
 
