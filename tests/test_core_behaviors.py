@@ -188,6 +188,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "lesson_teaching_active": True,
             "lesson_teaching_section": "Das deutsche Alphabet",
             "lesson_teaching_step": 4,
+            "user_facts": {"name": "Moni"},
             "lesson_progress": {
                 "lessons": {
                     "A1:1": {
