@@ -309,3 +309,23 @@ class SharedMasteryEvidenceCoverageTests(unittest.TestCase):
                 "independent_confirmation": True,
             })
         self.assertEqual(progress["status"], "mastered")
+
+
+class Lesson2SupportExhaustionTests(unittest.TestCase):
+    def test_lesson2_consumes_exhausted_support_as_review_evidence(self):
+        from brain.logic.a1_lesson2_conversation import start, handle
+
+        state = {}
+        prompt = start("Zahlen 1-20", state)
+        self.assertTrue(prompt)
+        state["course_model_practice_exhausted"] = "eins"
+
+        reply = handle("falsch", state)
+
+        self.assertNotIn("course_model_practice_exhausted", state)
+        self.assertTrue(state["course_mastery_assistance_used"])
+        self.assertEqual(
+            state["last_course_learning_outcome"]["status"],
+            "NOT_YET",
+        )
+        self.assertIn("festigen", reply.lower())
