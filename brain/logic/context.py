@@ -310,12 +310,17 @@ def handle_context_answer(
         # "Ich bin ..." also expresses age, state, profession and level, so it
         # must never overwrite an already-known identity.
         explicit_name = normalized_answer.startswith(
-            ("ich heiße ", "ich heisse ", "mein name ist ")
+            ("ich heiße ", "ich heisse ", "ich bin ", "mein name ist ")
         )
         existing_name = (
             (state.get("user_facts") or {}).get("name")
             or state.get("name")
         )
+        # A generic "Ich bin X" may introduce a name only before identity is
+        # known. Once a name exists, it cannot overwrite it or rewind onboarding.
+        generic_ich_bin = normalized_answer.startswith("ich bin ")
+        if existing_name and generic_ich_bin:
+            return None
         if existing_name and not explicit_name:
             return None
 
@@ -325,6 +330,7 @@ def handle_context_answer(
             (
                 "ich heiße ",
                 "ich heisse ",
+                "ich bin ",
                 "mein name ist "
             )
         )
