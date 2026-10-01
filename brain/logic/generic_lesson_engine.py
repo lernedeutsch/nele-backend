@@ -1621,13 +1621,23 @@ def handle_generic_lesson_teaching(
         next_step_number
     )
 
+    final_step = next_step is None
+    # Mastery requires at least one unassisted final production. A correct
+    # repetition while scaffolding/model support is still active is useful
+    # SUCCESS evidence, but it is not proof that the learner can do it alone.
+    independent_confirmation = bool(
+        final_step
+        and not state.get("course_pending_speaking_model")
+        and int(state.get("course_speaking_support_level", 0) or 0) == 0
+    )
     course_progress = record_course_step_outcome(
         state,
         level,
         lesson,
         real_section,
         True,
-        final_step=(next_step is None),
+        final_step=final_step,
+        independent_confirmation=independent_confirmation,
     )
 
 
