@@ -58,6 +58,17 @@ def semantic_equivalent(user_message, accepted_values, render=None):
             continue
 
         if learner_bag == sorted(target_tokens):
+            if target_tokens[0] in subject_pronouns and len(target_tokens) >= 3:
+                if learner_tokens == target_tokens:
+                    return True
+                model_verb = target_tokens[1]
+                if (
+                    len(learner_tokens) >= 3
+                    and learner_tokens[1] == model_verb
+                    and target_tokens[0] in learner_tokens[2:]
+                ):
+                    return True
+                continue
             return True
 
         removable = [token for token in target_tokens if token in subject_pronouns]
