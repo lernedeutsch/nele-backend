@@ -249,3 +249,36 @@ def test_render_target_uses_name_from_user_fact_memory():
     assert assessment["target"] == "Ich heiße Moni."
     assert assessment["intercept"] is True
     assert assessment["kind"] == "short_answer_expansion"
+
+
+def test_exhausted_model_is_consumable_once():
+    from brain.logic.speaking_support import consume_course_model_exhaustion
+    state = {
+        "course_pending_speaking_model": "Guten Morgen",
+        "course_speaking_support_level": 4,
+    }
+    reply = handle_pending_course_model("falsch", state)
+    assert "später noch einmal" in reply
+    evidence = consume_course_model_exhaustion(state)
+    assert evidence == {"target": "Guten Morgen", "assistance_exhausted": True}
+    assert consume_course_model_exhaustion(state) is None
+
+
+def test_generic_course_consumes_exhaustion_into_review_instead_of_loop():
+    from brain.logic.generic_lesson_engine import start_generic_lesson_teaching, handle_generic_lesson_teaching
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+    }
+    opening = start_generic_lesson_teaching("A1", 2, "Das Verb kommen", state)
+    assert "Ich" in opening
+    state["course_pending_speaking_model"] = "Ich komme aus Spanien."
+    state["course_speaking_support_level"] = 4
+    exhausted_reply = handle_generic_lesson_teaching("falsch", state)
+    assert "später noch einmal" in exhausted_reply
+    follow_up = handle_generic_lesson_teaching("noch falsch", state)
+    assert "festigen" in follow_up
+    skill = state["learning_progress_v1"]["skills"]["course:a1:2:das_verb_kommen"]
+    assert skill["status"] == "needs_review"
+    assert state["lesson_teaching_step"] == 1
+    assert state.get("course_model_practice_exhausted") is None
