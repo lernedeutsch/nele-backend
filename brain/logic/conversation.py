@@ -12,6 +12,8 @@ from brain.logic.message_parser import (
     split_multiple_questions
 )
 
+from brain.logic.matcher import normalize
+
 from brain.logic.conversation_context import (
     remember_current_topic,
     remember_current_comparison,
@@ -64,7 +66,8 @@ from brain.logic.personal_sentences import (
 
 from brain.logic.lesson_review_training import (
     handle_lesson_review_training,
-    is_lesson_review_training_active
+    is_lesson_review_training_active,
+    start_lesson_review_training,
 )
 
 from brain.logic.error_progress import (
@@ -527,6 +530,30 @@ def generate_conversation_reply(
                     )
                 )
 
+            return return_with_feedback(
+                answer,
+                feedback_text,
+                session_id
+            )
+
+
+    # An explicit learner request to repeat the selected lesson is a routing
+    # command, not an answer to the currently active exercise. Give that intent
+    # priority before lesson/error routers can grade it as course content.
+    review_intent = normalize(processed_message).strip(" .?!„“\"'")
+    if (
+        str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
+        and "lektion" in review_intent
+        and "wiederhol" in review_intent
+    ):
+        selected_level = state.get("selected_level") or state.get("level") or "A1"
+        selected_lesson = state.get("selected_lesson") or state.get("lesson") or 1
+        answer = start_lesson_review_training(
+            state,
+            selected_level,
+            selected_lesson,
+        )
+        if answer:
             return return_with_feedback(
                 answer,
                 feedback_text,
