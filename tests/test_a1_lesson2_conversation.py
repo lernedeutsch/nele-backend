@@ -340,3 +340,20 @@ def test_recognition_successes_cannot_bootstrap_productive_mastery():
     assert skill["successes"]==3
     assert skill["independent_confirmations"]==1
     assert skill["status"]!="mastered"
+
+
+def test_nationalities_section_cannot_master_without_producing_a_nationality():
+    state={}
+    start("Länder und Nationalitäten", state)
+
+    produced_nationality=False
+    for _ in range(4):
+        current=state["a1_l2_tutor"]["task"]
+        if current.get("kind")=="nationality" and current.get("intent")!="COUNTRY_TO_NATIONALITY":
+            produced_nationality=True
+        answer="ja" if current.get("intent")=="COUNTRY_TO_NATIONALITY" else current["expected"]
+        handle(answer, state)
+
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:länder_und_nationalitäten"]
+    assert produced_nationality is False
+    assert skill["status"]!="mastered"
