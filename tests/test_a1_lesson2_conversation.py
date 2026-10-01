@@ -311,3 +311,32 @@ def test_nationality_production_still_can_create_independent_mastery_evidence():
     assert outcome["status"]=="SUCCESS"
     assert outcome["mastery_eligible"] is True
     assert outcome["independent_confirmation"] is True
+
+
+def test_recognition_successes_cannot_bootstrap_productive_mastery():
+    state={}
+    start("Nationalitäten", state)
+
+    for expected, country in (("Polin", "polen"), ("Deutsche", "deutschland")):
+        state["a1_l2_tutor"]["task"]=task(
+            "nationality",
+            expected,
+            country=country,
+            intent="COUNTRY_TO_NATIONALITY",
+            prompt=f"Ist Anna {expected}?",
+        )
+        handle("ja", state)
+
+    state["a1_l2_tutor"]["task"]=task(
+        "nationality",
+        "Österreicherin",
+        country="österreich",
+        intent="NATIONALITY_PRODUCTION",
+        prompt="Welche Nationalität hat Anna?",
+    )
+    handle("Österreicherin", state)
+
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:nationalitäten"]
+    assert skill["successes"]==3
+    assert skill["independent_confirmations"]==1
+    assert skill["status"]!="mastered"
