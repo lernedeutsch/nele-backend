@@ -60,12 +60,15 @@ def semantic_equivalent(user_message, accepted_values, render=None):
         if learner_bag == sorted(target_tokens):
             return True
 
-        subject_pronouns = {"ich", "du", "er", "sie", "es", "wir", "ihr"}
         removable = [token for token in target_tokens if token in subject_pronouns]
         if len(removable) == 1:
             reduced = list(target_tokens)
             reduced.remove(removable[0])
-            if len(reduced) >= 2 and learner_bag == sorted(reduced):
+            # Subject omission is safe only when the learner preserves the
+            # remaining model order. Bag comparison here accepted malformed
+            # productions such as "Komme Italien aus" for
+            # "Ich komme aus Italien".
+            if len(reduced) >= 2 and learner_tokens == reduced:
                 return True
     return False
 

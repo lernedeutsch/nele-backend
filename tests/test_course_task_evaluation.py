@@ -431,6 +431,18 @@ class CourseSemanticGrammarRegressionTests(unittest.TestCase):
             )
         )
 
+    def test_subject_drop_preserves_remaining_word_order(self):
+        from brain.logic.course_answer_evaluator import answer_matches_course_definition
+
+        definition = {"accepted": ["Ich komme aus Italien."]}
+        self.assertTrue(
+            answer_matches_course_definition("Komme aus Italien.", definition)
+        )
+        for malformed in ("Komme Italien aus.", "Aus komme Italien."):
+            self.assertFalse(
+                answer_matches_course_definition(malformed, definition)
+            )
+
 
 class CourseGapFillShortAnswerTests(unittest.TestCase):
     def test_shared_evaluator_accepts_exact_missing_gap_fragment(self):
