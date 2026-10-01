@@ -1543,6 +1543,7 @@ def handle_generic_lesson_teaching(
             state,
         )
         if partial:
+            state["course_mastery_assistance_used"] = True
             # A partially correct answer is real learning evidence. Previously
             # Nele rendered scaffolding here and returned before the shared
             # learning_progress_v1 store ever saw the PARTIAL result.
@@ -1566,6 +1567,7 @@ def handle_generic_lesson_teaching(
             )
             return render_course_teacher_action(action)
 
+        state["course_mastery_assistance_used"] = True
         record_course_step_outcome(
             state, level, lesson, real_section, False, final_step=False
         )
@@ -1627,8 +1629,7 @@ def handle_generic_lesson_teaching(
     # SUCCESS evidence, but it is not proof that the learner can do it alone.
     independent_confirmation = bool(
         final_step
-        and not state.get("course_pending_speaking_model")
-        and int(state.get("course_speaking_support_level", 0) or 0) == 0
+        and not state.get("course_mastery_assistance_used")
     )
     course_progress = record_course_step_outcome(
         state,
@@ -1678,6 +1679,10 @@ def handle_generic_lesson_teaching(
     # model still says this course skill is not mastered (for example after
     # repeated mistakes), keep the learner in this section and review it.
     if (course_progress or {}).get("status") != "mastered":
+        # A pass that needed scaffolding teaches the material but cannot prove
+        # mastery. The next pass starts fresh; only that clean pass may confirm.
+        if final_step:
+            state["course_mastery_assistance_used"] = False
         state["lesson_teaching_step"] = 1
         first_step = get_step(definition, 1)
         first_prompt = render_text(
