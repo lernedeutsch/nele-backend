@@ -1,0 +1,104 @@
+import unittest
+
+from brain.logic.lesson_review_training import (
+    complete_lesson_review_training,
+    handle_a1_lesson_1_review,
+    record_review_course_outcome,
+)
+
+
+def mastered_item(skill):
+    return {
+        "skill": skill,
+        "status": "mastered",
+        "attempts": 3,
+        "successes": 3,
+        "partials": 0,
+        "not_yet": 0,
+        "success_streak": 3,
+        "last_result": "SUCCESS",
+        "mastery_eligible": True,
+        "requires_independent_confirmation": True,
+        "independent_confirmations": 1,
+    }
+
+
+class LessonReviewMasteryTests(unittest.TestCase):
+    def base_state(self):
+        skills = {}
+        for suffix in (
+            "wir_begrüßen_uns",
+            "ich_stelle_mich_vor",
+            "das_deutsche_alphabet",
+        ):
+            key = f"course:a1:1:{suffix}"
+            skills[key] = mastered_item(key)
+        return {
+            "conversation_mode": "course",
+            "lesson_review_training_active": True,
+            "lesson_review_training_level": "A1",
+            "lesson_review_training_lesson": 1,
+            "lesson_review_training_step": 1,
+            "lesson_review_training_correct": 0,
+            "lesson_review_training_wrong": 0,
+            "learning_progress_v1": {"version": 1, "skills": skills},
+        }
+
+    def test_one_wrong_answer_no_longer_means_good_review(self):
+        state = self.base_state()
+        state["lesson_review_training_wrong"] = 1
+        record_review_course_outcome(state, 1, False)
+
+        result = complete_lesson_review_training(state)
+
+        self.assertIn("morgen noch einmal", result)
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:wir_begrüßen_uns"
+            ]["status"],
+            "needs_review",
+        )
+
+    def test_guided_correction_cannot_restore_review_mastery(self):
+        state = self.base_state()
+        record_review_course_outcome(state, 2, False)
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:ich_stelle_mich_vor"
+            ]["status"],
+            "needs_review",
+        )
+
+        record_review_course_outcome(state, 2, True)
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:ich_stelle_mich_vor"
+            ]["status"],
+            "needs_review",
+        )
+
+    def test_fresh_independent_review_answer_restores_mastery(self):
+        state = self.base_state()
+        record_review_course_outcome(state, 2, False)
+        record_review_course_outcome(state, 2, True)  # guided correction
+        record_review_course_outcome(state, 3, True)  # fresh independent task
+
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:ich_stelle_mich_vor"
+            ]["status"],
+            "mastered",
+        )
+
+    def test_clean_review_keeps_mastered_skills_and_finishes_good(self):
+        state = self.base_state()
+        for step in range(1, 7):
+            record_review_course_outcome(state, step, True)
+
+        result = complete_lesson_review_training(state)
+
+        self.assertIn("geschafft", result)
+
+
+if __name__ == "__main__":
+    unittest.main()
