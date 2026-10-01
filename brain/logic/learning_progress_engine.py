@@ -58,6 +58,14 @@ def _derive_status(item):
     mastery_eligible = item.get("mastery_eligible", True)
     requires_independent_confirmation = bool(item.get("requires_independent_confirmation", False))
     independent_confirmations = int(item.get("independent_confirmations", 0) or 0)
+    # Course mastery that requires independent confirmation must be earned by
+    # independent successes themselves. Assisted/guided successes remain useful
+    # practice evidence but may not fill the three-success mastery threshold.
+    mastery_successes = (
+        independent_confirmations
+        if requires_independent_confirmation
+        else successes
+    )
     confirmation_ok = (
         not requires_independent_confirmation
         or independent_confirmations >= 1
@@ -68,7 +76,14 @@ def _derive_status(item):
         not required_evidence
         or required_evidence.issubset(independent_evidence)
     )
-    if mastery_eligible and confirmation_ok and evidence_ok and successes >= 3 and streak >= 2 and successes > failures:
+    if (
+        mastery_eligible
+        and confirmation_ok
+        and evidence_ok
+        and mastery_successes >= 3
+        and streak >= 2
+        and successes > failures
+    ):
         return "mastered"
     if failures >= 2 and failures >= successes:
         return "needs_review"
