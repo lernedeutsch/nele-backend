@@ -141,7 +141,7 @@ jobs:
                   if "=" in item:
                       key, value = item.split("=", 1)
                       key = key.strip().upper()
-                      if key in {"MODE", "LEVEL", "LESSON", "BOOTSTRAP_ORIGIN", "BOOTSTRAP_ORIGIN_CONFIRM", "BOOTSTRAP_RESIDENCE"}:
+                      if key in {"MODE", "LEVEL", "LESSON", "SESSION_ID", "BOOTSTRAP_ORIGIN", "BOOTSTRAP_ORIGIN_CONFIRM", "BOOTSTRAP_RESIDENCE"}:
                           directives[key] = value.strip()
                           continue
                   questions.append(item)
@@ -150,6 +150,7 @@ jobs:
                   "MODE": "NELE_LIVE_MODE",
                   "LEVEL": "NELE_LIVE_LEVEL",
                   "LESSON": "NELE_LIVE_LESSON",
+                  "SESSION_ID": "NELE_LIVE_SESSION_ID",
                   "BOOTSTRAP_ORIGIN": "NELE_LIVE_BOOTSTRAP_ORIGIN",
                   "BOOTSTRAP_ORIGIN_CONFIRM": "NELE_LIVE_BOOTSTRAP_ORIGIN_CONFIRM",
                   "BOOTSTRAP_RESIDENCE": "NELE_LIVE_BOOTSTRAP_RESIDENCE",
