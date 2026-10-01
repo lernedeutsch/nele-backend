@@ -185,6 +185,66 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(progress["status"], "mastered")
         self.assertEqual(progress["independent_confirmations"], 1)
 
+    def test_a11_alphabet_wrong_answer_uses_shared_teacher_engine_and_stays_on_step(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_active": True,
+            "lesson_teaching_section": "Das deutsche Alphabet",
+            "lesson_teaching_step": 4,
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ), patch(
+            "brain.logic.lesson_teaching.remember_error",
+            return_value=True,
+        ), patch(
+            "brain.logic.lesson_teaching.record_mistake_today",
+        ):
+            reply = handle_alphabet_section("A O U", state)
+
+        self.assertIn("Ä, Ö und Ü", reply)
+        self.assertEqual(state["lesson_teaching_step"], 4)
+        self.assertEqual(state["course_teacher_action"]["action"], "correct_and_retry")
+        self.assertEqual(state["course_teacher_action"]["model"], "Ä, Ö und Ü")
+        item = state["learning_progress_v1"]["skills"][
+            "course:a1:1:das_deutsche_alphabet"
+        ]
+        self.assertEqual(item["last_result"], "NOT_YET")
+        self.assertTrue(item["requires_independent_confirmation"])
+        self.assertTrue(state["course_mastery_assistance_used"])
+
+        retry = handle_alphabet_section("Ä Ö Ü", state)
+        self.assertIn("ß", retry)
+        self.assertEqual(state["lesson_teaching_step"], 5)
+        self.assertEqual(item["independent_confirmations"], 0)
+        self.assertNotEqual(item["status"], "mastered")
+
+
+    def test_a11_alphabet_eszett_wrong_answer_uses_shared_teacher_engine(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_active": True,
+            "lesson_teaching_section": "Das deutsche Alphabet",
+            "lesson_teaching_step": 5,
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ), patch(
+            "brain.logic.lesson_teaching.remember_error",
+            return_value=True,
+        ), patch(
+            "brain.logic.lesson_teaching.record_mistake_today",
+        ):
+            reply = handle_alphabet_section("Doppel-s", state)
+
+        self.assertIn("Eszett", reply)
+        self.assertEqual(state["lesson_teaching_step"], 5)
+        self.assertEqual(state["course_teacher_action"]["action"], "correct_and_retry")
+        self.assertEqual(state["course_teacher_action"]["model"], "Eszett")
+
+
     def test_lesson1_successes_fade_global_speaking_help(self):
         intro_state = {
             "lesson_teaching_step": 1,
