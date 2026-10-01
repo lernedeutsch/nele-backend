@@ -114,6 +114,20 @@ class GenericCourseMasteryEvidenceTests(unittest.TestCase):
         self.assertEqual(progress["not_yet"], 1)
         self.assertNotEqual(progress["status"], "mastered")
 
+    def test_partial_course_attempt_is_recorded_in_shared_progress(self):
+        from brain.logic.generic_lesson_engine import record_course_step_outcome
+        state = {}
+        progress = record_course_step_outcome(
+            state, "A1", 2, "Zahlen 1–20", False, final_step=False, partial=True
+        )
+        self.assertEqual(progress["partials"], 1)
+        self.assertEqual(progress["last_result"], "PARTIAL")
+        self.assertEqual(
+            state["last_course_learning_outcome"]["status"],
+            "PARTIAL",
+        )
+        self.assertNotEqual(progress["status"], "mastered")
+
 
 class GenericCourseMasteryRoutingGateTests(unittest.TestCase):
     def test_many_failures_prevent_mastery_even_after_final_success(self):

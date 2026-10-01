@@ -1414,17 +1414,19 @@ def _course_skill_key(level, lesson, section):
     return f"course:{str(level).strip().lower()}:{lesson}:{slug}"
 
 
-def record_course_step_outcome(state, level, lesson, section, success, final_step=False):
+def record_course_step_outcome(state, level, lesson, section, success, final_step=False, partial=False):
     """Feed real course answers into the shared learner progress model.
 
     A course skill cannot become mastered before the final step of its section.
-    Wrong attempts remain evidence and can reopen/reduce progress naturally.
+    Wrong and partial attempts remain evidence, so Learner Model sees the same
+    classification that Course Answer Evaluator used for the learner response.
     """
+    status = "PARTIAL" if partial else ("SUCCESS" if success else "NOT_YET")
     outcome = {
         "skill": _course_skill_key(level, lesson, section),
         "expected_outcome": "course_step",
-        "status": "SUCCESS" if success else "NOT_YET",
-        "mastery_eligible": bool(success and final_step),
+        "status": status,
+        "mastery_eligible": bool(success and final_step and not partial),
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -1539,6 +1541,18 @@ def handle_generic_lesson_teaching(
             state,
         )
         if partial:
+            # A partially correct answer is real learning evidence. Previously
+            # Nele rendered scaffolding here and returned before the shared
+            # learning_progress_v1 store ever saw the PARTIAL result.
+            record_course_step_outcome(
+                state,
+                level,
+                lesson,
+                real_section,
+                False,
+                final_step=False,
+                partial=True,
+            )
             correct_answer = render_text(
                 step.get("correct_answer"), state, level, lesson, real_section
             )
