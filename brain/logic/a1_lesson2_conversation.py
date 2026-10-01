@@ -125,7 +125,12 @@ def _course_answer_definition(task):
         return {"accepted": list(dict.fromkeys(x for x in accepted if x))}
 
     if kind == "nationality":
-        return {"accepted": accepted}
+        # COUNTRY_TO_NATIONALITY is phrased as a real yes/no question
+        # ("Ist Anna Polin?"). A natural affirmative answer must therefore be
+        # accepted semantically, not forced into repeating the nationality.
+        if task.get("intent") == "COUNTRY_TO_NATIONALITY":
+            accepted.extend(["ja", "ja genau", "genau", "richtig"])
+        return {"accepted": list(dict.fromkeys(x for x in accepted if x))}
 
     return {"accepted": accepted}
 
@@ -203,6 +208,8 @@ def classify(user_message, task):
             return {"status":"CORRECT_WITH_TYPO" if typo else ("CORRECT_SHORT" if n.isdigit() else "CORRECT_FULL"),"correct":expected}
         if num is not None: return {"status":"NUMBER_ERROR","correct":expected}
     if kind=="nationality":
+        if task.get("intent")=="COUNTRY_TO_NATIONALITY" and n in {"ja","ja genau","genau","richtig"}:
+            return {"status":"CORRECT_SHORT","correct":expected}
         if n==_norm(expected) or _norm(expected) in n: return {"status":"CORRECT_FULL","correct":expected}
         key,c=_country_from(n)
         if c: return {"status":"VOCABULARY_ERROR","correct":expected}
