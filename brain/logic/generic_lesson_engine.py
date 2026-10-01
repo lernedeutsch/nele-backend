@@ -1414,7 +1414,7 @@ def _course_skill_key(level, lesson, section):
     return f"course:{str(level).strip().lower()}:{lesson}:{slug}"
 
 
-def record_course_step_outcome(state, level, lesson, section, success, final_step=False, partial=False):
+def record_course_step_outcome(state, level, lesson, section, success, final_step=False, partial=False, independent_confirmation=False):
     """Feed real course answers into the shared learner progress model.
 
     A course skill cannot become mastered before the final step of its section.
@@ -1427,6 +1427,8 @@ def record_course_step_outcome(state, level, lesson, section, success, final_ste
         "expected_outcome": "course_step",
         "status": status,
         "mastery_eligible": bool(success and final_step and not partial),
+        "requires_independent_confirmation": True,
+        "independent_confirmation": bool(success and independent_confirmation),
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
