@@ -165,6 +165,22 @@ def main():
                 raise RuntimeError("Course Live onboarding did not complete.")
 
     for question in questions:
+        if str(question).strip().upper() == "REOPEN":
+            print("REQUEST REOPEN", flush=True)
+            reopen = requests.post(
+                WELCOME_URL,
+                json={
+                    "session_id": session_id,
+                    "conversation_mode": conversation_mode,
+                    "new_conversation": False,
+                },
+                timeout=90,
+            )
+            reopen.raise_for_status()
+            reopen_payload = reopen.json()
+            print(f"NELE REOPEN: {reopen_payload.get('reply', '')}")
+            continue
+
         print(f"REQUEST {question}", flush=True)
         try:
             response = requests.post(
