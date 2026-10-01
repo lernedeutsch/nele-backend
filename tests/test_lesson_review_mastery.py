@@ -90,6 +90,60 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "mastered",
         )
 
+    def test_wrong_umlauts_require_retry_before_advancing(self):
+        state = self.base_state()
+        state["lesson_review_training_step"] = 5
+
+        reply = handle_a1_lesson_1_review("A O U", state)
+
+        self.assertIn("Ä, Ö und Ü", reply)
+        self.assertEqual(state["lesson_review_training_step"], 5)
+        self.assertTrue(state["lesson_review_training_active"])
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:das_deutsche_alphabet"
+            ]["status"],
+            "needs_review",
+        )
+
+        retry = handle_a1_lesson_1_review("Ä Ö Ü", state)
+
+        self.assertIn("Eszett", retry)
+        self.assertEqual(state["lesson_review_training_step"], 6)
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:das_deutsche_alphabet"
+            ]["status"],
+            "needs_review",
+        )
+
+    def test_wrong_eszett_requires_retry_before_review_can_finish(self):
+        state = self.base_state()
+        state["lesson_review_training_step"] = 6
+
+        reply = handle_a1_lesson_1_review("Doppel-s", state)
+
+        self.assertIn("Eszett", reply)
+        self.assertEqual(state["lesson_review_training_step"], 6)
+        self.assertTrue(state["lesson_review_training_active"])
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:das_deutsche_alphabet"
+            ]["status"],
+            "needs_review",
+        )
+
+        retry = handle_a1_lesson_1_review("scharfes S", state)
+
+        self.assertIn("morgen noch einmal", retry)
+        self.assertFalse(state["lesson_review_training_active"])
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:das_deutsche_alphabet"
+            ]["status"],
+            "needs_review",
+        )
+
     def test_clean_review_keeps_mastered_skills_and_finishes_good(self):
         state = self.base_state()
         for step in range(1, 7):
