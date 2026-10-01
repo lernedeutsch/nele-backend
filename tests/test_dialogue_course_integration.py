@@ -221,3 +221,32 @@ def test_wrong_course_dialogue_answer_remains_not_yet_after_partial_support_fix(
     assert progress["not_yet"] == 1
     assert progress["last_result"] == "NOT_YET"
     assert state["dialogue_turn"] == 1
+
+
+def test_dialogue_turn_successes_alone_do_not_count_as_mastery_proof():
+    from brain.logic.dialogue_engine import _record_course_dialogue_outcome
+    dialogue = {"level": "A1", "lesson": 15, "section": "Reisen"}
+    state = {"conversation_mode": "course"}
+
+    for _ in range(4):
+        progress = _record_course_dialogue_outcome(dialogue, state, True)
+
+    assert progress["successes"] == 4
+    assert progress["independent_confirmations"] == 0
+    assert progress["status"] != "mastered"
+
+
+def test_clean_dialogue_completion_can_confirm_mastery_after_practice():
+    from brain.logic.dialogue_engine import _record_course_dialogue_outcome
+    dialogue = {"level": "A1", "lesson": 15, "section": "Reisen"}
+    state = {"conversation_mode": "course"}
+
+    _record_course_dialogue_outcome(dialogue, state, True)
+    _record_course_dialogue_outcome(dialogue, state, True)
+    progress = _record_course_dialogue_outcome(
+        dialogue, state, True, independent_confirmation=True
+    )
+
+    assert progress["successes"] == 3
+    assert progress["independent_confirmations"] == 1
+    assert progress["status"] == "mastered"
