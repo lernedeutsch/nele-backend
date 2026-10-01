@@ -70,6 +70,43 @@ from brain.memory.error_review import (
 class NeleCoreBehaviorTests(unittest.TestCase):
 
 
+    def test_mastering_first_course_section_does_not_master_later_sections(self):
+        from brain.memory.lesson_progress import get_next_incomplete_section
+
+        state = {
+            "conversation_mode": "course",
+            "lesson_progress": {
+                "lessons": {
+                    "A1:1": {
+                        "level": "A1",
+                        "lesson": 1,
+                        "sections": [
+                            "Wir begrüßen uns",
+                            "Ich stelle mich vor",
+                            "Das deutsche Alphabet",
+                        ],
+                        "completed_sections": [],
+                        "current_section": "Wir begrüßen uns",
+                        "completed": False,
+                    }
+                }
+            },
+            "learning_progress_v1": {
+                "version": 1,
+                "skills": {
+                    "course:a1:1:wir_begrüßen_uns": {
+                        "status": "mastered",
+                    },
+                },
+            },
+        }
+
+        self.assertEqual(
+            get_next_incomplete_section(state, "A1", 1),
+            "Ich stelle mich vor",
+        )
+
+
     def test_legacy_course_section_cannot_complete_before_shared_mastery(self):
         state = {
             "conversation_mode": "course",
