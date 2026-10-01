@@ -108,7 +108,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
         retry = handle_a1_lesson_1_review("Ä Ö Ü", state)
 
-        self.assertIn("Eszett", retry)
+        self.assertIn("ß", retry)
         self.assertEqual(state["lesson_review_training_step"], 6)
         self.assertEqual(
             state["learning_progress_v1"]["skills"][
