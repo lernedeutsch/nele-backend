@@ -3,10 +3,14 @@
 import re
 from brain.memory.error_memory import remember_error
 from brain.logic.learning_progress_engine import update_learning_progress
+from brain.logic.course_answer_evaluator import evaluate_course_answer
+from brain.logic.course_teacher_engine import (
+    choose_course_teacher_action,
+    render_course_teacher_action,
+)
 
 from brain.logic.speaking_support import (
     handle_pending_course_model,
-    progressive_course_support,
     register_course_success,
 )
 
@@ -91,6 +95,55 @@ def _number_from(text):
     for k,v in NUMBERS.items():
         if n2==v: return k, n!=v
     return None,False
+
+def _course_answer_definition(task):
+    """Translate a generated A1.2 task into the shared evaluator contract."""
+    expected = str(task.get("expected", "") or "").strip()
+    kind = task.get("kind")
+    accepted = [expected] if expected else []
+
+    if kind == "origin":
+        expected_key, country = _country_from(expected)
+        if country:
+            accepted.extend([country["name"], country["aus"]])
+            # A bare country is a natural short answer to an origin question.
+            accepted.extend(country.get("aliases") or [])
+        return {"accepted": list(dict.fromkeys(x for x in accepted if x))}
+
+    if kind == "kommen":
+        full = str(task.get("full_sentence_expected", "") or "").strip()
+        if full:
+            # Full-sentence tasks deliberately do not accept the isolated form.
+            return {"accepted": [full]}
+        return {"accepted": accepted}
+
+    if kind == "number":
+        number = task.get("number")
+        if not task.get("require_word") and number is not None:
+            accepted.append(str(number))
+        return {"accepted": list(dict.fromkeys(x for x in accepted if x))}
+
+    if kind == "nationality":
+        return {"accepted": accepted}
+
+    return {"accepted": accepted}
+
+
+def evaluate_lesson2_answer(user_message, task):
+    """Shared correctness first; A1.2 classify remains error diagnosis only."""
+    shared = evaluate_course_answer(user_message, _course_answer_definition(task))
+    if shared["correct"]:
+        diagnostic = classify(user_message, task)
+        status = diagnostic.get("status")
+        if status == "CORRECT_WITH_TYPO":
+            return dict(shared, status=status, correct=task.get("expected", ""))
+        if status in {"CORRECT_SHORT", "CORRECT_FULL"}:
+            return dict(shared, status=status, correct=task.get("expected", ""))
+        return dict(shared, status="CORRECT_FULL", correct=task.get("expected", ""))
+
+    diagnostic = classify(user_message, task)
+    return dict(shared, status=diagnostic["status"], correct=diagnostic["correct"])
+
 
 def classify(user_message, task):
     raw=str(user_message or "").strip(); n=_norm(raw)
@@ -207,13 +260,17 @@ def _correction(result, user_message, task, state):
             task.get("prompt", ""),
         )
 
-    prefix = "Fast. " if status != "UNCLEAR" else ""
-    return progressive_course_support(
-        correct,
+    hint = _first_support_hint(task)
+    if status != "UNCLEAR":
+        hint = "Fast. " + hint
+    action = choose_course_teacher_action(
         state,
-        first_hint=_first_support_hint(task),
-        prefix=prefix,
+        answer_correct=False,
+        partial=result.get("partial"),
+        correct_answer=correct,
+        retry=hint,
     )
+    return render_course_teacher_action(action)
 
 def _lesson2_skill_key(state):
     section = _norm(_mem(state).get("section", "lesson2")).replace(" ", "_")
@@ -311,7 +368,7 @@ def handle(user_message,state):
     if shared_pending is not None:
         return shared_pending
 
-    result=classify(user_message,task)
+    result=evaluate_lesson2_answer(user_message,task)
     m["last_result"]=result
     if result["status"] in {"CORRECT_FULL","CORRECT_SHORT","CORRECT_WITH_TYPO"}:
         assisted = bool(state.get("course_mastery_assistance_used"))
