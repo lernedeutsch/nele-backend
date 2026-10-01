@@ -95,6 +95,7 @@ from brain.logic.speaking_support import (
     assess_course_answer,
     build_course_support_reply,
     handle_pending_course_model,
+    consume_course_model_exhaustion,
 )
 
 from brain.logic.learning_progress_engine import update_learning_progress
@@ -1454,6 +1455,32 @@ def handle_generic_lesson_teaching(
     if pending_reply is not None:
         return pending_reply
 
+    exhausted = consume_course_model_exhaustion(state)
+    if exhausted:
+        level = state.get("lesson_teaching_level")
+        lesson = state.get("lesson_teaching_lesson")
+        section = state.get("lesson_teaching_section")
+        real_section, definition = find_generic_section(level, lesson, section)
+        if real_section:
+            record_course_step_outcome(
+                state, level, lesson, real_section, False, final_step=False
+            )
+            state["course_mastery_assistance_used"] = True
+            state["lesson_teaching_step"] = 1
+            first_step = get_step(definition, 1)
+            first_prompt = render_text(
+                (first_step or {}).get("prompt"),
+                state,
+                level,
+                lesson,
+                real_section,
+            )
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=True,
+                mastery_status="needs_review",
+            )
+            return render_course_teacher_action(action, prompt=first_prompt)
 
     level = state.get(
         "lesson_teaching_level"

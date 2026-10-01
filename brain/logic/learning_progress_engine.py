@@ -62,7 +62,13 @@ def _derive_status(item):
         not requires_independent_confirmation
         or independent_confirmations >= 1
     )
-    if mastery_eligible and confirmation_ok and successes >= 3 and streak >= 2 and successes > failures:
+    required_evidence = set(item.get("required_evidence") or [])
+    independent_evidence = set(item.get("independent_evidence") or [])
+    evidence_ok = (
+        not required_evidence
+        or required_evidence.issubset(independent_evidence)
+    )
+    if mastery_eligible and confirmation_ok and evidence_ok and successes >= 3 and streak >= 2 and successes > failures:
         return "mastered"
     if failures >= 2 and failures >= successes:
         return "needs_review"
@@ -96,6 +102,8 @@ def update_learning_progress(state, outcome):
         "mastery_eligible": bool(outcome.get("mastery_eligible", True)),
         "requires_independent_confirmation": bool(outcome.get("requires_independent_confirmation", False)),
         "independent_confirmations": 0,
+        "required_evidence": list(outcome.get("required_evidence") or []),
+        "independent_evidence": [],
     })
 
     result = outcome.get("status")
@@ -103,8 +111,16 @@ def update_learning_progress(state, outcome):
         item["mastery_eligible"] = bool(outcome.get("mastery_eligible"))
     if "requires_independent_confirmation" in outcome:
         item["requires_independent_confirmation"] = bool(outcome.get("requires_independent_confirmation"))
+    if "required_evidence" in outcome:
+        item["required_evidence"] = list(dict.fromkeys(outcome.get("required_evidence") or []))
     if outcome.get("independent_confirmation") and outcome.get("status") == "SUCCESS":
         item["independent_confirmations"] = int(item.get("independent_confirmations", 0) or 0) + 1
+        evidence = str(outcome.get("evidence") or "").strip()
+        if evidence:
+            existing = list(item.get("independent_evidence") or [])
+            if evidence not in existing:
+                existing.append(evidence)
+            item["independent_evidence"] = existing
     item["last_review_attempt"] = "review_confirmation" in outcome
     item["last_review_confirmation"] = bool(
         outcome.get("review_confirmation")
