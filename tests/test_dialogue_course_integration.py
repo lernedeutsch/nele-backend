@@ -45,48 +45,31 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
 
         reply = handle_dialogue("Anna kommt aus Österreich", state)
         self.assertIn("Herkunftsdialog geschafft", reply)
+        self.assertIn("Jetzt sprechen wir über Länder", reply)
         self.assertFalse(state["dialogue_active"])
+        self.assertTrue(state["lesson_teaching_active"])
+        self.assertEqual(state["lesson_teaching_section"], "Woher kommen Sie?")
 
 
-    def test_completed_course_dialogue_offers_next_section_and_und_jetzt_continues(self):
+    def test_practice_dialogue_continues_same_section_before_next_section(self):
         from brain.logic.dialogue_engine import start_dialogue
-        from brain.memory.lesson_progress import set_lesson_sections
+        from brain.memory.student_progress import set_current_level, set_current_lesson
 
-        state = {}
-        set_lesson_sections(
-            state,
-            "A1",
-            2,
-            ["Woher kommen Sie?", "Das Verb kommen", "Zahlen 1–20"],
-        )
+        state = {"conversation_mode": "course"}
+        set_current_level(state, "A1")
+        set_current_lesson(state, 2)
         start_dialogue("A1", 2, "woher-kommst-du", state)
         handle_dialogue("Polen", state)
         handle_dialogue("Ja", state)
         reply = handle_dialogue("Anna kommt aus Österreich", state)
 
         self.assertIn("Herkunftsdialog geschafft", reply)
-        self.assertIn("Das Verb kommen", reply)
-        self.assertEqual(state["last_question"], "continue_new_learning")
-        self.assertEqual(
-            state["pending_new_learning"]["section"],
-            "Das Verb kommen",
-        )
-
-        # A social thank-you must not destroy the pending course continuation.
-        self.assertIsNone(handle_new_learning_resume("danke", state))
-        self.assertEqual(
-            state["pending_new_learning"]["section"],
-            "Das Verb kommen",
-        )
-
-        with patch(
-            "brain.logic.new_learning_resume.start_new_learning",
-            return_value="NEXT_SECTION_STARTED",
-        ) as start_next:
-            continued = handle_new_learning_resume("und jetzt", state)
-
-        self.assertEqual(continued, "NEXT_SECTION_STARTED")
-        start_next.assert_called_once()
+        self.assertIn("Jetzt sprechen wir über Länder", reply)
+        self.assertTrue(state["lesson_teaching_active"])
+        self.assertEqual(state["lesson_teaching_section"], "Woher kommen Sie?")
+        self.assertFalse(state.get("pending_new_learning"))
+        skill = state["learning_progress_v1"]["skills"]["course:a1:2:woher_kommen_sie"]
+        self.assertNotEqual(skill["status"], "mastered")
 
 
     def test_explicit_course_dialogue_intent_releases_returning_wellbeing_prompt(self):
@@ -171,7 +154,7 @@ if __name__ == "__main__":
 
 
 
-def test_real_course_dialogue_offers_graph_next_section_without_legacy_sections():
+def test_real_course_practice_dialogue_does_not_skip_remaining_section_work():
     from brain.logic.dialogue_engine import start_dialogue
 
     state = {
@@ -184,10 +167,12 @@ def test_real_course_dialogue_offers_graph_next_section_without_legacy_sections(
     reply = handle_dialogue("Anna kommt aus Österreich", state)
 
     assert "Herkunftsdialog geschafft" in reply
-    assert "Das Verb kommen" in reply
-    assert state["last_question"] == "continue_new_learning"
-    assert state["pending_new_learning"]["section"] == "Das Verb kommen"
-    assert state["pending_new_learning"]["skill"] == "course:a1:2:das_verb_kommen"
+    assert "Jetzt sprechen wir über Länder" in reply
+    assert "Das Verb kommen" not in reply
+    assert state["lesson_teaching_active"] is True
+    assert state["lesson_teaching_section"] == "Woher kommen Sie?"
+    skill = state["learning_progress_v1"]["skills"]["course:a1:2:woher_kommen_sie"]
+    assert skill["status"] != "mastered"
 
 
 def test_partial_course_dialogue_answer_is_preserved_in_learning_progress():
