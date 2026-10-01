@@ -19,6 +19,7 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
         _remember_topic,
     ):
         state = {
+            "student_progress": {"current_level": "A1", "current_lesson": 2},
             "pending_new_learning": {
                 "type": "new_section",
                 "level": "A1",
