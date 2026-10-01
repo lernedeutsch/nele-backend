@@ -50,6 +50,9 @@ class LessonReviewMasteryTests(unittest.TestCase):
         cases = (
             (1, "Guten Morgen, Guten Tag, Guten Abend, Tschüss", True),
             (2, "Mein Name ist Anna", True),
+            (2, "Ich bin Anna", True),
+            (2, "Ich bin 30 Jahre alt", False),
+            (2, "Ich bin müde", False),
             (3, "Wie heisst du?", True),
             (4, "Wie heißen Sie?", True),
             (5, "Ü Ö Ä", True),
