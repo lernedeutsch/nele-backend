@@ -146,19 +146,35 @@ def test_wrong_country_in_person_origin_task_is_not_accepted():
     assert classify("Österreich",t)["status"]=="CORRECT_SHORT"
 
 
-def test_lesson2_answers_feed_shared_course_mastery():
+def test_lesson2_number_mastery_requires_breadth_across_1_to_20():
     state={}
     start("Zahlen 1–20",state)
+
+    # Three clean answers are not enough when they leave part of 1–20 unseen.
     for number in (3, 7, 12):
         state["a1_l2_tutor"]["task"]=task(
             "number", NUMBERS[number], number=number, intent="NUMBER_PRODUCTION"
         )
         handle(NUMBERS[number],state)
     skill=state["learning_progress_v1"]["skills"]["course:a1:2:zahlen_1–20"]
+    assert skill["status"]!="mastered"
+    assert set(skill["independent_evidence"]) == {
+        "numbers:1-5", "numbers:6-10", "numbers:11-15"
+    }
+    assert set(skill["required_evidence"]) == {
+        "numbers:1-5", "numbers:6-10", "numbers:11-15", "numbers:16-20"
+    }
+
+    # A clean production from the missing range completes breadth evidence.
+    state["a1_l2_tutor"]["task"]=task(
+        "number", NUMBERS[18], number=18, intent="NUMBER_PRODUCTION"
+    )
+    handle(NUMBERS[18],state)
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:zahlen_1–20"]
     assert skill["status"]=="mastered"
-    assert skill["successes"]==3
+    assert skill["successes"]==4
     assert skill["requires_independent_confirmation"] is True
-    assert skill["independent_confirmations"]==3
+    assert skill["independent_confirmations"]==4
 
 
 def test_lesson2_wrong_answer_reopens_mastered_course_skill():
