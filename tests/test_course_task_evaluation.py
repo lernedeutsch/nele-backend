@@ -208,7 +208,7 @@ class IndependentCourseMasteryTests(unittest.TestCase):
         self.assertNotEqual(progress["status"], "mastered")
         self.assertEqual(progress["independent_confirmations"], 0)
 
-    def test_independent_confirmation_unlocks_mastery_after_real_success_evidence(self):
+    def test_assisted_successes_do_not_fill_independent_mastery_threshold(self):
         from brain.logic.learning_progress_engine import update_learning_progress
         state = {}
         base = {
@@ -219,11 +219,22 @@ class IndependentCourseMasteryTests(unittest.TestCase):
         }
         update_learning_progress(state, dict(base))
         update_learning_progress(state, dict(base))
-        final = dict(base)
-        final["mastery_eligible"] = True
-        final["independent_confirmation"] = True
-        progress = update_learning_progress(state, final)
+
+        independent = dict(base)
+        independent["mastery_eligible"] = True
+        independent["independent_confirmation"] = True
+
+        progress = update_learning_progress(state, dict(independent))
+        self.assertEqual(progress["successes"], 3)
         self.assertEqual(progress["independent_confirmations"], 1)
+        self.assertNotEqual(progress["status"], "mastered")
+
+        progress = update_learning_progress(state, dict(independent))
+        self.assertEqual(progress["independent_confirmations"], 2)
+        self.assertNotEqual(progress["status"], "mastered")
+
+        progress = update_learning_progress(state, dict(independent))
+        self.assertEqual(progress["independent_confirmations"], 3)
         self.assertEqual(progress["status"], "mastered")
 
     def test_assisted_final_step_is_success_but_not_mastery_confirmation(self):
