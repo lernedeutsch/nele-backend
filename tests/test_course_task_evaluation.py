@@ -346,3 +346,54 @@ class CourseSemanticGrammarRegressionTests(unittest.TestCase):
         from brain.logic.course_answer_evaluator import answer_matches_course_definition
         definition={"accepted":["Ich komme heute aus Polen."]}
         self.assertTrue(answer_matches_course_definition("Heute komme ich aus Polen.", definition))
+
+
+class CourseGapFillShortAnswerTests(unittest.TestCase):
+    def test_shared_evaluator_accepts_exact_missing_gap_fragment(self):
+        from brain.logic.course_answer_evaluator import evaluate_course_answer
+
+        cases = [
+            (
+                {
+                    "prompt": "Zuerst „ich“. Ergänze: „Ich … aus Spanien.“",
+                    "accepted": ["Ich komme aus Spanien."],
+                    "correct_answer": "Ich komme aus Spanien.",
+                },
+                "komme",
+            ),
+            (
+                {
+                    "prompt": "Jetzt „du“. Ergänze: „Du … aus Frankreich.“",
+                    "accepted": ["Du kommst aus Frankreich."],
+                    "correct_answer": "Du kommst aus Frankreich.",
+                },
+                "kommst",
+            ),
+            (
+                {
+                    "prompt": "Anna kommt aus Polen. Ergänze: „Anna ist …“",
+                    "accepted": ["Anna ist Polin.", "Polin"],
+                    "correct_answer": "Anna ist Polin.",
+                },
+                "Polin",
+            ),
+        ]
+        for definition, answer in cases:
+            self.assertEqual(
+                evaluate_course_answer(answer, definition)["kind"],
+                "correct",
+            )
+
+    def test_gap_fill_does_not_accept_wrong_or_incomplete_fragment(self):
+        from brain.logic.course_answer_evaluator import evaluate_course_answer
+
+        definition = {
+            "prompt": "Zuerst „ich“. Ergänze: „Ich … aus Spanien.“",
+            "accepted": ["Ich komme aus Spanien."],
+            "correct_answer": "Ich komme aus Spanien.",
+        }
+        for answer in ("kommst", "kommen", "aus Spanien", "Spanien"):
+            self.assertEqual(
+                evaluate_course_answer(answer, definition)["kind"],
+                "wrong",
+            )
