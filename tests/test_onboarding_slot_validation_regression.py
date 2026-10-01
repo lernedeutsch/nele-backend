@@ -1,6 +1,7 @@
 import unittest
 
 from brain.logic.context import handle_context_answer
+from brain.logic.memory import conversation_sessions
 from brain.logic.onboarding import extract_name_sentence, get_onboarding_retry, is_plausible_onboarding_short_value
 
 class OnboardingSlotValidationRegressionTests(unittest.TestCase):
@@ -19,12 +20,15 @@ class OnboardingSlotValidationRegressionTests(unittest.TestCase):
         self.assertEqual(extract_name_sentence("Mein Name ist Anna"), "Anna")
 
     def test_generic_ich_bin_is_not_a_name_sentence(self):
+        self.assertEqual(extract_name_sentence("Ich bin Moni"), "Moni")
         self.assertEqual(extract_name_sentence("Ich bin 30 Jahre alt"), "")
         self.assertEqual(extract_name_sentence("Ich bin müde"), "")
 
     def test_age_cannot_overwrite_existing_name_or_rewind_origin(self):
         state = {"last_question": "name", "name": "Anna", "origin": "Polen", "residence": "Berlin", "user_facts": {"name": "Anna", "origin": "Polen", "residence": "Berlin"}}
-        reply = handle_context_answer("Ich bin 30 Jahre alt", state)
+        session_id = "slot-age-30"
+        conversation_sessions[session_id] = state
+        reply = handle_context_answer("Ich bin 30 Jahre alt", session_id)
         self.assertIsNone(reply)
         self.assertEqual(state["name"], "Anna")
         self.assertEqual(state["origin"], "Polen")
@@ -33,7 +37,9 @@ class OnboardingSlotValidationRegressionTests(unittest.TestCase):
 
     def test_unexpected_age_variant_is_also_rejected(self):
         state = {"last_question": "name", "name": "Anna", "user_facts": {"name": "Anna"}}
-        reply = handle_context_answer("Ich bin 46 Jahre alt", state)
+        session_id = "slot-age-46"
+        conversation_sessions[session_id] = state
+        reply = handle_context_answer("Ich bin 46 Jahre alt", session_id)
         self.assertIsNone(reply)
         self.assertEqual(state["name"], "Anna")
         self.assertNotEqual(state.get("last_question"), "origin")
