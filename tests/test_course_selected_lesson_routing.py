@@ -120,3 +120,28 @@ def test_course_clears_stale_personal_sentence_practice_before_routing():
     assert "personal_sentence_practice" not in state
     global_sentence.assert_not_called()
     generate.assert_called_once()
+
+
+def test_course_selection_accepts_only_a1_1_and_a1_2():
+    from server.app import app
+
+    app.config["TESTING"] = True
+    cases = [
+        ({"level": "A1", "lesson": 1}, 200),
+        ({"level": "A1", "lesson": 2}, 200),
+        ({"level": "A1", "lesson": 3}, 400),
+        ({"level": "A1", "lesson": 14}, 400),
+        ({"level": "A2", "lesson": 1}, 400),
+    ]
+    state = {"student_progress": {}}
+    with (
+        patch("server.app.get_conversation_state", return_value=state),
+        patch("server.app.ensure_upgrade_state"),
+        patch("server.app.save_conversation_state"),
+    ):
+        with app.test_client() as client:
+            for payload, expected_status in cases:
+                response = client.post("/api/students", json=payload)
+                assert response.status_code == expected_status, payload
+                if expected_status == 400:
+                    assert response.get_json()["error"] == "course_scope_limited_to_a1_1_a1_2"
