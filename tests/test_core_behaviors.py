@@ -182,6 +182,49 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertNotEqual(item["status"], "mastered")
         self.assertFalse(state["course_mastery_assistance_used"])
 
+    def test_legacy_section_error_requires_fresh_full_pass_before_mastery(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_active": True,
+            "lesson_teaching_section": "Das deutsche Alphabet",
+            "lesson_teaching_step": 4,
+            "lesson_progress": {
+                "lessons": {
+                    "A1:1": {
+                        "level": "A1",
+                        "lesson": 1,
+                        "sections": ["Das deutsche Alphabet"],
+                        "completed_sections": [],
+                        "current_section": "Das deutsche Alphabet",
+                        "completed": False,
+                    }
+                }
+            },
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ), patch(
+            "brain.logic.lesson_teaching.remember_error",
+            return_value=True,
+        ), patch(
+            "brain.logic.lesson_teaching.record_mistake_today",
+        ):
+            handle_alphabet_section("A O U", state)
+            handle_alphabet_section("Ä Ö Ü", state)
+            handle_alphabet_section("Eszett", state)
+            reply = handle_alphabet_section("M O N I", state)
+
+        item = state["learning_progress_v1"]["skills"][
+            "course:a1:1:das_deutsche_alphabet"
+        ]
+        self.assertNotEqual(item["status"], "mastered")
+        self.assertEqual(item["independent_confirmations"], 0)
+        self.assertEqual(state["lesson_teaching_step"], 1)
+        self.assertIn("Das deutsche Alphabet", reply)
+        self.assertFalse(state["course_mastery_section_assistance_used"])
+
+
     def test_legacy_clean_success_can_confirm_mastery_after_guided_practice(self):
         state = {
             "conversation_mode": "course",
