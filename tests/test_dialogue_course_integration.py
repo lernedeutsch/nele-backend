@@ -250,3 +250,20 @@ def test_clean_dialogue_completion_can_confirm_mastery_after_practice():
     assert progress["successes"] == 3
     assert progress["independent_confirmations"] == 1
     assert progress["status"] == "mastered"
+
+
+def test_course_dialogue_exhausted_support_becomes_review_instead_of_model_loop():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+
+    state = {"conversation_mode": "course"}
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+
+    replies = [handle_dialogue("falsch", state) for _ in range(6)]
+
+    assert any("Das ist okay" in reply for reply in replies)
+    assert "festigen" in replies[-1].lower()
+    assert "course_pending_speaking_model" not in state or not state["course_pending_speaking_model"]
+    assert "course_model_practice_exhausted" not in state
+    progress = state["learning_progress_v1"]["skills"]["course:a1:2:woher_kommen_sie"]
+    assert progress["last_result"] == "NOT_YET"
+    assert progress["status"] != "mastered"
