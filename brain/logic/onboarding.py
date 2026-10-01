@@ -267,14 +267,29 @@ def extract_pattern_value(
 def extract_name_sentence(
     user_message
 ):
-
-    return extract_pattern_value(
+    name = extract_pattern_value(
         user_message,
         [
             r"^\s*ich\s+hei(?:ß|ss)e\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*ich\s+bin\s+(.+?)\s*[.!?]*\s*$",
             r"^\s*mein\s+name\s+ist\s+(.+?)\s*[.!?]*\s*$"
         ]
     )
+
+    # "Ich bin Moni" is a valid A1 introduction, but "Ich bin 30 Jahre alt",
+    # "Ich bin müde" etc. are not names. Keep the natural form while
+    # validating the extracted value semantically.
+    normalized = normalize_answer(name)
+    if (
+        not normalized
+        or any(ch.isdigit() for ch in name)
+        or "jahre alt" in normalized
+        or "jahr alt" in normalized
+        or normalized in {"gut", "müde", "muede", "krank", "fertig", "hier"}
+    ):
+        return ""
+
+    return name
 
 
 # ==========================================
