@@ -306,6 +306,24 @@ def handle_context_answer(
 
     if last_question == "name":
 
+        # Only explicit name forms may populate the name slot.  Generic
+        # "Ich bin ..." also expresses age, state, profession and level, so it
+        # must never overwrite an already-known identity.
+        explicit_name = normalized_answer.startswith(
+            ("ich heiße ", "ich heisse ", "ich bin ", "mein name ist ")
+        )
+        existing_name = (
+            (state.get("user_facts") or {}).get("name")
+            or state.get("name")
+        )
+        # A generic "Ich bin X" may introduce a name only before identity is
+        # known. Once a name exists, it cannot overwrite it or rewind onboarding.
+        generic_ich_bin = normalized_answer.startswith("ich bin ")
+        if existing_name and generic_ich_bin:
+            return None
+        if existing_name and not explicit_name:
+            return None
+
         name = remove_prefix(
             answer,
             normalized_answer,
@@ -317,12 +335,16 @@ def handle_context_answer(
             )
         )
 
-        if not name:
+        if not name or not explicit_name:
             return None
 
-        if len(
-            name.split()
-        ) > 4:
+        normalized_name = normalize(name)
+        if (
+            len(name.split()) > 4
+            or any(ch.isdigit() for ch in name)
+            or "jahre alt" in normalized_name
+            or "jahr alt" in normalized_name
+        ):
             return None
 
 
