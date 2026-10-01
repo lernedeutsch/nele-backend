@@ -188,3 +188,36 @@ def test_real_course_dialogue_offers_graph_next_section_without_legacy_sections(
     assert state["last_question"] == "continue_new_learning"
     assert state["pending_new_learning"]["section"] == "Das Verb kommen"
     assert state["pending_new_learning"]["skill"] == "course:a1:2:das_verb_kommen"
+
+
+def test_partial_course_dialogue_answer_is_preserved_in_learning_progress():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+
+    state = {"conversation_mode": "course"}
+    opening = start_dialogue("A1", 15, "a1-l15-verkehrsmittel", state)
+    assert "Berlin" in opening
+
+    reply = handle_dialogue("Ich fahre mit", state)
+
+    skill = "course:a1:15:reisen"
+    progress = state["learning_progress_v1"]["skills"][skill]
+    assert progress["partials"] == 1
+    assert progress["not_yet"] == 0
+    assert progress["last_result"] == "PARTIAL"
+    assert state["dialogue_turn"] == 1
+    assert "3 von 5" in reply
+
+
+def test_wrong_course_dialogue_answer_remains_not_yet_after_partial_support_fix():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+
+    state = {"conversation_mode": "course"}
+    start_dialogue("A1", 15, "a1-l15-verkehrsmittel", state)
+    handle_dialogue("Ich esse Pizza", state)
+
+    skill = "course:a1:15:reisen"
+    progress = state["learning_progress_v1"]["skills"][skill]
+    assert progress["partials"] == 0
+    assert progress["not_yet"] == 1
+    assert progress["last_result"] == "NOT_YET"
+    assert state["dialogue_turn"] == 1

@@ -479,7 +479,7 @@ def _course_dialogue_skill_key(dialogue, state):
     return f"course:{level}:{lesson}:{slug}"
 
 
-def _record_course_dialogue_outcome(dialogue, state, success):
+def _record_course_dialogue_outcome(dialogue, state, success, partial=False):
     if str(state.get("conversation_mode") or "").strip().lower() != "course":
         return None
     skill = _course_dialogue_skill_key(dialogue, state)
@@ -488,8 +488,8 @@ def _record_course_dialogue_outcome(dialogue, state, success):
     outcome = {
         "skill": skill,
         "expected_outcome": "course_dialogue_turn",
-        "status": "SUCCESS" if success else "NOT_YET",
-        "mastery_eligible": True,
+        "status": "PARTIAL" if partial else ("SUCCESS" if success else "NOT_YET"),
+        "mastery_eligible": not partial,
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -701,8 +701,33 @@ def handle_dialogue(user_message, state):
         state.get("dialogue_slots"),
         variable_slots=variable_slots,
     ):
-        _record_course_dialogue_outcome(dialogue, state, False)
+        # Preserve the shared evaluator's three-way classification. Previously
+        # dialogue routing collapsed PARTIAL into False and stored NOT_YET,
+        # so Learner Model lost evidence that the learner was partly correct.
+        shared_definition = dict(turn)
+        shared_definition["accepted"] = [
+            render_pattern(pattern, state.get("dialogue_slots") or {})
+            for pattern in accepted_patterns(turn)
+            if not slot_names(pattern)
+            or all(name in (state.get("dialogue_slots") or {}) for name in slot_names(pattern))
+        ]
+        evaluation = evaluate_course_answer(
+            user_message,
+            shared_definition,
+            render=lambda value: str(value or ""),
+        )
         expected = _text(turn.get("expected"))
+        if evaluation.get("kind") == "partial":
+            _record_course_dialogue_outcome(dialogue, state, False, partial=True)
+            action = choose_course_teacher_action(
+                state,
+                answer_correct=False,
+                partial=evaluation.get("partial"),
+                correct_answer=expected,
+            )
+            return render_course_teacher_action(action)
+
+        _record_course_dialogue_outcome(dialogue, state, False)
         retry = _text(turn.get("retry"))
         action = choose_course_teacher_action(
             state,
