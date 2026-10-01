@@ -125,6 +125,46 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(item["not_yet"], 1)
         self.assertEqual(item["last_result"], "NOT_YET")
 
+    def test_legacy_assisted_success_is_not_independent_mastery_evidence(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 1,
+            "course_mastery_assistance_used": True,
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ):
+            register_course_success(state)
+
+        item = state["learning_progress_v1"]["skills"]["course:a1:1:wir_begrüßen_uns"]
+        self.assertEqual(item["successes"], 1)
+        self.assertTrue(item["requires_independent_confirmation"])
+        self.assertEqual(item["independent_confirmations"], 0)
+        self.assertNotEqual(item["status"], "mastered")
+        self.assertFalse(state["course_mastery_assistance_used"])
+
+    def test_legacy_clean_success_can_confirm_mastery_after_guided_practice(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 1,
+            "course_mastery_assistance_used": True,
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ):
+            register_course_success(state)  # guided success
+            register_course_success(state)  # clean independent success
+            register_course_success(state)  # another clean success
+
+        item = state["learning_progress_v1"]["skills"]["course:a1:1:wir_begrüßen_uns"]
+        self.assertEqual(item["successes"], 3)
+        self.assertEqual(item["independent_confirmations"], 2)
+        self.assertEqual(item["status"], "mastered")
+
     def test_lesson1_successes_fade_global_speaking_help(self):
         intro_state = {
             "lesson_teaching_step": 1,
