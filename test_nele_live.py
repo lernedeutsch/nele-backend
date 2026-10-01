@@ -76,7 +76,13 @@ def requested_course():
 
 
 def main():
-    session_id = f"chatgpt-live-test-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    questions = requested_questions()
+    requested_session = ""
+    if questions and str(questions[0]).startswith("SESSION_ID="):
+        requested_session = str(questions.pop(0)).split("=", 1)[1].strip()
+        if requested_session and not requested_session.startswith("chatgpt-live-test-"):
+            raise SystemExit("Existing Nele Live sessions must be chatgpt-live-test-*.")
+    session_id = requested_session or f"chatgpt-live-test-{int(time.time())}-{uuid.uuid4().hex[:8]}"
     conversation_mode = requested_mode()
     print(f"MODE: {conversation_mode}", flush=True)
     if conversation_mode == "course":
@@ -158,7 +164,7 @@ def main():
             if "Wie heißt du?" in str(welcome_payload.get("reply") or ""):
                 raise RuntimeError("Course Live onboarding did not complete.")
 
-    for question in requested_questions():
+    for question in questions:
         print(f"REQUEST {question}", flush=True)
         try:
             response = requests.post(
