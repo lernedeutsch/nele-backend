@@ -224,6 +224,22 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertIn("Musik", reply)
         self.assertNotIn("vierzehnten Februar", reply)
 
+    def test_course_dialogue_does_not_switch_to_another_lesson(self):
+        state = {"conversation_mode": "course"}
+        start_dialogue("A1", 2, "woher-kommst-du", state)
+        reply = handle_dialogue("Welche Musik hörst du gern?", state)
+        self.assertEqual(state.get("dialogue_id"), "woher-kommst-du")
+        self.assertEqual(state.get("dialogue_lesson"), 2)
+        self.assertTrue(state.get("course_side_question_pending"))
+        self.assertIsNone(reply)
+
+    def test_free_dialogue_can_still_switch_to_another_lesson(self):
+        state = {"conversation_mode": "free"}
+        start_dialogue("A1", 11, "a1-l11-geburtstag", state)
+        reply = handle_dialogue("Welche Musik hörst du gern?", state)
+        self.assertEqual(state.get("dialogue_id"), "a1-l14-musik")
+        self.assertIn("Musik", reply)
+
     def test_active_dialogue_allows_natural_thanks_exit(self):
         state = {}
         start_dialogue("A1", 15, "a1-l15-weg-bahnhof", state)
