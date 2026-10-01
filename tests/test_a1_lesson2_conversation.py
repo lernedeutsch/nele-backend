@@ -157,6 +157,8 @@ def test_lesson2_answers_feed_shared_course_mastery():
     skill=state["learning_progress_v1"]["skills"]["course:a1:2:zahlen_1–20"]
     assert skill["status"]=="mastered"
     assert skill["successes"]==3
+    assert skill["requires_independent_confirmation"] is True
+    assert skill["independent_confirmations"]==3
 
 
 def test_lesson2_wrong_answer_reopens_mastered_course_skill():
@@ -173,3 +175,48 @@ def test_lesson2_wrong_answer_reopens_mastered_course_skill():
     handle("fünf",state)
     skill=state["learning_progress_v1"]["skills"]["course:a1:2:zahlen_1–20"]
     assert skill["status"]=="needs_review"
+
+
+def test_lesson2_assisted_success_is_practice_not_independent_mastery_proof():
+    state={}
+    start("Das Verb kommen",state)
+    state["a1_l2_tutor"]["task"]=task(
+        "kommen","komme",pronoun="ich",form="komme",
+        intent="PRACTICE_KOMMEN",prompt="Ich ___ aus Deutschland."
+    )
+
+    # A real error activates scaffolding for this task.
+    handle("kommen",state)
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:das_verb_kommen"]
+    assert skill["not_yet"]==1
+    assert skill["independent_confirmations"]==0
+    assert skill["requires_independent_confirmation"] is True
+
+    # Correcting the same assisted task is SUCCESS evidence, but it must not
+    # count as independent mastery confirmation.
+    handle("komme",state)
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:das_verb_kommen"]
+    assert skill["successes"]==1
+    assert skill["independent_confirmations"]==0
+    assert skill["status"]!="mastered"
+
+    # The next generated task starts clean; a correct answer may now confirm
+    # independent production.
+    current=state["a1_l2_tutor"]["task"]
+    handle(current["expected"],state)
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:das_verb_kommen"]
+    assert skill["independent_confirmations"]==1
+    assert skill["status"]!="mastered"
+
+
+def test_lesson2_typo_model_does_not_count_as_independent_confirmation():
+    state={}
+    start("Zahlen 1–20",state)
+    state["a1_l2_tutor"]["task"]=task(
+        "number","zwölf",number=12,intent="NUMBER_PRODUCTION"
+    )
+    handle("zwolf",state)
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:zahlen_1–20"]
+    assert skill["successes"]==1
+    assert skill["independent_confirmations"]==0
+    assert skill["status"]!="mastered"
