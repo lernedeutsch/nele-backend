@@ -285,7 +285,7 @@ def _lesson2_skill_key(state):
     return f"course:a1:2:{section}"
 
 
-def _record_lesson2_mastery(state, success, independent_confirmation=False):
+def _record_lesson2_mastery(state, success, independent_confirmation=False, task=None):
     """Record Lektion 2 evidence under the shared course mastery contract.
 
     Generated tasks are useful practice evidence, but only a correct answer
@@ -293,6 +293,15 @@ def _record_lesson2_mastery(state, success, independent_confirmation=False):
     mastery. This keeps the specialised Lektion 2 tutor aligned with the
     generic lesson/dialogue engines.
     """
+    section = _norm(_mem(state).get("section", ""))
+    task = task or {}
+    required_evidence = []
+    evidence = None
+    if "nationalit" in section:
+        required_evidence = ["nationality_production"]
+        if task.get("intent") == "NATIONALITY_PRODUCTION":
+            evidence = "nationality_production"
+
     outcome = {
         "skill": _lesson2_skill_key(state),
         "expected_outcome": "course_step",
@@ -300,6 +309,8 @@ def _record_lesson2_mastery(state, success, independent_confirmation=False):
         "mastery_eligible": bool(success and independent_confirmation),
         "requires_independent_confirmation": True,
         "independent_confirmation": bool(success and independent_confirmation),
+        "required_evidence": required_evidence,
+        "evidence": evidence if independent_confirmation else None,
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -337,7 +348,7 @@ def _next_task(state, section):
     # Herkunft / Länder / Nationalitäten: rotate genuinely different acts.
     key,c=_session_country(state)
     person,gender=PEOPLE[t%len(PEOPLE)]
-    mode=t%6
+    mode=t%7
     if mode==0:
         return {"intent":"ASK_USER_ORIGIN","kind":"origin","expected":"Ich komme aus Polen.","prompt":"Woher kommst du?"}
     if mode==1:
@@ -346,9 +357,12 @@ def _next_task(state, section):
         nat=c[gender]
         return {"intent":"COUNTRY_TO_NATIONALITY","kind":"nationality","country":key,"expected":nat,"prompt":f"{person} kommt {c['aus']}. Ist {person} {nat}?"}
     if mode==3:
+        nat=c[gender]
+        return {"intent":"NATIONALITY_PRODUCTION","kind":"nationality","country":key,"expected":nat,"prompt":f"Welche Nationalität hat {person}?"}
+    if mode==4:
         full = f"{person} kommt {c['aus']}."
         return {"intent":"COMPLETE_KOMMEN","kind":"kommen","pronoun":"sie" if gender=="f" else "er","form":"kommt","expected":"kommt","full_sentence_expected":full,"prompt":f"Ergänze: „{person} ___ {c['aus']}.“"}
-    if mode==4:
+    if mode==5:
         n=(t*2%20)+1
         return {"intent":"MIXED_REVIEW","kind":"number","number":n,"expected":NUMBERS[n],"require_word":True,"prompt":f"{person} ist {n} Jahre alt und kommt {c['aus']}. Wie alt ist {person}? Schreib die Zahl auf Deutsch."}
     return {"intent":"ROLEPLAY_FORMAL","kind":"origin","expected":f"Ich komme {c['aus']}.","prompt":f"Wir spielen ein formelles Gespräch. Ich frage: „Woher kommen Sie?“ Antworte mit {c['name']}."}
@@ -383,7 +397,7 @@ def handle(user_message,state):
     exhausted = consume_course_model_exhaustion(state)
     if exhausted:
         state["course_mastery_assistance_used"] = True
-        _record_lesson2_mastery(state, False)
+        _record_lesson2_mastery(state, False, task=task)
         action = choose_course_teacher_action(
             state,
             answer_correct=True,
@@ -411,6 +425,7 @@ def handle(user_message,state):
             state,
             True,
             independent_confirmation=independent,
+            task=task,
         )
         # mark matching pending error as resolved only after a later successful transfer
         if task.get("intent")=="ERROR_REVIEW":
@@ -428,7 +443,7 @@ def handle(user_message,state):
         if correction: return correction+" "+nxt
         return "Genau! "+nxt
     state["course_mastery_assistance_used"] = True
-    _record_lesson2_mastery(state, False)
+    _record_lesson2_mastery(state, False, task=task)
     correction=_correction(result,user_message,task,state)
     # Keep the same target until the learner succeeds. The global speaking
     # engine now owns escalation and decides when to expose the full model.
