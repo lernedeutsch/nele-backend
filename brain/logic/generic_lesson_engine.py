@@ -1415,12 +1415,24 @@ def _course_skill_key(level, lesson, section):
     return f"course:{str(level).strip().lower()}:{lesson}:{slug}"
 
 
-def record_course_step_outcome(state, level, lesson, section, success, final_step=False, partial=False, independent_confirmation=False):
+def record_course_step_outcome(
+    state,
+    level,
+    lesson,
+    section,
+    success,
+    final_step=False,
+    partial=False,
+    independent_confirmation=False,
+    required_evidence=None,
+    evidence=None,
+):
     """Feed real course answers into the shared learner progress model.
 
     A course skill cannot become mastered before the final step of its section.
-    Wrong and partial attempts remain evidence, so Learner Model sees the same
-    classification that Course Answer Evaluator used for the learner response.
+    For multi-step sections, mastery additionally requires independent evidence
+    from every declared step, so repeating one final production cannot stand in
+    for material the learner has not demonstrated.
     """
     status = "PARTIAL" if partial else ("SUCCESS" if success else "NOT_YET")
     outcome = {
@@ -1430,6 +1442,8 @@ def record_course_step_outcome(state, level, lesson, section, success, final_ste
         "mastery_eligible": bool(success and final_step and not partial),
         "requires_independent_confirmation": True,
         "independent_confirmation": bool(success and independent_confirmation),
+        "required_evidence": list(required_evidence or []),
+        "evidence": str(evidence or "").strip(),
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -1532,6 +1546,7 @@ def handle_generic_lesson_teaching(
         )
 
 
+    pending_before = bool(state.get("course_pending_speaking_model"))
     support = assess_course_answer(
         user_message,
         step,
@@ -1541,6 +1556,10 @@ def handle_generic_lesson_teaching(
             step,
             state
         ),
+    )
+    step_assisted = bool(
+        pending_before
+        or state.get("course_generic_assisted_step") == int(step_number)
     )
 
     if support.get("intercept"):
@@ -1571,6 +1590,7 @@ def handle_generic_lesson_teaching(
         )
         if partial:
             state["course_mastery_assistance_used"] = True
+            state["course_generic_assisted_step"] = int(step_number)
             # A partially correct answer is real learning evidence. Previously
             # Nele rendered scaffolding here and returned before the shared
             # learning_progress_v1 store ever saw the PARTIAL result.
@@ -1595,6 +1615,7 @@ def handle_generic_lesson_teaching(
             return render_course_teacher_action(action)
 
         state["course_mastery_assistance_used"] = True
+        state["course_generic_assisted_step"] = int(step_number)
         record_course_step_outcome(
             state, level, lesson, real_section, False, final_step=False
         )
@@ -1658,6 +1679,11 @@ def handle_generic_lesson_teaching(
         final_step
         and not state.get("course_mastery_assistance_used")
     )
+    steps = get_steps(definition)
+    required_evidence = [
+        f"step:{index}"
+        for index in range(1, len(steps) + 1)
+    ]
     course_progress = record_course_step_outcome(
         state,
         level,
@@ -1665,8 +1691,11 @@ def handle_generic_lesson_teaching(
         real_section,
         True,
         final_step=final_step,
-        independent_confirmation=independent_confirmation,
+        independent_confirmation=bool(not step_assisted),
+        required_evidence=required_evidence,
+        evidence=f"step:{int(step_number)}",
     )
+    state.pop("course_generic_assisted_step", None)
 
 
     if next_step:
