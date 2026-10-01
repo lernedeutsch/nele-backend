@@ -66,6 +66,10 @@ def semantic_equivalent(user_message, accepted_values, render=None):
                 tail = target_tokens[2:]
                 if learner_tokens == tail + [model_verb, model_subject]:
                     return True
+                for split in range(1, len(tail)):
+                    candidate = tail[:split] + [model_verb, model_subject] + tail[split:]
+                    if learner_tokens == candidate:
+                        return True
                 continue
             return True
 
