@@ -1,4 +1,4 @@
-from brain.logic.a1_lesson2_conversation import classify, start, handle, NUMBERS
+from brain.logic.a1_lesson2_conversation import classify, evaluate_lesson2_answer, start, handle, NUMBERS
 
 def task(kind, expected, **kw):
     d={"kind":kind,"expected":expected,"prompt":"test"}
@@ -220,3 +220,33 @@ def test_lesson2_typo_model_does_not_count_as_independent_confirmation():
     assert skill["successes"]==1
     assert skill["independent_confirmations"]==0
     assert skill["status"]!="mastered"
+
+
+def test_lesson2_shared_evaluator_accepts_natural_origin_variant():
+    t=task("origin","Ich komme aus Polen.",intent="ASK_USER_ORIGIN")
+    result=evaluate_lesson2_answer("aus Polen",t)
+    assert result["kind"]=="correct"
+    assert result["correct"]=="Ich komme aus Polen."
+
+
+def test_lesson2_shared_evaluator_preserves_error_diagnosis():
+    t=task("origin","Ich komme aus Polen.",intent="ASK_USER_ORIGIN")
+    result=evaluate_lesson2_answer("Ich kommst aus Polen.",t)
+    assert result["kind"]=="wrong"
+    assert result["status"]=="CONJUGATION_ERROR"
+
+
+def test_lesson2_wrong_answer_uses_shared_teacher_engine():
+    state={}
+    start("Das Verb kommen",state)
+    state["a1_l2_tutor"]["task"]=task(
+        "kommen","komme",pronoun="ich",form="komme",
+        intent="PRACTICE_KOMMEN",prompt="Ich ___ aus Deutschland."
+    )
+    reply=handle("kommen",state)
+    assert reply
+    assert state["course_teacher_action"]["action"]=="correct_and_retry"
+    assert state["course_teacher_action"]["reason"]=="answer_not_yet"
+    assert state["a1_l2_tutor"]["turn"]==0
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:das_verb_kommen"]
+    assert skill["status"]=="needs_review"
