@@ -156,14 +156,34 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "brain.logic.lesson_teaching.get_lesson_context_for_section",
             return_value=("A1", 1),
         ):
-            register_course_success(state)  # guided success
-            register_course_success(state)  # clean independent success
-            register_course_success(state)  # another clean success
+            register_course_success(state)  # guided practice
+            register_course_success(state)  # clean practice, still not final
+            register_course_success(state, final_step=True)  # final independent proof
 
         item = state["learning_progress_v1"]["skills"]["course:a1:1:wir_begrüßen_uns"]
         self.assertEqual(item["successes"], 3)
-        self.assertEqual(item["independent_confirmations"], 2)
+        self.assertEqual(item["independent_confirmations"], 1)
         self.assertEqual(item["status"], "mastered")
+
+    def test_legacy_intermediate_successes_cannot_master_before_final_step(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 1,
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ):
+            for _ in range(5):
+                progress = register_course_success(state)
+            self.assertNotEqual(progress["status"], "mastered")
+            self.assertEqual(progress["independent_confirmations"], 0)
+
+            progress = register_course_success(state, final_step=True)
+
+        self.assertEqual(progress["status"], "mastered")
+        self.assertEqual(progress["independent_confirmations"], 1)
 
     def test_lesson1_successes_fade_global_speaking_help(self):
         intro_state = {
