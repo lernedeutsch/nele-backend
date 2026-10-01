@@ -395,9 +395,17 @@ def handle(user_message,state):
     m["last_result"]=result
     if result["status"] in {"CORRECT_FULL","CORRECT_SHORT","CORRECT_WITH_TYPO"}:
         assisted = bool(state.get("course_mastery_assistance_used"))
+        # Recognition-only answers (for example "ja" to "Ist Anna Polin?")
+        # are valid task successes, but they do not demonstrate that the
+        # learner can independently produce the target nationality.
+        recognition_only = (
+            task.get("intent") == "COUNTRY_TO_NATIONALITY"
+            and _norm(user_message) in {"ja", "ja genau", "genau", "richtig"}
+        )
         independent = (
             result["status"] in {"CORRECT_FULL", "CORRECT_SHORT"}
             and not assisted
+            and not recognition_only
         )
         _record_lesson2_mastery(
             state,
