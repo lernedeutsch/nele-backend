@@ -42,7 +42,13 @@ def _derive_status(item):
     if previous == "mastered" and item.get("last_result") == "NOT_YET":
         return "needs_review"
     mastery_eligible = item.get("mastery_eligible", True)
-    if mastery_eligible and successes >= 3 and streak >= 2 and successes > failures:
+    requires_independent_confirmation = bool(item.get("requires_independent_confirmation", False))
+    independent_confirmations = int(item.get("independent_confirmations", 0) or 0)
+    confirmation_ok = (
+        not requires_independent_confirmation
+        or independent_confirmations >= 1
+    )
+    if mastery_eligible and confirmation_ok and successes >= 3 and streak >= 2 and successes > failures:
         return "mastered"
     if failures >= 2 and failures >= successes:
         return "needs_review"
@@ -74,11 +80,17 @@ def update_learning_progress(state, outcome):
         "target_word": outcome.get("target_word"),
         "model": outcome.get("model"),
         "mastery_eligible": bool(outcome.get("mastery_eligible", True)),
+        "requires_independent_confirmation": bool(outcome.get("requires_independent_confirmation", False)),
+        "independent_confirmations": 0,
     })
 
     result = outcome.get("status")
     if "mastery_eligible" in outcome:
         item["mastery_eligible"] = bool(outcome.get("mastery_eligible"))
+    if "requires_independent_confirmation" in outcome:
+        item["requires_independent_confirmation"] = bool(outcome.get("requires_independent_confirmation"))
+    if outcome.get("independent_confirmation") and outcome.get("status") == "SUCCESS":
+        item["independent_confirmations"] = int(item.get("independent_confirmations", 0) or 0) + 1
     item["attempts"] += 1
     item["last_result"] = result
     if result == "SUCCESS":
