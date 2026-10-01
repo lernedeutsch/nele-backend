@@ -3,12 +3,14 @@
 # STUDENT MEMORY 2.0
 # ==========================================
 
-from brain.logic.matcher import normalize
 from brain.logic.speaking_support import (
     legacy_course_support,
     handle_pending_course_model,
-    register_course_success,
+    register_course_success as register_speaking_course_success,
 )
+
+from brain.logic.learning_progress_engine import update_learning_progress
+from brain.logic.matcher import normalize
 
 from brain.memory.lesson_review import (
     mark_lesson_review_completed,
@@ -160,6 +162,83 @@ def finish_lesson_review_training(
     state[
         "lesson_review_training_wrong"
     ] = 0
+
+
+# ==========================================
+# REVIEW -> SHARED COURSE MASTERY
+# ==========================================
+
+A1_LESSON_1_REVIEW_SECTIONS = {
+    1: "Wir begrüßen uns",
+    2: "Ich stelle mich vor",
+    3: "Ich stelle mich vor",
+    4: "Ich stelle mich vor",
+    5: "Das deutsche Alphabet",
+    6: "Das deutsche Alphabet",
+}
+
+
+def _course_skill_key(level, lesson, section):
+    section_key = normalize(str(section or "")).strip(
+        " .?!„“\\\"'"
+    ).replace(" ", "_")
+    if not section_key:
+        return None
+    return f"course:{str(level).lower()}:{int(lesson)}:{section_key}"
+
+
+def record_review_course_outcome(state, step, success):
+    """Feed lesson review evidence into the same course-skill mastery state."""
+    if state is None:
+        return None
+
+    level = str(state.get("lesson_review_training_level") or "A1").strip().upper()
+    lesson = int(state.get("lesson_review_training_lesson") or 1)
+    section = A1_LESSON_1_REVIEW_SECTIONS.get(int(step or 0))
+    skill = _course_skill_key(level, lesson, section)
+    if not skill:
+        return None
+
+    assisted = bool(state.get("course_mastery_assistance_used"))
+    independent = bool(success and not assisted)
+
+    if success:
+        register_speaking_course_success(state)
+    else:
+        # Any correction/model following this miss is guided evidence.
+        state["course_mastery_assistance_used"] = True
+
+    progress = update_learning_progress(
+        state,
+        {
+            "skill": skill,
+            "expected_outcome": "course_review",
+            "status": "SUCCESS" if success else "NOT_YET",
+            "mastery_eligible": bool(success and independent),
+            "requires_independent_confirmation": True,
+            "independent_confirmation": independent,
+            "review_confirmation": independent,
+        },
+    )
+
+    if success:
+        # Assistance belongs only to the task that has just been answered.
+        state["course_mastery_assistance_used"] = False
+
+    return progress
+
+
+def _reviewed_course_skills_mastered(state):
+    skills = (((state or {}).get("learning_progress_v1") or {}).get("skills") or {})
+    wanted = {
+        _course_skill_key("A1", 1, section)
+        for section in set(A1_LESSON_1_REVIEW_SECTIONS.values())
+    }
+    return all(
+        (skills.get(skill) or {}).get("status") == "mastered"
+        for skill in wanted
+        if skill
+    )
 
 
 # ==========================================
@@ -488,8 +567,8 @@ def complete_lesson_review_training(
 
 
     # ======================================
-    # 0–1 BŁĘDÓW
-    # -> POWTÓRKA ZALICZONA
+    # REVIEW IS GOOD ONLY WHEN THE REVIEWED COURSE SKILLS ARE MASTERED.
+    # The old "0–1 errors = good" rule is no longer sufficient.
     #
     # lesson_review.py zaplanuje
     # następny termin:
@@ -497,7 +576,7 @@ def complete_lesson_review_training(
     # 3 / 7 / 14 / 30 dni
     # ======================================
 
-    if wrong <= 1:
+    if wrong <= 1 and _reviewed_course_skills_mastered(state):
 
         mark_lesson_review_completed(
             state,
@@ -608,7 +687,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
-            register_course_success(state)
+            record_review_course_outcome(state, step, True)
 
             feedback = (
                 "Richtig! „Guten Morgen“ passt."
@@ -617,6 +696,7 @@ def handle_a1_lesson_1_review(
         else:
 
             remember_wrong_answer(state)
+            record_review_course_outcome(state, step, False)
             support = legacy_course_support(
                 user_message, "Guten Morgen", state, context="review"
             )
@@ -651,7 +731,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
-            register_course_success(state)
+            record_review_course_outcome(state, step, True)
 
             feedback = (
                 "Sehr gut!"
@@ -660,6 +740,7 @@ def handle_a1_lesson_1_review(
         else:
 
             remember_wrong_answer(state)
+            record_review_course_outcome(state, step, False)
             # Review uses the current learner name when available, but the
             # speaking-support policy itself remains vocabulary-independent.
             name = str(
@@ -702,7 +783,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
-            register_course_success(state)
+            record_review_course_outcome(state, step, True)
 
             feedback = (
                 "Genau! „Wie heißt du?“"
@@ -711,6 +792,7 @@ def handle_a1_lesson_1_review(
         else:
 
             remember_wrong_answer(state)
+            record_review_course_outcome(state, step, False)
             support = legacy_course_support(
                 user_message, "Wie heißt du?", state, context="review"
             )
@@ -745,7 +827,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
-            register_course_success(state)
+            record_review_course_outcome(state, step, True)
 
             feedback = (
                 "Richtig! „Wie heißen Sie?“"
@@ -754,6 +836,7 @@ def handle_a1_lesson_1_review(
         else:
 
             remember_wrong_answer(state)
+            record_review_course_outcome(state, step, False)
             support = legacy_course_support(
                 user_message, "Wie heißen Sie?", state, context="review"
             )
@@ -788,7 +871,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
-            register_course_success(state)
+            record_review_course_outcome(state, step, True)
 
             feedback = (
                 "Perfekt! Ä, Ö und Ü."
@@ -799,6 +882,7 @@ def handle_a1_lesson_1_review(
             remember_wrong_answer(
                 state
             )
+            record_review_course_outcome(state, step, False)
 
             feedback = (
                 "Fast. Die drei Umlaute sind "
@@ -830,7 +914,7 @@ def handle_a1_lesson_1_review(
             remember_correct_answer(
                 state
             )
-            register_course_success(state)
+            record_review_course_outcome(state, step, True)
 
             feedback = (
                 "Richtig! Das ist das Eszett."
@@ -841,6 +925,7 @@ def handle_a1_lesson_1_review(
             remember_wrong_answer(
                 state
             )
+            record_review_course_outcome(state, step, False)
 
             feedback = (
                 "Fast. Das Zeichen heißt "
