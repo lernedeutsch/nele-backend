@@ -19,7 +19,8 @@ def test_personal_origin_task_uses_remembered_country_instead_of_hardcoded_polan
     assert evaluate_step_answer("Ich komme aus Italien", step, state)["correct"] is True
     assert evaluate_step_answer("Italien", step, state)["correct"] is True
     assert evaluate_step_answer("Ich komme aus Polen", step, state)["correct"] is False
-    assert render_text(step["correct_answer"], state) == "Ich komme aus Italien."\n    assert render_text(step["retry"], state) == "Fast. Sag den ganzen Satz: „Ich komme aus Italien.“ Sprich ihn bitte nach."
+    assert render_text(step["correct_answer"], state) == "Ich komme aus Italien."
+    assert render_text(step["retry"], state) == "Fast. Sag den ganzen Satz: „Ich komme aus Italien.“ Sprich ihn bitte nach."
 
 
 def test_personal_origin_template_preserves_inflected_article_from_memory():
