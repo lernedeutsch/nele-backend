@@ -15,6 +15,22 @@ from brain.memory.user_facts import (
 # INFORMACJE O UŻYTKOWNIKU
 # ==========================================
 
+# German origin phrases may begin with an inflected article after "aus"
+# (for example "der Schweiz" or "den USA").  Capitalising the first
+# character of the whole value changes correct German into "Der/Den".
+_GERMAN_ORIGIN_ARTICLES = {"der", "den", "dem", "die", "das"}
+
+
+def format_origin_value(value):
+    value = clean_short_answer(value)
+    if not value:
+        return value
+    first_word = value.split(maxsplit=1)[0].lower()
+    if first_word in _GERMAN_ORIGIN_ARTICLES:
+        return first_word + value[len(value.split(maxsplit=1)[0]):]
+    return capitalize_value(value)
+
+
 def extract_user_information(
     user_message,
     session_id="default"
@@ -234,7 +250,7 @@ def extract_user_information(
 
             if value:
 
-                value = capitalize_value(
+                value = format_origin_value(
                     value
                 )
 
