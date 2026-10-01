@@ -10,6 +10,7 @@ from brain.logic.course_teacher_engine import (
 )
 
 from brain.logic.speaking_support import (
+    consume_course_model_exhaustion,
     handle_pending_course_model,
     register_course_success,
 )
@@ -367,6 +368,21 @@ def handle(user_message,state):
     shared_pending = handle_pending_course_model(user_message, state)
     if shared_pending is not None:
         return shared_pending
+
+    # The shared speaking-support layer reports when a learner has exhausted
+    # the model/repetition ladder. Consume that signal here, while Lektion 2
+    # still owns the active skill, so it cannot leak into another course engine
+    # and be recorded against the wrong skill.
+    exhausted = consume_course_model_exhaustion(state)
+    if exhausted:
+        state["course_mastery_assistance_used"] = True
+        _record_lesson2_mastery(state, False)
+        action = choose_course_teacher_action(
+            state,
+            answer_correct=True,
+            mastery_status="needs_review",
+        )
+        return render_course_teacher_action(action, prompt=task.get("prompt", ""))
 
     result=evaluate_lesson2_answer(user_message,task)
     m["last_result"]=result
