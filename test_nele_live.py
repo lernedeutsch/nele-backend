@@ -76,7 +76,7 @@ def requested_course():
 
 
 def main():
-    session_id = f"chatgpt-live-test-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+    session_id = str(os.environ.get("NELE_LIVE_SESSION_ID", "") or "").strip() or f"chatgpt-live-test-{int(time.time())}-{uuid.uuid4().hex[:8]}"
     conversation_mode = requested_mode()
     print(f"MODE: {conversation_mode}", flush=True)
     if conversation_mode == "course":
