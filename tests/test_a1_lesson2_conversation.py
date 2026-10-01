@@ -250,3 +250,29 @@ def test_lesson2_wrong_answer_uses_shared_teacher_engine():
     assert state["a1_l2_tutor"]["turn"]==0
     skill=state["learning_progress_v1"]["skills"]["course:a1:2:das_verb_kommen"]
     assert skill["status"]=="needs_review"
+
+
+def test_nationality_yes_no_question_accepts_natural_affirmative_answer():
+    t=task(
+        "nationality",
+        "Polin",
+        country="polen",
+        intent="COUNTRY_TO_NATIONALITY",
+        prompt="Anna kommt aus Polen. Ist Anna Polin?",
+    )
+    for answer in ("ja", "Ja, genau.", "richtig"):
+        result=evaluate_lesson2_answer(answer,t)
+        assert result["kind"]=="correct"
+        assert result["status"]=="CORRECT_SHORT"
+
+
+def test_nationality_production_task_does_not_accept_bare_yes():
+    t=task(
+        "nationality",
+        "Polin",
+        country="polen",
+        intent="NATIONALITY_PRODUCTION",
+        prompt="Welche Nationalität hat Anna?",
+    )
+    result=evaluate_lesson2_answer("ja",t)
+    assert result["kind"]=="wrong"
