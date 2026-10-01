@@ -329,3 +329,20 @@ class Lesson2SupportExhaustionTests(unittest.TestCase):
             "NOT_YET",
         )
         self.assertIn("festigen", reply.lower())
+
+
+class CourseSemanticGrammarRegressionTests(unittest.TestCase):
+    def test_semantic_equivalence_does_not_drop_required_preposition(self):
+        from brain.logic.course_answer_evaluator import answer_matches_course_definition
+        definition={"accepted":["Ich komme aus Polen."]}
+        self.assertFalse(answer_matches_course_definition("Ich komme Polen.", definition))
+
+    def test_semantic_equivalence_does_not_drop_required_article(self):
+        from brain.logic.course_answer_evaluator import answer_matches_course_definition
+        definition={"accepted":["Ich komme aus der Schweiz."]}
+        self.assertFalse(answer_matches_course_definition("Ich komme aus Schweiz.", definition))
+
+    def test_semantic_equivalence_still_accepts_safe_word_order_variant(self):
+        from brain.logic.course_answer_evaluator import answer_matches_course_definition
+        definition={"accepted":["Ich komme heute aus Polen."]}
+        self.assertTrue(answer_matches_course_definition("Heute komme ich aus Polen.", definition))
