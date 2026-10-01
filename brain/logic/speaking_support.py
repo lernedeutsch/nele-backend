@@ -195,6 +195,22 @@ def register_course_success(state):
     _set_support(state, max(0, _support_level(state) - 1))
 
 
+def consume_course_model_exhaustion(state):
+    """Consume one exhausted support target and turn it into durable review evidence.
+
+    This is deliberately lesson-agnostic.  The support layer only reports that
+    the learner could not produce the current target after maximal scaffolding.
+    The active course engine decides which skill owns that evidence.
+    """
+    target = _text((state or {}).pop("course_model_practice_exhausted", None))
+    if not target:
+        return None
+    return {
+        "target": target,
+        "assistance_exhausted": True,
+    }
+
+
 def handle_pending_course_model(user_message, state):
     target = _text((state or {}).get("course_pending_speaking_model"))
     if not target:
