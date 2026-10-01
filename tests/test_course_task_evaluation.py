@@ -258,3 +258,54 @@ class CourseNumberWordMasteryTests(unittest.TestCase):
             self.assertFalse(answer_matches_step(digits, step, {}))
             self.assertTrue(answer_matches_step(words, step, {}))
 
+
+
+class SharedMasteryEvidenceCoverageTests(unittest.TestCase):
+    def test_repeated_success_on_one_evidence_unit_cannot_master_multi_part_skill(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        required = ["a", "b", "c"]
+        for _ in range(3):
+            progress = update_learning_progress(state, {
+                "skill": "course:a1:99:multi",
+                "status": "SUCCESS",
+                "mastery_eligible": True,
+                "requires_independent_confirmation": True,
+                "independent_confirmation": True,
+                "required_evidence": required,
+                "evidence": "a",
+            })
+        self.assertNotEqual(progress["status"], "mastered")
+        self.assertEqual(progress["independent_evidence"], ["a"])
+
+    def test_complete_independent_evidence_coverage_unlocks_mastery(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        required = ["a", "b", "c"]
+        progress = None
+        for evidence in required:
+            progress = update_learning_progress(state, {
+                "skill": "course:a1:99:multi",
+                "status": "SUCCESS",
+                "mastery_eligible": True,
+                "requires_independent_confirmation": True,
+                "independent_confirmation": True,
+                "required_evidence": required,
+                "evidence": evidence,
+            })
+        self.assertEqual(progress["status"], "mastered")
+        self.assertEqual(set(progress["independent_evidence"]), set(required))
+
+    def test_skills_without_declared_evidence_keep_existing_mastery_behavior(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        progress = None
+        for _ in range(3):
+            progress = update_learning_progress(state, {
+                "skill": "course:a1:99:legacy-compatible",
+                "status": "SUCCESS",
+                "mastery_eligible": True,
+                "requires_independent_confirmation": True,
+                "independent_confirmation": True,
+            })
+        self.assertEqual(progress["status"], "mastered")
