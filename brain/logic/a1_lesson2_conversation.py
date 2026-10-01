@@ -285,14 +285,33 @@ def _lesson2_skill_key(state):
     return f"course:a1:2:{section}"
 
 
-def _record_lesson2_mastery(state, success, independent_confirmation=False):
+def _lesson2_evidence_contract(task):
+    """Return breadth requirements for generated tasks that represent a range."""
+    task = task or {}
+    if task.get("kind") == "number":
+        try:
+            number = int(task.get("number"))
+        except (TypeError, ValueError):
+            return [], None
+        if 1 <= number <= 20:
+            bucket_start = ((number - 1) // 5) * 5 + 1
+            bucket_end = bucket_start + 4
+            return (
+                ["numbers:1-5", "numbers:6-10", "numbers:11-15", "numbers:16-20"],
+                f"numbers:{bucket_start}-{bucket_end}",
+            )
+    return [], None
+
+
+def _record_lesson2_mastery(state, success, independent_confirmation=False, task=None):
     """Record Lektion 2 evidence under the shared course mastery contract.
 
-    Generated tasks are useful practice evidence, but only a correct answer
-    produced without scaffolding on that task may independently confirm
-    mastery. This keeps the specialised Lektion 2 tutor aligned with the
-    generic lesson/dialogue engines.
+    Generated tasks are useful practice evidence, but range skills additionally
+    require independent coverage across their declared evidence groups. Three
+    isolated successes may therefore no longer master a broad skill such as
+    Zahlen 1–20.
     """
+    required_evidence, evidence = _lesson2_evidence_contract(task)
     outcome = {
         "skill": _lesson2_skill_key(state),
         "expected_outcome": "course_step",
@@ -300,6 +319,8 @@ def _record_lesson2_mastery(state, success, independent_confirmation=False):
         "mastery_eligible": bool(success and independent_confirmation),
         "requires_independent_confirmation": True,
         "independent_confirmation": bool(success and independent_confirmation),
+        "required_evidence": required_evidence,
+        "evidence": evidence,
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -383,7 +404,7 @@ def handle(user_message,state):
     exhausted = consume_course_model_exhaustion(state)
     if exhausted:
         state["course_mastery_assistance_used"] = True
-        _record_lesson2_mastery(state, False)
+        _record_lesson2_mastery(state, False, task=task)
         action = choose_course_teacher_action(
             state,
             answer_correct=True,
@@ -411,6 +432,7 @@ def handle(user_message,state):
             state,
             True,
             independent_confirmation=independent,
+            task=task,
         )
         # mark matching pending error as resolved only after a later successful transfer
         if task.get("intent")=="ERROR_REVIEW":
@@ -428,7 +450,7 @@ def handle(user_message,state):
         if correction: return correction+" "+nxt
         return "Genau! "+nxt
     state["course_mastery_assistance_used"] = True
-    _record_lesson2_mastery(state, False)
+    _record_lesson2_mastery(state, False, task=task)
     correction=_correction(result,user_message,task,state)
     # Keep the same target until the learner succeeds. The global speaking
     # engine now owns escalation and decides when to expose the full model.
