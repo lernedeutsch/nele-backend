@@ -67,6 +67,23 @@ from brain.memory.error_review import (
 )
 
 
+def test_error_practice_choice_records_assistance_for_adaptive_review():
+    from brain.logic.error_practice import handle_error_practice_step_one
+    state = {
+        "error_practice_type": "grammar",
+        "error_practice_step": 1,
+        "error_practice_used_hint": False,
+    }
+    summary = {
+        "last_wrong": "Ich kommen aus Polen.",
+        "last_correct": "Ich komme aus Polen.",
+    }
+    reply = handle_error_practice_step_one("2", state, summary)
+    assert "Sag jetzt" in reply
+    assert state["error_practice_step"] == 2
+    assert state["error_practice_used_hint"] is True
+
+
 class NeleCoreBehaviorTests(unittest.TestCase):
 
 
