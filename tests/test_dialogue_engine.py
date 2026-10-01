@@ -225,24 +225,24 @@ def test_course_dialogue_wrong_answer_records_shared_teacher_action():
     assert reply
 
 
-def test_course_dialogue_completes_only_after_shared_mastery():
-    state = {"conversation_mode": "course"}
+def test_course_practice_dialogue_cannot_grant_section_mastery_by_itself():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+    }
     start_dialogue("A1", 2, "woher-kommst-du", state)
     handle_dialogue("Ich komme aus Polen", state)
     handle_dialogue("Ja", state)
     reply = handle_dialogue("Anna kommt aus Österreich", state)
 
     skill = state["learning_progress_v1"]["skills"]["course:a1:2:woher_kommen_sie"]
-    assert skill["status"] == "mastered"
+    assert skill["status"] != "mastered"
+    assert skill["independent_confirmations"] == 0
     assert "Herkunftsdialog geschafft" in reply
+    assert "Jetzt sprechen wir über Länder" in reply
     assert state["dialogue_active"] is False
-    assert state["learner_model_v2"]["version"] == 2
-    assert state["course_teaching_decision"] == {
-        "decision": "teach_next",
-        "skill": "course:a1:2:das_verb_kommen",
-        "reason": "course_prerequisites_met",
-    }
-    assert state["pending_new_learning"]["skill"] == "course:a1:2:das_verb_kommen"
+    assert state["lesson_teaching_active"] is True
+    assert state["lesson_teaching_section"] == "Woher kommen Sie?"
 
 
 
