@@ -4,6 +4,7 @@
 # ==========================================
 
 from brain.logic.speaking_support import (
+    consume_course_model_exhaustion,
     handle_pending_course_model,
     register_course_success as register_speaking_course_success,
 )
@@ -760,6 +761,23 @@ def handle_a1_lesson_1_review(
         "lesson_review_training_step",
         1
     )
+
+    # If the shared speaking-support ladder was exhausted, keep that evidence
+    # inside the active review step. Do not immediately start a fresh support
+    # ladder for the same failed production.
+    exhausted = consume_course_model_exhaustion(state)
+    if exhausted:
+        state["course_mastery_assistance_used"] = True
+        record_review_course_outcome(state, step, False)
+        action = choose_course_teacher_action(
+            state,
+            answer_correct=True,
+            mastery_status="needs_review",
+        )
+        return render_course_teacher_action(
+            action,
+            prompt="Versuch diese Aufgabe später noch einmal.",
+        )
 
 
     # ======================================
