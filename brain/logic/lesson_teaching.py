@@ -109,7 +109,8 @@ def _legacy_course_skill_key(state):
     return f"course:{str(level).lower()}:{lesson}:{section_key}"
 
 
-def _record_legacy_course_mastery(state, success):
+def _record_legacy_course_mastery(state, success, independent_confirmation=False):
+    """Record legacy lesson evidence under the shared mastery contract."""
     skill = _legacy_course_skill_key(state)
     if not skill:
         return None
@@ -119,15 +120,26 @@ def _record_legacy_course_mastery(state, success):
             "skill": skill,
             "expected_outcome": "course_step",
             "status": "SUCCESS" if success else "NOT_YET",
-            "mastery_eligible": True,
+            "mastery_eligible": bool(success and independent_confirmation),
+            "requires_independent_confirmation": True,
+            "independent_confirmation": bool(success and independent_confirmation),
         },
     )
 
 
 def register_course_success(state):
-    """Keep legacy speaking support and shared course mastery in one path."""
+    """Record accepted legacy work without mistaking guided work for mastery."""
+    assisted = bool((state or {}).get("course_mastery_assistance_used"))
     _register_speaking_course_success(state)
-    return _record_legacy_course_mastery(state, True)
+    result = _record_legacy_course_mastery(
+        state,
+        True,
+        independent_confirmation=not assisted,
+    )
+    # Assistance belongs to the task that just finished. The next legacy task
+    # starts clean and can provide independent evidence if no new help is used.
+    state["course_mastery_assistance_used"] = False
+    return result
 
 
 # ==========================================
@@ -349,6 +361,9 @@ def remember_lesson_mistake(
     # same mastery state that correct answers build.  Otherwise a learner can
     # accumulate errors and still complete the section merely by reaching its
     # final scripted turn.
+    # The correction/support following this error means that a subsequent
+    # success on the same task is guided evidence, not an independent check.
+    state["course_mastery_assistance_used"] = True
     _record_legacy_course_mastery(state, False)
 
     return saved
