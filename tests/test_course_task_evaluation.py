@@ -188,3 +188,50 @@ class SharedCourseAnswerClassificationTests(unittest.TestCase):
             "correct_answer": "eins, zwei, drei, vier, fünf",
         }
         self.assertEqual(evaluate_step_answer("eins zwei drei", step, {})["kind"], "partial")
+
+
+class IndependentCourseMasteryTests(unittest.TestCase):
+    def test_success_count_alone_cannot_master_course_skill(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        outcome = {
+            "skill": "course:a1:2:test_skill",
+            "status": "SUCCESS",
+            "mastery_eligible": True,
+            "requires_independent_confirmation": True,
+        }
+        for _ in range(5):
+            progress = update_learning_progress(state, dict(outcome))
+        self.assertNotEqual(progress["status"], "mastered")
+        self.assertEqual(progress["independent_confirmations"], 0)
+
+    def test_independent_confirmation_unlocks_mastery_after_real_success_evidence(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        base = {
+            "skill": "course:a1:2:test_skill",
+            "status": "SUCCESS",
+            "mastery_eligible": False,
+            "requires_independent_confirmation": True,
+        }
+        update_learning_progress(state, dict(base))
+        update_learning_progress(state, dict(base))
+        final = dict(base)
+        final["mastery_eligible"] = True
+        final["independent_confirmation"] = True
+        progress = update_learning_progress(state, final)
+        self.assertEqual(progress["independent_confirmations"], 1)
+        self.assertEqual(progress["status"], "mastered")
+
+    def test_assisted_final_step_is_success_but_not_mastery_confirmation(self):
+        from brain.logic.generic_lesson_engine import record_course_step_outcome
+        state = {"course_mastery_assistance_used": True}
+        record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True)
+        record_course_step_outcome(state, "A1", 2, "Das Verb kommen", True)
+        progress = record_course_step_outcome(
+            state, "A1", 2, "Das Verb kommen", True,
+            final_step=True, independent_confirmation=False,
+        )
+        self.assertEqual(progress["successes"], 3)
+        self.assertEqual(progress["independent_confirmations"], 0)
+        self.assertNotEqual(progress["status"], "mastered")
