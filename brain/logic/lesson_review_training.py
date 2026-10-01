@@ -884,9 +884,11 @@ def handle_a1_lesson_1_review(
             )
             record_review_course_outcome(state, step, False)
 
-            feedback = (
-                "Fast. Die drei Umlaute sind "
-                "Ä, Ö und Ü."
+            # Stay on the same review task. The correction is guided support,
+            # not evidence that the learner can produce the answer independently.
+            return (
+                "Fast. Die drei Umlaute sind Ä, Ö und Ü. "
+                "Sag sie jetzt selbst."
             )
 
 
@@ -927,9 +929,13 @@ def handle_a1_lesson_1_review(
             )
             record_review_course_outcome(state, step, False)
 
-            feedback = (
-                "Fast. Das Zeichen heißt "
-                "„Eszett“ oder „scharfes S“."
+            # Do not finish the review after exposing the answer. Require the
+            # learner to produce it on the same task first; that retry remains
+            # assisted evidence because record_review_course_outcome() set the
+            # shared course assistance flag on the miss.
+            return (
+                "Fast. Das Zeichen heißt „Eszett“ oder „scharfes S“. "
+                "Sag es jetzt selbst."
             )
 
 
