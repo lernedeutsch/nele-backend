@@ -132,6 +132,64 @@ class GenericCourseMasteryEvidenceTests(unittest.TestCase):
         self.assertNotEqual(progress["status"], "mastered")
 
 
+class SharedMasteryIndependentConfirmationTests(unittest.TestCase):
+    def test_old_independent_proof_cannot_authorize_later_assisted_final(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+
+        state = {}
+        base = {
+            "skill": "course:a1:2:das_verb_kommen",
+            "expected_outcome": "course_step",
+            "status": "SUCCESS",
+            "requires_independent_confirmation": True,
+            "mastery_eligible": False,
+        }
+        # Earlier independent evidence is remembered, but it was not a final
+        # mastery-eligible answer.
+        first = dict(base)
+        first["independent_confirmation"] = True
+        update_learning_progress(state, first)
+        update_learning_progress(state, dict(base))
+
+        # A later final answer reached with assistance must not borrow the old
+        # independent confirmation and become mastered.
+        assisted_final = dict(base)
+        assisted_final["mastery_eligible"] = True
+        progress = update_learning_progress(state, assisted_final)
+        self.assertEqual(progress["independent_confirmations"], 1)
+        self.assertNotEqual(progress["status"], "mastered")
+
+        # A fresh independent final answer can still confirm mastery normally.
+        clean_final = dict(assisted_final)
+        clean_final["independent_confirmation"] = True
+        progress = update_learning_progress(state, clean_final)
+        self.assertEqual(progress["status"], "mastered")
+
+
+class SharedMasteryFreshConfirmationTests(unittest.TestCase):
+    def test_assisted_final_needs_fresh_independent_confirmation(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+        state = {}
+        base = {
+            "skill": "course:a1:2:das_verb_kommen",
+            "expected_outcome": "course_step",
+            "status": "SUCCESS",
+            "requires_independent_confirmation": True,
+            "mastery_eligible": False,
+        }
+        earlier = dict(base)
+        earlier["independent_confirmation"] = True
+        update_learning_progress(state, earlier)
+        update_learning_progress(state, dict(base))
+        final = dict(base)
+        final["mastery_eligible"] = True
+        progress = update_learning_progress(state, final)
+        self.assertNotEqual(progress["status"], "mastered")
+        final["independent_confirmation"] = True
+        progress = update_learning_progress(state, final)
+        self.assertEqual(progress["status"], "mastered")
+
+
 class GenericCourseMasteryRoutingGateTests(unittest.TestCase):
     def test_many_failures_prevent_mastery_even_after_final_success(self):
         from brain.logic.generic_lesson_engine import record_course_step_outcome

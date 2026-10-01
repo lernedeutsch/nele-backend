@@ -58,9 +58,13 @@ def _derive_status(item):
     mastery_eligible = item.get("mastery_eligible", True)
     requires_independent_confirmation = bool(item.get("requires_independent_confirmation", False))
     independent_confirmations = int(item.get("independent_confirmations", 0) or 0)
+    # Historical independent evidence is useful progress history, but it must
+    # not authorize a later assisted final answer. When a skill requires
+    # independent confirmation, the mastery-eligible SUCCESS that is being
+    # evaluated now must itself be independent.
     confirmation_ok = (
         not requires_independent_confirmation
-        or independent_confirmations >= 1
+        or item.get("last_independent_confirmation") is True
     )
     required_evidence = set(item.get("required_evidence") or [])
     independent_evidence = set(item.get("independent_evidence") or [])
@@ -121,6 +125,10 @@ def update_learning_progress(state, outcome):
             if evidence not in existing:
                 existing.append(evidence)
             item["independent_evidence"] = existing
+    item["last_independent_confirmation"] = bool(
+        outcome.get("independent_confirmation")
+        and outcome.get("status") == "SUCCESS"
+    )
     item["last_review_attempt"] = "review_confirmation" in outcome
     item["last_review_confirmation"] = bool(
         outcome.get("review_confirmation")
