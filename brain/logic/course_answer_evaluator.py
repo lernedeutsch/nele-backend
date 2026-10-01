@@ -41,6 +41,22 @@ def semantic_equivalent(user_message, accepted_values, render=None):
         target_tokens = semantic_tokens(render(value))
         if len(target_tokens) < 2:
             continue
+
+        # Preserve natural German fronting (for example
+        # "Aus Frankreich kommst du"), but do not let bag matching bless a
+        # broken subject-first clause such as "Ich aus Italien komme".
+        # When both forms start with the same subject pronoun, the finite verb
+        # that directly follows it in the accepted model must remain there.
+        subject_pronouns = {"ich", "du", "er", "sie", "es", "wir", "ihr"}
+        if (
+            len(target_tokens) >= 2
+            and len(learner_tokens) >= 2
+            and target_tokens[0] in subject_pronouns
+            and learner_tokens[0] == target_tokens[0]
+            and learner_tokens[1] != target_tokens[1]
+        ):
+            continue
+
         if learner_bag == sorted(target_tokens):
             return True
 

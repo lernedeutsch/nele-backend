@@ -405,6 +405,32 @@ class CourseSemanticGrammarRegressionTests(unittest.TestCase):
         definition={"accepted":["Ich komme heute aus Polen."]}
         self.assertTrue(answer_matches_course_definition("Heute komme ich aus Polen.", definition))
 
+    def test_semantic_equivalence_rejects_broken_subject_first_word_order(self):
+        from brain.logic.course_answer_evaluator import answer_matches_course_definition
+
+        cases = [
+            ("Ich komme aus Italien.", "Ich aus Italien komme."),
+            ("Du kommst aus Frankreich.", "Du aus Frankreich kommst."),
+            ("Wir kommen aus der Schweiz.", "Wir aus der Schweiz kommen."),
+        ]
+        for accepted, malformed in cases:
+            self.assertFalse(
+                answer_matches_course_definition(
+                    malformed,
+                    {"accepted": [accepted]},
+                )
+            )
+
+    def test_semantic_equivalence_keeps_fronted_constituent_variant(self):
+        from brain.logic.course_answer_evaluator import answer_matches_course_definition
+
+        self.assertTrue(
+            answer_matches_course_definition(
+                "Aus Frankreich kommst du.",
+                {"accepted": ["Du kommst aus Frankreich."]},
+            )
+        )
+
 
 class CourseGapFillShortAnswerTests(unittest.TestCase):
     def test_shared_evaluator_accepts_exact_missing_gap_fragment(self):
