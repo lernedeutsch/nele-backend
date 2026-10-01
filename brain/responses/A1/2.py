@@ -243,6 +243,7 @@ LESSON_DIALOGUES = [
         "situation": "Erstes Kennenlernen",
         "register": "informal",
         "learning_goals": ["nach Herkunft fragen", "Herkunft nennen"],
+        "mastery_scope": "practice",
         "grammar": ["kommen aus", "Woher?"],
         "vocabulary": ["kommen", "Polen", "Österreich"],
         "slots": {"country": "Polen"},

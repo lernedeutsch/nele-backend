@@ -490,6 +490,11 @@ def _course_dialogue_skill_key(dialogue, state):
     return f"course:{level}:{lesson}:{slug}"
 
 
+def _dialogue_covers_section_mastery(dialogue):
+    """Whether this dialogue alone is sufficient evidence for its whole section."""
+    return _norm((dialogue or {}).get("mastery_scope") or "section") == "section"
+
+
 def _record_course_dialogue_outcome(dialogue, state, success, partial=False, independent_confirmation=False):
     if str(state.get("conversation_mode") or "").strip().lower() != "course":
         return None
@@ -503,9 +508,9 @@ def _record_course_dialogue_outcome(dialogue, state, success, partial=False, ind
         # Individual scripted turns are practice evidence, not mastery proof.
         # Only a clean completion of the whole dialogue can independently
         # confirm the skill.
-        "mastery_eligible": bool(success and independent_confirmation and not partial),
+        "mastery_eligible": bool(success and independent_confirmation and not partial and _dialogue_covers_section_mastery(dialogue)),
         "requires_independent_confirmation": True,
-        "independent_confirmation": bool(success and independent_confirmation),
+        "independent_confirmation": bool(success and independent_confirmation and _dialogue_covers_section_mastery(dialogue)),
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -531,6 +536,30 @@ def _repeat_dialogue_for_mastery(dialogue, state, progress):
         mastery_status=(progress or {}).get("status"),
     )
     return render_course_teacher_action(action, prompt=opening)
+
+
+def _continue_section_after_practice_dialogue(dialogue, state):
+    """Continue with section teaching when a dialogue is practice, not mastery."""
+    if str(state.get("conversation_mode") or "").strip().lower() != "course":
+        return None
+    if _dialogue_covers_section_mastery(dialogue):
+        return None
+
+    section = _text((dialogue or {}).get("section"))
+    if not section:
+        return None
+
+    # Clear only dialogue state; the selected course lesson remains active.
+    clear_dialogue(state)
+    try:
+        from brain.logic.generic_lesson_engine import start_generic_lesson_teaching
+        opening = start_generic_lesson_teaching(section, state)
+    except Exception:
+        opening = None
+    if not opening:
+        return None
+
+    return opening
 
 
 def _complete_course_dialogue(dialogue, state):
@@ -822,6 +851,10 @@ def handle_dialogue(user_message, state):
     )
 
     if next_index >= len(turns):
+        practice_continuation = _continue_section_after_practice_dialogue(dialogue, state)
+        if practice_continuation:
+            complete = _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."
+            return " ".join(part for part in [success, *spoken, complete, practice_continuation] if part)
         if not independent_confirmation:
             state["course_mastery_assistance_used"] = False
         repeat = _repeat_dialogue_for_mastery(dialogue, state, course_progress)
@@ -840,6 +873,10 @@ def handle_dialogue(user_message, state):
         _norm(item.get("role")) in {"student", "learner", "user", "du"}
         for item in turns[next_index:]
     ):
+        practice_continuation = _continue_section_after_practice_dialogue(dialogue, state)
+        if practice_continuation:
+            complete = _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."
+            return " ".join(part for part in [success, *spoken, complete, practice_continuation] if part)
         if not independent_confirmation:
             state["course_mastery_assistance_used"] = False
         repeat = _repeat_dialogue_for_mastery(dialogue, state, course_progress)
