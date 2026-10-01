@@ -10,10 +10,12 @@ import re
 from brain.logic.matcher import normalize
 
 
-_SEMANTIC_FUNCTION_WORDS = {
-    "ich", "du", "er", "sie", "es", "wir", "ihr", "aus", "der", "die", "das",
-    "den", "dem", "ein", "eine", "einen", "am", "im", "in", "zu", "zum", "zur",
-}
+# Course grammar words are learning evidence, not semantic noise.  Dropping
+# prepositions/articles here made malformed productions such as
+# "Ich komme Polen" compare equal to "Ich komme aus Polen".  Keep every token
+# for semantic bag matching; the explicit subject-pronoun fallback below may
+# still remove one subject where that omission is intentionally safe.
+_SEMANTIC_FUNCTION_WORDS = set()
 
 
 def _norm(value):
