@@ -134,8 +134,13 @@ def _record_legacy_course_mastery(state, success, independent_confirmation=False
 def register_course_success(state, final_step=False):
     """Record legacy practice; only a clean final production may prove mastery."""
     assisted = bool((state or {}).get("course_mastery_assistance_used"))
+    section_assisted = bool(
+        (state or {}).get("course_mastery_section_assistance_used")
+    )
     _register_speaking_course_success(state)
-    independent_confirmation = bool(final_step and not assisted)
+    independent_confirmation = bool(
+        final_step and not assisted and not section_assisted
+    )
     result = _record_legacy_course_mastery(
         state,
         True,
@@ -369,6 +374,7 @@ def remember_lesson_mistake(
     # The correction/support following this error means that a subsequent
     # success on the same task is guided evidence, not an independent check.
     state["course_mastery_assistance_used"] = True
+    state["course_mastery_section_assistance_used"] = True
     _record_legacy_course_mastery(state, False)
 
     return saved
@@ -871,7 +877,12 @@ def complete_active_section(
         # mastered the section.  Legacy A1 must obey the same shared mastery
         # gate as generic lessons and dialogues.
         if mastery.get("status") != "mastered":
+            # A guided attempt may finish the script, but it may not prove the
+            # whole legacy section. Restart the section as a fresh independent
+            # pass; only that clean pass may provide final mastery evidence.
             state["lesson_teaching_step"] = 1
+            state["course_mastery_assistance_used"] = False
+            state["course_mastery_section_assistance_used"] = False
             return section
 
         mark_section_completed(
@@ -977,6 +988,8 @@ def complete_active_section(
                     f"Lesson review scheduling error: {error}"
                 )
 
+
+    state["course_mastery_section_assistance_used"] = False
 
     finish_lesson_teaching(
         state
