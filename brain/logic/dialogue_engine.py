@@ -27,6 +27,10 @@ from brain.logic.course_teacher_engine import (
     choose_course_teacher_action,
     render_course_teacher_action,
 )
+from brain.logic.speaking_support import (
+    consume_course_model_exhaustion,
+    handle_pending_course_model,
+)
 
 
 def _text(value):
@@ -638,6 +642,25 @@ def handle_dialogue(user_message, state):
     if turn is None:
         clear_dialogue(state)
         return _text(dialogue.get("complete")) or "Sehr gut! Der Dialog ist fertig."
+
+    # Dialogue turns use the same speaking-support ladder as lesson tasks.
+    # Let the shared pending-model handler own guided repetition so repeated
+    # failures can actually reach the bounded exhaustion state.
+    pending_reply = handle_pending_course_model(user_message, state)
+    if pending_reply is not None:
+        return pending_reply
+
+    exhausted = consume_course_model_exhaustion(state)
+    if exhausted and str(state.get("conversation_mode") or "").strip().lower() == "course":
+        state["course_mastery_assistance_used"] = True
+        _record_course_dialogue_outcome(dialogue, state, False)
+        action = choose_course_teacher_action(
+            state,
+            answer_correct=True,
+            mastery_status="needs_review",
+        )
+        retry_prompt = _text(turn.get("retry")) or "Versuch es noch einmal."
+        return render_course_teacher_action(action, prompt=retry_prompt)
 
     # A learner may explicitly open a different validated dialogue while
     # practising. If the new message exactly matches another dialogue's
