@@ -1546,6 +1546,7 @@ def handle_generic_lesson_teaching(
         )
 
 
+    pending_before = bool(state.get("course_pending_speaking_model"))
     support = assess_course_answer(
         user_message,
         step,
@@ -1555,6 +1556,10 @@ def handle_generic_lesson_teaching(
             step,
             state
         ),
+    )
+    step_assisted = bool(
+        pending_before
+        or state.get("course_generic_assisted_step") == int(step_number)
     )
 
     if support.get("intercept"):
@@ -1585,6 +1590,7 @@ def handle_generic_lesson_teaching(
         )
         if partial:
             state["course_mastery_assistance_used"] = True
+            state["course_generic_assisted_step"] = int(step_number)
             # A partially correct answer is real learning evidence. Previously
             # Nele rendered scaffolding here and returned before the shared
             # learning_progress_v1 store ever saw the PARTIAL result.
@@ -1609,6 +1615,7 @@ def handle_generic_lesson_teaching(
             return render_course_teacher_action(action)
 
         state["course_mastery_assistance_used"] = True
+        state["course_generic_assisted_step"] = int(step_number)
         record_course_step_outcome(
             state, level, lesson, real_section, False, final_step=False
         )
@@ -1684,12 +1691,11 @@ def handle_generic_lesson_teaching(
         real_section,
         True,
         final_step=final_step,
-        independent_confirmation=bool(
-            not state.get("course_mastery_assistance_used")
-        ),
+        independent_confirmation=bool(not step_assisted),
         required_evidence=required_evidence,
         evidence=f"step:{int(step_number)}",
     )
+    state.pop("course_generic_assisted_step", None)
 
 
     if next_step:
