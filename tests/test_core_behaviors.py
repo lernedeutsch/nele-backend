@@ -652,10 +652,14 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertTrue(answer_matches_step("aus Polen", first, {}))
 
         numbers = sections["Zahlen 1–20"]["steps"]
-        self.assertTrue(answer_matches_step("1 2 3 4 5", numbers[0], {}))
-        self.assertTrue(answer_matches_step("6 7 8 9 10", numbers[1], {}))
-        self.assertTrue(answer_matches_step("11 12 13 14 15", numbers[2], {}))
-        self.assertTrue(answer_matches_step("16 17 18 19 20", numbers[3], {}))
+        self.assertFalse(answer_matches_step("1 2 3 4 5", numbers[0], {}))
+        self.assertFalse(answer_matches_step("6 7 8 9 10", numbers[1], {}))
+        self.assertFalse(answer_matches_step("11 12 13 14 15", numbers[2], {}))
+        self.assertFalse(answer_matches_step("16 17 18 19 20", numbers[3], {}))
+        self.assertTrue(answer_matches_step("eins zwei drei vier fünf", numbers[0], {}))
+        self.assertTrue(answer_matches_step("sechs sieben acht neun zehn", numbers[1], {}))
+        self.assertTrue(answer_matches_step("elf zwölf dreizehn vierzehn fünfzehn", numbers[2], {}))
+        self.assertTrue(answer_matches_step("sechzehn siebzehn achtzehn neunzehn zwanzig", numbers[3], {}))
         self.assertEqual(numbers[0]["success"], "Sehr gut.")
         self.assertFalse(numbers[1]["prompt"].startswith("Sehr gut."))
 

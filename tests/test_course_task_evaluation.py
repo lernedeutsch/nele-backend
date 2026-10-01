@@ -238,3 +238,23 @@ class IndependentCourseMasteryTests(unittest.TestCase):
         self.assertEqual(progress["successes"], 3)
         self.assertEqual(progress["independent_confirmations"], 0)
         self.assertNotEqual(progress["status"], "mastered")
+
+
+class CourseNumberWordMasteryTests(unittest.TestCase):
+    def test_digits_are_not_accepted_as_number_word_mastery(self):
+        from brain.logic.generic_lesson_engine import answer_matches_step
+        import importlib
+        lesson2 = importlib.import_module("brain.responses.A1.2")
+
+        section = lesson2.LESSON_FLOW["sections"]["Zahlen 1–20"]
+        digit_answers = ["1 2 3 4 5", "6 7 8 9 10", "11 12 13 14 15", "16 17 18 19 20"]
+        word_answers = [
+            "eins zwei drei vier fünf",
+            "sechs sieben acht neun zehn",
+            "elf zwölf dreizehn vierzehn fünfzehn",
+            "sechzehn siebzehn achtzehn neunzehn zwanzig",
+        ]
+        for step, digits, words in zip(section["steps"], digit_answers, word_answers):
+            self.assertFalse(answer_matches_step(digits, step, {}))
+            self.assertTrue(answer_matches_step(words, step, {}))
+
