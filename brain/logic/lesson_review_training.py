@@ -10,6 +10,7 @@ from brain.logic.speaking_support import (
 )
 
 from brain.logic.learning_progress_engine import update_learning_progress
+from brain.logic.course_answer_evaluator import evaluate_course_answer
 from brain.logic.matcher import normalize
 
 from brain.memory.lesson_review import (
@@ -528,6 +529,50 @@ def is_eszett_answer(
 
 
 # ==========================================
+# SHARED COURSE ANSWER EVALUATION
+# ==========================================
+
+A1_LESSON_1_REVIEW_ANSWERS = {
+    1: {"accepted": ["Guten Morgen", "Morgen"]},
+    2: {"validator": "review_name_introduction"},
+    3: {"accepted": ["Wie heißt du?", "Wie heisst du?"]},
+    4: {"accepted": ["Wie heißen Sie?", "Wie heissen Sie?"]},
+    5: {"validator": "review_umlauts"},
+    6: {
+        "accepted": [
+            "ß",
+            "Eszett",
+            "Es Zett",
+            "scharfes S",
+            "das Eszett",
+            "das scharfe S",
+        ]
+    },
+}
+
+
+def _review_answer_validator(name, user_message):
+    """Keep structural review rules behind the shared evaluator contract."""
+    if name == "review_name_introduction":
+        return is_valid_name_answer(user_message)
+    if name == "review_umlauts":
+        return is_umlaut_answer(user_message)
+    return False
+
+
+def evaluate_review_answer(step, user_message):
+    """Evaluate every A1.1 review answer through the shared course evaluator."""
+    definition = A1_LESSON_1_REVIEW_ANSWERS.get(int(step or 0))
+    if not definition:
+        return {"kind": "wrong", "correct": False, "partial": None}
+    return evaluate_course_answer(
+        user_message,
+        definition,
+        validator=_review_answer_validator,
+    )
+
+
+# ==========================================
 # ZAKOŃCZENIE CAŁEJ POWTÓRKI
 # ==========================================
 
@@ -680,9 +725,7 @@ def handle_a1_lesson_1_review(
 
     if step == 1:
 
-        if is_morning_greeting(
-            user_message
-        ):
+        if evaluate_review_answer(step, user_message)["correct"]:
 
             remember_correct_answer(
                 state
@@ -724,9 +767,7 @@ def handle_a1_lesson_1_review(
 
     if step == 2:
 
-        if is_valid_name_answer(
-            user_message
-        ):
+        if evaluate_review_answer(step, user_message)["correct"]:
 
             remember_correct_answer(
                 state
@@ -776,9 +817,7 @@ def handle_a1_lesson_1_review(
 
     if step == 3:
 
-        if is_informal_name_question(
-            user_message
-        ):
+        if evaluate_review_answer(step, user_message)["correct"]:
 
             remember_correct_answer(
                 state
@@ -820,9 +859,7 @@ def handle_a1_lesson_1_review(
 
     if step == 4:
 
-        if is_formal_name_question(
-            user_message
-        ):
+        if evaluate_review_answer(step, user_message)["correct"]:
 
             remember_correct_answer(
                 state
@@ -864,9 +901,7 @@ def handle_a1_lesson_1_review(
 
     if step == 5:
 
-        if is_umlaut_answer(
-            user_message
-        ):
+        if evaluate_review_answer(step, user_message)["correct"]:
 
             remember_correct_answer(
                 state
@@ -909,9 +944,7 @@ def handle_a1_lesson_1_review(
 
     if step == 6:
 
-        if is_eszett_answer(
-            user_message
-        ):
+        if evaluate_review_answer(step, user_message)["correct"]:
 
             remember_correct_answer(
                 state

@@ -4,6 +4,7 @@ from brain.logic.lesson_review_training import (
     complete_lesson_review_training,
     handle_a1_lesson_1_review,
     record_review_course_outcome,
+    evaluate_review_answer,
 )
 
 
@@ -43,6 +44,25 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "lesson_review_training_wrong": 0,
             "learning_progress_v1": {"version": 1, "skills": skills},
         }
+
+
+    def test_all_review_steps_use_shared_answer_definitions(self):
+        cases = (
+            (1, "Morgen", True),
+            (2, "Mein Name ist Anna", True),
+            (3, "Wie heisst du?", True),
+            (4, "Wie heißen Sie?", True),
+            (5, "Ü Ö Ä", True),
+            (6, "Es Zett", True),
+            (1, "Guten Abend", False),
+            (3, "Wie geht es dir?", False),
+            (5, "A O U", False),
+            (6, "Doppel-s", False),
+        )
+        for step, answer, expected in cases:
+            with self.subTest(step=step, answer=answer):
+                result = evaluate_review_answer(step, answer)
+                self.assertEqual(result["correct"], expected)
 
     def test_one_wrong_answer_no_longer_means_good_review(self):
         state = self.base_state()
