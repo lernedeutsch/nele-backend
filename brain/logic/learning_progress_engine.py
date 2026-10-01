@@ -146,6 +146,12 @@ def update_learning_progress(state, outcome):
     elif result == "NOT_YET":
         item["not_yet"] += 1
         item["success_streak"] = 0
+        # Independent evidence describes the learner's current demonstrated
+        # coverage. Once a required multi-part skill is answered incorrectly,
+        # evidence from an older clean pass must not be reused to regain
+        # mastery by succeeding only on another part later.
+        if item.get("required_evidence"):
+            item["independent_evidence"] = []
 
     item["status"] = _derive_status(item)
     state["last_learning_progress"] = dict(item)
