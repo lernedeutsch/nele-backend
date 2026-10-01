@@ -926,7 +926,7 @@ def handle_a1_lesson_1_review(
                 state,
                 answer_correct=False,
                 correct_answer="Ä, Ö und Ü",
-                retry="Nenne die drei Umlaute noch einmal.",
+                retry="Die drei Umlaute sind Ä, Ö und Ü. Sag sie jetzt selbst.",
             )
             return render_course_teacher_action(action)
 
@@ -970,7 +970,7 @@ def handle_a1_lesson_1_review(
                 state,
                 answer_correct=False,
                 correct_answer="Eszett",
-                retry="Wie heißt das Zeichen ß?",
+                retry="Das Zeichen heißt „Eszett“ oder „scharfes S“. Sag es jetzt selbst.",
             )
             return render_course_teacher_action(action)
 
