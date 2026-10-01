@@ -351,7 +351,7 @@ def _dialogue_router_score(message, dialogue):
     return best, best_overlap
 
 
-def find_dialogue_for_message(message, level="A1", min_score=0.68):
+def find_dialogue_for_message(message, level="A1", min_score=0.68, lesson=None):
     if not _text(message):
         return None
     message_tokens = _router_tokens(message)
@@ -361,6 +361,13 @@ def find_dialogue_for_message(message, level="A1", min_score=0.68):
         dialogues = get_active_dialogues("A1") + get_active_dialogues("A2")
     else:
         dialogues = get_active_dialogues(requested_level)
+    if lesson is not None:
+        try:
+            lesson = int(lesson)
+        except (TypeError, ValueError):
+            lesson = None
+    if lesson is not None:
+        dialogues = [dialogue for dialogue in dialogues if int(dialogue.get("lesson") or 0) == lesson]
     for dialogue in dialogues:
         score, overlap = _dialogue_router_score(message, dialogue)
         # A partial prompt match is not enough to select a dialogue. Require
@@ -635,9 +642,13 @@ def handle_dialogue(user_message, state):
     # A learner may explicitly open a different validated dialogue while
     # practising. If the new message exactly matches another dialogue's
     # opening, switch cleanly instead of treating it as a wrong answer.
+    course_lesson = None
+    if str(state.get("conversation_mode") or "").strip().lower() == "course":
+        course_lesson = state.get("selected_lesson") or state.get("lesson") or state.get("dialogue_lesson")
     candidate = find_dialogue_for_message(
         user_message,
         state.get("dialogue_level") or "A1",
+        lesson=course_lesson,
     )
     # A clear new dialogue intent must pre-empt the old dialogue. Requiring an
     # exact stored prompt made natural paraphrases and topic changes look like
