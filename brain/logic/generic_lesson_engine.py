@@ -1414,7 +1414,7 @@ def _course_skill_key(level, lesson, section):
     return f"course:{str(level).strip().lower()}:{lesson}:{slug}"
 
 
-def record_course_step_outcome(state, level, lesson, section, success, final_step=False, partial=False):
+def record_course_step_outcome(state, level, lesson, section, success, final_step=False, partial=False, independent_confirmation=False):
     """Feed real course answers into the shared learner progress model.
 
     A course skill cannot become mastered before the final step of its section.
@@ -1427,6 +1427,8 @@ def record_course_step_outcome(state, level, lesson, section, success, final_ste
         "expected_outcome": "course_step",
         "status": status,
         "mastery_eligible": bool(success and final_step and not partial),
+        "requires_independent_confirmation": True,
+        "independent_confirmation": bool(success and independent_confirmation),
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -1541,6 +1543,7 @@ def handle_generic_lesson_teaching(
             state,
         )
         if partial:
+            state["course_mastery_assistance_used"] = True
             # A partially correct answer is real learning evidence. Previously
             # Nele rendered scaffolding here and returned before the shared
             # learning_progress_v1 store ever saw the PARTIAL result.
@@ -1564,6 +1567,7 @@ def handle_generic_lesson_teaching(
             )
             return render_course_teacher_action(action)
 
+        state["course_mastery_assistance_used"] = True
         record_course_step_outcome(
             state, level, lesson, real_section, False, final_step=False
         )
@@ -1619,13 +1623,22 @@ def handle_generic_lesson_teaching(
         next_step_number
     )
 
+    final_step = next_step is None
+    # Mastery requires at least one unassisted final production. A correct
+    # repetition while scaffolding/model support is still active is useful
+    # SUCCESS evidence, but it is not proof that the learner can do it alone.
+    independent_confirmation = bool(
+        final_step
+        and not state.get("course_mastery_assistance_used")
+    )
     course_progress = record_course_step_outcome(
         state,
         level,
         lesson,
         real_section,
         True,
-        final_step=(next_step is None),
+        final_step=final_step,
+        independent_confirmation=independent_confirmation,
     )
 
 
@@ -1666,6 +1679,10 @@ def handle_generic_lesson_teaching(
     # model still says this course skill is not mastered (for example after
     # repeated mistakes), keep the learner in this section and review it.
     if (course_progress or {}).get("status") != "mastered":
+        # A pass that needed scaffolding teaches the material but cannot prove
+        # mastery. The next pass starts fresh; only that clean pass may confirm.
+        if final_step:
+            state["course_mastery_assistance_used"] = False
         state["lesson_teaching_step"] = 1
         first_step = get_step(definition, 1)
         first_prompt = render_text(

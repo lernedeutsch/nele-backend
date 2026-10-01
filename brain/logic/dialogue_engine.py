@@ -479,7 +479,7 @@ def _course_dialogue_skill_key(dialogue, state):
     return f"course:{level}:{lesson}:{slug}"
 
 
-def _record_course_dialogue_outcome(dialogue, state, success, partial=False):
+def _record_course_dialogue_outcome(dialogue, state, success, partial=False, independent_confirmation=False):
     if str(state.get("conversation_mode") or "").strip().lower() != "course":
         return None
     skill = _course_dialogue_skill_key(dialogue, state)
@@ -489,7 +489,12 @@ def _record_course_dialogue_outcome(dialogue, state, success, partial=False):
         "skill": skill,
         "expected_outcome": "course_dialogue_turn",
         "status": "PARTIAL" if partial else ("SUCCESS" if success else "NOT_YET"),
-        "mastery_eligible": not partial,
+        # Individual scripted turns are practice evidence, not mastery proof.
+        # Only a clean completion of the whole dialogue can independently
+        # confirm the skill.
+        "mastery_eligible": bool(success and independent_confirmation and not partial),
+        "requires_independent_confirmation": True,
+        "independent_confirmation": bool(success and independent_confirmation),
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
@@ -718,6 +723,7 @@ def handle_dialogue(user_message, state):
         )
         expected = _text(turn.get("expected"))
         if evaluation.get("kind") == "partial":
+            state["course_mastery_assistance_used"] = True
             _record_course_dialogue_outcome(dialogue, state, False, partial=True)
             action = choose_course_teacher_action(
                 state,
@@ -727,6 +733,7 @@ def handle_dialogue(user_message, state):
             )
             return render_course_teacher_action(action)
 
+        state["course_mastery_assistance_used"] = True
         _record_course_dialogue_outcome(dialogue, state, False)
         retry = _text(turn.get("retry"))
         action = choose_course_teacher_action(
@@ -756,15 +763,33 @@ def handle_dialogue(user_message, state):
             break
 
     mark_intent_complete(state, infer_intent(turn))
-    course_progress = _record_course_dialogue_outcome(dialogue, state, True)
     success = _text(turn.get("success"))
     next_index, spoken = _advance_to_learner(
         turns,
         int(state.get("dialogue_turn", 0)) + 1,
         state.get("dialogue_slots"),
     )
+    dialogue_finishes = (
+        next_index >= len(turns)
+        or not any(
+            _norm(item.get("role")) in {"student", "learner", "user", "du"}
+            for item in turns[next_index:]
+        )
+    )
+    independent_confirmation = bool(
+        dialogue_finishes
+        and not state.get("course_mastery_assistance_used")
+    )
+    course_progress = _record_course_dialogue_outcome(
+        dialogue,
+        state,
+        True,
+        independent_confirmation=independent_confirmation,
+    )
 
     if next_index >= len(turns):
+        if not independent_confirmation:
+            state["course_mastery_assistance_used"] = False
         repeat = _repeat_dialogue_for_mastery(dialogue, state, course_progress)
         if repeat:
             return " ".join(part for part in [success, *spoken, repeat] if part)
@@ -781,6 +806,8 @@ def handle_dialogue(user_message, state):
         _norm(item.get("role")) in {"student", "learner", "user", "du"}
         for item in turns[next_index:]
     ):
+        if not independent_confirmation:
+            state["course_mastery_assistance_used"] = False
         repeat = _repeat_dialogue_for_mastery(dialogue, state, course_progress)
         if repeat:
             return " ".join(part for part in [success, *spoken, repeat] if part)
