@@ -777,15 +777,17 @@ def api_students():
     progress = state.setdefault("student_progress", {})
     level = str(data.get("level") or "").strip().upper()
     lesson = data.get("lesson")
-    if level in {"A1", "A2", "B1", "B2", "C1", "C2"}:
-        progress["current_level"] = level
+    if level and level != "A1":
+        return jsonify({"ok": False, "error": "course_scope_limited_to_a1_1_a1_2"}), 400
+    if level == "A1":
+        progress["current_level"] = "A1"
     if lesson is not None:
         try:
             lesson = int(lesson)
         except (TypeError, ValueError):
             return jsonify({"ok": False, "error": "invalid_lesson"}), 400
-        if lesson < 1:
-            return jsonify({"ok": False, "error": "invalid_lesson"}), 400
+        if lesson not in {1, 2}:
+            return jsonify({"ok": False, "error": "course_scope_limited_to_a1_1_a1_2"}), 400
         progress["current_lesson"] = lesson
 
     save_conversation_state(session_id)
