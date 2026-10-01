@@ -48,12 +48,13 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_all_review_steps_use_shared_answer_definitions(self):
         cases = (
-            (1, "Morgen", True),
+            (1, "Guten Morgen, Guten Tag, Guten Abend, Tschüss", True),
             (2, "Mein Name ist Anna", True),
             (3, "Wie heisst du?", True),
             (4, "Wie heißen Sie?", True),
             (5, "Ü Ö Ä", True),
             (6, "Es Zett", True),
+            (1, "Guten Morgen", False),
             (1, "Guten Abend", False),
             (3, "Wie geht es dir?", False),
             (5, "A O U", False),
@@ -97,17 +98,48 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "needs_review",
         )
 
-    def test_fresh_independent_review_answer_restores_mastery(self):
+    def test_one_independent_review_answer_cannot_restore_multi_part_skill(self):
         state = self.base_state()
+        skill = "course:a1:1:ich_stelle_mich_vor"
         record_review_course_outcome(state, 2, False)
         record_review_course_outcome(state, 2, True)  # guided correction
-        record_review_course_outcome(state, 3, True)  # fresh independent task
+        record_review_course_outcome(state, 3, True)  # only one fresh evidence item
 
         self.assertEqual(
-            state["learning_progress_v1"]["skills"][
-                "course:a1:1:ich_stelle_mich_vor"
-            ]["status"],
+            state["learning_progress_v1"]["skills"][skill]["status"],
+            "needs_review",
+        )
+
+    def test_complete_independent_review_evidence_restores_multi_part_skill(self):
+        state = self.base_state()
+        skill = "course:a1:1:ich_stelle_mich_vor"
+        record_review_course_outcome(state, 2, False)
+        record_review_course_outcome(state, 2, True)  # guided correction
+        record_review_course_outcome(state, 2, True)  # fresh introduce-self evidence
+        record_review_course_outcome(state, 3, True)
+        record_review_course_outcome(state, 4, True)
+
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][skill]["status"],
             "mastered",
+        )
+
+    def test_single_greeting_cannot_restore_broad_greeting_skill(self):
+        state = self.base_state()
+        skill = "course:a1:1:wir_begrüßen_uns"
+        record_review_course_outcome(state, 1, False)
+        state["course_mastery_assistance_used"] = False
+        result = evaluate_review_answer(1, "Guten Morgen")
+        self.assertFalse(result["correct"])
+        record_review_course_outcome(state, 1, True)
+
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][skill]["status"],
+            "mastered",
+        )
+        self.assertEqual(
+            state["course_review_evidence"][skill],
+            ["greeting_range"],
         )
 
     def test_review_wrong_answer_uses_shared_teacher_engine(self):
