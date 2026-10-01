@@ -77,7 +77,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "conversation_mode": "course",
             "lesson_progress": {
                 "lessons": {
-                    "A1-1": {
+                    "A1:1": {
                         "level": "A1",
                         "lesson": 1,
                         "sections": [
