@@ -58,6 +58,10 @@ from brain.logic.speaking_support import (
 )
 
 from brain.logic.learning_progress_engine import update_learning_progress
+from brain.logic.course_teacher_engine import (
+    choose_course_teacher_action,
+    render_course_teacher_action,
+)
 
 
 # ==========================================
@@ -2080,11 +2084,10 @@ def handle_introduction_section(
             )
 
             if hint:
-                return progressive_course_support(
-                    hint,
+                return _legacy_course_teacher_retry(
                     state,
-                    first_hint="Sag deinen Namen Buchstabe für Buchstabe.",
-                    prefix="Fast. ",
+                    correct_answer=hint,
+                    retry="Sag deinen Namen Buchstabe für Buchstabe.",
                 )
 
             return (
@@ -2294,6 +2297,22 @@ def is_eszett_answer(
 # DAS DEUTSCHE ALPHABET
 # ==========================================
 
+def _legacy_course_teacher_retry(
+    state,
+    *,
+    correct_answer,
+    retry,
+):
+    """Route legacy A1 correction through the shared Course Teacher Engine."""
+    action = choose_course_teacher_action(
+        state,
+        answer_correct=False,
+        correct_answer=correct_answer,
+        retry=retry,
+    )
+    return render_course_teacher_action(action)
+
+
 def handle_alphabet_section(
     user_message,
     state
@@ -2318,8 +2337,10 @@ def handle_alphabet_section(
                 "A"
             )
 
-            return (
-                "Hör zu: A. Sag bitte: „A“."
+            return _legacy_course_teacher_retry(
+                state,
+                correct_answer="A",
+                retry="Hör zu: A. Sag bitte: „A“.",
             )
 
         register_course_success(state)
@@ -2344,8 +2365,10 @@ def handle_alphabet_section(
                 "B"
             )
 
-            return (
-                "Hör zu: B. Sag bitte: „B“."
+            return _legacy_course_teacher_retry(
+                state,
+                correct_answer="B",
+                retry="Hör zu: B. Sag bitte: „B“.",
             )
 
         register_course_success(state)
@@ -2370,8 +2393,10 @@ def handle_alphabet_section(
                 "M"
             )
 
-            return (
-                "Das ist M. Sag bitte: „M“."
+            return _legacy_course_teacher_retry(
+                state,
+                correct_answer="M",
+                retry="Das ist M. Sag bitte: „M“.",
             )
 
         register_course_success(state)
@@ -2395,10 +2420,13 @@ def handle_alphabet_section(
                 "Ä, Ö und Ü"
             )
 
-            return (
-                "Fast. Die drei Umlaute sind "
-                "Ä, Ö und Ü. "
-                "Sag sie bitte noch einmal."
+            return _legacy_course_teacher_retry(
+                state,
+                correct_answer="Ä, Ö und Ü",
+                retry=(
+                    "Fast. Die drei Umlaute sind Ä, Ö und Ü. "
+                    "Sag sie bitte noch einmal."
+                ),
             )
 
         register_course_success(state)
@@ -2422,9 +2450,13 @@ def handle_alphabet_section(
                 "Eszett"
             )
 
-            return (
-                "Das ist ß. Es heißt „Eszett“. "
-                "Sag bitte: „Eszett“."
+            return _legacy_course_teacher_retry(
+                state,
+                correct_answer="Eszett",
+                retry=(
+                    "Das ist ß. Es heißt „Eszett“. "
+                    "Sag bitte: „Eszett“."
+                ),
             )
 
         register_course_success(state)
