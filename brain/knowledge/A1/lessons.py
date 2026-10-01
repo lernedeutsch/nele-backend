@@ -51,6 +51,7 @@ A1_LESSONS = {
         ),
         "sections": [
             "Woher kommen Sie?",
+            "Länder und Nationalitäten",
             "Das Verb kommen",
             "Zahlen 1–20"
         ],
