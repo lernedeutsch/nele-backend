@@ -267,3 +267,33 @@ def test_course_dialogue_exhausted_support_becomes_review_instead_of_model_loop(
     progress = state["learning_progress_v1"]["skills"]["course:a1:2:woher_kommen_sie"]
     assert progress["last_result"] == "NOT_YET"
     assert progress["status"] != "mastered"
+
+
+def test_explicit_lesson_review_request_preempts_active_course_exercise():
+    from brain.logic.conversation import handle_message
+
+    state = {
+        "conversation_mode": "course",
+        "onboarding_completed": True,
+        "selected_level": "A1",
+        "selected_lesson": 1,
+        "lesson_teaching_active": True,
+        "lesson_teaching_level": "A1",
+        "lesson_teaching_lesson": 1,
+        "lesson_teaching_section": "Wir begrüßen uns",
+        "lesson_teaching_step": 1,
+    }
+    with patch(
+        "brain.logic.conversation.get_conversation_state",
+        return_value=state,
+    ):
+        reply = handle_message(
+            "Ich möchte Lektion 1 wiederholen.",
+            "A1",
+            1,
+            session_id="test-explicit-review-intent",
+        )
+
+    assert "Wiederholung von A1, Lektion 1" in str(reply)
+    assert state["lesson_review_training_active"] is True
+    assert state["lesson_review_training_step"] == 1
