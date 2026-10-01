@@ -276,3 +276,38 @@ def test_nationality_production_task_does_not_accept_bare_yes():
     )
     result=evaluate_lesson2_answer("ja",t)
     assert result["kind"]=="wrong"
+
+
+def test_nationality_recognition_success_is_not_independent_mastery_evidence():
+    state={}
+    start("Nationalitäten", state)
+    state["a1_l2_tutor"]["task"]=task(
+        "nationality",
+        "Polin",
+        country="polen",
+        intent="COUNTRY_TO_NATIONALITY",
+        prompt="Anna kommt aus Polen. Ist Anna Polin?",
+    )
+    reply=handle("ja", state)
+    assert "Genau" in reply
+    outcome=state["last_course_learning_outcome"]
+    assert outcome["status"]=="SUCCESS"
+    assert outcome["mastery_eligible"] is False
+    assert outcome["independent_confirmation"] is False
+
+
+def test_nationality_production_still_can_create_independent_mastery_evidence():
+    state={}
+    start("Nationalitäten", state)
+    state["a1_l2_tutor"]["task"]=task(
+        "nationality",
+        "Polin",
+        country="polen",
+        intent="NATIONALITY_PRODUCTION",
+        prompt="Welche Nationalität hat Anna?",
+    )
+    handle("Polin", state)
+    outcome=state["last_course_learning_outcome"]
+    assert outcome["status"]=="SUCCESS"
+    assert outcome["mastery_eligible"] is True
+    assert outcome["independent_confirmation"] is True
