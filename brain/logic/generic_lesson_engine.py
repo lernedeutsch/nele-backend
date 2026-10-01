@@ -250,8 +250,11 @@ def get_template_values(
             ),
 
         "origin":
-            get_student_origin(
-                state
+            (
+                get_student_origin(
+                    state
+                )
+                or "Polen"
             ),
 
         "level":
