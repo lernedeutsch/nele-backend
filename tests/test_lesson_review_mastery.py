@@ -160,6 +160,24 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "needs_review",
         )
 
+    def test_exhausted_review_support_routes_to_review_without_restarting_ladder(self):
+        state = self.base_state()
+        state["lesson_review_training_step"] = 3
+
+        replies = [handle_a1_lesson_1_review("falsch", state) for _ in range(6)]
+
+        self.assertTrue(any("Das ist okay" in reply for reply in replies))
+        self.assertIn("festigen", replies[-1].lower())
+        self.assertNotIn("course_model_practice_exhausted", state)
+        self.assertFalse(state.get("course_pending_speaking_model"))
+        self.assertEqual(state["lesson_review_training_step"], 3)
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][
+                "course:a1:1:ich_stelle_mich_vor"
+            ]["status"],
+            "needs_review",
+        )
+
     def test_wrong_umlauts_require_retry_before_advancing(self):
         state = self.base_state()
         state["lesson_review_training_step"] = 5
