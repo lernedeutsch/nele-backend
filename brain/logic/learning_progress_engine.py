@@ -49,6 +49,12 @@ def _derive_status(item):
         and item.get("last_review_confirmation") is True
     ):
         return "mastered"
+    if (
+        previous == "needs_review"
+        and item.get("last_result") == "SUCCESS"
+        and item.get("last_review_attempt") is True
+    ):
+        return "needs_review"
     mastery_eligible = item.get("mastery_eligible", True)
     requires_independent_confirmation = bool(item.get("requires_independent_confirmation", False))
     independent_confirmations = int(item.get("independent_confirmations", 0) or 0)
@@ -99,6 +105,7 @@ def update_learning_progress(state, outcome):
         item["requires_independent_confirmation"] = bool(outcome.get("requires_independent_confirmation"))
     if outcome.get("independent_confirmation") and outcome.get("status") == "SUCCESS":
         item["independent_confirmations"] = int(item.get("independent_confirmations", 0) or 0) + 1
+    item["last_review_attempt"] = "review_confirmation" in outcome
     item["last_review_confirmation"] = bool(
         outcome.get("review_confirmation")
         and outcome.get("independent_confirmation")
