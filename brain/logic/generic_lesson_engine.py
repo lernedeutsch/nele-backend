@@ -1715,6 +1715,21 @@ def handle_generic_lesson_teaching(
     )
 
     if support.get("intercept"):
+        # A scaffolded wrong answer is still a real NOT_YET learning event.
+        # Recording it before rendering support invalidates independent evidence
+        # from the interrupted pass, so a later guided correction (including
+        # after page reopen) cannot reuse stale evidence toward mastery.
+        if not support.get("answer_matches"):
+            state["course_mastery_assistance_used"] = True
+            state["course_generic_assisted_step"] = int(step_number)
+            record_course_step_outcome(
+                state,
+                level,
+                lesson,
+                real_section,
+                False,
+                final_step=False,
+            )
         return build_course_support_reply(
             support,
             step,

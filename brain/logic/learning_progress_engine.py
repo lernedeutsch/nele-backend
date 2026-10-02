@@ -120,7 +120,13 @@ def update_learning_progress(state, outcome):
     if "requires_independent_confirmation" in outcome:
         item["requires_independent_confirmation"] = bool(outcome.get("requires_independent_confirmation"))
     if "required_evidence" in outcome:
-        item["required_evidence"] = list(dict.fromkeys(outcome.get("required_evidence") or []))
+        incoming_required = list(dict.fromkeys(outcome.get("required_evidence") or []))
+        # A single failure/partial event often has no coverage metadata. That
+        # must not erase the skill's already-established A+B+C mastery
+        # contract; otherwise the subsequent NOT_YET cannot invalidate stale
+        # independent evidence from the interrupted pass.
+        if incoming_required or not item.get("required_evidence"):
+            item["required_evidence"] = incoming_required
     if outcome.get("independent_confirmation") and outcome.get("status") == "SUCCESS":
         item["independent_confirmations"] = int(item.get("independent_confirmations", 0) or 0) + 1
         evidence = str(outcome.get("evidence") or "").strip()
@@ -147,6 +153,11 @@ def update_learning_progress(state, outcome):
     elif result == "PARTIAL":
         item["partials"] += 1
         item["success_streak"] = 0
+        # PARTIAL also breaks a clean mastery pass. It may be useful learning
+        # evidence, but it is not independent full coverage and must not let
+        # earlier steps survive into a later mastery decision.
+        if item.get("required_evidence"):
+            item["independent_evidence"] = []
     elif result == "NOT_YET":
         item["not_yet"] += 1
         item["success_streak"] = 0

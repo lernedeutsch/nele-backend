@@ -1171,6 +1171,58 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         daily_section.assert_not_called()
         daily_plan.assert_not_called()
 
+    def test_generic_error_reopen_requires_fresh_full_independent_evidence(self):
+        from brain.logic.generic_lesson_engine import (
+            handle_generic_lesson_teaching,
+            start_generic_lesson_teaching,
+        )
+        from brain.logic.session_state import prepare_page_reopen
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {"current_level": "A1", "current_lesson": 2},
+        }
+        start_generic_lesson_teaching("Zahlen 1–20", state)
+        skill = "course:a1:2:zahlen_1–20"
+
+        handle_generic_lesson_teaching("eins zwei drei vier fünf", state)
+        item = state["learning_progress_v1"]["skills"][skill]
+        self.assertEqual(item["independent_evidence"], ["step:1"])
+
+        handle_generic_lesson_teaching("falsch", state)
+        self.assertEqual(item["independent_evidence"], [])
+        self.assertTrue(state["course_mastery_assistance_used"])
+        self.assertEqual(state["course_generic_assisted_step"], 2)
+
+        prepare_page_reopen(state)
+        self.assertTrue(state["course_mastery_assistance_used"])
+        self.assertEqual(state["course_generic_assisted_step"], 2)
+        self.assertEqual(state["lesson_teaching_step"], 2)
+        self.assertEqual(item["independent_evidence"], [])
+
+        handle_generic_lesson_teaching("sechs sieben acht neun zehn", state)
+        self.assertEqual(item["independent_evidence"], [])
+        handle_generic_lesson_teaching("elf zwölf dreizehn vierzehn fünfzehn", state)
+        handle_generic_lesson_teaching("sechzehn siebzehn achtzehn neunzehn zwanzig", state)
+
+        self.assertNotEqual(item["status"], "mastered")
+        self.assertEqual(state["lesson_teaching_step"], 1)
+
+        for answer in (
+            "eins zwei drei vier fünf",
+            "sechs sieben acht neun zehn",
+            "elf zwölf dreizehn vierzehn fünfzehn",
+            "sechzehn siebzehn achtzehn neunzehn zwanzig",
+        ):
+            final = handle_generic_lesson_teaching(answer, state)
+
+        self.assertEqual(item["status"], "mastered")
+        self.assertEqual(
+            set(item["independent_evidence"]),
+            {"step:1", "step:2", "step:3", "step:4"},
+        )
+        self.assertIn("Lektion 2 ist fertig", final)
+
     def test_targeted_needs_review_pass_restores_mastery_then_advances(self):
         from brain.logic.generic_lesson_engine import (
             _course_skill_key,
