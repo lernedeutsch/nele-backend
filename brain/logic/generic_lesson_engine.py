@@ -1352,12 +1352,26 @@ def complete_generic_section(
         return ""
 
 
-    mark_section_completed(
+    section_completed = mark_section_completed(
         state,
         level,
         lesson,
         section
     )
+
+    # Durable mastery is the completion boundary. If lesson_progress rejects
+    # this section, do not record daily completion, finish the daily plan, or
+    # offer later material. Keep the learner in the current section instead.
+    if not section_completed:
+        state["pending_new_learning"] = None
+        if state.get("last_question") == "continue_new_learning":
+            state["last_question"] = None
+        state["course_teaching_decision"] = {
+            "decision": "continue_current",
+            "skill": _course_skill_key(level, lesson, section),
+            "reason": "section_not_mastered",
+        }
+        return get_generic_current_prompt(state)
 
 
     try:
