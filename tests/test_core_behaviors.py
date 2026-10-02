@@ -1,4 +1,5 @@
 from brain.logic.free_conversation import generate_free_conversation_reply
+from brain.logic.conversation import generate_conversation_reply
 import unittest
 from unittest.mock import patch
 
