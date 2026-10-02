@@ -114,11 +114,50 @@ def _legacy_course_skill_key(state):
     return f"course:{str(level).lower()}:{lesson}:{section_key}"
 
 
+A1_LEGACY_REQUIRED_EVIDENCE = {
+    normalize("Wir begrüßen uns"): [
+        "morning_greeting",
+        "day_greeting",
+        "evening_greeting",
+        "informal_greeting",
+        "informal_goodbye",
+        "greeting_dialogue",
+    ],
+    normalize("Ich stelle mich vor"): [
+        "morning_greeting",
+        "introduce_self",
+        "ask_name_informal",
+        "spell_name",
+        "ask_name_formal",
+    ],
+    normalize("Das deutsche Alphabet"): [
+        "letter_a",
+        "letter_b",
+        "letter_m",
+        "umlauts",
+        "eszett",
+        "spell_name",
+    ],
+}
+
+
+def _legacy_course_evidence(state):
+    section = normalize(str((state or {}).get("lesson_teaching_section") or ""))
+    required = A1_LEGACY_REQUIRED_EVIDENCE.get(section) or []
+    try:
+        step = int((state or {}).get("lesson_teaching_step", 1) or 1)
+    except (TypeError, ValueError):
+        step = 1
+    evidence = required[step - 1] if 1 <= step <= len(required) else ""
+    return list(required), evidence
+
+
 def _record_legacy_course_mastery(state, success, independent_confirmation=False):
-    """Record legacy lesson evidence under the shared mastery contract."""
+    """Record legacy A1.1 under the same evidence contract as generic lessons."""
     skill = _legacy_course_skill_key(state)
     if not skill:
         return None
+    required_evidence, evidence = _legacy_course_evidence(state)
     return update_learning_progress(
         state,
         {
@@ -128,6 +167,8 @@ def _record_legacy_course_mastery(state, success, independent_confirmation=False
             "mastery_eligible": bool(success and independent_confirmation),
             "requires_independent_confirmation": True,
             "independent_confirmation": bool(success and independent_confirmation),
+            "required_evidence": required_evidence,
+            "evidence": evidence if success and independent_confirmation else "",
         },
     )
 
@@ -139,14 +180,24 @@ def register_course_success(state, final_step=False):
         (state or {}).get("course_mastery_section_assistance_used")
     )
     _register_speaking_course_success(state)
+    # Every clean legacy step contributes semantic evidence. Mastery itself
+    # remains eligible only on the final step, after the full section coverage
+    # has been demonstrated independently.
     independent_confirmation = bool(
-        final_step and not assisted and not section_assisted
+        not assisted and not section_assisted
     )
     result = _record_legacy_course_mastery(
         state,
         True,
         independent_confirmation=independent_confirmation,
     )
+    if result is not None and not final_step:
+        # Intermediate evidence is real learning evidence, but it cannot by
+        # itself make the whole section mastery-eligible.
+        result["mastery_eligible"] = False
+        skill = _legacy_course_skill_key(state)
+        if skill:
+            state["learning_progress_v1"]["skills"][skill]["mastery_eligible"] = False
     # Assistance belongs to the task that just finished. The next legacy task
     # starts clean and can provide independent evidence if no new help is used.
     state["course_mastery_assistance_used"] = False
