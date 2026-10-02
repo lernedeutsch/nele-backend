@@ -152,7 +152,7 @@ def _legacy_course_evidence(state):
     return list(required), evidence
 
 
-def _record_legacy_course_mastery(state, success, independent_confirmation=False):
+def _record_legacy_course_mastery(state, success, independent_confirmation=False, partial=False):
     """Record legacy A1.1 under the same evidence contract as generic lessons."""
     skill = _legacy_course_skill_key(state)
     if not skill:
@@ -163,7 +163,7 @@ def _record_legacy_course_mastery(state, success, independent_confirmation=False
         {
             "skill": skill,
             "expected_outcome": "course_step",
-            "status": "SUCCESS" if success else "NOT_YET",
+            "status": "SUCCESS" if success else ("PARTIAL" if partial else "NOT_YET"),
             "mastery_eligible": bool(success and independent_confirmation),
             "requires_independent_confirmation": True,
             "independent_confirmation": bool(success and independent_confirmation),
@@ -171,6 +171,14 @@ def _record_legacy_course_mastery(state, success, independent_confirmation=False
             "evidence": evidence if success and independent_confirmation else "",
         },
     )
+
+
+def _legacy_partial_support(user_message, target, state, **kwargs):
+    """Run legacy scaffolding and preserve a plausible partial attempt in progress."""
+    support = _legacy_partial_support(user_message, target, state, **kwargs)
+    if support:
+        _record_legacy_course_mastery(state, False, partial=True)
+    return support
 
 
 def register_course_success(state, final_step=False):
@@ -2038,7 +2046,7 @@ def handle_introduction_section(
                 state
             ) or "Moni"
 
-            support = legacy_course_support(
+            support = _legacy_partial_support(
                 user_message,
                 f"Ich heiße {name}.",
                 state,
@@ -2099,7 +2107,7 @@ def handle_introduction_section(
                 "wer bist du",
                 "wer sind sie",
             }
-            support = legacy_course_support(
+            support = _legacy_partial_support(
                 user_message,
                 "Wie heißt du?",
                 state,
@@ -2195,7 +2203,7 @@ def handle_introduction_section(
             user_message
         ):
 
-            support = legacy_course_support(
+            support = _legacy_partial_support(
                 user_message,
                 "Wie heißen Sie?",
                 state,
