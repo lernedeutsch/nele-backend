@@ -83,6 +83,33 @@ class DialogueEngineTests(unittest.TestCase):
         self.assertIn("Woher kommst du", opening)
         self.assertEqual(state["dialogue_id"], "woher-kommst-du")
 
+    def test_full_sentence_retry_does_not_accept_short_first_attempt_variant(self):
+        state = {"conversation_mode": "course"}
+        opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+        self.assertIn("Woher kommst du", opening)
+
+        retry = handle_dialogue("2", state)
+        self.assertIn("ganzen Satz", retry)
+        self.assertEqual(state["dialogue_turn"], 1)
+
+        still_retrying = handle_dialogue("Polen", state)
+        self.assertEqual(state["dialogue_turn"], 1)
+        self.assertTrue(state["dialogue_active"])
+        self.assertTrue(still_retrying)
+
+        reply = handle_dialogue("Ich komme aus Polen.", state)
+        self.assertIn("Kommst du aus Polen", reply)
+        self.assertEqual(state["dialogue_turn"], 3)
+
+    def test_short_origin_answer_remains_valid_on_clean_first_attempt(self):
+        state = {"conversation_mode": "course"}
+        start_dialogue("A1", 2, "woher-kommst-du", state)
+
+        reply = handle_dialogue("Polen", state)
+
+        self.assertIn("Kommst du aus Polen", reply)
+        self.assertEqual(state["dialogue_turn"], 3)
+
     def test_real_a12_dialogue_accepts_declared_country_variation(self):
         state = {}
         opening = start_dialogue("A1", 2, "woher-kommst-du", state)
