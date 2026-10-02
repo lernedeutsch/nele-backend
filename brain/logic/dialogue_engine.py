@@ -185,12 +185,30 @@ def _contradicts_dialogue_context(user_message, turn, slots=None):
     return False
 
 
+def _personal_origin_equivalent(user_message, turn, slots=None):
+    """Accept ordinary A1 ways of stating the learner's remembered origin."""
+    if _norm((turn or {}).get("expected_intent")) != "give_origin":
+        return False
+    country = _norm((slots or {}).get("country"))
+    message = _norm(user_message)
+    if not country or not message:
+        return False
+    return message in {
+        country,
+        f"aus {country}",
+        f"ich komme aus {country}",
+        f"ich bin aus {country}",
+    }
+
+
 def answer_matches_dialogue_turn(user_message, turn, slots=None, variable_slots=None):
     message = _norm(user_message)
     if not message:
         return False
     if _contradicts_dialogue_context(user_message, turn, slots):
         return False
+    if _personal_origin_equivalent(user_message, turn, slots):
+        return True
     if turn.get("allow_any") is True:
         return True
     accepted = _accepted(turn, slots)
