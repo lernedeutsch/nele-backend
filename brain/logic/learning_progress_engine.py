@@ -147,6 +147,11 @@ def update_learning_progress(state, outcome):
     elif result == "PARTIAL":
         item["partials"] += 1
         item["success_streak"] = 0
+        # PARTIAL also breaks a clean mastery pass. It may be useful learning
+        # evidence, but it is not independent full coverage and must not let
+        # earlier steps survive into a later mastery decision.
+        if item.get("required_evidence"):
+            item["independent_evidence"] = []
     elif result == "NOT_YET":
         item["not_yet"] += 1
         item["success_streak"] = 0
