@@ -606,7 +606,22 @@ def _complete_course_dialogue(dialogue, state):
     lesson = dialogue.get("lesson") or state.get("dialogue_lesson")
     if not section or not lesson:
         return None
-    mark_section_completed(state, level, lesson, section)
+    # The persistence boundary is authoritative: a dialogue may route onward
+    # only if this exact section was actually accepted as completed from
+    # durable course mastery. Never prepare the next section after a rejected
+    # completion attempt (for example stale/partial dialogue state).
+    section_completed = mark_section_completed(state, level, lesson, section)
+    if not section_completed:
+        state["course_teaching_decision"] = {
+            "decision": "continue_current",
+            "skill": _course_dialogue_skill_key(dialogue, state),
+            "reason": "section_not_mastered",
+        }
+        state["pending_new_learning"] = None
+        if state.get("last_question") == "continue_new_learning":
+            state["last_question"] = None
+        return None
+
     learner_model = build_learner_model(state)
     course_learning = learner_model.get("course_learning") or {}
     next_skill = course_learning.get("next_skill")
