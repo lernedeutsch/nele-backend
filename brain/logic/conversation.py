@@ -765,6 +765,27 @@ def generate_conversation_reply(
                 )
 
 
+    # A learner may naturally acknowledge the lesson-completion message.
+    # Keep that turn inside the course instead of falling through to the
+    # generic "Antwort ... noch nicht gelernt" response.
+    if (
+        str((state or {}).get("conversation_mode") or "").strip().lower() == "course"
+        and state.get("last_question") == "course_lesson_completed"
+    ):
+        normalized_completion = normalize(processed_message).strip(" .?!„“\\\"'")
+        if normalized_completion in {
+            "ja", "ja gern", "ja gerne", "okay", "ok", "gut", "super",
+            "danke", "danke schön", "dankeschön", "bis morgen",
+        }:
+            state["last_question"] = None
+            return return_with_feedback(
+                "Genau. Die Lektion ist abgeschlossen. Bis morgen!",
+                feedback_text,
+                session_id,
+            )
+        state["last_question"] = None
+
+
     # ======================================
     # 9. AKTYWNA LEKCJA
     # ======================================

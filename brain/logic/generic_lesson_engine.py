@@ -1390,6 +1390,8 @@ def complete_generic_section(
         "Morgen wiederholen wir sie kurz."
     )
 
+    state["last_question"] = "course_lesson_completed"
+
 
     try:
 
