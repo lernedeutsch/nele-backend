@@ -265,7 +265,8 @@ LESSON_DIALOGUES = [
                 "expected": "Ich komme aus Polen.",
                 "accepted_patterns": ["Ich komme aus {country}", "aus {country}", "{country}"],
                 "common_errors": {"verb_conjugation": "Ich kommen aus {country}", "missing_preposition": "Ich komme {country}"},
-                "retry": "Fast. Antworte mit einem ganzen Satz: „Ich komme aus Polen.“"
+                "retry": "Fast. Antworte mit einem ganzen Satz: „Ich komme aus Polen.“",
+                "retry_requires_full_sentence": True
             },
             {"role": "nele", "speaker": "Mia", "text": "Kommst du aus {country}?", "intent": "confirm_origin"},
             {
