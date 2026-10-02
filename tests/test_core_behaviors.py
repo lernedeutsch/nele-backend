@@ -377,6 +377,66 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(item["independent_confirmations"], 1)
         self.assertEqual(item["status"], "mastered")
 
+    def test_legacy_a11_requires_semantic_evidence_coverage_for_mastery(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 1,
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ):
+            for step in range(1, 6):
+                state["lesson_teaching_step"] = step
+                progress = register_course_success(state)
+                self.assertNotEqual(progress["status"], "mastered")
+
+            item = state["learning_progress_v1"]["skills"][
+                "course:a1:1:wir_begrüßen_uns"
+            ]
+            self.assertEqual(
+                set(item["required_evidence"]),
+                {
+                    "morning_greeting",
+                    "day_greeting",
+                    "evening_greeting",
+                    "informal_greeting",
+                    "informal_goodbye",
+                    "greeting_dialogue",
+                },
+            )
+            self.assertNotIn("greeting_dialogue", item["independent_evidence"])
+
+            state["lesson_teaching_step"] = 6
+            progress = register_course_success(state, final_step=True)
+
+        self.assertEqual(progress["status"], "mastered")
+        self.assertEqual(
+            set(item["independent_evidence"]),
+            set(item["required_evidence"]),
+        )
+
+    def test_legacy_final_step_alone_cannot_master_without_prior_evidence(self):
+        state = {
+            "conversation_mode": "course",
+            "lesson_teaching_section": "Wir begrüßen uns",
+            "lesson_teaching_step": 6,
+        }
+        with patch(
+            "brain.logic.lesson_teaching.get_lesson_context_for_section",
+            return_value=("A1", 1),
+        ):
+            for _ in range(3):
+                progress = register_course_success(state, final_step=True)
+
+        item = state["learning_progress_v1"]["skills"][
+            "course:a1:1:wir_begrüßen_uns"
+        ]
+        self.assertNotEqual(progress["status"], "mastered")
+        self.assertEqual(item["independent_evidence"], ["greeting_dialogue"])
+
+
     def test_legacy_intermediate_successes_cannot_master_before_final_step(self):
         state = {
             "conversation_mode": "course",
