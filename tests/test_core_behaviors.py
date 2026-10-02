@@ -67,6 +67,61 @@ from brain.memory.error_review import (
 )
 
 
+class ReviewMasteryEvidenceCoverageTests(unittest.TestCase):
+
+    def test_review_cannot_restore_multi_part_mastery_without_full_evidence_coverage(self):
+        from brain.logic.learning_progress_engine import update_learning_progress
+
+        skill = "course:a1:1:multi_part_review"
+        state = {
+            "learning_progress_v1": {
+                "version": 1,
+                "skills": {
+                    skill: {
+                        "skill": skill,
+                        "status": "needs_review",
+                        "attempts": 4,
+                        "successes": 3,
+                        "partials": 0,
+                        "not_yet": 1,
+                        "success_streak": 0,
+                        "last_result": "NOT_YET",
+                        "mastery_eligible": True,
+                        "requires_independent_confirmation": True,
+                        "independent_confirmations": 0,
+                        "required_evidence": ["A", "B", "C"],
+                        "independent_evidence": [],
+                    }
+                },
+            }
+        }
+
+        for evidence in ("A", "B"):
+            result = update_learning_progress(state, {
+                "skill": skill,
+                "status": "SUCCESS",
+                "mastery_eligible": True,
+                "requires_independent_confirmation": True,
+                "independent_confirmation": True,
+                "review_confirmation": True,
+                "required_evidence": ["A", "B", "C"],
+                "evidence": evidence,
+            })
+            self.assertEqual(result["status"], "needs_review")
+
+        result = update_learning_progress(state, {
+            "skill": skill,
+            "status": "SUCCESS",
+            "mastery_eligible": True,
+            "requires_independent_confirmation": True,
+            "independent_confirmation": True,
+            "review_confirmation": True,
+            "required_evidence": ["A", "B", "C"],
+            "evidence": "C",
+        })
+        self.assertEqual(result["status"], "mastered")
+
+
 class NeleCoreBehaviorTests(unittest.TestCase):
 
 
