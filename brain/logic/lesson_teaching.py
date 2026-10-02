@@ -174,32 +174,32 @@ def _record_legacy_course_mastery(state, success, independent_confirmation=False
 
 
 def register_course_success(state, final_step=False):
-    """Record legacy practice; only a clean final production may prove mastery."""
+    """Record semantic legacy evidence; only the clean final step may grant mastery."""
     assisted = bool((state or {}).get("course_mastery_assistance_used"))
     section_assisted = bool(
         (state or {}).get("course_mastery_section_assistance_used")
     )
     _register_speaking_course_success(state)
-    # Every clean legacy step contributes semantic evidence. Mastery itself
-    # remains eligible only on the final step, after the full section coverage
-    # has been demonstrated independently.
-    independent_confirmation = bool(
-        not assisted and not section_assisted
-    )
-    result = _record_legacy_course_mastery(
+    independent_confirmation = bool(not assisted and not section_assisted)
+    skill = _legacy_course_skill_key(state)
+    required_evidence, evidence = _legacy_course_evidence(state)
+    result = update_learning_progress(
         state,
-        True,
-        independent_confirmation=independent_confirmation,
-    )
-    if result is not None and not final_step:
-        # Intermediate evidence is real learning evidence, but it cannot by
-        # itself make the whole section mastery-eligible.
-        result["mastery_eligible"] = False
-        skill = _legacy_course_skill_key(state)
-        if skill:
-            state["learning_progress_v1"]["skills"][skill]["mastery_eligible"] = False
-    # Assistance belongs to the task that just finished. The next legacy task
-    # starts clean and can provide independent evidence if no new help is used.
+        {
+            "skill": skill,
+            "expected_outcome": "course_step",
+            "status": "SUCCESS",
+            "mastery_eligible": bool(
+                final_step and independent_confirmation
+            ),
+            "requires_independent_confirmation": True,
+            "independent_confirmation": independent_confirmation,
+            "required_evidence": required_evidence,
+            "evidence": evidence if independent_confirmation else "",
+        },
+    ) if skill else None
+    # Assistance belongs only to the task just answered. Section-level
+    # assistance deliberately stays set until the section is restarted.
     state["course_mastery_assistance_used"] = False
     return result
 
