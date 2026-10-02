@@ -546,8 +546,22 @@ def generate_conversation_reply(
         and "lektion" in review_intent
         and "wiederhol" in review_intent
     ):
-        selected_level = state.get("selected_level") or state.get("level") or "A1"
-        selected_lesson = state.get("selected_lesson") or state.get("lesson") or 1
+        # The course selector persists the real selection in student_progress.
+        # Do not fall back to lesson 1 just because legacy top-level keys are
+        # absent (the normal A1.2+ production state has no such keys).
+        student_progress = state.get("student_progress") or {}
+        selected_level = (
+            student_progress.get("current_level")
+            or state.get("selected_level")
+            or state.get("level")
+            or "A1"
+        )
+        selected_lesson = (
+            student_progress.get("current_lesson")
+            or state.get("selected_lesson")
+            or state.get("lesson")
+            or 1
+        )
         answer = start_lesson_review_training(
             state,
             selected_level,
