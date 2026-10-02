@@ -602,8 +602,6 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         ), patch(
             "brain.logic.conversation.create_teacher_directed_follow_up",
             return_value="Moni, woher kommst du? Antworte: „Ich komme aus …“",
-        ), patch(
-            "brain.logic.conversation.save_conversation_state",
         ):
             reply = generate_conversation_reply(
                 "Bereit", level="A1", lesson=2, session_id="test-ready-course-start"
