@@ -133,13 +133,18 @@ class LessonReviewMasteryTests(unittest.TestCase):
         self.assertFalse(result["correct"])
         record_review_course_outcome(state, 1, True)
 
+        # A raw recorder call cannot turn a rejected single greeting into
+        # valid review evidence. The real review handler calls the recorder
+        # with success=False for this answer.
+        record_review_course_outcome(state, 1, False)
+
         self.assertEqual(
             state["learning_progress_v1"]["skills"][skill]["status"],
-            "mastered",
+            "needs_review",
         )
         self.assertEqual(
-            state["course_review_evidence"][skill],
-            ["greeting_range"],
+            state["course_review_evidence"].get(skill, []),
+            [],
         )
 
     def test_review_wrong_answer_uses_shared_teacher_engine(self):
