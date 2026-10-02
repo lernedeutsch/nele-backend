@@ -45,7 +45,7 @@ class ReviewIntegrationEvidenceCoverageTests(unittest.TestCase):
         skill = "course:a1:1:ich_stelle_mich_vor"
         item = state["learning_progress_v1"]["skills"][skill]
 
-        self.assertEqual(first["status"], "introduced")
+        self.assertEqual(first["status"], "practicing")
         self.assertEqual(
             set(item["required_evidence"]),
             {"introduce_self", "ask_name_informal", "ask_name_formal"},
