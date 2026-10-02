@@ -56,7 +56,7 @@ LESSON_FLOW = {
                     "correct_answer": "Ich komme aus {origin}.",
                     "error_type": "grammar",
                     "retry": "Fast. Sag den ganzen Satz: „Ich komme aus {origin}.“ Sprich ihn bitte nach.",
-                    "success": "Sehr gut. Jetzt fragst du mich."
+                    "success": "Sehr gut."
                 },
                 {
                     "prompt": "Jetzt fragst du mich. Zu Freunden sagen wir „du“. Frag: „Woher kommst du?“",
