@@ -1061,6 +1061,33 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
         self.assertNotEqual(plan["type"], "course_review_section")
 
+    def test_new_conversation_clears_targeted_review_marker_but_keeps_mastery_memory(self):
+        from brain.logic.session_state import prepare_new_conversation
+
+        skill = "course:a1:2:länder_und_nationalitäten"
+        state = {
+            "course_skill_review_active": True,
+            "course_skill_review_skill": skill,
+            "learning_progress_v1": {
+                "version": 1,
+                "skills": {
+                    skill: {
+                        "skill": skill,
+                        "status": "needs_review",
+                    },
+                },
+            },
+        }
+
+        prepare_new_conversation(state)
+
+        self.assertFalse(state["course_skill_review_active"])
+        self.assertIsNone(state["course_skill_review_skill"])
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][skill]["status"],
+            "needs_review",
+        )
+
     def test_targeted_needs_review_pass_restores_mastery_then_advances(self):
         from brain.logic.generic_lesson_engine import (
             _course_skill_key,
