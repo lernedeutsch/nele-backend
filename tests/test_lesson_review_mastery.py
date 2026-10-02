@@ -141,9 +141,14 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "mastered",
         )
         self.assertEqual(
-            state["course_review_evidence"][skill],
+            state["learning_progress_v1"]["skills"][skill]["independent_evidence"],
             ["greeting_range"],
         )
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][skill]["required_evidence"],
+            ["greeting_range"],
+        )
+        self.assertNotIn("course_review_evidence", state)
 
     def test_review_wrong_answer_uses_shared_teacher_engine(self):
         state = self.base_state()

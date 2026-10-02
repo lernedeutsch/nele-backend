@@ -231,19 +231,8 @@ def record_review_course_outcome(state, step, success):
     independent = bool(success and not assisted)
 
     evidence_key = A1_LESSON_1_REVIEW_EVIDENCE.get(int(step or 0))
-    evidence_state = state.setdefault("course_review_evidence", {})
-    skill_evidence = set(evidence_state.get(skill) or [])
-    if independent and evidence_key:
-        skill_evidence.add(evidence_key)
-        evidence_state[skill] = sorted(skill_evidence)
-
     required_evidence = set(
         A1_LESSON_1_REQUIRED_REVIEW_EVIDENCE.get(section) or []
-    )
-    coverage_complete = bool(
-        independent
-        and required_evidence
-        and required_evidence.issubset(skill_evidence)
     )
 
     if success:
@@ -258,10 +247,15 @@ def record_review_course_outcome(state, step, success):
             "skill": skill,
             "expected_outcome": "course_review",
             "status": "SUCCESS" if success else "NOT_YET",
-            "mastery_eligible": bool(success and coverage_complete),
+            # Review now uses the same central evidence contract as normal
+            # course teaching. The progress engine owns accumulated independent
+            # evidence and decides when the required coverage is complete.
+            "mastery_eligible": bool(success and independent),
             "requires_independent_confirmation": True,
-            "independent_confirmation": coverage_complete,
-            "review_confirmation": coverage_complete,
+            "independent_confirmation": independent,
+            "review_confirmation": independent,
+            "required_evidence": sorted(required_evidence),
+            "evidence": evidence_key if independent else "",
         },
     )
 
@@ -419,9 +413,6 @@ def start_lesson_review_training(
     state[
         "lesson_review_training_wrong"
     ] = 0
-
-    state["course_review_evidence"] = {}
-
     return (
         "Heute ist die Wiederholung von "
         "A1, Lektion 1 dran. "
