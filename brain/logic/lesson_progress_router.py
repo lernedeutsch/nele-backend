@@ -459,12 +459,21 @@ def complete_lesson_section(
 
     if not already_completed:
 
-        mark_section_completed(
+        section_completed = mark_section_completed(
             state,
             level,
             lesson,
             real_section
         )
+
+        if not section_completed:
+            return {
+                "ok": False,
+                "reason": "section_not_mastered",
+                "level": str(level).upper(),
+                "lesson": lesson,
+                "completed_section": real_section,
+            }
 
 
     # ======================================
