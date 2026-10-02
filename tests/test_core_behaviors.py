@@ -1003,6 +1003,60 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
         self.assertEqual(_selected_course_context(state), ("A1", 2))
 
+    def test_course_needs_review_routes_back_to_exact_section_before_new_material(self):
+        from brain.memory.next_learning_step import get_next_new_learning_step
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {
+                "current_level": "A1",
+                "current_lesson": 2,
+            },
+            "learning_progress_v1": {
+                "skills": {
+                    "course:a1:2:woher_kommen_sie": {
+                        "status": "mastered",
+                    },
+                    "course:a1:2:lander_und_nationalitaten": {
+                        "status": "needs_review",
+                    },
+                },
+            },
+        }
+
+        plan = get_next_new_learning_step(state)
+
+        self.assertEqual(plan["type"], "course_review_section")
+        self.assertEqual(plan["level"], "A1")
+        self.assertEqual(plan["lesson"], 2)
+        self.assertEqual(plan["section"], "Länder und Nationalitäten")
+        self.assertEqual(
+            plan["skill"],
+            "course:a1:2:lander_und_nationalitaten",
+        )
+
+    def test_course_mastered_skill_does_not_steal_normal_routing(self):
+        from brain.memory.next_learning_step import get_next_new_learning_step
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {
+                "current_level": "A1",
+                "current_lesson": 2,
+            },
+            "learning_progress_v1": {
+                "skills": {
+                    "course:a1:2:woher_kommen_sie": {
+                        "status": "mastered",
+                    },
+                },
+            },
+        }
+
+        plan = get_next_new_learning_step(state)
+
+        self.assertNotEqual(plan["type"], "course_review_section")
+
     def test_a12_review_uses_generic_sections_in_course_order(self):
         from brain.logic.lesson_review_training import start_lesson_review_training
         from brain.logic.generic_lesson_engine import (
