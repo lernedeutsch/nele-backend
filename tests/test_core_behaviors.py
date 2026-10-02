@@ -1061,6 +1061,73 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
         self.assertNotEqual(plan["type"], "course_review_section")
 
+    def test_targeted_needs_review_pass_restores_mastery_then_advances(self):
+        from brain.logic.generic_lesson_engine import (
+            _course_skill_key,
+            handle_generic_lesson_teaching,
+        )
+        from brain.logic.new_learning_resume import start_new_learning
+
+        section = "Länder und Nationalitäten"
+        skill = _course_skill_key("A1", 2, section)
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {
+                "current_level": "A1",
+                "current_lesson": 2,
+            },
+            "learning_progress_v1": {
+                "version": 1,
+                "skills": {
+                    skill: {
+                        "skill": skill,
+                        "status": "needs_review",
+                        "attempts": 5,
+                        "successes": 4,
+                        "partials": 0,
+                        "not_yet": 1,
+                        "success_streak": 0,
+                        "last_result": "NOT_YET",
+                        "mastery_eligible": False,
+                        "requires_independent_confirmation": True,
+                        "independent_confirmations": 3,
+                        "required_evidence": ["step:1", "step:2", "step:3"],
+                        "independent_evidence": [],
+                    },
+                },
+            },
+        }
+        offer = {
+            "type": "course_review_section",
+            "level": "A1",
+            "lesson": 2,
+            "section": section,
+            "topic": section,
+            "skill": skill,
+        }
+
+        opening = start_new_learning(state, offer)
+
+        self.assertIn("Länder und Nationalitäten", opening)
+        self.assertTrue(state["course_skill_review_active"])
+        first = handle_generic_lesson_teaching("Anna ist Polin.", state)
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][skill]["status"],
+            "needs_review",
+        )
+        second = handle_generic_lesson_teaching("Thomas ist Deutscher.", state)
+        self.assertEqual(
+            state["learning_progress_v1"]["skills"][skill]["status"],
+            "needs_review",
+        )
+        final = handle_generic_lesson_teaching("Maria ist Italienerin.", state)
+
+        progress = state["learning_progress_v1"]["skills"][skill]
+        self.assertEqual(progress["status"], "mastered")
+        self.assertTrue(progress["last_review_confirmation"])
+        self.assertFalse(state["course_skill_review_active"])
+        self.assertIn("Du kannst jetzt", final)
+
     def test_a12_review_uses_generic_sections_in_course_order(self):
         from brain.logic.lesson_review_training import start_lesson_review_training
         from brain.logic.generic_lesson_engine import (

@@ -124,6 +124,11 @@ def set_new_learning_offer(
         "topic":
             plan.get(
                 "topic"
+            ),
+
+        "skill":
+            plan.get(
+                "skill"
             )
     }
 
@@ -352,6 +357,20 @@ def start_new_learning(
 
     clear_new_learning_offer(
         state
+    )
+
+
+    # A section selected by the Curriculum Skill Graph because its skill is
+    # needs_review is not ordinary new material. Preserve that semantic handoff
+    # so the mastery engine can treat a clean independent pass as review
+    # confirmation and restore the skill to mastered.
+    state["course_skill_review_active"] = bool(
+        str(offer.get("type") or "").strip().lower() == "course_review_section"
+    )
+    state["course_skill_review_skill"] = (
+        offer.get("skill")
+        if state["course_skill_review_active"]
+        else None
     )
 
 

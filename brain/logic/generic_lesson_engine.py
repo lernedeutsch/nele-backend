@@ -1832,7 +1832,10 @@ def handle_generic_lesson_teaching(
         independent_confirmation=bool(not step_assisted),
         required_evidence=required_evidence,
         evidence=f"step:{int(step_number)}",
-        review_confirmation=bool(state.get("generic_lesson_review_active")),
+        review_confirmation=bool(
+            state.get("generic_lesson_review_active")
+            or state.get("course_skill_review_active")
+        ),
     )
     state.pop("course_generic_assisted_step", None)
 
@@ -1894,6 +1897,13 @@ def handle_generic_lesson_teaching(
         )
         reinforcement = render_course_teacher_action(action, prompt=first_prompt)
         return " ".join(part for part in (success, reinforcement) if part)
+
+    # A targeted needs_review return is complete once this exact skill has
+    # regained mastery. Clear only the targeted-review marker; normal section
+    # completion/navigation remains unchanged.
+    if state.get("course_skill_review_active"):
+        state["course_skill_review_active"] = False
+        state["course_skill_review_skill"] = None
 
     completion_answer = complete_generic_section(
         state,
