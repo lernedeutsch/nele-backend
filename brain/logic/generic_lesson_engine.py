@@ -66,12 +66,15 @@ from brain.memory.lesson_progress import (
 )
 
 from brain.memory.lesson_review import (
-    schedule_lesson_review
+    schedule_lesson_review,
+    mark_lesson_review_completed,
 )
 
 from brain.memory.daily_learning import (
     mark_lesson_section_today,
     mark_daily_plan_completed,
+    mark_lesson_reviewed_today,
+    mark_exercise_completed_today,
     record_mistake_today
 )
 
@@ -979,6 +982,104 @@ def is_generic_lesson_active(
 
 
 # ==========================================
+# GENERISCHE LEKTIONSWIEDERHOLUNG
+# ==========================================
+
+def _activate_generic_section(state, level, lesson, section):
+    """Activate one generic section without depending on completion flags."""
+    real_section, definition = find_generic_section(level, lesson, section)
+    if not real_section:
+        return None
+
+    steps = get_steps(definition)
+    if not steps:
+        return None
+
+    state["lesson_teaching_active"] = True
+    state["lesson_teaching_level"] = str(level or "A1").strip().upper()
+    state["lesson_teaching_lesson"] = int(lesson)
+    state["lesson_teaching_section"] = real_section
+    state["lesson_teaching_step"] = 1
+    state["last_activity"] = "lesson"
+    state["last_activity_detail"] = real_section
+    state["course_mastery_assistance_used"] = False
+    state.pop("course_generic_assisted_step", None)
+
+    intro = render_text(definition.get("intro"), state, level, lesson, real_section)
+    prompt = render_text(steps[0].get("prompt"), state, level, lesson, real_section)
+    return " ".join(part for part in (intro, prompt) if part)
+
+
+def start_generic_lesson_review(state, level="A1", lesson=1):
+    """Review every generic section through the normal Teacher/Mastery engine."""
+    if state is None:
+        return None
+    level = str(level or "A1").strip().upper()
+    try:
+        lesson = int(lesson)
+    except (TypeError, ValueError):
+        return None
+
+    sections = [
+        name
+        for name, definition in get_flow_sections(level, lesson).items()
+        if get_steps(definition)
+    ]
+    if not sections:
+        return None
+
+    state["generic_lesson_review_active"] = True
+    state["generic_lesson_review_sections"] = list(sections)
+    state["generic_lesson_review_index"] = 0
+    state["generic_lesson_review_level"] = level
+    state["generic_lesson_review_lesson"] = lesson
+
+    first = _activate_generic_section(state, level, lesson, sections[0])
+    if not first:
+        return None
+    return f"Heute wiederholen wir A1, Lektion {lesson}. {first}"
+
+
+def _complete_generic_review_section(state, definition):
+    """Advance a generic review without using lesson completion/navigation flags."""
+    level = state.get("generic_lesson_review_level") or state.get("lesson_teaching_level")
+    lesson = int(state.get("generic_lesson_review_lesson") or state.get("lesson_teaching_lesson") or 1)
+    sections = list(state.get("generic_lesson_review_sections") or [])
+    index = int(state.get("generic_lesson_review_index") or 0)
+    section = state.get("lesson_teaching_section")
+    section_complete = render_text(definition.get("complete"), state, level, lesson, section)
+
+    next_index = index + 1
+    if next_index < len(sections):
+        state["generic_lesson_review_index"] = next_index
+        next_section = sections[next_index]
+        next_prompt = _activate_generic_section(state, level, lesson, next_section)
+        return " ".join(
+            part for part in (
+                section_complete or "Sehr gut! Diesen Teil kannst du.",
+                f"Jetzt wiederholen wir „{next_section}“.",
+                next_prompt,
+            )
+            if part
+        )
+
+    mark_lesson_review_completed(state, level, lesson, result="good")
+    try:
+        mark_lesson_reviewed_today(state, level, lesson, result="good")
+        mark_exercise_completed_today(state)
+    except Exception as error:
+        print(f"Generic lesson review memory error: {error}")
+
+    clear_generic_lesson_activity(state)
+    state["generic_lesson_review_active"] = False
+    state["generic_lesson_review_sections"] = []
+    state["generic_lesson_review_index"] = 0
+    state["generic_lesson_review_level"] = None
+    state["generic_lesson_review_lesson"] = None
+    return f"Sehr gut! Du hast die Wiederholung von A1, Lektion {lesson} geschafft."
+
+
+# ==========================================
 # GENERISCHE SEKTION STARTEN
 # ==========================================
 
@@ -1219,6 +1320,9 @@ def complete_generic_section(
     state,
     definition
 ):
+
+    if state.get("generic_lesson_review_active"):
+        return _complete_generic_review_section(state, definition)
 
     level = state.get(
         "lesson_teaching_level"
