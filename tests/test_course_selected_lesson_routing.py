@@ -122,14 +122,14 @@ def test_course_clears_stale_personal_sentence_practice_before_routing():
     generate.assert_called_once()
 
 
-def test_course_selection_accepts_only_a1_1_and_a1_2():
+def test_course_selection_accepts_registered_a1_lessons():
     from server.app import app
 
     app.config["TESTING"] = True
     cases = [
         ({"level": "A1", "lesson": 1}, 200),
         ({"level": "A1", "lesson": 2}, 200),
-        ({"level": "A1", "lesson": 3}, 400),
+        ({"level": "A1", "lesson": 3}, 200),
         ({"level": "A1", "lesson": 14}, 400),
         ({"level": "A2", "lesson": 1}, 400),
     ]
@@ -144,4 +144,8 @@ def test_course_selection_accepts_only_a1_1_and_a1_2():
                 response = client.post("/api/students", json=payload)
                 assert response.status_code == expected_status, payload
                 if expected_status == 400:
-                    assert response.get_json()["error"] == "course_scope_limited_to_a1_1_a1_2"
+                    error = response.get_json()["error"]
+                    if payload.get("level") == "A2":
+                        assert error == "course_scope_limited_to_a1"
+                    else:
+                        assert error == "course_lesson_not_available"
