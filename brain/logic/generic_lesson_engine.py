@@ -1002,8 +1002,12 @@ def _activate_generic_section(state, level, lesson, section):
     state["lesson_teaching_step"] = 1
     state["last_activity"] = "lesson"
     state["last_activity_detail"] = real_section
+    # A review section is a fresh independent attempt. Never inherit a
+    # pending model or an exhausted support ladder from the preceding activity.
     state["course_mastery_assistance_used"] = False
     state.pop("course_generic_assisted_step", None)
+    state.pop("course_pending_speaking_model", None)
+    state.pop("course_model_practice_exhausted", None)
 
     intro = render_text(definition.get("intro"), state, level, lesson, real_section)
     prompt = render_text(steps[0].get("prompt"), state, level, lesson, real_section)
