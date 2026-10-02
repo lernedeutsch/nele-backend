@@ -175,7 +175,7 @@ def _record_legacy_course_mastery(state, success, independent_confirmation=False
 
 def _legacy_partial_support(user_message, target, state, **kwargs):
     """Run legacy scaffolding and preserve a plausible partial attempt in progress."""
-    support = _legacy_partial_support(user_message, target, state, **kwargs)
+    support = legacy_course_support(user_message, target, state, **kwargs)
     if support:
         _record_legacy_course_mastery(state, False, partial=True)
     return support
