@@ -1562,6 +1562,7 @@ def record_course_step_outcome(
     independent_confirmation=False,
     required_evidence=None,
     evidence=None,
+    review_confirmation=False,
 ):
     """Feed real course answers into the shared learner progress model.
 
@@ -1578,6 +1579,7 @@ def record_course_step_outcome(
         "mastery_eligible": bool(success and final_step and not partial),
         "requires_independent_confirmation": True,
         "independent_confirmation": bool(success and independent_confirmation),
+        "review_confirmation": bool(review_confirmation),
         "required_evidence": list(required_evidence or []),
         "evidence": str(evidence or "").strip(),
     }
@@ -1830,6 +1832,7 @@ def handle_generic_lesson_teaching(
         independent_confirmation=bool(not step_assisted),
         required_evidence=required_evidence,
         evidence=f"step:{int(step_number)}",
+        review_confirmation=bool(state.get("generic_lesson_review_active")),
     )
     state.pop("course_generic_assisted_step", None)
 
