@@ -303,7 +303,7 @@ def _lesson2_evidence_contract(task):
     return [], None
 
 
-def _record_lesson2_mastery(state, success, independent_confirmation=False, task=None):
+def _record_lesson2_mastery(state, success, independent_confirmation=False, partial=False, task=None):
     """Record Lektion 2 evidence under the shared course mastery contract.
 
     Generated tasks are useful practice evidence, but range skills additionally
@@ -315,7 +315,7 @@ def _record_lesson2_mastery(state, success, independent_confirmation=False, task
     outcome = {
         "skill": _lesson2_skill_key(state),
         "expected_outcome": "course_step",
-        "status": "SUCCESS" if success else "NOT_YET",
+        "status": "SUCCESS" if success else ("PARTIAL" if partial else "NOT_YET"),
         "mastery_eligible": bool(success and independent_confirmation),
         "requires_independent_confirmation": True,
         "independent_confirmation": bool(success and independent_confirmation),
@@ -450,7 +450,12 @@ def handle(user_message,state):
         if correction: return correction+" "+nxt
         return "Genau! "+nxt
     state["course_mastery_assistance_used"] = True
-    _record_lesson2_mastery(state, False, task=task)
+    _record_lesson2_mastery(
+        state,
+        False,
+        partial=result.get("kind") == "partial",
+        task=task,
+    )
     correction=_correction(result,user_message,task,state)
     # Keep the same target until the learner succeeds. The global speaking
     # engine now owns escalation and decides when to expose the full model.
