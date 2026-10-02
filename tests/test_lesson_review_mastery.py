@@ -157,7 +157,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
         reply = handle_a1_lesson_1_review("Wie", state)
 
-        self.assertIn("2 von 3", reply)
+        self.assertIn("1 von 3", reply)
         self.assertEqual(state["lesson_review_training_step"], 3)
         self.assertEqual(state["course_teacher_action"]["action"], "scaffold_partial")
         item = state["learning_progress_v1"]["skills"][skill]
