@@ -374,8 +374,8 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
         item = state["learning_progress_v1"]["skills"]["course:a1:1:wir_begrüßen_uns"]
         self.assertEqual(item["successes"], 3)
-        self.assertEqual(item["independent_confirmations"], 1)
-        self.assertEqual(item["status"], "mastered")
+        self.assertEqual(item["independent_confirmations"], 2)
+        self.assertNotEqual(item["status"], "mastered")
 
     def test_legacy_a11_requires_semantic_evidence_coverage_for_mastery(self):
         state = {
@@ -450,12 +450,13 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             for _ in range(5):
                 progress = register_course_success(state)
             self.assertNotEqual(progress["status"], "mastered")
-            self.assertEqual(progress["independent_confirmations"], 0)
+            self.assertEqual(progress["independent_confirmations"], 5)
+            self.assertEqual(progress["independent_evidence"], ["morning_greeting"])
 
             progress = register_course_success(state, final_step=True)
 
-        self.assertEqual(progress["status"], "mastered")
-        self.assertEqual(progress["independent_confirmations"], 1)
+        self.assertNotEqual(progress["status"], "mastered")
+        self.assertEqual(progress["independent_confirmations"], 6)
 
     def test_a11_alphabet_wrong_answer_uses_shared_teacher_engine_and_stays_on_step(self):
         state = {
