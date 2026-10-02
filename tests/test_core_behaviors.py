@@ -1171,6 +1171,20 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         daily_section.assert_not_called()
         daily_plan.assert_not_called()
 
+    def test_starting_generic_section_clears_stale_assistance_from_previous_section(self):
+        from brain.logic.generic_lesson_engine import start_generic_lesson_teaching
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {"current_level": "A1", "current_lesson": 2},
+            "course_mastery_assistance_used": True,
+            "course_generic_assisted_step": 4,
+        }
+        start_generic_lesson_teaching("Länder und Nationalitäten", state)
+
+        self.assertFalse(state.get("course_mastery_assistance_used"))
+        self.assertIsNone(state.get("course_generic_assisted_step"))
+
     def test_generic_error_reopen_requires_fresh_full_independent_evidence(self):
         from brain.logic.generic_lesson_engine import (
             handle_generic_lesson_teaching,
