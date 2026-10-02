@@ -683,6 +683,33 @@ def handle_dialogue(user_message, state):
     if exhausted and str(state.get("conversation_mode") or "").strip().lower() == "course":
         state["course_mastery_assistance_used"] = True
         _record_course_dialogue_outcome(dialogue, state, False)
+
+        # Maximal scaffolding means this turn needs later review, not another
+        # immediate pass through the same support ladder. Move to the next
+        # learner turn when the dialogue has one, while the failed skill stays
+        # NOT_YET/needs_review in learning progress.
+        next_index, spoken = _advance_to_learner(
+            turns,
+            int(state.get("dialogue_turn", 0) or 0) + 1,
+            state.get("dialogue_slots"),
+        )
+        if next_index < len(turns):
+            state["dialogue_turn"] = next_index
+            state.pop("dialogue_retry_turn", None)
+            next_prompt = _text(
+                render_pattern(
+                    turns[next_index].get("prompt") or turns[next_index].get("text"),
+                    state.get("dialogue_slots") or {},
+                )
+            )
+            return " ".join(
+                part for part in [
+                    "Wir machen erst einmal weiter.",
+                    *spoken,
+                    next_prompt,
+                ] if part
+            )
+
         action = choose_course_teacher_action(
             state,
             answer_correct=True,
