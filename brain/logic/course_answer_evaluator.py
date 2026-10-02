@@ -66,7 +66,19 @@ def semantic_equivalent(user_message, accepted_values, render=None):
                 tail = target_tokens[2:]
                 if learner_tokens == tail + [model_verb, model_subject]:
                     return True
+                # A fronted prefix must be able to stand as a constituent.
+                # Never split immediately after a word that requires its
+                # complement (for example "aus" in "aus Italien").  Without
+                # this guard the bag matcher accepted malformed V2 productions
+                # such as "Aus komme ich Italien".
+                dangling_fronting_words = {
+                    "aus", "bei", "bis", "durch", "für", "gegen", "in", "mit",
+                    "nach", "ohne", "seit", "über", "um", "unter", "von", "vor",
+                    "zu", "an", "auf",
+                }
                 for split in range(1, len(tail)):
+                    if tail[split - 1] in dangling_fronting_words:
+                        continue
                     candidate = tail[:split] + [model_verb, model_subject] + tail[split:]
                     if learner_tokens == candidate:
                         return True
