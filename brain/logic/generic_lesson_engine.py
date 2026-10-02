@@ -1150,6 +1150,15 @@ def start_generic_lesson_teaching(
         "last_activity_detail"
     ] = real_section
 
+    # Assistance belongs to one concrete section attempt. A newly started
+    # section must never inherit scaffolding state from the section that just
+    # ended, otherwise its first correct production can be misclassified as
+    # assisted and denied independent mastery evidence.
+    state["course_mastery_assistance_used"] = False
+    state.pop("course_generic_assisted_step", None)
+    state.pop("course_pending_speaking_model", None)
+    state.pop("course_model_practice_exhausted", None)
+
 
     intro = render_text(
         definition.get(
