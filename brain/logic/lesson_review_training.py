@@ -413,9 +413,6 @@ def start_lesson_review_training(
     state[
         "lesson_review_training_wrong"
     ] = 0
-
-    state["course_review_evidence"] = {}
-
     return (
         "Heute ist die Wiederholung von "
         "A1, Lektion 1 dran. "
