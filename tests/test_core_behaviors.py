@@ -1120,6 +1120,57 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "needs_review",
         )
 
+    def test_generic_completion_rejection_cannot_advance_or_record_daily_progress(self):
+        from brain.logic.generic_lesson_engine import (
+            complete_generic_section,
+            find_generic_section,
+        )
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {"current_level": "A1", "current_lesson": 2},
+            "lesson_teaching_active": True,
+            "lesson_teaching_level": "A1",
+            "lesson_teaching_lesson": 2,
+            "lesson_teaching_section": "Länder und Nationalitäten",
+            "lesson_teaching_step": 3,
+            "pending_new_learning": {
+                "type": "new_section",
+                "level": "A1",
+                "lesson": 2,
+                "section": "Das Verb kommen",
+            },
+            "last_question": "continue_new_learning",
+        }
+        _, definition = find_generic_section(
+            "A1", 2, "Länder und Nationalitäten"
+        )
+
+        with patch(
+            "brain.logic.generic_lesson_engine.mark_section_completed",
+            return_value=False,
+        ), patch(
+            "brain.logic.generic_lesson_engine.mark_lesson_section_today",
+        ) as daily_section, patch(
+            "brain.logic.generic_lesson_engine.mark_daily_plan_completed",
+        ) as daily_plan:
+            reply = complete_generic_section(state, definition)
+
+        self.assertIn("Maria", reply)
+        self.assertTrue(state["lesson_teaching_active"])
+        self.assertEqual(
+            state["lesson_teaching_section"],
+            "Länder und Nationalitäten",
+        )
+        self.assertIsNone(state["pending_new_learning"])
+        self.assertIsNone(state["last_question"])
+        self.assertEqual(
+            state["course_teaching_decision"]["reason"],
+            "section_not_mastered",
+        )
+        daily_section.assert_not_called()
+        daily_plan.assert_not_called()
+
     def test_targeted_needs_review_pass_restores_mastery_then_advances(self):
         from brain.logic.generic_lesson_engine import (
             _course_skill_key,
