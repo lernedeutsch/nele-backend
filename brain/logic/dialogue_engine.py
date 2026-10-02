@@ -27,6 +27,7 @@ from brain.logic.course_teacher_engine import (
     choose_course_teacher_action,
     render_course_teacher_action,
 )
+from brain.memory.user_facts import get_user_fact
 from brain.logic.speaking_support import (
     consume_course_model_exhaustion,
     handle_pending_course_model,
@@ -267,6 +268,22 @@ def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
         requested_start = 0
     requested_start = min(requested_start, len(turns) - 1)
     dialogue_slots = dict(dialogue.get("slots", {}) or {})
+
+    # Personal slots describe the learner, so prefer remembered learner facts
+    # over a lesson's example/default value. Content can still provide a
+    # fallback for anonymous practice sessions.
+    personal_slot_facts = {
+        "country": "origin",
+        "name": "name",
+        "residence": "residence",
+    }
+    for slot_name, fact_name in personal_slot_facts.items():
+        if slot_name not in dialogue_slots:
+            continue
+        remembered = get_user_fact(state, fact_name)
+        if str(remembered or "").strip():
+            dialogue_slots[slot_name] = str(remembered).strip()
+
     index, spoken = _advance_to_learner(turns, requested_start, dialogue_slots)
     state["dialogue_active"] = True
     state["dialogue_level"] = str(level).upper()
