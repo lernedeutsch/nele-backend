@@ -966,6 +966,43 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "listening",
         )
 
+    def test_a12_review_uses_generic_sections_in_course_order(self):
+        from brain.logic.lesson_review_training import start_lesson_review_training
+        from brain.logic.generic_lesson_engine import (
+            complete_generic_section,
+            find_generic_section,
+        )
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {
+                "current_level": "A1",
+                "current_lesson": 2,
+            },
+        }
+
+        reply = start_lesson_review_training(state, "A1", 2)
+
+        self.assertIn("Lektion 2", reply)
+        self.assertTrue(state["generic_lesson_review_active"])
+        self.assertEqual(state["lesson_teaching_section"], "Woher kommen Sie?")
+        self.assertEqual(
+            state["generic_lesson_review_sections"],
+            [
+                "Woher kommen Sie?",
+                "Länder und Nationalitäten",
+                "Das Verb kommen",
+                "Zahlen 1–20",
+            ],
+        )
+
+        _, definition = find_generic_section("A1", 2, "Woher kommen Sie?")
+        reply = complete_generic_section(state, definition)
+
+        self.assertTrue(state["generic_lesson_review_active"])
+        self.assertEqual(state["lesson_teaching_section"], "Länder und Nationalitäten")
+        self.assertIn("Länder und Nationalitäten", reply)
+
     def test_a1_lesson_2_is_ready(self):
         available = get_available_lesson_numbers("A1")
         self.assertIn(2, available)

@@ -376,18 +376,12 @@ def start_lesson_review_training(
         lesson = 1
 
 
-    # ======================================
-    # NA RAZIE OBSŁUGUJEMY
-    # A1 LEKTION 1
-    # ======================================
-
-    if not (
-        level == "A1"
-        and
-        lesson == 1
-    ):
-
-        return None
+    # A1.1 keeps its purpose-built review content. Newer lessons reuse the
+    # generic lesson definitions and the same Teacher/Mastery engine, so review
+    # grows with the course instead of requiring another lesson-specific router.
+    if not (level == "A1" and lesson == 1):
+        from brain.logic.generic_lesson_engine import start_generic_lesson_review
+        return start_generic_lesson_review(state, level, lesson)
 
 
     state[
