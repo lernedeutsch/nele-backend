@@ -155,7 +155,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
         state["lesson_review_training_step"] = 3
         skill = "course:a1:1:ich_stelle_mich_vor"
 
-        reply = handle_a1_lesson_1_review("Wie heißt", state)
+        reply = handle_a1_lesson_1_review("Wie", state)
 
         self.assertIn("2 von 3", reply)
         self.assertEqual(state["lesson_review_training_step"], 3)
