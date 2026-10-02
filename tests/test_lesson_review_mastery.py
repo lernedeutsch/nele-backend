@@ -240,6 +240,25 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "needs_review",
         )
 
+    def test_repaired_review_is_good_even_after_multiple_earlier_errors(self):
+        state = self.base_state()
+        state["lesson_review_training_wrong"] = 3
+
+        # The learner made several mistakes earlier, but has since supplied
+        # the complete independent evidence needed to restore every skill.
+        for step in range(1, 7):
+            record_review_course_outcome(state, step, True)
+
+        self.assertTrue(all(
+            item["status"] == "mastered"
+            for item in state["learning_progress_v1"]["skills"].values()
+        ))
+
+        result = complete_lesson_review_training(state)
+
+        self.assertIn("geschafft", result)
+        self.assertFalse(state["lesson_review_training_active"])
+
     def test_clean_review_keeps_mastered_skills_and_finishes_good(self):
         state = self.base_state()
         for step in range(1, 7):
