@@ -276,3 +276,19 @@ def test_lesson_two_advances_in_pedagogical_order_after_mastery():
         "skill": "course:a1:2:das_verb_kommen",
         "reason": "course_prerequisites_met",
     }
+
+def test_selected_lesson_review_does_not_skip_earlier_unmastered_section():
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 2},
+        "learning_progress_v1": {"skills": {
+            # Section 1 is still not mastered; section 2 must not steal routing
+            # merely because it is marked needs_review.
+            "course:a1:2:woher_kommen_sie": {"status": "practicing"},
+            "course:a1:2:das_verb_kommen": {"status": "needs_review"},
+        }},
+    }
+    assert choose_next_curriculum_skill(state) == {
+        "skill": "course:a1:2:woher_kommen_sie",
+        "reason": "course_mastery_in_progress",
+    }
