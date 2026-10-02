@@ -49,6 +49,11 @@ from brain.logic.lesson_loader import (
     get_next_lesson_number_from_modules
 )
 
+from brain.logic.curriculum_skill_graph import (
+    choose_next_curriculum_skill,
+    get_skill,
+)
+
 
 # ==========================================
 # ŁADNE WYŚWIETLANIE SŁOWA
@@ -1393,6 +1398,35 @@ def get_next_new_learning_step(
     current_lesson = get_current_lesson(
         state
     )
+
+
+    # A concrete course skill that has fallen from mastered to needs_review
+    # must be routed back into practice before ordinary new material.  The
+    # Skill Graph is the source of truth for *which* section needs repair;
+    # lesson_review remains responsible for spaced repetition of whole lessons.
+    curriculum_choice = choose_next_curriculum_skill(state)
+    if (
+        isinstance(curriculum_choice, dict)
+        and curriculum_choice.get("reason") == "course_review"
+    ):
+        skill = curriculum_choice.get("skill")
+        skill_data = get_skill(skill) or {}
+        review_section = skill_data.get("section")
+        review_level = skill_data.get("level") or level
+        review_lesson = skill_data.get("lesson") or current_lesson
+        if review_section:
+            return {
+                "type": "course_review_section",
+                "level": review_level,
+                "lesson": review_lesson,
+                "section": review_section,
+                "topic": review_section,
+                "skill": skill,
+                "message": (
+                    f"Wir wiederholen zuerst kurz „{review_section}“, "
+                    "bevor wir mit neuem Stoff weitermachen."
+                ),
+            }
 
 
     sync_lesson_structure(
