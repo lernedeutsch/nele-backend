@@ -286,3 +286,21 @@ def test_explicit_lesson_review_request_preempts_active_course_exercise():
     assert "Wiederholung von A1, Lektion 1" in str(reply)
     assert state["lesson_review_training_active"] is True
     assert state["lesson_review_training_step"] == 1
+
+
+def test_origin_dialogue_uses_remembered_origin_and_accepts_natural_variant():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+    state = {"conversation_mode": "course", "user_facts": {"origin": "Italien", "name": "Moni"}}
+    opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+    assert "Woher kommst du" in opening
+    assert state["dialogue_slots"]["country"] == "Italien"
+    reply = handle_dialogue("Ich bin aus Italien.", state)
+    assert "Kommst du aus Italien" in reply
+    assert state["dialogue_turn"] > 1
+    assert "give_origin" in state["dialogue_completed_intents"]
+
+def test_origin_dialogue_keeps_default_without_remembered_origin():
+    from brain.logic.dialogue_engine import start_dialogue
+    state = {"conversation_mode": "course"}
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+    assert state["dialogue_slots"]["country"] == "Polen"
