@@ -86,6 +86,29 @@ def test_error_practice_choice_records_assistance_for_adaptive_review():
     assert state["error_practice_used_hint"] is True
 
 
+def test_error_practice_failed_transfer_counts_attempt_before_rescaffolding():
+    from brain.logic.error_practice import handle_error_practice_step_three
+
+    state = {
+        "error_practice_type": "grammar",
+        "error_practice_step": 3,
+        "error_practice_used_hint": True,
+        "error_practice_attempts": 1,
+        "error_practice_transfer_attempts": 1,
+    }
+    summary = {
+        "last_wrong": "Ich kommen aus Polen.",
+        "last_correct": "Ich komme aus Polen.",
+    }
+
+    reply = handle_error_practice_step_three("Ich kommen aus Polen.", state, summary)
+
+    assert reply == 'Ich helfe dir noch einmal: „Ich komme aus Polen.“ Sag es mal.'
+    assert state["error_practice_step"] == 2
+    assert state["error_practice_attempts"] == 2
+    assert state["error_practice_used_hint"] is True
+
+
 def test_error_practice_wrong_guided_repetition_stays_on_step_two():
     from brain.logic.error_practice import handle_error_practice_step_two
 

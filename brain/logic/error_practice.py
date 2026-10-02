@@ -1948,41 +1948,18 @@ def handle_error_practice_step_three(
         return "Fast. Versuch es noch einmal."
 
     # After a failed independent attempt, scaffold again instead of
-    # marking the learner as mastered.
-    state["error_practice_step"] = 2
-    return f"Ich helfe dir noch einmal: „{correct_sentence}“ Sag es mal."
-
-
-    # ======================================
-    # ZŁA ODPOWIEDŹ
-    # ======================================
-
-    increase_error_practice_attempts(
-        state
-    )
-
-
-    state[
-        "error_practice_used_hint"
-    ] = True
-
-
-    error_type = state.get(
-        "error_practice_type"
-    )
-
-
+    # marking the learner as mastered. Count and remember this failed
+    # production before returning to the guided repetition step.
+    increase_error_practice_attempts(state)
+    error_type = state.get("error_practice_type")
     remember_daily_error_mistake(
         state,
         error_type,
         wrong_sentence=user_message,
-        correct_sentence=correct_sentence
+        correct_sentence=correct_sentence,
     )
-
-
-    return (
-        f"Fast. Sag: „{correct_sentence}“"
-    )
+    state["error_practice_step"] = 2
+    return f"Ich helfe dir noch einmal: „{correct_sentence}“ Sag es mal."
 
 
 # ==========================================
