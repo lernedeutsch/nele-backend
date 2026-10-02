@@ -48,6 +48,10 @@ def _derive_status(item):
         and item.get("last_result") == "SUCCESS"
         and item.get("last_review_confirmation") is True
     ):
+        required_evidence = set(item.get("required_evidence") or [])
+        independent_evidence = set(item.get("independent_evidence") or [])
+        if required_evidence and not required_evidence.issubset(independent_evidence):
+            return "needs_review"
         return "mastered"
     if (
         previous == "needs_review"
