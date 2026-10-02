@@ -289,6 +289,10 @@ class GoldenDialogueSystemTests(unittest.TestCase):
         self.assertEqual(state["dialogue_turn"], 1)
 
         reply = handle_dialogue("Polen", state)
+        self.assertNotIn("Kommst du aus Polen?", reply)
+        self.assertEqual(state["dialogue_turn"], 1)
+
+        reply = handle_dialogue("Ich komme aus Polen.", state)
         self.assertIn("Kommst du aus Polen?", reply)
         self.assertIn("give_origin", state["dialogue_completed_intents"])
 
