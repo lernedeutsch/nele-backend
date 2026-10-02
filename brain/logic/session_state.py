@@ -57,13 +57,6 @@ def _clear_common_transient_state(state):
     state["lesson_review_training_correct"] = 0
     state["lesson_review_training_wrong"] = 0
 
-    # Targeted course-skill review is also a transient active mode. Durable
-    # needs_review/mastery evidence remains in learning_progress_v1, but a
-    # stale active marker must never make ordinary later practice count as a
-    # review confirmation after page reopen / Neu anfangen.
-    state["course_skill_review_active"] = False
-    state["course_skill_review_skill"] = None
-
     # Old offers must be recalculated for the new session.
     state["pending_new_learning"] = None
     state["pending_error_review"] = None
@@ -110,6 +103,13 @@ def prepare_new_conversation(state):
     )
 
     _clear_common_transient_state(state)
+
+    # Neu anfangen ends the active targeted review. A normal page reopen does
+    # not: it resumes the same lesson step, so its review-confirmation context
+    # must survive until that exact needs_review skill is mastered or the
+    # learner explicitly starts a new conversation.
+    state["course_skill_review_active"] = False
+    state["course_skill_review_skill"] = None
 
     if preserve_onboarding_start:
         state["last_question"] = "start_after_onboarding"
