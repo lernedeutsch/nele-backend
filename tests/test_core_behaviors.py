@@ -1358,6 +1358,27 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(state["lesson_teaching_section"], "Länder und Nationalitäten")
         self.assertIn("Länder und Nationalitäten", reply)
 
+    def test_generic_review_starts_without_stale_support_state(self):
+        from brain.logic.lesson_review_training import start_lesson_review_training
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {"current_level": "A1", "current_lesson": 2},
+            "course_mastery_assistance_used": True,
+            "course_generic_assisted_step": 1,
+            "course_pending_speaking_model": {"model": "Ich komme aus Polen."},
+            "course_model_practice_exhausted": {"step": 1},
+        }
+
+        reply = start_lesson_review_training(state, "A1", 2)
+
+        self.assertIn("Lektion 2", reply)
+        self.assertTrue(state["generic_lesson_review_active"])
+        self.assertFalse(state["course_mastery_assistance_used"])
+        self.assertNotIn("course_generic_assisted_step", state)
+        self.assertNotIn("course_pending_speaking_model", state)
+        self.assertNotIn("course_model_practice_exhausted", state)
+
     def test_a1_lesson_2_is_ready(self):
         available = get_available_lesson_numbers("A1")
         self.assertIn(2, available)
