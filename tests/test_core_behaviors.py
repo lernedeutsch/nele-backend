@@ -1006,6 +1006,13 @@ class NeleCoreBehaviorTests(unittest.TestCase):
     def test_course_needs_review_routes_back_to_exact_section_before_new_material(self):
         from brain.memory.next_learning_step import get_next_new_learning_step
 
+        from brain.logic.curriculum_skill_graph import A1_COURSE_SKILL_GRAPH
+
+        review_skill = next(
+            key for key, item in A1_COURSE_SKILL_GRAPH.items()
+            if item.get("lesson") == 2
+            and item.get("section") == "Länder und Nationalitäten"
+        )
         state = {
             "conversation_mode": "course",
             "student_progress": {
@@ -1017,7 +1024,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
                     "course:a1:2:woher_kommen_sie": {
                         "status": "mastered",
                     },
-                    "course:a1:2:lander_und_nationalitaten": {
+                    review_skill: {
                         "status": "needs_review",
                     },
                 },
@@ -1030,10 +1037,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(plan["level"], "A1")
         self.assertEqual(plan["lesson"], 2)
         self.assertEqual(plan["section"], "Länder und Nationalitäten")
-        self.assertEqual(
-            plan["skill"],
-            "course:a1:2:lander_und_nationalitaten",
-        )
+        self.assertEqual(plan["skill"], review_skill)
 
     def test_course_mastered_skill_does_not_steal_normal_routing(self):
         from brain.memory.next_learning_step import get_next_new_learning_step
