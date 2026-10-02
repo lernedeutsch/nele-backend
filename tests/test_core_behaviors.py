@@ -1189,7 +1189,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         item = state["learning_progress_v1"]["skills"][skill]
         self.assertEqual(item["independent_evidence"], ["step:1"])
 
-        handle_generic_lesson_teaching("falsch", state)
+        handle_generic_lesson_teaching("Thomas ist Polin.", state)
         self.assertEqual(item["independent_evidence"], [])
         self.assertTrue(state["course_mastery_assistance_used"])
         self.assertEqual(state["course_generic_assisted_step"], 2)
