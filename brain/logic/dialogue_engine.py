@@ -750,7 +750,7 @@ def handle_dialogue(user_message, state):
             answer_correct=True,
             mastery_status="needs_review",
         )
-        retry_prompt = _text(turn.get("retry")) or "Versuch es noch einmal."
+        retry_prompt = _text(render_pattern(turn.get("retry"), state.get("dialogue_slots") or {})) or "Versuch es noch einmal."
         return render_course_teacher_action(action, prompt=retry_prompt)
 
     # A learner may explicitly open a different validated dialogue while
@@ -865,7 +865,7 @@ def handle_dialogue(user_message, state):
             shared_definition,
             render=lambda value: str(value or ""),
         )
-        expected = _text(turn.get("expected"))
+        expected = _text(render_pattern(turn.get("expected"), state.get("dialogue_slots") or {}))
         if evaluation.get("kind") == "partial":
             state["course_mastery_assistance_used"] = True
             _record_course_dialogue_outcome(dialogue, state, False, partial=True)
@@ -881,7 +881,7 @@ def handle_dialogue(user_message, state):
         _record_course_dialogue_outcome(dialogue, state, False)
         if turn.get("retry_requires_full_sentence"):
             state["dialogue_retry_turn"] = int(state.get("dialogue_turn", 0) or 0)
-        retry = _text(turn.get("retry"))
+        retry = _text(render_pattern(turn.get("retry"), state.get("dialogue_slots") or {}))
         action = choose_course_teacher_action(
             state,
             answer_correct=False,

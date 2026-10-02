@@ -299,6 +299,21 @@ def test_origin_dialogue_uses_remembered_origin_and_accepts_natural_variant():
     assert state["dialogue_turn"] > 1
     assert "give_origin" in state["dialogue_completed_intents"]
 
+def test_origin_dialogue_retry_renders_remembered_origin():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+
+    state = {
+        "conversation_mode": "course",
+        "user_facts": {"origin": "Italien", "name": "Moni"},
+    }
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+
+    reply = handle_dialogue("xyz", state)
+
+    assert "Ich komme aus Italien" in reply
+    assert "Ich komme aus Polen" not in reply
+
+
 def test_origin_dialogue_keeps_default_without_remembered_origin():
     from brain.logic.dialogue_engine import start_dialogue
     state = {"conversation_mode": "course"}
