@@ -150,6 +150,23 @@ class LessonReviewMasteryTests(unittest.TestCase):
         )
         self.assertNotIn("course_review_evidence", state)
 
+    def test_partial_review_answer_is_scaffolded_and_recorded_as_partial(self):
+        state = self.base_state()
+        state["lesson_review_training_step"] = 3
+        skill = "course:a1:1:ich_stelle_mich_vor"
+
+        reply = handle_a1_lesson_1_review("Wie heißt", state)
+
+        self.assertIn("2 von 3", reply)
+        self.assertEqual(state["lesson_review_training_step"], 3)
+        self.assertEqual(state["course_teacher_action"]["action"], "scaffold_partial")
+        item = state["learning_progress_v1"]["skills"][skill]
+        self.assertEqual(item["last_result"], "PARTIAL")
+        self.assertEqual(item["partials"], 1)
+        self.assertEqual(item["not_yet"], 0)
+        self.assertNotEqual(item["status"], "mastered")
+        self.assertEqual(state["lesson_review_training_wrong"], 0)
+
     def test_review_wrong_answer_uses_shared_teacher_engine(self):
         state = self.base_state()
         state["lesson_review_training_step"] = 3
