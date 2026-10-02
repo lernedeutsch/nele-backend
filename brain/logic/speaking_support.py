@@ -205,6 +205,7 @@ def consume_course_model_exhaustion(state):
     target = _text((state or {}).pop("course_model_practice_exhausted", None))
     if not target:
         return None
+    _set_support(state, 0)
     return {
         "target": target,
         "assistance_exhausted": True,
