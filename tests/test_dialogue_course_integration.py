@@ -248,7 +248,9 @@ def test_course_dialogue_exhausted_support_becomes_review_instead_of_model_loop(
     replies = [handle_dialogue("falsch", state) for _ in range(6)]
 
     assert any("Das ist okay" in reply for reply in replies)
-    assert "festigen" in replies[-1].lower()
+    assert "Wir machen erst einmal weiter" in replies[-1]
+    assert "Kommst du aus Polen" in replies[-1]
+    assert state["dialogue_turn"] > 1
     assert "course_pending_speaking_model" not in state or not state["course_pending_speaking_model"]
     assert "course_model_practice_exhausted" not in state
     progress = state["learning_progress_v1"]["skills"]["course:a1:2:woher_kommen_sie"]
