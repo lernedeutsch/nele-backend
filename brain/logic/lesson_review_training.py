@@ -215,7 +215,7 @@ def _course_skill_key(level, lesson, section):
     return f"course:{str(level).lower()}:{int(lesson)}:{section_key}"
 
 
-def record_review_course_outcome(state, step, success):
+def record_review_course_outcome(state, step, success, partial=False):
     """Feed lesson review evidence into the same course-skill mastery state."""
     if state is None:
         return None
@@ -246,7 +246,7 @@ def record_review_course_outcome(state, step, success):
         {
             "skill": skill,
             "expected_outcome": "course_review",
-            "status": "SUCCESS" if success else "NOT_YET",
+            "status": "SUCCESS" if success else ("PARTIAL" if partial else "NOT_YET"),
             # Review now uses the same central evidence contract as normal
             # course teaching. The progress engine owns accumulated independent
             # evidence and decides when the required coverage is complete.
@@ -580,6 +580,29 @@ def evaluate_review_answer(step, user_message):
     )
 
 
+def _review_miss_reply(state, step, result, *, correct_answer, retry):
+    """Preserve PARTIAL separately from a fully wrong review answer."""
+    partial = (result or {}).get("partial") if (result or {}).get("kind") == "partial" else None
+    if partial:
+        record_review_course_outcome(state, step, False, partial=True)
+        action = choose_course_teacher_action(
+            state,
+            partial=partial,
+            correct_answer=correct_answer,
+        )
+        return render_course_teacher_action(action)
+
+    remember_wrong_answer(state)
+    record_review_course_outcome(state, step, False)
+    action = choose_course_teacher_action(
+        state,
+        answer_correct=False,
+        correct_answer=correct_answer,
+        retry=retry,
+    )
+    return render_course_teacher_action(action)
+
+
 # ==========================================
 # ZAKOŃCZENIE CAŁEJ POWTÓRKI
 # ==========================================
@@ -846,7 +869,8 @@ def handle_a1_lesson_1_review(
 
     if step == 3:
 
-        if evaluate_review_answer(step, user_message)["correct"]:
+        result = evaluate_review_answer(step, user_message)
+        if result["correct"]:
 
             remember_correct_answer(
                 state
@@ -858,16 +882,13 @@ def handle_a1_lesson_1_review(
             )
 
         else:
-
-            remember_wrong_answer(state)
-            record_review_course_outcome(state, step, False)
-            action = choose_course_teacher_action(
+            return _review_miss_reply(
                 state,
-                answer_correct=False,
+                step,
+                result,
                 correct_answer="Wie heißt du?",
                 retry="Frag deinen Freund noch einmal.",
             )
-            return render_course_teacher_action(action)
 
 
         state[
@@ -888,7 +909,8 @@ def handle_a1_lesson_1_review(
 
     if step == 4:
 
-        if evaluate_review_answer(step, user_message)["correct"]:
+        result = evaluate_review_answer(step, user_message)
+        if result["correct"]:
 
             remember_correct_answer(
                 state
@@ -900,16 +922,13 @@ def handle_a1_lesson_1_review(
             )
 
         else:
-
-            remember_wrong_answer(state)
-            record_review_course_outcome(state, step, False)
-            action = choose_course_teacher_action(
+            return _review_miss_reply(
                 state,
-                answer_correct=False,
+                step,
+                result,
                 correct_answer="Wie heißen Sie?",
                 retry="Frag noch einmal höflich.",
             )
-            return render_course_teacher_action(action)
 
 
         state[
