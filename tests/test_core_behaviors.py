@@ -48,6 +48,7 @@ from brain.logic.lesson_teaching import (
     complete_active_section,
     register_course_success,
     remember_lesson_mistake,
+    create_lesson_completion_answer,
 )
 from brain.logic.error_practice import (
     is_relevant_error_example,
@@ -267,6 +268,15 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         self.assertEqual(state["lesson_teaching_step"], 1)
         self.assertIn("Das deutsche Alphabet", reply)
         self.assertFalse(state["course_mastery_section_assistance_used"])
+
+
+    def test_legacy_a11_completion_sets_shared_course_boundary(self):
+        state = {"conversation_mode": "course"}
+
+        reply = create_lesson_completion_answer(state)
+
+        self.assertIn("Lektion 1 ist fertig", reply)
+        self.assertEqual(state["last_question"], "course_lesson_completed")
 
 
     def test_guided_legacy_pass_restarts_with_real_first_prompt(self):
