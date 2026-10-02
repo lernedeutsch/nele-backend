@@ -71,7 +71,9 @@ def semantic_equivalent(user_message, accepted_values, render=None):
                     if learner_tokens == candidate:
                         return True
                 continue
-            return True
+            if learner_tokens == target_tokens:
+                return True
+            continue
 
         removable = [token for token in target_tokens if token in subject_pronouns]
         if len(removable) == 1:
