@@ -132,6 +132,71 @@ class GenericCourseMasteryEvidenceTests(unittest.TestCase):
         self.assertNotEqual(progress["status"], "mastered")
 
 
+class GenericCourseReviewRestorationTests(unittest.TestCase):
+    def test_complete_independent_generic_review_restores_reopened_mastery(self):
+        from brain.logic.generic_lesson_engine import record_course_step_outcome
+
+        state = {}
+        required = ["step:1", "step:2", "step:3"]
+
+        # First prove the skill independently.
+        for index in (1, 2, 3):
+            progress = record_course_step_outcome(
+                state,
+                "A1",
+                2,
+                "Test section",
+                True,
+                final_step=index == 3,
+                independent_confirmation=True,
+                required_evidence=required,
+                evidence=f"step:{index}",
+            )
+        self.assertEqual(progress["status"], "mastered")
+
+        # A later failure reopens it and invalidates old coverage.
+        progress = record_course_step_outcome(
+            state,
+            "A1",
+            2,
+            "Test section",
+            False,
+            required_evidence=required,
+        )
+        self.assertEqual(progress["status"], "needs_review")
+        self.assertEqual(progress["independent_evidence"], [])
+
+        # Review must rebuild the complete evidence coverage. Earlier review
+        # steps alone cannot restore mastery.
+        for index in (1, 2):
+            progress = record_course_step_outcome(
+                state,
+                "A1",
+                2,
+                "Test section",
+                True,
+                independent_confirmation=True,
+                required_evidence=required,
+                evidence=f"step:{index}",
+                review_confirmation=True,
+            )
+            self.assertEqual(progress["status"], "needs_review")
+
+        progress = record_course_step_outcome(
+            state,
+            "A1",
+            2,
+            "Test section",
+            True,
+            final_step=True,
+            independent_confirmation=True,
+            required_evidence=required,
+            evidence="step:3",
+            review_confirmation=True,
+        )
+        self.assertEqual(progress["status"], "mastered")
+
+
 class SharedMasteryIndependentConfirmationTests(unittest.TestCase):
     def test_old_independent_proof_cannot_authorize_later_assisted_final(self):
         from brain.logic.learning_progress_engine import update_learning_progress
