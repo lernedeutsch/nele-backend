@@ -635,7 +635,11 @@ def complete_lesson_review_training(
     # 3 / 7 / 14 / 30 dni
     # ======================================
 
-    if wrong <= 1 and _reviewed_course_skills_mastered(state):
+    # Historical mistakes must not outweigh a later complete independent
+    # demonstration. The shared mastery state already captures whether errors
+    # were actually repaired; review completion should follow that current
+    # learning state instead of the raw number of earlier mistakes.
+    if _reviewed_course_skills_mastered(state):
 
         mark_lesson_review_completed(
             state,
