@@ -57,6 +57,8 @@ def _clear_common_transient_state(state):
     state["lesson_review_training_correct"] = 0
     state["lesson_review_training_wrong"] = 0
 
+    # Targeted course-skill review is also a transient active mode. Durable\n    # needs_review/mastery evidence remains in learning_progress_v1, but a\n    # stale active marker must never make ordinary later practice count as a\n    # review confirmation after page reopen / Neu anfangen.\n    state["course_skill_review_active"] = False\n    state["course_skill_review_skill"] = None
+
     # Old offers must be recalculated for the new session.
     state["pending_new_learning"] = None
     state["pending_error_review"] = None
