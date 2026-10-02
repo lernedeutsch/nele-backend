@@ -1680,6 +1680,16 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "lesson_teaching_active": True,
             "lesson_teaching_section": "Ich stelle mich vor",
             "lesson_teaching_step": 3,
+            "lesson_progress": {
+                "lessons": {
+                    "A1:1": {
+                        "level": "A1",
+                        "lesson": 1,
+                        "current_section": "Ich stelle mich vor",
+                        "sections": ["Wir begrüßen uns", "Ich stelle mich vor", "Das deutsche Alphabet"],
+                    }
+                }
+            },
         }
 
         reply = handle_introduction_section("Wie", state)
