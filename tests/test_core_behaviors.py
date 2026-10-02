@@ -1671,6 +1671,29 @@ class NeleCoreBehaviorTests(unittest.TestCase):
                 self.assertEqual(state["lesson_teaching_step"], 2)
 
 
+    def test_legacy_partial_support_is_recorded_as_partial_progress(self):
+        from brain.logic.lesson_teaching import handle_introduction_section
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {"current_level": "A1", "current_lesson": 1},
+            "lesson_teaching_active": True,
+            "lesson_teaching_section": "Ich stelle mich vor",
+            "lesson_teaching_step": 3,
+        }
+
+        reply = handle_introduction_section("Wie heißt", state)
+
+        self.assertTrue(reply)
+        self.assertEqual(state["lesson_teaching_step"], 3)
+        item = state["learning_progress_v1"]["skills"]["course:a1:1:ich_stelle_mich_vor"]
+        self.assertEqual(item["last_result"], "PARTIAL")
+        self.assertEqual(item["partials"], 1)
+        self.assertEqual(item["not_yet"], 0)
+        self.assertNotEqual(item["status"], "mastered")
+        self.assertTrue(state["course_mastery_assistance_used"])
+
+
     def test_onboarding_rejects_unrelated_learning_goal(self):
         self.assertEqual(
             extract_learning_goal_sentence("ich will spielen"),
