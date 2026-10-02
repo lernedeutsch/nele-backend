@@ -496,6 +496,11 @@ def create_lesson_completion_answer(
         "Beim nächsten Mal wiederholen wir sie kurz."
     )
 
+    # Legacy A1.1 must use the same explicit lesson-completion boundary as
+    # generic course lessons. Otherwise a natural acknowledgement on the next
+    # turn falls through to the generic unknown-answer response.
+    state["last_question"] = "course_lesson_completed"
+
     try:
 
         recommendation = (
