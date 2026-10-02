@@ -327,3 +327,25 @@ def test_nationality_production_still_can_create_independent_mastery_evidence():
     assert outcome["status"]=="SUCCESS"
     assert outcome["mastery_eligible"] is True
     assert outcome["independent_confirmation"] is True
+
+
+def test_lesson2_partial_answer_is_preserved_in_learning_progress():
+    state={}
+    start("Das Verb kommen",state)
+    state["a1_l2_tutor"]["task"]=task(
+        "kommen","kommt",pronoun="er",form="kommt",
+        intent="COMPLETE_KOMMEN",
+        prompt="Ergänze: „Thomas ___ aus Deutschland.“",
+        full_sentence_expected="Thomas kommt aus Deutschland.",
+    )
+
+    reply=handle("Thomas kommt",state)
+
+    assert reply
+    assert state["course_teacher_action"]["action"]=="scaffold_partial"
+    outcome=state["last_course_learning_outcome"]
+    assert outcome["status"]=="PARTIAL"
+    skill=state["learning_progress_v1"]["skills"]["course:a1:2:das_verb_kommen"]
+    assert skill["partials"]==1
+    assert skill["not_yet"]==0
+    assert skill["status"]!="mastered"
