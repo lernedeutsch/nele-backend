@@ -319,3 +319,39 @@ def test_origin_dialogue_keeps_default_without_remembered_origin():
     state = {"conversation_mode": "course"}
     start_dialogue("A1", 2, "woher-kommst-du", state)
     assert state["dialogue_slots"]["country"] == "Polen"
+
+
+def test_dialogue_cannot_prepare_next_section_when_completion_gate_rejects_current():
+    from brain.logic.dialogue_engine import _complete_course_dialogue
+
+    dialogue = {
+        "id": "synthetic-section-dialogue",
+        "level": "A1",
+        "lesson": 2,
+        "section": "Woher kommen Sie?",
+    }
+    state = {
+        "conversation_mode": "course",
+        "pending_new_learning": {
+            "type": "new_section",
+            "level": "A1",
+            "lesson": 2,
+            "section": "Das Verb kommen",
+        },
+        "last_question": "continue_new_learning",
+    }
+
+    with patch(
+        "brain.logic.dialogue_engine.mark_section_completed",
+        return_value=False,
+    ), patch(
+        "brain.logic.dialogue_engine.build_learner_model",
+    ) as learner_model:
+        next_section = _complete_course_dialogue(dialogue, state)
+
+    assert next_section is None
+    assert state["pending_new_learning"] is None
+    assert state["last_question"] is None
+    assert state["course_teaching_decision"]["decision"] == "continue_current"
+    assert state["course_teaching_decision"]["reason"] == "section_not_mastered"
+    learner_model.assert_not_called()
