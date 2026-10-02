@@ -5,7 +5,7 @@ conversation engines. It does not replace engines or generate language.
 """
 
 ORCHESTRATOR_VERSION = 3
-TURN_PLAN_VERSION = 2
+TURN_PLAN_VERSION = 3
 
 # High-level Conversation Engine contract. The detailed PIPELINE below keeps
 # the existing engines visible, while this sequence makes the architectural
@@ -55,9 +55,22 @@ EXPECTED_OUTCOMES = {
 
 def build_turn_plan(*, teacher_policy=None, topic=None, struggle=False,
                     explicit_topic=None, error_result=None,
-                    response_understanding=None):
+                    response_understanding=None, learner_model=None):
     teacher_policy = teacher_policy or {}
     error_result = error_result or {}
+    learner_model = learner_model or {}
+    vocabulary = learner_model.get("vocabulary") or {}
+    next_skill = learner_model.get("next_curriculum_skill") or {}
+    outcomes = learner_model.get("learning_outcomes") or {}
+    learner_context = {
+        "autonomy": learner_model.get("autonomy"),
+        "adaptive_support": learner_model.get("adaptive_support"),
+        "weaknesses": list(learner_model.get("weaknesses") or []),
+        "review_words": list(vocabulary.get("review_due") or [])[:5],
+        "next_curriculum_skill": next_skill.get("skill"),
+        "next_curriculum_reason": next_skill.get("reason"),
+        "last_learning_outcome": dict(outcomes.get("last") or {}),
+    }
     action = teacher_policy.get("action") or "CONTINUE"
     pedagogy_locked = action in PEDAGOGY_ACTIONS
     goal = {
@@ -89,6 +102,7 @@ def build_turn_plan(*, teacher_policy=None, topic=None, struggle=False,
         "learner_topic_change": explicit_topic if explicit_topic and explicit_topic != topic else None,
         "has_active_error": bool(error_result.get("error") or error_result.get("recast")),
         "response_confidence": (response_understanding or {}).get("confidence"),
+        "learner_context": learner_context,
     }
 
 
