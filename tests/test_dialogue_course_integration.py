@@ -355,3 +355,30 @@ def test_dialogue_cannot_prepare_next_section_when_completion_gate_rejects_curre
     assert state["course_teaching_decision"]["decision"] == "continue_current"
     assert state["course_teaching_decision"]["reason"] == "section_not_mastered"
     learner_model.assert_not_called()
+
+
+def test_fresh_dialogue_does_not_inherit_stale_assistance_from_previous_task():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+
+    state = {
+        "conversation_mode": "course",
+        "course_mastery_assistance_used": True,
+        "course_pending_speaking_model": "Stale model.",
+        "course_model_practice_exhausted": "Stale model.",
+    }
+    opening = start_dialogue("A1", 15, "a1-l15-verkehrsmittel", state)
+
+    assert "Berlin" in opening
+    assert state["course_mastery_assistance_used"] is False
+    assert "course_pending_speaking_model" not in state
+    assert "course_model_practice_exhausted" not in state
+
+    handle_dialogue("Ich fahre mit dem Zug.", state)
+    handle_dialogue("Ja, sehr gern.", state)
+    handle_dialogue("Ich fahre lieber mit dem Auto.", state)
+    reply = handle_dialogue("Ja, manchmal fliege ich mit dem Flugzeug.", state)
+
+    progress = state["learning_progress_v1"]["skills"]["course:a1:15:reisen"]
+    assert progress["independent_confirmations"] == 1
+    assert progress["status"] == "mastered"
+    assert "festigen" not in reply.lower()
