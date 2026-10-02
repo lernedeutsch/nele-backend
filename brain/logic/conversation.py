@@ -296,7 +296,9 @@ def generate_conversation_reply(
             "klar",
             "natürlich",
             "ja bitte",
-            "machen wir"
+            "machen wir",
+            "bereit",
+            "ich bin bereit"
         }
 
         no_answers = {

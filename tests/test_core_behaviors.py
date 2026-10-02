@@ -1,4 +1,5 @@
 from brain.logic.free_conversation import generate_free_conversation_reply
+from brain.logic.conversation import generate_conversation_reply
 import unittest
 from unittest.mock import patch
 
@@ -586,6 +587,30 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
         self.assertEqual(reply, "Hallo Moni! Bist du bereit?")
         self.assertEqual(state["last_question"], "start_after_onboarding")
+    def test_course_start_gate_accepts_ready_after_onboarding(self):
+        state = {
+            "onboarding_completed": True,
+            "onboarding_step": 0,
+            "last_question": "start_after_onboarding",
+            "conversation_mode": "course",
+            "student_progress": {"current_level": "A1", "current_lesson": 2},
+            "user_facts": {"name": "Moni", "origin": "Italien"},
+        }
+
+        with patch(
+            "brain.logic.conversation.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "brain.logic.conversation.create_teacher_directed_follow_up",
+            return_value="Moni, woher kommst du? Antworte: „Ich komme aus …“",
+        ):
+            reply = generate_conversation_reply(
+                "Bereit", level="A1", lesson=2, session_id="test-ready-course-start"
+            )
+
+        self.assertIn("woher kommst du", reply.lower())
+        self.assertIsNone(state["last_question"])
+
     def test_resumed_first_a1_welcome_stays_short(self):
         state = {
             "onboarding_completed": False,
