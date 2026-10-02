@@ -1573,6 +1573,22 @@ def handle_error_practice_step_two(
             + build_error_transfer_prompt(context, correct_sentence)
         )
 
+    # The learner is repeating a model Nele has just shown. A wrong attempt
+    # must stay inside Error Practice instead of returning None and falling
+    # through to unrelated course routing.
+    increase_error_practice_attempts(state)
+    state["error_practice_used_hint"] = True
+
+    error_type = state.get("error_practice_type")
+    remember_daily_error_mistake(
+        state,
+        error_type,
+        wrong_sentence=user_message,
+        correct_sentence=correct_sentence,
+    )
+
+    return f"Fast. Sag noch einmal: „{correct_sentence}“"
+
 
 def handle_error_practice_step_three(
     user_message,
