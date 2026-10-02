@@ -19,6 +19,7 @@ from brain.logic.memory import (
     reset_conversation_state,
 )
 from brain.logic.learner_identity import normalize_learner_id
+from brain.knowledge.A1.lessons import get_available_lessons
 from brain.logic.session_service import start_conversation_session
 from brain.logic.pronunciation_audio import transcribe_audio
 from brain.logic.conversation_output import remember_nele_output
@@ -778,7 +779,7 @@ def api_students():
     level = str(data.get("level") or "").strip().upper()
     lesson = data.get("lesson")
     if level and level != "A1":
-        return jsonify({"ok": False, "error": "course_scope_limited_to_a1_1_a1_2"}), 400
+        return jsonify({"ok": False, "error": "course_scope_limited_to_a1"}), 400
     if level == "A1":
         progress["current_level"] = "A1"
     if lesson is not None:
@@ -786,8 +787,8 @@ def api_students():
             lesson = int(lesson)
         except (TypeError, ValueError):
             return jsonify({"ok": False, "error": "invalid_lesson"}), 400
-        if lesson not in {1, 2}:
-            return jsonify({"ok": False, "error": "course_scope_limited_to_a1_1_a1_2"}), 400
+        if lesson not in set(get_available_lessons()):
+            return jsonify({"ok": False, "error": "course_lesson_not_available"}), 400
         progress["current_lesson"] = lesson
 
     save_conversation_state(session_id)
