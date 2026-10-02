@@ -1682,7 +1682,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "lesson_teaching_step": 3,
         }
 
-        reply = handle_introduction_section("Wie heißt", state)
+        reply = handle_introduction_section("Wie", state)
 
         self.assertTrue(reply)
         self.assertEqual(state["lesson_teaching_step"], 3)
