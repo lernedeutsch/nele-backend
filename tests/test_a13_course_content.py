@@ -45,6 +45,29 @@ class A13CourseContentTests(unittest.TestCase):
         self.assertEqual(state["lesson_teaching_lesson"], 3)
         self.assertEqual(state["lesson_teaching_step"], 1)
 
+    def test_a13_personal_data_section_starts_teaching_not_dialogue(self):
+        from brain.logic.new_learning_resume import start_new_learning
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {"current_level": "A1", "current_lesson": 3},
+        }
+        reply = start_new_learning(
+            state,
+            {
+                "type": "new_section",
+                "level": "A1",
+                "lesson": 3,
+                "section": "Persönliche Daten",
+            },
+        )
+
+        self.assertIn("sicheren Beispieldaten", reply)
+        self.assertIn("Frag höflich nach dem Namen", reply)
+        self.assertTrue(state["lesson_teaching_active"])
+        self.assertNotIn("dialogue_active", state)
+
+
     def test_a13_accepts_natural_short_age_answer(self):
         _, section = find_generic_section("A1", 3, "Wie alt sind Sie?")
         step = section["steps"][2]
