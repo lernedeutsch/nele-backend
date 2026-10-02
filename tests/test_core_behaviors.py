@@ -966,6 +966,18 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             "listening",
         )
 
+    def test_review_routing_uses_student_progress_selected_lesson(self):
+        from brain.logic.conversation import _selected_course_context
+
+        state = {
+            "student_progress": {
+                "current_level": "A1",
+                "current_lesson": 2,
+            }
+        }
+
+        self.assertEqual(_selected_course_context(state), ("A1", 2))
+
     def test_a12_review_uses_generic_sections_in_course_order(self):
         from brain.logic.lesson_review_training import start_lesson_review_training
         from brain.logic.generic_lesson_engine import (
