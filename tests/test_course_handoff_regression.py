@@ -1,6 +1,7 @@
 import unittest
 
 from brain.logic.new_learning_resume import handle_new_learning_resume
+from brain.memory.next_learning_step import get_next_new_learning_step
 
 
 class CourseHandoffRegressionTests(unittest.TestCase):
@@ -28,3 +29,63 @@ class CourseHandoffRegressionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _course_state(lesson, statuses):
+    return {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": lesson},
+        "learning_progress_v1": {"skills": {
+            skill: {"status": status} for skill, status in statuses.items()
+        }},
+    }
+
+
+def test_lesson_one_cannot_offer_lesson_two_until_every_section_is_mastered():
+    state = _course_state(1, {
+        "course:a1:1:wir_begrüßen_uns": "mastered",
+        "course:a1:1:ich_stelle_mich_vor": "mastered",
+        "course:a1:1:das_deutsche_alphabet": "practicing",
+    })
+    plan = get_next_new_learning_step(state)
+    assert plan["type"] == "new_section"
+    assert plan["lesson"] == 1
+    assert plan["section"] == "Das deutsche Alphabet"
+
+
+def test_lesson_one_mastery_offers_real_lesson_two_first_section():
+    state = _course_state(1, {
+        "course:a1:1:wir_begrüßen_uns": "mastered",
+        "course:a1:1:ich_stelle_mich_vor": "mastered",
+        "course:a1:1:das_deutsche_alphabet": "mastered",
+    })
+    plan = get_next_new_learning_step(state)
+    assert plan["type"] == "new_lesson"
+    assert plan["lesson"] == 2
+    assert plan["section"] == "Woher kommen Sie?"
+
+
+def test_lesson_two_cannot_finish_while_last_section_is_not_mastered():
+    state = _course_state(2, {
+        "course:a1:2:woher_kommen_sie": "mastered",
+        "course:a1:2:länder_und_nationalitäten": "mastered",
+        "course:a1:2:das_verb_kommen": "mastered",
+        "course:a1:2:zahlen_1–20": "practicing",
+    })
+    plan = get_next_new_learning_step(state)
+    assert plan["type"] == "new_section"
+    assert plan["lesson"] == 2
+    assert plan["section"] == "Zahlen 1–20"
+
+
+def test_lesson_two_mastery_does_not_invent_unavailable_lesson_three():
+    state = _course_state(2, {
+        "course:a1:2:woher_kommen_sie": "mastered",
+        "course:a1:2:länder_und_nationalitäten": "mastered",
+        "course:a1:2:das_verb_kommen": "mastered",
+        "course:a1:2:zahlen_1–20": "mastered",
+    })
+    plan = get_next_new_learning_step(state)
+    assert plan["type"] == "lesson_completed"
+    assert plan["lesson"] == 2
+    assert plan["section"] is None
