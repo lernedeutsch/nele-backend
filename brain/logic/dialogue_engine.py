@@ -763,12 +763,31 @@ def handle_dialogue(user_message, state):
         variable_slots["country"] = slot_values["country"]
 
     record_exchange(state)
-    if not answer_matches_dialogue_turn(
+    # Some correction turns deliberately tighten the task after an error.
+    # A short answer may be valid on the first attempt, but when the teacher
+    # explicitly asks for a full corrected sentence, the retry must actually
+    # produce that sentence before the dialogue can advance.
+    retry_requires_full_sentence = bool(
+        turn.get("retry_requires_full_sentence")
+        and state.get("dialogue_retry_turn") == int(state.get("dialogue_turn", 0) or 0)
+    )
+    answer_matches = answer_matches_dialogue_turn(
         user_message,
         turn,
         state.get("dialogue_slots"),
         variable_slots=variable_slots,
-    ):
+    )
+    if retry_requires_full_sentence:
+        expected_retry = render_pattern(
+            turn.get("expected", ""),
+            state.get("dialogue_slots") or {},
+        )
+        answer_matches = bool(
+            expected_retry
+            and _norm(user_message) == _norm(expected_retry)
+        )
+
+    if not answer_matches:
         # Preserve the shared evaluator's three-way classification. Previously
         # dialogue routing collapsed PARTIAL into False and stored NOT_YET,
         # so Learner Model lost evidence that the learner was partly correct.
@@ -798,6 +817,8 @@ def handle_dialogue(user_message, state):
 
         state["course_mastery_assistance_used"] = True
         _record_course_dialogue_outcome(dialogue, state, False)
+        if turn.get("retry_requires_full_sentence"):
+            state["dialogue_retry_turn"] = int(state.get("dialogue_turn", 0) or 0)
         retry = _text(turn.get("retry"))
         action = choose_course_teacher_action(
             state,
@@ -825,6 +846,7 @@ def handle_dialogue(user_message, state):
             state.setdefault("dialogue_slots", {}).update(captured)
             break
 
+    state.pop("dialogue_retry_turn", None)
     mark_intent_complete(state, infer_intent(turn))
     success = _text(turn.get("success"))
     next_index, spoken = _advance_to_learner(
