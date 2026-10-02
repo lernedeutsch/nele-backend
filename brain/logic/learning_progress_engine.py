@@ -48,6 +48,13 @@ def _derive_status(item):
         and item.get("last_result") == "SUCCESS"
         and item.get("last_review_confirmation") is True
     ):
+        # Review must obey the same mastery contract as first acquisition.
+        # A single independent review success cannot restore a multi-part skill
+        # until all required evidence has been demonstrated independently.
+        required_evidence = set(item.get("required_evidence") or [])
+        independent_evidence = set(item.get("independent_evidence") or [])
+        if required_evidence and not required_evidence.issubset(independent_evidence):
+            return "needs_review"
         return "mastered"
     if (
         previous == "needs_review"
