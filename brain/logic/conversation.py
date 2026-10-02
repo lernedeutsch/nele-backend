@@ -161,6 +161,25 @@ from brain.memory.error_review import (
 )
 
 
+def _selected_course_context(state):
+    """Return the lesson selected by the real course progress store."""
+    state = state or {}
+    student_progress = state.get("student_progress") or {}
+    level = (
+        student_progress.get("current_level")
+        or state.get("selected_level")
+        or state.get("level")
+        or "A1"
+    )
+    lesson = (
+        student_progress.get("current_lesson")
+        or state.get("selected_lesson")
+        or state.get("lesson")
+        or 1
+    )
+    return level, lesson
+
+
 def _resume_course_after_side_answer(answer, state):
     """Append the suspended course prompt once a side question was answered."""
     if not state.pop("course_side_question_pending", False):
@@ -546,8 +565,7 @@ def generate_conversation_reply(
         and "lektion" in review_intent
         and "wiederhol" in review_intent
     ):
-        selected_level = state.get("selected_level") or state.get("level") or "A1"
-        selected_lesson = state.get("selected_lesson") or state.get("lesson") or 1
+        selected_level, selected_lesson = _selected_course_context(state)
         answer = start_lesson_review_training(
             state,
             selected_level,
