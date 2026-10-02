@@ -216,7 +216,7 @@ LESSON_DIALOGUES = [
     {
         "id": "persoenliche-daten",
         "title": "Persönliche Daten",
-        "section": "Persönliche Daten",
+        "section": "Dialog – Persönliche Daten",
         "aliases": ["Dialog persönliche Daten", "Name und Alter"],
         "level": "A1",
         "lesson": 3,
