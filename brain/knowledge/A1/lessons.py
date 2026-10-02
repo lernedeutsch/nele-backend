@@ -56,6 +56,23 @@ A1_LESSONS = {
             "Zahlen 1–20"
         ],
         "source": "lessons/a1/lektion-2.html"
+    },
+
+    3: {
+        "level": "A1",
+        "lesson": 3,
+        "title": "Wie alt sind Sie?",
+        "description": (
+            "Alter, Zahlen 11 bis 100, das Verb sein "
+            "und persönliche Daten."
+        ),
+        "sections": [
+            "Wie alt sind Sie?",
+            "Zahlen 11–100",
+            "Das Verb sein",
+            "Persönliche Daten"
+        ],
+        "source": "lessons/a1/lektion-3.html"
     }
 }
 
