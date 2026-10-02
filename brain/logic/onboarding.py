@@ -809,6 +809,16 @@ def is_plausible_onboarding_short_value(value, step):
         return False
     if any(token in normalized for token in ("jahre alt", "jahr alt")):
         return False
+
+    # Identity-slot shortcuts must contain real letters. Do not turn emoji,
+    # punctuation or ASR/noise tokens such as "AAAAAAAA" into learner facts.
+    if step in {1, 2, 3}:
+        letters = re.sub(r"[^a-zäöüß]", "", normalized, flags=re.IGNORECASE)
+        if not letters:
+            return False
+        if len(letters) >= 4 and len(set(letters.lower())) == 1:
+            return False
+
     # Name/origin/residence shortcuts must stay compact; full sentences are
     # handled by their dedicated extractors instead.
     if step in {1, 2, 3} and len(normalized.split()) > 2:

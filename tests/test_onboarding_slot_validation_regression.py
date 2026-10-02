@@ -15,6 +15,21 @@ class OnboardingSlotValidationRegressionTests(unittest.TestCase):
         for step in (1, 2, 3):
             self.assertFalse(is_plausible_onboarding_short_value("gut", step))
 
+    def test_noise_is_not_taught_as_identity_value(self):
+        for value in ("😀", "!!!", "AAAAAAAA"):
+            for step in (1, 2, 3):
+                self.assertFalse(is_plausible_onboarding_short_value(value, step))
+
+    def test_noise_is_not_echoed_as_name(self):
+        for value in ("😀", "AAAAAAAA"):
+            reply = get_onboarding_retry(1, value)
+            self.assertNotIn(f"Ich heiße {value}", reply)
+            self.assertIn("Ich heiße Anna", reply)
+
+    def test_normal_short_names_still_work(self):
+        for value in ("Moni", "Anna", "Ömer", "Jean-Luc"):
+            self.assertTrue(is_plausible_onboarding_short_value(value, 1))
+
     def test_explicit_name_forms_still_work(self):
         self.assertEqual(extract_name_sentence("Ich heiße Anna"), "Anna")
         self.assertEqual(extract_name_sentence("Mein Name ist Anna"), "Anna")
