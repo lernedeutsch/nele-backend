@@ -287,6 +287,12 @@ def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
     requested_start = min(requested_start, len(turns) - 1)
     dialogue_slots = dict(dialogue.get("slots", {}) or {})
 
+    # A newly selected dialogue is a fresh mastery attempt. Assistance from a
+    # previous lesson task/dialogue must not make clean answers look guided.
+    state["course_mastery_assistance_used"] = False
+    state.pop("course_pending_speaking_model", None)
+    state.pop("course_model_practice_exhausted", None)
+
     # Personal slots describe the learner, so prefer remembered learner facts
     # over a lesson's example/default value. Content can still provide a
     # fallback for anonymous practice sessions.
