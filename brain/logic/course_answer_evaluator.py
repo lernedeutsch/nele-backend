@@ -81,8 +81,15 @@ def semantic_equivalent(user_message, accepted_values, render=None):
         # Complete natural sentences may express the same number with digits
         # or words. Keep standalone number-word drills strict by applying this
         # only inside semantic sentence comparison (which requires >=2 tokens).
-        learner_compare = _expand_digit_tokens(learner_tokens)
-        target_tokens = _expand_digit_tokens(target_tokens)
+        sentence_has_non_number_context = any(
+            not re.fullmatch(r"\\d{1,3}", token)
+            for token in learner_tokens + target_tokens
+        )
+        if sentence_has_non_number_context:
+            learner_compare = _expand_digit_tokens(learner_tokens)
+            target_tokens = _expand_digit_tokens(target_tokens)
+        else:
+            learner_compare = learner_tokens
         learner_bag = sorted(learner_compare)
         if len(target_tokens) < 2:
             continue
