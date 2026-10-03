@@ -2531,3 +2531,32 @@ def test_reopen_resumes_error_practice_independent_transfer_step_three():
         "Jetzt machen wir genau dort weiter. "
         "Jetzt ohne Auswahl: Was sagst du?"
     )
+
+
+def test_a1_review_miss_is_available_to_shared_error_practice():
+    from brain.logic.lesson_review_training import (
+        start_lesson_review_training,
+        handle_lesson_review_training,
+    )
+    from brain.logic.error_memory_router import handle_error_memory
+
+    state = {"conversation_mode": "course"}
+    start_lesson_review_training(state, "A1", 1)
+
+    reply = handle_lesson_review_training("xyz", state)
+    assert "Grüße" in reply
+
+    practice = handle_error_memory("meine Fehler üben", state)
+    assert state.get("error_practice_active") is True
+    assert "xyz" in practice
+    assert "Guten Morgen" in practice
+    # Error Practice is a temporary detour; Review must remain active.
+    assert state.get("lesson_review_training_active") is True
+    assert state.get("lesson_review_training_step") == 1
+
+
+def test_review_error_practice_start_command_is_recognized_as_control_intent():
+    from brain.logic.error_memory_router import is_error_practice_start_request
+
+    assert is_error_practice_start_request("meine Fehler üben")
+    assert is_error_practice_start_request("Ich möchte meine Fehler üben")
