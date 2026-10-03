@@ -11,7 +11,9 @@ from brain.logic.course_teacher_engine import (
 
 from brain.logic.speaking_support import (
     consume_course_model_exhaustion,
+    defer_course_task,
     handle_pending_course_model,
+    pop_deferred_course_task,
     register_course_success,
 )
 
