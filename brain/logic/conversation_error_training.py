@@ -9,7 +9,8 @@ from brain.logic.error_practice import (
     is_first_answer,
     is_second_answer,
     wants_to_stop_error_practice,
-    clean_error_practice_message
+    clean_error_practice_message,
+    get_active_error_practice_sentences,
 )
 
 from brain.logic.response_engine import (
@@ -269,21 +270,13 @@ def should_prioritize_error_practice(
         )
     )
 
-    wrong_clean = (
-        clean_error_practice_message(
-            summary.get(
-                "last_wrong"
-            )
-        )
+    active_wrong, active_correct = get_active_error_practice_sentences(
+        state,
+        summary,
     )
 
-    correct_clean = (
-        clean_error_practice_message(
-            summary.get(
-                "last_correct"
-            )
-        )
-    )
+    wrong_clean = clean_error_practice_message(active_wrong)
+    correct_clean = clean_error_practice_message(active_correct)
 
 
     # ======================================
