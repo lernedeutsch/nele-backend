@@ -217,6 +217,27 @@ def consume_course_model_exhaustion(state):
     }
 
 
+def defer_course_task(state, task):
+    """Remember an exhausted course task for an exact later revisit."""
+    if not isinstance(task, dict) or not task:
+        return
+    queue = state.setdefault("course_deferred_tasks", [])
+    item = dict(task)
+    if item not in queue:
+        queue.append(item)
+
+
+def pop_deferred_course_task(state):
+    """Return the oldest deferred task, preserving its exact target/prompt."""
+    queue = state.get("course_deferred_tasks") or []
+    if not queue:
+        return None
+    task = queue.pop(0)
+    if not queue:
+        state.pop("course_deferred_tasks", None)
+    return dict(task)
+
+
 def handle_pending_course_model(user_message, state):
     target = _text((state or {}).get("course_pending_speaking_model"))
     if not target:
