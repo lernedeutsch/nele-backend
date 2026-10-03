@@ -627,3 +627,26 @@ class SharedMasteryStaleEvidenceRegressionTests(unittest.TestCase):
             })
         self.assertNotEqual(progress["status"], "mastered")
         self.assertEqual(progress["independent_evidence"], ["c"])
+
+
+class CourseNaturalNumberVariantRegressionTests(unittest.TestCase):
+    def test_number_word_and_digit_are_equivalent_inside_natural_sentence(self):
+        from brain.logic.course_answer_evaluator import evaluate_course_answer
+
+        definition = {
+            "accepted": ["Ich bin 32 Jahre alt.", "32"],
+            "correct_answer": "Ich bin 32 Jahre alt.",
+        }
+        self.assertEqual(
+            evaluate_course_answer("Ich bin zweiunddreißig Jahre alt.", definition)["kind"],
+            "correct",
+        )
+
+    def test_number_drill_still_requires_spoken_number_words(self):
+        from brain.logic.course_answer_evaluator import evaluate_course_answer
+
+        definition = {
+            "accepted": ["fünfunddreißig"],
+            "correct_answer": "fünfunddreißig",
+        }
+        self.assertEqual(evaluate_course_answer("35", definition)["kind"], "wrong")
