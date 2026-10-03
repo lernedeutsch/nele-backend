@@ -264,6 +264,27 @@ def is_equivalent_correct_answer(
     return False
 
 
+def get_active_error_practice_sentences(state, summary):
+    """Return the concrete example currently owned by Error Practice.
+
+    Category-level last_wrong/last_correct describe the latest remembered
+    mistake, which may differ from the example selected for this practice
+    turn.  The active example in session state is authoritative.
+    """
+    summary = summary or {}
+    wrong = str(
+        (state or {}).get("error_practice_example_wrong")
+        or summary.get("last_wrong")
+        or ""
+    ).strip()
+    correct = str(
+        (state or {}).get("error_practice_example_correct")
+        or summary.get("last_correct")
+        or ""
+    ).strip()
+    return wrong, correct
+
+
 # ==========================================
 # CZY ĆWICZENIE JEST AKTYWNE
 # ==========================================
@@ -1355,12 +1376,9 @@ def handle_error_practice_step_one(
     summary
 ):
 
-    wrong_sentence = summary.get(
-        "last_wrong"
-    )
-
-    correct_sentence = summary.get(
-        "last_correct"
+    wrong_sentence, correct_sentence = get_active_error_practice_sentences(
+        state,
+        summary,
     )
 
 
@@ -1532,12 +1550,9 @@ def handle_error_practice_step_two(
     summary
 ):
 
-    correct_sentence = summary.get(
-        "last_correct"
-    )
-
-    wrong_sentence = summary.get(
-        "last_wrong"
+    wrong_sentence, correct_sentence = get_active_error_practice_sentences(
+        state,
+        summary,
     )
 
 
@@ -1594,8 +1609,10 @@ def handle_error_practice_step_three(
     state,
     summary
 ):
-    correct_sentence = summary.get("last_correct")
-    wrong_sentence = summary.get("last_wrong")
+    wrong_sentence, correct_sentence = get_active_error_practice_sentences(
+        state,
+        summary,
+    )
 
     if is_equivalent_correct_answer(
         user_message,

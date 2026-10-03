@@ -2462,3 +2462,47 @@ def test_course_welcome_rotates_without_repeating_last_variant():
     assert ("Wie geht" in first) or ("Wie geht's" in first)
     assert ("Wie geht" in second) or ("Wie geht's" in second)
 
+
+
+def test_error_practice_uses_selected_example_not_stale_category_summary():
+    from brain.logic.error_practice import handle_error_practice_step_three
+
+    state = {
+        "error_practice_active": True,
+        "error_practice_type": "grammar",
+        "error_practice_step": 3,
+        "error_practice_example_wrong": "alt falsch",
+        "error_practice_example_correct": "Wie alt sind Sie?",
+        "error_practice_example_context": "Frag höflich nach dem Alter.",
+        "error_practice_attempts": 0,
+        "error_practice_used_hint": True,
+        "error_practice_transfer_attempts": 0,
+        "error_memory": {
+            "grammar": {
+                "count": 1,
+                "last_wrong": "anderer späterer Fehler",
+                "last_correct": "Andere richtige Antwort",
+                "examples": [{
+                    "wrong": "alt falsch",
+                    "correct": "Wie alt sind Sie?",
+                    "context": "Frag höflich nach dem Alter.",
+                    "count": 1,
+                    "practice_count": 0,
+                    "correct_streak": 0,
+                    "mastered": False,
+                    "needs_practice": True,
+                    "ignored": False,
+                }],
+            }
+        },
+    }
+    stale_summary = {
+        "last_wrong": "anderer späterer Fehler",
+        "last_correct": "Andere richtige Antwort",
+        "correct_streak": 0,
+    }
+
+    reply = handle_error_practice_step_three("Wie alt sind Sie?", state, stale_summary)
+
+    assert reply == "Genau!"
+    assert state["error_practice_active"] is False
