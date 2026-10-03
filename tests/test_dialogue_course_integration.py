@@ -489,6 +489,21 @@ def test_course_dialogue_renders_as_direct_nele_conversation_without_roleplay_ui
     assert "Antworte Mia." not in reply
 
 
+def test_course_dialogue_exhausted_transfer_hides_roleplay_prompt():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+
+    state = {"conversation_mode": "course"}
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+
+    for _ in range(5):
+        handle_dialogue("ich weiß nicht", state)
+    reply = handle_dialogue("okay", state)
+
+    assert "Kommst du aus Polen?" in reply
+    assert "Mia:" not in reply
+    assert "Antworte Mia." not in reply
+
+
 def test_free_dialogue_keeps_explicit_roleplay_speaker_and_prompt():
     from brain.logic.dialogue_engine import start_dialogue
 
