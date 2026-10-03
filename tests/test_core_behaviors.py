@@ -2648,3 +2648,65 @@ class TestErrorPracticeCourseAcceptedVariants(unittest.TestCase):
         response = handle_error_practice("Wie heißen Sie?", state)
         self.assertIsNotNone(response)
         self.assertFalse(state.get("error_practice_active", False))
+
+
+def test_error_practice_resets_transfer_attempts_for_next_example():
+    from brain.logic.error_practice import handle_error_practice_step_three
+
+    state = {
+        "error_practice_active": True,
+        "error_practice_type": "grammar",
+        "error_practice_step": 3,
+        "error_practice_example_wrong": "falsch eins",
+        "error_practice_example_correct": "Richtig eins.",
+        "error_practice_example_context": "Erste Aufgabe.",
+        "error_practice_attempts": 2,
+        "error_practice_used_hint": True,
+        "error_practice_transfer_attempts": 2,
+        "error_memory": {
+            "grammar": {
+                "count": 2,
+                "last_wrong": "falsch zwei",
+                "last_correct": "Richtig zwei.",
+                "correct_streak": 0,
+                "examples": [
+                    {
+                        "wrong": "falsch eins",
+                        "correct": "Richtig eins.",
+                        "context": "Erste Aufgabe.",
+                        "count": 1,
+                        "practice_count": 0,
+                        "correct_streak": 0,
+                        "mastered": False,
+                        "needs_practice": True,
+                        "ignored": False,
+                    },
+                    {
+                        "wrong": "falsch zwei",
+                        "correct": "Richtig zwei.",
+                        "context": "Zweite Aufgabe.",
+                        "count": 1,
+                        "practice_count": 0,
+                        "correct_streak": 0,
+                        "mastered": False,
+                        "needs_practice": True,
+                        "ignored": False,
+                    },
+                ],
+            }
+        },
+    }
+    summary = {
+        "last_wrong": "falsch eins",
+        "last_correct": "Richtig eins.",
+        "correct_streak": 0,
+    }
+
+    reply = handle_error_practice_step_three("Richtig eins.", state, summary)
+
+    assert "Jetzt noch eine" in reply
+    assert state["error_practice_example_correct"] == "Richtig zwei."
+    assert state["error_practice_step"] == 1
+    assert state["error_practice_attempts"] == 0
+    assert state["error_practice_used_hint"] is False
+    assert state["error_practice_transfer_attempts"] == 0
