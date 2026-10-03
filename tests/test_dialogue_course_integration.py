@@ -210,6 +210,25 @@ def test_wrong_course_dialogue_answer_remains_not_yet_after_partial_support_fix(
     assert state["dialogue_turn"] == 1
 
 
+def test_wrong_course_dialogue_answer_is_available_to_error_practice_and_dialogue_stays_active():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+    from brain.logic.error_practice import start_error_practice
+    from brain.memory.error_memory import get_error_summary
+
+    state = {"conversation_mode": "course"}
+    start_dialogue("A1", 2, "woher-kommst-du", state)
+
+    reply = handle_dialogue("Ich esse Pizza", state)
+
+    summary = get_error_summary(state, "course_dialogue")
+    assert summary["last_wrong"] == "Ich esse Pizza"
+    assert summary["last_correct"]
+    assert state["dialogue_active"] is True
+    assert start_error_practice(state, "course_dialogue") is not None
+    assert state["dialogue_active"] is True
+    assert "Ich esse Pizza" not in reply or reply
+
+
 def test_dialogue_turn_successes_alone_do_not_count_as_mastery_proof():
     from brain.logic.dialogue_engine import _record_course_dialogue_outcome
     dialogue = {"level": "A1", "lesson": 15, "section": "Reisen"}
