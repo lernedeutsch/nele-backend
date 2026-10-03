@@ -42,5 +42,48 @@ class SessionResumeWelcomeTests(unittest.TestCase):
         resume.assert_not_called()
 
 
+    def test_new_conversation_clears_transient_course_state_but_keeps_progress(self):
+        from brain.logic.session_state import prepare_new_conversation
+
+        progress = {"skills": {"A1:3:sein": {"status": "needs_review"}}}
+        state = {
+            "learning_progress_v1": progress,
+            "lesson_teaching_active": True,
+            "lesson_teaching_level": "A1",
+            "lesson_teaching_lesson": 3,
+            "lesson_teaching_section": "sein",
+            "lesson_teaching_step": 2,
+            "generic_lesson_review_active": True,
+            "generic_lesson_review_sections": ["Alter", "sein"],
+            "generic_lesson_review_index": 1,
+            "generic_lesson_review_level": "A1",
+            "generic_lesson_review_lesson": 3,
+            "course_mastery_assistance_used": True,
+            "course_generic_assisted_step": 2,
+            "course_pending_speaking_model": "bin",
+            "course_model_practice_exhausted": {"step": 2},
+            "course_teaching_decision": {"decision": "continue_current"},
+        }
+
+        prepare_new_conversation(state)
+
+        self.assertFalse(state["lesson_teaching_active"])
+        self.assertIsNone(state["lesson_teaching_level"])
+        self.assertIsNone(state["lesson_teaching_lesson"])
+        self.assertIsNone(state["lesson_teaching_section"])
+        self.assertEqual(state["lesson_teaching_step"], 0)
+        self.assertFalse(state["generic_lesson_review_active"])
+        self.assertEqual(state["generic_lesson_review_sections"], [])
+        self.assertEqual(state["generic_lesson_review_index"], 0)
+        self.assertIsNone(state["generic_lesson_review_level"])
+        self.assertIsNone(state["generic_lesson_review_lesson"])
+        self.assertFalse(state["course_mastery_assistance_used"])
+        self.assertNotIn("course_generic_assisted_step", state)
+        self.assertNotIn("course_pending_speaking_model", state)
+        self.assertNotIn("course_model_practice_exhausted", state)
+        self.assertNotIn("course_teaching_decision", state)
+        self.assertIs(state["learning_progress_v1"], progress)
+
+
 if __name__ == "__main__":
     unittest.main()
