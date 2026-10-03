@@ -142,6 +142,11 @@ def set_new_learning_offer(
         "last_question"
     ] = "continue_new_learning"
 
+    # A fresh handoff starts with no invalid attempts. This counter belongs
+    # to the offer itself and is cleared whenever the offer is accepted,
+    # declined or replaced.
+    state["new_learning_invalid_attempts"] = 0
+
 
     return True
 
@@ -227,6 +232,8 @@ def clear_new_learning_offer(
     state[
         "pending_new_learning"
     ] = None
+
+    state["new_learning_invalid_attempts"] = 0
 
 
     if (
@@ -489,9 +496,24 @@ def handle_new_learning_resume(
         offer = get_new_learning_offer(state) or {}
         section = str(offer.get("section") or "").strip()
         if section:
-            return (
-                f"Wir sind noch im Kurs. Als Nächstes kommt „{section}“. "
-                "Möchtest du weitermachen? Antworte bitte mit „ja“ oder „nein“."
+            attempts = int(
+                state.get("new_learning_invalid_attempts", 0) or 0
+            ) + 1
+            state["new_learning_invalid_attempts"] = attempts
+
+            if attempts == 1:
+                return (
+                    f"Als Nächstes kommt „{section}“. "
+                    "Möchtest du weitermachen? Sag einfach „ja“ oder „nein“."
+                )
+
+            # Do not trap the learner in an identical yes/no loop. After a
+            # second unclear reply, keep the course moving while preserving
+            # the same pending section as the authoritative next activity.
+            offer = get_new_learning_offer(state)
+            return start_new_learning(
+                state,
+                offer
             )
 
     return None
