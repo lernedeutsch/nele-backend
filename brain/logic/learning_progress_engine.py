@@ -76,7 +76,16 @@ def _derive_status(item):
         not required_evidence
         or required_evidence.issubset(independent_evidence)
     )
-    if mastery_eligible and confirmation_ok and evidence_ok and successes >= 3 and streak >= 2 and successes > failures:
+    # For a multi-step skill, complete fresh independent coverage is the
+    # strongest mastery proof. Historical failures should trigger that clean
+    # pass, not force arbitrary extra repetitions after the learner has now
+    # demonstrated every required part independently. Single-step skills keep
+    # the cumulative successes > failures safeguard.
+    history_ok = (
+        bool(required_evidence)
+        or successes > failures
+    )
+    if mastery_eligible and confirmation_ok and evidence_ok and successes >= 3 and streak >= 2 and history_ok:
         return "mastered"
     if failures >= 2 and failures >= successes:
         return "needs_review"
