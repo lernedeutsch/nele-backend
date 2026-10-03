@@ -109,7 +109,7 @@ LESSON_FLOW = {
         },
 
         "Das Verb sein": {
-            "intro": "Jetzt üben wir das wichtige Verb „sein“: ich bin, du bist, er oder sie ist, wir sind, ihr seid, sie oder Sie sind.",
+            "intro": "Jetzt üben wir „sein“. Wir beginnen mit „ich“.",
             "steps": [
                 {
                     "prompt": "Ergänze: „Ich ___ 30 Jahre alt.“",
@@ -164,7 +164,7 @@ LESSON_FLOW = {
         },
 
         "Persönliche Daten": {
-            "intro": "Zum Schluss üben wir Fragen zu persönlichen Daten mit sicheren Beispieldaten. Du musst keine echte Adresse oder Telefonnummer nennen.",
+            "intro": "Jetzt üben wir persönliche Daten. Wir benutzen nur Beispieldaten.",
             "steps": [
                 {
                     "prompt": "Frag höflich nach dem Namen.",

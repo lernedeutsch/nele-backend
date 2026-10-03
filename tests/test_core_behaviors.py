@@ -1452,7 +1452,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         sections = flow["sections"]
 
         origin = sections["Woher kommen Sie?"]
-        self.assertIn("Beispiel:", origin["intro"])
+        self.assertEqual(origin["intro"], "Wir sprechen über Länder.")
         first = origin["steps"][0]
         self.assertIn("Ich komme aus", first["prompt"])
         self.assertTrue(answer_matches_step("Polen", first, {}))

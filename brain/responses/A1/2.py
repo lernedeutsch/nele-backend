@@ -48,7 +48,7 @@ LESSON_RESPONSES = [
 LESSON_FLOW = {
     "sections": {
         "Woher kommen Sie?": {
-            "intro": "Jetzt sprechen wir über Länder. Ich frage dich, du antwortest. Beispiel: „Woher kommst du?“ – „Ich komme aus Polen.“",
+            "intro": "Wir sprechen über Länder.",
             "steps": [
                 {
                     "prompt": "{name}, woher kommst du? Antworte: „Ich komme aus …“",
@@ -134,7 +134,7 @@ LESSON_FLOW = {
         },
 
         "Das Verb kommen": {
-            "intro": "Jetzt lernen wir „kommen“. Hör zuerst: ich komme, du kommst, er oder sie kommt, wir kommen, ihr kommt, sie kommen. Jetzt üben wir langsam.",
+            "intro": "Jetzt üben wir „kommen“. Wir beginnen mit „ich“.",
             "steps": [
                 {
                     "prompt": "Zuerst „ich“. Ergänze: „Ich … aus Spanien.“",
@@ -189,7 +189,7 @@ LESSON_FLOW = {
         },
 
         "Zahlen 1–20": {
-            "intro": "Zum Schluss üben wir die Zahlen von 1 bis 20. Du kannst sie sagen oder schreiben. Ich helfe dir, wenn du sie noch nicht kennst.",
+            "intro": "Jetzt üben wir die Zahlen. Beginnen wir mit 1 bis 5.",
             "steps": [
                 {
                     "prompt": "Sag die Zahlen 1 bis 5 auf Deutsch. Wenn du sie noch nicht weißt, helfe ich dir.",

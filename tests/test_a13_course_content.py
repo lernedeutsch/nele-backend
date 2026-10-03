@@ -62,7 +62,7 @@ class A13CourseContentTests(unittest.TestCase):
             },
         )
 
-        self.assertIn("sicheren Beispieldaten", reply)
+        self.assertIn("Beispieldaten", reply)
         self.assertIn("Frag höflich nach dem Namen", reply)
         self.assertTrue(state["lesson_teaching_active"])
         self.assertNotIn("dialogue_active", state)

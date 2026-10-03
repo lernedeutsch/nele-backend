@@ -17,7 +17,7 @@ class SingleConversationControllerTests(unittest.TestCase):
     ):
         state = {}
         reply = start_generic_lesson_teaching("Woher kommen Sie?", state)
-        self.assertIn("Jetzt sprechen wir über Länder", reply)
+        self.assertIn("Wir sprechen über Länder", reply)
         self.assertNotIn("a1_l2_tutor", state)
         self.assertEqual(state["lesson_teaching_step"], 1)
 
