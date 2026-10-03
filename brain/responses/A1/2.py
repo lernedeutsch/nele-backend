@@ -134,7 +134,7 @@ LESSON_FLOW = {
         },
 
         "Das Verb kommen": {
-            "intro": "Jetzt lernen wir „kommen“. Hör zuerst: ich komme, du kommst, er oder sie kommt, wir kommen, ihr kommt, sie kommen. Jetzt üben wir langsam.",
+            "intro": "Jetzt üben wir „kommen“. Wir beginnen mit „ich“.",
             "steps": [
                 {
                     "prompt": "Zuerst „ich“. Ergänze: „Ich … aus Spanien.“",
