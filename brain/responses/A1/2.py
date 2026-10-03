@@ -48,7 +48,7 @@ LESSON_RESPONSES = [
 LESSON_FLOW = {
     "sections": {
         "Woher kommen Sie?": {
-            "intro": "Wir sprechen über Länder. Woher kommst du?",
+            "intro": "Wir sprechen über Länder.",
             "steps": [
                 {
                     "prompt": "{name}, woher kommst du? Antworte: „Ich komme aus …“",
