@@ -916,7 +916,7 @@ def handle_dialogue(user_message, state):
                     "course_dialogue",
                     str(user_message or "").strip(),
                     expected,
-                    context=get_current_dialogue_prompt(state) or retry or "",
+                    context=get_current_dialogue_prompt(state) or "",
                 )
             except Exception as error:
                 print(f"Dialogue error memory error: {error}")
