@@ -28,6 +28,10 @@ from brain.memory.daily_learning import (
     mark_exercise_completed_today
 )
 
+from brain.memory.error_memory import (
+    remember_error,
+)
+
 from brain.memory.user_facts import (
     get_user_fact
 )
@@ -580,7 +584,26 @@ def evaluate_review_answer(step, user_message):
     )
 
 
-def _review_miss_reply(state, step, result, *, correct_answer, retry):
+def _remember_review_error(state, step, wrong_answer, correct_answer):
+    """Store a real review miss in shared Error Memory for later practice."""
+    error_type = {
+        1: "vocabulary",
+        2: "grammar",
+        3: "grammar",
+        4: "grammar",
+        5: "spelling",
+        6: "spelling",
+    }.get(int(step or 0), "grammar")
+    return remember_error(
+        state,
+        error_type,
+        wrong_answer,
+        correct_answer,
+        context="course_review",
+    )
+
+
+def _review_miss_reply(state, step, result, *, correct_answer, retry, wrong_answer=""):
     """Preserve PARTIAL separately from a fully wrong review answer."""
     partial = (result or {}).get("partial") if (result or {}).get("kind") == "partial" else None
     if partial:
@@ -593,6 +616,7 @@ def _review_miss_reply(state, step, result, *, correct_answer, retry):
         return render_course_teacher_action(action)
 
     remember_wrong_answer(state)
+    _remember_review_error(state, step, wrong_answer, correct_answer)
     record_review_course_outcome(state, step, False)
     action = choose_course_teacher_action(
         state,
@@ -791,6 +815,10 @@ def handle_a1_lesson_1_review(
         else:
 
             remember_wrong_answer(state)
+            _remember_review_error(
+                state, step, user_message,
+                "Guten Morgen, Guten Tag, Guten Abend und Tschüss",
+            )
             record_review_course_outcome(state, step, False)
             action = choose_course_teacher_action(
                 state,
@@ -833,7 +861,6 @@ def handle_a1_lesson_1_review(
         else:
 
             remember_wrong_answer(state)
-            record_review_course_outcome(state, step, False)
             # Review uses the current learner name when available, but the
             # speaking-support policy itself remains vocabulary-independent.
             name = str(
@@ -842,6 +869,8 @@ def handle_a1_lesson_1_review(
                 or "Moni"
             ).strip()
             target = f"Ich heiße {name}."
+            _remember_review_error(state, step, user_message, target)
+            record_review_course_outcome(state, step, False)
             action = choose_course_teacher_action(
                 state,
                 answer_correct=False,
@@ -888,6 +917,7 @@ def handle_a1_lesson_1_review(
                 result,
                 correct_answer="Wie heißt du?",
                 retry="Frag deinen Freund noch einmal.",
+                wrong_answer=user_message,
             )
 
 
@@ -928,6 +958,7 @@ def handle_a1_lesson_1_review(
                 result,
                 correct_answer="Wie heißen Sie?",
                 retry="Frag noch einmal höflich.",
+                wrong_answer=user_message,
             )
 
 
@@ -965,6 +996,7 @@ def handle_a1_lesson_1_review(
             remember_wrong_answer(
                 state
             )
+            _remember_review_error(state, step, user_message, "Ä, Ö und Ü")
             record_review_course_outcome(state, step, False)
 
             action = choose_course_teacher_action(
@@ -1009,6 +1041,7 @@ def handle_a1_lesson_1_review(
             remember_wrong_answer(
                 state
             )
+            _remember_review_error(state, step, user_message, "Eszett")
             record_review_course_outcome(state, step, False)
 
             action = choose_course_teacher_action(
