@@ -164,7 +164,7 @@ LESSON_FLOW = {
         },
 
         "Persönliche Daten": {
-            "intro": "Zum Schluss üben wir Fragen zu persönlichen Daten mit sicheren Beispieldaten. Du musst keine echte Adresse oder Telefonnummer nennen.",
+            "intro": "Jetzt üben wir persönliche Daten. Wir benutzen nur Beispieldaten.",
             "steps": [
                 {
                     "prompt": "Frag höflich nach dem Namen.",
