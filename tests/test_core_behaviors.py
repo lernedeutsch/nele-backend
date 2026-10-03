@@ -2598,3 +2598,19 @@ def test_error_practice_detour_finishes_back_at_exact_a1_review_step():
     assert state.get("lesson_review_training_step") == 1
     assert "mit der Wiederholung weiter" in finished
     assert "Grüße" in finished
+
+
+def test_review_error_practice_uses_learner_facing_context_not_internal_label():
+    from brain.logic.lesson_review_training import (
+        start_lesson_review_training,
+        handle_lesson_review_training,
+    )
+    from brain.logic.error_memory_router import handle_error_memory
+
+    state = {"conversation_mode": "course"}
+    start_lesson_review_training(state, "A1", 1)
+    handle_lesson_review_training("xyz", state)
+
+    practice = handle_error_memory("meine Fehler üben", state)
+    assert "course_review" not in practice
+    assert "Nenne passende Grüße" in practice
