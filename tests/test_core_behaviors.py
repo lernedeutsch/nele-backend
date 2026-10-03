@@ -2614,3 +2614,37 @@ def test_review_error_practice_uses_learner_facing_context_not_internal_label():
     practice = handle_error_memory("meine Fehler üben", state)
     assert "course_review" not in practice
     assert "Nenne passende Grüße" in practice
+
+
+class TestErrorPracticeCourseAcceptedVariants(unittest.TestCase):
+    def test_error_practice_accepts_variant_from_originating_course_step(self):
+        from brain.logic.generic_lesson_engine import remember_generic_mistake
+        from brain.logic.error_practice import start_error_practice, handle_error_practice
+
+        state = {}
+        step = {
+            "prompt": "Frag höflich nach dem Namen.",
+            "accepted": ["Wie ist Ihr Name?", "Wie heißen Sie?"],
+            "correct_answer": "Wie ist Ihr Name?",
+            "error_type": "grammar",
+        }
+
+        remember_generic_mistake(state, step, "xyz")
+
+        prompt = start_error_practice(state, "grammar")
+        self.assertIn("Wie ist Ihr Name?", prompt)
+        self.assertEqual(
+            state.get("error_practice_example_accepted"),
+            ["Wie ist Ihr Name?", "Wie heißen Sie?"],
+        )
+
+        response = handle_error_practice("2", state)
+        self.assertIn("Sag jetzt", response)
+
+        response = handle_error_practice("Wie heißen Sie?", state)
+        self.assertIn("Jetzt ohne Auswahl", response)
+        self.assertEqual(state.get("error_practice_step"), 3)
+
+        response = handle_error_practice("Wie heißen Sie?", state)
+        self.assertIsNotNone(response)
+        self.assertFalse(state.get("error_practice_active", False))
