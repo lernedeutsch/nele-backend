@@ -463,7 +463,10 @@ def test_course_dialogue_exhausted_support_revisits_exact_failed_turn_after_tran
     reply = handle_dialogue("Ich komme aus Polen.", state)
 
     assert state["dialogue_turn"] == failed_turn
-    assert "Woher kommst du" in reply
+    assert "Okay, noch einmal: Woher kommst du?" in reply
+    assert "Mia:" not in reply
+    assert "Mia fragt" not in reply
+    assert "Jetzt noch einmal: Du bist dran." not in reply
     assert "dialogue_deferred_turn" not in state
     assert "dialogue_transfer_turn" not in state
     assert state.get("course_mastery_assistance_used") is False

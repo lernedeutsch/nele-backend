@@ -262,6 +262,30 @@ def _advance_to_learner(turns, index, slots=None):
     return index, spoken
 
 
+def _natural_revisit_prompt(turns, learner_index, slots=None):
+    """Rebuild a deferred learner task as a natural teacher question.
+
+    Learner prompts such as "Du bist dran." are UI-style cues, not enough
+    conversational context on their own. Prefer the nearest preceding spoken
+    question and keep only the question itself, without speaker narration.
+    """
+    slots = slots or {}
+    for previous in reversed(turns[:learner_index]):
+        if _norm(previous.get("role")) in {"student", "learner", "user", "du"}:
+            continue
+        spoken = _text(render_pattern(previous.get("text") or previous.get("prompt"), slots))
+        if not spoken or "?" not in spoken:
+            continue
+        questions = re.findall(r"[^.!?]*\?", spoken)
+        if questions:
+            question = _text(questions[-1])
+            if question:
+                return f"Okay, noch einmal: {question}"
+    learner = turns[learner_index] if 0 <= learner_index < len(turns) else {}
+    prompt = _text(render_pattern(learner.get("prompt") or learner.get("text"), slots))
+    return " ".join(part for part in ["Okay, noch einmal:", prompt] if part)
+
+
 def _matching_nele_turn_index(message, dialogue):
     message_norm = _norm(message)
     for index, turn in enumerate(_turns(dialogue)):
@@ -1026,15 +1050,13 @@ def handle_dialogue(user_message, state):
         state.pop("dialogue_deferred_turn", None)
         state.pop("dialogue_transfer_turn", None)
         state["course_mastery_assistance_used"] = False
-        deferred = turns[deferred_index]
-        deferred_prompt = _text(
-            render_pattern(
-                deferred.get("prompt") or deferred.get("text"),
-                state.get("dialogue_slots") or {},
-            )
+        deferred_prompt = _natural_revisit_prompt(
+            turns,
+            deferred_index,
+            state.get("dialogue_slots") or {},
         )
         return " ".join(
-            part for part in [success, "Jetzt noch einmal:", deferred_prompt] if part
+            part for part in [success, deferred_prompt] if part
         )
 
     if next_index >= len(turns):
