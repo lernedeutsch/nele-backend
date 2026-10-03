@@ -247,7 +247,18 @@ def _current_turn(state, dialogue):
     return turns[index]
 
 
-def _advance_to_learner(turns, index, slots=None):
+def _course_dialogue_prompt(turn):
+    """Hide role-play UI cues when Nele is directly teaching the learner."""
+    prompt = _text((turn or {}).get("prompt") or (turn or {}).get("text"))
+    if not prompt:
+        return ""
+    norm = _norm(prompt)
+    if norm == "du bist dran" or re.fullmatch(r"antworte(?:\s+[\wÄÖÜäöüß-]+)?", norm):
+        return ""
+    return prompt
+
+
+def _advance_to_learner(turns, index, slots=None, direct=False):
     spoken = []
     while index < len(turns):
         turn = turns[index]
@@ -256,8 +267,11 @@ def _advance_to_learner(turns, index, slots=None):
             return index, spoken
         line = _text(render_pattern(turn.get("text"), slots or {}))
         if line:
-            speaker = _text(turn.get("speaker")) or "Nele"
-            spoken.append(f"{speaker}: {line}")
+            if direct:
+                spoken.append(line)
+            else:
+                speaker = _text(turn.get("speaker")) or "Nele"
+                spoken.append(f"{speaker}: {line}")
         index += 1
     return index, spoken
 
@@ -333,7 +347,7 @@ def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
         if str(remembered or "").strip():
             dialogue_slots[slot_name] = str(remembered).strip()
 
-    index, spoken = _advance_to_learner(turns, requested_start, dialogue_slots)
+    index, spoken = _advance_to_learner(turns, requested_start, dialogue_slots, direct=str(state.get("conversation_mode") or "").strip().lower() == "course")
     state["dialogue_active"] = True
     state["dialogue_level"] = str(level).upper()
     state["dialogue_lesson"] = int(lesson)
@@ -347,7 +361,7 @@ def start_dialogue(level, lesson, dialogue_id, state, start_turn=0):
     intro = _text(dialogue.get("intro"))
     prompt = ""
     if index < len(turns):
-        prompt = _text(render_pattern(turns[index].get("prompt") or turns[index].get("text"), dialogue_slots))
+        prompt = _text(render_pattern(_course_dialogue_prompt(turns[index]) if str(state.get("conversation_mode") or "").strip().lower() == "course" else turns[index].get("prompt") or turns[index].get("text"), dialogue_slots))
 
     return " ".join(part for part in [intro, *spoken, prompt] if part)
 
@@ -802,6 +816,7 @@ def handle_dialogue(user_message, state):
             turns,
             failed_turn_index + 1,
             state.get("dialogue_slots"),
+            direct=True,
         )
         if next_index < len(turns):
             # Keep the exact failed learner turn. The next learner turn is a
@@ -1015,6 +1030,7 @@ def handle_dialogue(user_message, state):
         turns,
         int(state.get("dialogue_turn", 0)) + 1,
         state.get("dialogue_slots"),
+        direct=str(state.get("conversation_mode") or "").strip().lower() == "course",
     )
     dialogue_finishes = (
         next_index >= len(turns)
@@ -1099,5 +1115,10 @@ def handle_dialogue(user_message, state):
         return " ".join(part for part in [success, *spoken, complete] if part)
 
     next_turn = turns[next_index]
-    prompt = _text(next_turn.get("prompt") or next_turn.get("text"))
+    prompt_source = (
+        _course_dialogue_prompt(next_turn)
+        if str(state.get("conversation_mode") or "").strip().lower() == "course"
+        else next_turn.get("prompt") or next_turn.get("text")
+    )
+    prompt = _text(render_pattern(prompt_source, state.get("dialogue_slots") or {}))
     return " ".join(part for part in [success, *spoken, prompt] if part)
