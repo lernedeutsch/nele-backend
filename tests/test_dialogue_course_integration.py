@@ -443,3 +443,27 @@ def test_fresh_dialogue_does_not_inherit_stale_assistance_from_previous_task():
     assert progress["independent_confirmations"] == 1
     assert progress["status"] == "mastered"
     assert "festigen" not in reply.lower()
+
+
+def test_course_dialogue_exhausted_support_revisits_exact_failed_turn_after_transfer_success():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+
+    state = {"conversation_mode": "course"}
+    opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+    assert "Woher kommst du" in opening
+    failed_turn = state["dialogue_turn"]
+
+    replies = [handle_dialogue("ich weiß nicht", state) for _ in range(6)]
+    assert "Wir machen erst einmal weiter" in replies[-1]
+    transfer_turn = state["dialogue_turn"]
+    assert transfer_turn != failed_turn
+    assert state["dialogue_deferred_turn"] == failed_turn
+    assert state["dialogue_transfer_turn"] == transfer_turn
+
+    reply = handle_dialogue("Ich komme aus Polen.", state)
+
+    assert state["dialogue_turn"] == failed_turn
+    assert "Woher kommst du" in reply
+    assert "dialogue_deferred_turn" not in state
+    assert "dialogue_transfer_turn" not in state
+    assert state.get("course_mastery_assistance_used") is False
