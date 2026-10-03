@@ -470,3 +470,30 @@ def test_course_dialogue_exhausted_support_revisits_exact_failed_turn_after_tran
     assert "dialogue_deferred_turn" not in state
     assert "dialogue_transfer_turn" not in state
     assert state.get("course_mastery_assistance_used") is False
+
+
+def test_course_dialogue_renders_as_direct_nele_conversation_without_roleplay_ui():
+    from brain.logic.dialogue_engine import start_dialogue, handle_dialogue
+
+    state = {"conversation_mode": "course"}
+    opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+
+    assert "Woher kommst du?" in opening
+    assert "Mia:" not in opening
+    assert "Du bist dran." not in opening
+
+    reply = handle_dialogue("Ich komme aus Polen.", state)
+
+    assert "Kommst du aus Polen?" in reply
+    assert "Mia:" not in reply
+    assert "Antworte Mia." not in reply
+
+
+def test_free_dialogue_keeps_explicit_roleplay_speaker_and_prompt():
+    from brain.logic.dialogue_engine import start_dialogue
+
+    state = {"conversation_mode": "free"}
+    opening = start_dialogue("A1", 2, "woher-kommst-du", state)
+
+    assert "Mia: Hallo! Woher kommst du?" in opening
+    assert "Du bist dran." in opening
