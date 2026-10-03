@@ -1671,6 +1671,11 @@ def handle_generic_lesson_teaching(
                 review_step = 1
                 review_definition = get_step(definition, review_step)
 
+            # Preserve the exact failed step and the temporary transfer step.
+            # A successful transfer must return to this deferred task instead
+            # of silently continuing through the section.
+            state["generic_deferred_step"] = current_step
+            state["generic_transfer_step"] = review_step
             state["lesson_teaching_step"] = review_step
             review_prompt = render_text(
                 (review_definition or {}).get("prompt"),
@@ -1923,6 +1928,29 @@ def handle_generic_lesson_teaching(
     )
     state.pop("course_generic_assisted_step", None)
 
+
+    deferred_step = state.get("generic_deferred_step")
+    transfer_step = state.get("generic_transfer_step")
+    if (
+        deferred_step is not None
+        and transfer_step is not None
+        and int(step_number) == int(transfer_step)
+    ):
+        deferred_step = int(deferred_step)
+        deferred_definition = get_step(definition, deferred_step)
+        state["lesson_teaching_step"] = deferred_step
+        state.pop("generic_deferred_step", None)
+        state.pop("generic_transfer_step", None)
+        state["course_mastery_assistance_used"] = False
+        state.pop("course_generic_assisted_step", None)
+        deferred_prompt = render_text(
+            (deferred_definition or {}).get("prompt"),
+            state,
+            level,
+            lesson,
+            real_section,
+        )
+        return " ".join(part for part in (success, "Okay, noch einmal:", deferred_prompt) if part)
 
     if next_step:
 
