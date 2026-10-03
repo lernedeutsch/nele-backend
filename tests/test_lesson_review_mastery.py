@@ -48,20 +48,23 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_all_review_steps_use_shared_answer_definitions(self):
         cases = (
-            (1, "Guten Morgen, Guten Tag, Guten Abend, Tschüss", True),
-            (2, "Mein Name ist Anna", True),
-            (2, "Ich bin Anna", True),
-            (2, "Ich bin 30 Jahre alt", False),
-            (2, "Ich bin müde", False),
-            (3, "Wie heisst du?", True),
-            (4, "Wie heißen Sie?", True),
-            (5, "Ü Ö Ä", True),
-            (6, "Es Zett", True),
-            (1, "Guten Morgen", False),
+            (1, "Guten Morgen", True),
+            (2, "Guten Tag", True),
+            (3, "Guten Abend", True),
+            (4, "Tschüss", True),
+            (4, "Auf Wiedersehen", True),
+            (5, "Mein Name ist Anna", True),
+            (5, "Ich bin Anna", True),
+            (5, "Ich bin 30 Jahre alt", False),
+            (5, "Ich bin müde", False),
+            (6, "Wie heisst du?", True),
+            (7, "Wie heißen Sie?", True),
+            (8, "Ü Ö Ä", True),
+            (9, "Es Zett", True),
             (1, "Guten Abend", False),
-            (3, "Wie geht es dir?", False),
-            (5, "A O U", False),
-            (6, "Doppel-s", False),
+            (6, "Wie geht es dir?", False),
+            (8, "A O U", False),
+            (9, "Doppel-s", False),
         )
         for step, answer, expected in cases:
             with self.subTest(step=step, answer=answer):
@@ -127,32 +130,40 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "mastered",
         )
 
-    def test_single_greeting_cannot_restore_broad_greeting_skill(self):
+    def test_single_greeting_is_correct_but_cannot_restore_broad_greeting_skill(self):
         state = self.base_state()
         skill = "course:a1:1:wir_begrüßen_uns"
         record_review_course_outcome(state, 1, False)
         state["course_mastery_assistance_used"] = False
         result = evaluate_review_answer(1, "Guten Morgen")
-        self.assertFalse(result["correct"])
+        self.assertTrue(result["correct"])
         record_review_course_outcome(state, 1, True)
+        self.assertEqual(state["learning_progress_v1"]["skills"][skill]["status"], "needs_review")
 
+        for step in (2, 3, 4):
+            record_review_course_outcome(state, step, True)
+        self.assertEqual(state["learning_progress_v1"]["skills"][skill]["status"], "mastered")
         self.assertEqual(
-            state["learning_progress_v1"]["skills"][skill]["status"],
-            "mastered",
+            set(state["learning_progress_v1"]["skills"][skill]["independent_evidence"]),
+            {"greeting_morning", "greeting_day", "greeting_evening", "greeting_goodbye"},
         )
-        self.assertEqual(
-            state["learning_progress_v1"]["skills"][skill]["independent_evidence"],
-            ["greeting_range"],
-        )
-        self.assertEqual(
-            state["learning_progress_v1"]["skills"][skill]["required_evidence"],
-            ["greeting_range"],
-        )
-        self.assertNotIn("course_review_evidence", state)
+
+    def test_greeting_review_advances_one_small_a1_task_per_turn(self):
+        state = self.base_state()
+        expected = [
+            ("Guten Morgen", 2, "am Tag"),
+            ("Guten Tag", 3, "am Abend"),
+            ("Guten Abend", 4, "gehst jetzt"),
+            ("Tschüss", 5, "stell dich"),
+        ]
+        for answer, next_step, prompt_fragment in expected:
+            reply = handle_a1_lesson_1_review(answer, state)
+            self.assertEqual(state["lesson_review_training_step"], next_step)
+            self.assertIn(prompt_fragment, reply)
 
     def test_partial_review_answer_is_scaffolded_and_recorded_as_partial(self):
         state = self.base_state()
-        state["lesson_review_training_step"] = 3
+        state["lesson_review_training_step"] = 9
         skill = "course:a1:1:ich_stelle_mich_vor"
 
         reply = handle_a1_lesson_1_review("Wie", state)
@@ -205,12 +216,12 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_wrong_umlauts_require_retry_before_advancing(self):
         state = self.base_state()
-        state["lesson_review_training_step"] = 5
+        state["lesson_review_training_step"] = 8
 
         reply = handle_a1_lesson_1_review("A O U", state)
 
         self.assertIn("Ä, Ö und Ü", reply)
-        self.assertEqual(state["lesson_review_training_step"], 5)
+        self.assertEqual(state["lesson_review_training_step"], 8)
         self.assertTrue(state["lesson_review_training_active"])
         self.assertEqual(
             state["learning_progress_v1"]["skills"][
@@ -222,7 +233,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
         retry = handle_a1_lesson_1_review("Ä Ö Ü", state)
 
         self.assertIn("ß", retry)
-        self.assertEqual(state["lesson_review_training_step"], 6)
+        self.assertEqual(state["lesson_review_training_step"], 9)
         self.assertEqual(
             state["learning_progress_v1"]["skills"][
                 "course:a1:1:das_deutsche_alphabet"
@@ -237,7 +248,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
         reply = handle_a1_lesson_1_review("Doppel-s", state)
 
         self.assertIn("Eszett", reply)
-        self.assertEqual(state["lesson_review_training_step"], 6)
+        self.assertEqual(state["lesson_review_training_step"], 9)
         self.assertTrue(state["lesson_review_training_active"])
         self.assertEqual(
             state["learning_progress_v1"]["skills"][
@@ -263,7 +274,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
         # The learner made several mistakes earlier, but has since supplied
         # the complete independent evidence needed to restore every skill.
-        for step in range(1, 7):
+        for step in range(1, 10):
             record_review_course_outcome(state, step, True)
 
         self.assertTrue(all(
