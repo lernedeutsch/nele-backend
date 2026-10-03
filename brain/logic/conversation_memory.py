@@ -64,6 +64,15 @@ def handle_error_memory_request(
     state
 ):
 
+    error_practice_was_active = bool(
+        state
+        and
+        state.get(
+            "error_practice_active",
+            False
+        )
+    )
+
     answer = handle_error_memory(
         user_message,
         state
@@ -74,6 +83,28 @@ def handle_error_memory_request(
         return (
             False,
             None
+        )
+
+
+    # Starting Error Practice is not a side answer. handle_error_memory()
+    # has already returned the first exercise prompt and activated the
+    # training. Resuming immediately would append the same newly-started
+    # exercise a second time in the very same Nele response.
+    error_practice_is_active = bool(
+        state.get(
+            "error_practice_active",
+            False
+        )
+    )
+
+    if (
+        error_practice_is_active
+        and
+        not error_practice_was_active
+    ):
+        return (
+            True,
+            answer
         )
 
 
