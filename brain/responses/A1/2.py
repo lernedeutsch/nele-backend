@@ -189,7 +189,7 @@ LESSON_FLOW = {
         },
 
         "Zahlen 1–20": {
-            "intro": "Zum Schluss üben wir die Zahlen von 1 bis 20. Du kannst sie sagen oder schreiben. Ich helfe dir, wenn du sie noch nicht kennst.",
+            "intro": "Jetzt üben wir die Zahlen. Beginnen wir mit 1 bis 5.",
             "steps": [
                 {
                     "prompt": "Sag die Zahlen 1 bis 5 auf Deutsch. Wenn du sie noch nicht weißt, helfe ich dir.",
