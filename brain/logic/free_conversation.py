@@ -2151,6 +2151,7 @@ def generate_free_conversation_reply(user_message, state, session_id=None):
         explicit_topic=explicit_topic,
         error_result=error_result,
         response_understanding=response_understanding,
+        learner_model=learner_model,
     )
     state["turn_plan_v1"] = turn_plan
 
