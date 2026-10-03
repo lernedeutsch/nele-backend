@@ -47,7 +47,7 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
 
         reply = handle_dialogue("Anna kommt aus Österreich", state)
         self.assertIn("Herkunftsdialog geschafft", reply)
-        self.assertIn("Jetzt sprechen wir über Länder", reply)
+        self.assertIn("Wir sprechen über Länder", reply)
         self.assertFalse(state["dialogue_active"])
         self.assertTrue(state["lesson_teaching_active"])
         self.assertEqual(state["lesson_teaching_section"], "Woher kommen Sie?")
@@ -66,7 +66,7 @@ class DialogueCourseIntegrationTests(unittest.TestCase):
         reply = handle_dialogue("Anna kommt aus Österreich", state)
 
         self.assertIn("Herkunftsdialog geschafft", reply)
-        self.assertIn("Jetzt sprechen wir über Länder", reply)
+        self.assertIn("Wir sprechen über Länder", reply)
         self.assertTrue(state["lesson_teaching_active"])
         self.assertEqual(state["lesson_teaching_section"], "Woher kommen Sie?")
         self.assertFalse(state.get("pending_new_learning"))
@@ -169,7 +169,7 @@ def test_real_course_practice_dialogue_does_not_skip_remaining_section_work():
     reply = handle_dialogue("Anna kommt aus Österreich", state)
 
     assert "Herkunftsdialog geschafft" in reply
-    assert "Jetzt sprechen wir über Länder" in reply
+    assert "Wir sprechen über Länder" in reply
     assert "Das Verb kommen" not in reply
     assert state["lesson_teaching_active"] is True
     assert state["lesson_teaching_section"] == "Woher kommen Sie?"
