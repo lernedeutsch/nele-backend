@@ -61,7 +61,7 @@ def _german_number_word(number):
 def _expand_digit_tokens(tokens):
     expanded = []
     for token in tokens:
-        if re.fullmatch(r"\d{1,3}", token):
+        if token.isdigit() and len(token) <= 3:
             word = _german_number_word(token)
             if word:
                 expanded.append(word)
@@ -82,7 +82,7 @@ def semantic_equivalent(user_message, accepted_values, render=None):
         # or words. Keep standalone number-word drills strict by applying this
         # only inside semantic sentence comparison (which requires >=2 tokens).
         sentence_has_non_number_context = any(
-            not re.fullmatch(r"\\d{1,3}", token)
+            not token.isdigit() and len(token) <= 3
             for token in learner_tokens + target_tokens
         )
         if sentence_has_non_number_context:
