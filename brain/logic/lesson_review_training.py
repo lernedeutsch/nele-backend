@@ -137,6 +137,23 @@ def is_lesson_review_training_active(
     )
 
 
+def get_current_lesson_review_prompt(state):
+    """Return the exact prompt for an active purpose-built A1.1 review."""
+    if not is_lesson_review_training_active(state):
+        return None
+
+    step = int(state.get("lesson_review_training_step") or 1)
+    prompts = {
+        1: "Wir machen genau dort mit der Wiederholung weiter. Nenne passende Grüße für morgens, tagsüber, abends und beim Gehen.",
+        2: "Wir machen genau dort mit der Wiederholung weiter. Stell dich kurz vor. Wie heißt du?",
+        3: "Wir machen genau dort mit der Wiederholung weiter. Wie fragst du einen Freund nach seinem Namen?",
+        4: "Wir machen genau dort mit der Wiederholung weiter. Wie fragst du höflich nach dem Namen?",
+        5: "Wir machen genau dort mit der Wiederholung weiter. Welche drei Umlaute gibt es im Deutschen?",
+        6: "Wir machen genau dort mit der Wiederholung weiter. Wie heißt dieses Zeichen: ß?",
+    }
+    return prompts.get(step)
+
+
 # ==========================================
 # ZAKOŃCZENIE TRYBU POWTÓRKI
 # ==========================================
