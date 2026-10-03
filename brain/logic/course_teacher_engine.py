@@ -8,6 +8,40 @@ from brain.logic.learner_model import build_learner_model
 from brain.logic.speaking_support import progressive_course_support, register_course_success
 
 
+A1_MAX_TEACHER_WORDS = 18
+
+
+def _sentences(text):
+    """Split teacher copy conservatively; quoted model text stays ordinary content."""
+    import re
+    return [part.strip() for part in re.split(r"(?<=[.!?])\\s+", str(text or "").strip()) if part.strip()]
+
+
+def course_teacher_language_issues(text, *, level="A1"):
+    """Return structural language issues for beginner-facing teacher copy.
+
+    This is intentionally deterministic and lesson-agnostic.  It does not rewrite
+    lesson content; it gives every course surface one shared quality contract.
+    """
+    if str(level or "A1").upper() != "A1":
+        return []
+    issues = []
+    for sentence in _sentences(text):
+        words = sentence.replace("„", " ").replace("“", " ").split()
+        if len(words) > A1_MAX_TEACHER_WORDS:
+            issues.append({"kind": "sentence_too_long", "words": len(words), "text": sentence})
+        # One beginner turn should ask for one action. Multiple question marks
+        # are a reliable signal that several tasks were bundled together.
+        if sentence.count("?") > 1:
+            issues.append({"kind": "multiple_questions", "text": sentence})
+    return issues
+
+
+def validate_course_teacher_language(text, *, level="A1"):
+    """Shared A1 teacher-output contract used by tests and course renderers."""
+    return not course_teacher_language_issues(text, level=level)
+
+
 def choose_course_teacher_action(
     state,
     *,
