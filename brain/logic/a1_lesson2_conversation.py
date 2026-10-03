@@ -415,7 +415,7 @@ def handle(user_message,state):
         transfer = dict(transfer)
         transfer["intent"] = "TRANSFER_" + str(transfer.get("intent", "PRACTICE"))
         state["course_mastery_assistance_used"] = True
-        return _set_task(state, transfer)
+        return "Das üben und festigen wir später noch einmal. " + _set_task(state, transfer)
 
     result=evaluate_lesson2_answer(user_message,task)
     m["last_result"]=result
