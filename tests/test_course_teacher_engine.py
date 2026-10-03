@@ -112,3 +112,20 @@ def test_teacher_language_contract_does_not_restrict_future_higher_levels():
     from brain.logic.course_teacher_engine import validate_course_teacher_language
     long_b2_instruction = " ".join(["Wort"] * 40) + "."
     assert validate_course_teacher_language(long_b2_instruction, level="B2")
+
+
+def test_course_output_records_shared_a1_language_diagnostics(monkeypatch):
+    import brain.logic.conversation_output as output
+    state = {"conversation_mode": "course", "selected_level": "A1"}
+    monkeypatch.setattr(output, "get_conversation_state", lambda session_id: state)
+    monkeypatch.setattr(output, "save_conversation_state", lambda session_id: None)
+
+    heavy = " ".join(["Wort"] * 24) + "."
+    assert output.return_with_memory(heavy, "test") == heavy
+    assert state["course_teacher_language_ok"] is False
+    assert state["course_teacher_language_issues"][0]["kind"] == "sentence_too_long"
+
+    simple = "Es ist Morgen. Was sagst du?"
+    assert output.return_with_memory(simple, "test") == simple
+    assert state["course_teacher_language_ok"] is True
+    assert state["course_teacher_language_issues"] == []
