@@ -123,6 +123,21 @@ def prepare_new_conversation(state):
     state["lesson_teaching_active"] = False
     state["lesson_teaching_section"] = None
     state["lesson_teaching_step"] = 0
+    state["lesson_teaching_level"] = None
+    state["lesson_teaching_lesson"] = None
+
+    # A genuinely new conversation must not inherit an unfinished generic
+    # review or one-attempt scaffolding state. Durable learner progress stays.
+    state["generic_lesson_review_active"] = False
+    state["generic_lesson_review_sections"] = []
+    state["generic_lesson_review_index"] = 0
+    state["generic_lesson_review_level"] = None
+    state["generic_lesson_review_lesson"] = None
+    state["course_mastery_assistance_used"] = False
+    state.pop("course_generic_assisted_step", None)
+    state.pop("course_pending_speaking_model", None)
+    state.pop("course_model_practice_exhausted", None)
+    state.pop("course_teaching_decision", None)
 
     # The next response will be the new wellbeing flow unless onboarding
     # just handed ownership to the explicit course-start gate.
