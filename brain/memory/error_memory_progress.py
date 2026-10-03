@@ -686,7 +686,8 @@ def remember_error(
     error_type,
     wrong_text,
     correct_text,
-    context=None
+    context=None,
+    accepted_values=None
 ):
 
     if state is None:
@@ -788,6 +789,12 @@ def remember_error(
         context or ""
     ).strip()
 
+    accepted_list = []
+    for value in (accepted_values or []):
+        clean_value = str(value or "").strip()
+        if clean_value and clean_value not in accepted_list:
+            accepted_list.append(clean_value)
+
 
     if wrong_value and correct_value:
 
@@ -829,7 +836,10 @@ def remember_error(
                     None,
 
                 "context":
-                    context_value or None
+                    context_value or None,
+
+                "accepted":
+                    accepted_list
             }
 
             error_item[
@@ -876,6 +886,12 @@ def remember_error(
                 example[
                     "context"
                 ] = context_value
+
+            if accepted_list:
+
+                example[
+                    "accepted"
+                ] = accepted_list
 
             error_item[
                 "examples"

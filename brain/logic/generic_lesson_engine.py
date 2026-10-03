@@ -899,12 +899,21 @@ def remember_generic_mistake(
         )
 
 
+        accepted_values = [
+            render_text(value, state)
+            for value in (step.get("accepted") or [])
+            if render_text(value, state)
+        ]
+        if correct_answer not in accepted_values:
+            accepted_values.append(correct_answer)
+
         remember_error(
             state,
             error_type,
             wrong_answer,
             correct_answer,
-            context=context_text
+            context=context_text,
+            accepted_values=accepted_values
         )
 
     except Exception as error:
