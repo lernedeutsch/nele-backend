@@ -715,6 +715,35 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             2,
         )
 
+    def test_session_reset_clears_new_error_practice_transient_fields(self):
+        from brain.logic.session_state import prepare_page_reopen
+
+        state = {
+            "error_practice_active": True,
+            "error_practice_type": "grammar",
+            "error_practice_step": 3,
+            "error_practice_attempts": 2,
+            "error_practice_used_hint": True,
+            "error_practice_transfer_attempts": 2,
+            "error_practice_example_context": "Frag höflich nach dem Namen.",
+            "error_practice_example_wrong": "xyz",
+            "error_practice_example_correct": "Wie ist Ihr Name?",
+            "error_practice_example_accepted": ["Wie heißen Sie?"],
+        }
+
+        prepare_page_reopen(state)
+
+        self.assertFalse(state["error_practice_active"])
+        self.assertIsNone(state["error_practice_type"])
+        self.assertEqual(state["error_practice_step"], 0)
+        self.assertEqual(state["error_practice_attempts"], 0)
+        self.assertFalse(state["error_practice_used_hint"])
+        self.assertEqual(state["error_practice_transfer_attempts"], 0)
+        self.assertIsNone(state["error_practice_example_context"])
+        self.assertIsNone(state["error_practice_example_wrong"])
+        self.assertIsNone(state["error_practice_example_correct"])
+        self.assertEqual(state["error_practice_example_accepted"], [])
+
     def test_a1_addon_content_never_returns_a2_items(self):
         groups = [
             DIALOGUES,
