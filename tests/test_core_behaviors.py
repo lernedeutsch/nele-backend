@@ -2096,6 +2096,35 @@ class NeleCoreBehaviorTests(unittest.TestCase):
 
 
 
+    def test_finished_error_practice_resumes_exact_interrupted_course_section(self):
+        from brain.logic.conversation_error_training import continue_after_finished_training
+
+        state = {
+            "conversation_mode": "course",
+            "student_progress": {
+                "current_level": "A1",
+                "current_lesson": 2,
+                "name": "Moni",
+            },
+            "lesson_teaching_active": True,
+            "lesson_teaching_level": "A1",
+            "lesson_teaching_lesson": 2,
+            "lesson_teaching_section": "Länder und Nationalitäten",
+            "lesson_teaching_step": 1,
+            "error_practice_active": False,
+        }
+
+        answer = continue_after_finished_training("Genau!", state)
+
+        self.assertIn("Genau!", answer)
+        self.assertIn("Woher kommst du", answer)
+        self.assertNotIn("Mia: Hallo", answer)
+        self.assertEqual(
+            state.get("lesson_teaching_section"),
+            "Länder und Nationalitäten",
+        )
+
+
     def test_error_practice_requires_independent_transfer_before_mastery(self):
         state = {}
         context = "Du möchtest jemanden informell nach dem Namen fragen. Was sagst du?"
