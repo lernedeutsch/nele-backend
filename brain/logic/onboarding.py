@@ -270,7 +270,7 @@ def extract_name_sentence(
     name = extract_pattern_value(
         user_message,
         [
-            r"^\s*ich\s+hei(?:ß|ss)e\s+(.+?)\s*[.!?]*\s*$",
+            r"^\s*ich\s+hei(?:ß|ss|s)e\s+(.+?)\s*[.!?]*\s*$",
             r"^\s*ich\s+bin\s+(.+?)\s*[.!?]*\s*$",
             r"^\s*mein\s+name\s+ist\s+(.+?)\s*[.!?]*\s*$"
         ]
