@@ -101,3 +101,28 @@ def test_lesson_three_reopen_keeps_first_unmastered_section():
     assert plan["type"] == "new_section"
     assert plan["lesson"] == 3
     assert plan["section"] == "Das Verb sein"
+
+
+def test_repeated_unrelated_replies_do_not_loop_forever_at_course_handoff():
+    state = {
+        "conversation_mode": "course",
+        "pending_new_learning": {
+            "type": "new_section",
+            "level": "A1",
+            "lesson": 3,
+            "section": "Zahlen 11–100",
+            "topic": "Zahlen 11–100",
+        },
+        "last_question": "continue_new_learning",
+    }
+
+    first = handle_new_learning_resume("xyz", state)
+    assert "Sag einfach „ja“ oder „nein“" in first
+    assert state["pending_new_learning"] is not None
+    assert state["new_learning_invalid_attempts"] == 1
+
+    second = handle_new_learning_resume("xyz", state)
+    assert "Sag die Zahlen 11 bis 15 auf Deutsch." in second
+    assert state["pending_new_learning"] is None
+    assert state["last_question"] is None
+    assert state["new_learning_invalid_attempts"] == 0
