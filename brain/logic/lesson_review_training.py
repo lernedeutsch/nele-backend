@@ -611,12 +611,20 @@ def _remember_review_error(state, step, wrong_answer, correct_answer):
         5: "spelling",
         6: "spelling",
     }.get(int(step or 0), "grammar")
+    contexts = {
+        1: "Nenne passende Grüße für morgens, tagsüber, abends und beim Gehen.",
+        2: "Stell dich kurz vor. Wie heißt du?",
+        3: "Wie fragst du einen Freund nach seinem Namen?",
+        4: "Wie fragst du höflich nach dem Namen?",
+        5: "Welche drei Umlaute gibt es im Deutschen?",
+        6: "Wie heißt dieses Zeichen: ß?",
+    }
     return remember_error(
         state,
         error_type,
         wrong_answer,
         correct_answer,
-        context="course_review",
+        context=contexts.get(int(step or 0)),
     )
 
 
