@@ -41,7 +41,7 @@ class ReviewIntegrationEvidenceCoverageTests(unittest.TestCase):
             "lesson_review_training_lesson": 1,
         }
 
-        first = record_review_course_outcome(state, 2, True)
+        first = record_review_course_outcome(state, 5, True)
         skill = "course:a1:1:ich_stelle_mich_vor"
         item = state["learning_progress_v1"]["skills"][skill]
 
@@ -53,8 +53,8 @@ class ReviewIntegrationEvidenceCoverageTests(unittest.TestCase):
         self.assertEqual(set(item["independent_evidence"]), {"introduce_self"})
         self.assertNotIn("course_review_evidence", state)
 
-        record_review_course_outcome(state, 3, True)
-        final = record_review_course_outcome(state, 4, True)
+        record_review_course_outcome(state, 6, True)
+        final = record_review_course_outcome(state, 7, True)
 
         self.assertEqual(final["status"], "mastered")
         self.assertEqual(
@@ -69,7 +69,7 @@ class ReviewIntegrationEvidenceCoverageTests(unittest.TestCase):
             "course_mastery_assistance_used": True,
         }
 
-        result = record_review_course_outcome(state, 5, True)
+        result = record_review_course_outcome(state, 8, True)
         skill = "course:a1:1:das_deutsche_alphabet"
         item = state["learning_progress_v1"]["skills"][skill]
 

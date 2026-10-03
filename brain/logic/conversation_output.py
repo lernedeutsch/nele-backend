@@ -9,6 +9,7 @@ from brain.logic.memory import (
     get_conversation_state,
     save_conversation_state
 )
+from brain.logic.course_teacher_engine import course_teacher_language_issues
 
 
 # ==========================================
@@ -124,6 +125,22 @@ def return_with_memory(
             answer,
             state
         )
+
+        # Teaching Architecture v2: every A1 course reply crosses one shared
+        # quality boundary.  Observe first; do not silently rewrite lesson
+        # content here.  This makes violations measurable without changing
+        # pedagogical meaning or routing behaviour.
+        if str(state.get("conversation_mode") or "").strip().lower() == "course":
+            student_progress = state.get("student_progress") or {}
+            course_level = str(
+                student_progress.get("current_level")
+                or state.get("selected_level")
+                or state.get("level")
+                or "A1"
+            ).upper()
+            issues = course_teacher_language_issues(answer, level=course_level)
+            state["course_teacher_language_issues"] = issues
+            state["course_teacher_language_ok"] = not issues
 
         save_conversation_state(
             session_id

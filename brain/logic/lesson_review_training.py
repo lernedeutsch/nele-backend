@@ -145,11 +145,14 @@ def get_current_lesson_review_prompt(state):
     step = int(state.get("lesson_review_training_step") or 1)
     prompts = {
         1: "Wir wiederholen kurz. Was sagst du am Morgen?",
-        2: "Jetzt du: Wie stellst du dich vor?",
-        3: "Wie fragst du einen Freund nach seinem Namen?",
-        4: "Und wie fragst du höflich nach dem Namen?",
-        5: "Welche drei Umlaute kennst du?",
-        6: "Wie heißt dieses Zeichen: ß?",
+        2: "Was sagst du am Tag?",
+        3: "Was sagst du am Abend?",
+        4: "Du gehst jetzt. Was sagst du?",
+        5: "Jetzt du: Wie stellst du dich vor?",
+        6: "Wie fragst du einen Freund nach seinem Namen?",
+        7: "Und wie fragst du höflich nach dem Namen?",
+        8: "Welche drei Umlaute kennst du?",
+        9: "Wie heißt dieses Zeichen: ß?",
     }
     return prompts.get(step)
 
@@ -196,28 +199,23 @@ def finish_lesson_review_training(
 # ==========================================
 
 A1_LESSON_1_REVIEW_SECTIONS = {
-    1: "Wir begrüßen uns",
-    2: "Ich stelle mich vor",
-    3: "Ich stelle mich vor",
-    4: "Ich stelle mich vor",
-    5: "Das deutsche Alphabet",
-    6: "Das deutsche Alphabet",
+    1: "Wir begrüßen uns", 2: "Wir begrüßen uns",
+    3: "Wir begrüßen uns", 4: "Wir begrüßen uns",
+    5: "Ich stelle mich vor", 6: "Ich stelle mich vor", 7: "Ich stelle mich vor",
+    8: "Das deutsche Alphabet", 9: "Das deutsche Alphabet",
 }
 
 # A review may restore mastery only after it has independently covered every
 # review evidence item required for that course skill.  This prevents one
 # narrow success from restoring a broader multi-part skill.
 A1_LESSON_1_REVIEW_EVIDENCE = {
-    1: "greeting_range",
-    2: "introduce_self",
-    3: "ask_name_informal",
-    4: "ask_name_formal",
-    5: "umlauts",
-    6: "eszett",
+    1: "greeting_morning", 2: "greeting_day", 3: "greeting_evening", 4: "greeting_goodbye",
+    5: "introduce_self", 6: "ask_name_informal", 7: "ask_name_formal",
+    8: "umlauts", 9: "eszett",
 }
 
 A1_LESSON_1_REQUIRED_REVIEW_EVIDENCE = {
-    "Wir begrüßen uns": {"greeting_range"},
+    "Wir begrüßen uns": {"greeting_morning", "greeting_day", "greeting_evening", "greeting_goodbye"},
     "Ich stelle mich vor": {
         "introduce_self",
         "ask_name_informal",
@@ -557,12 +555,15 @@ def is_eszett_answer(
 # ==========================================
 
 A1_LESSON_1_REVIEW_ANSWERS = {
-    1: {"validator": "review_greeting_range"},
-    2: {"validator": "review_name_introduction"},
-    3: {"accepted": ["Wie heißt du?", "Wie heisst du?"]},
-    4: {"accepted": ["Wie heißen Sie?", "Wie heissen Sie?"]},
-    5: {"validator": "review_umlauts"},
-    6: {
+    1: {"accepted": ["Guten Morgen"]},
+    2: {"accepted": ["Guten Tag", "Hallo"]},
+    3: {"accepted": ["Guten Abend"]},
+    4: {"accepted": ["Tschüss", "Auf Wiedersehen"]},
+    5: {"validator": "review_name_introduction"},
+    6: {"accepted": ["Wie heißt du?", "Wie heisst du?"]},
+    7: {"accepted": ["Wie heißen Sie?", "Wie heissen Sie?"]},
+    8: {"validator": "review_umlauts"},
+    9: {
         "accepted": [
             "ß",
             "Eszett",
@@ -609,12 +610,15 @@ def _remember_review_error(state, step, wrong_answer, correct_answer):
         6: "spelling",
     }.get(int(step or 0), "grammar")
     contexts = {
-        1: "Nenne passende Grüße für morgens, tagsüber, abends und beim Gehen.",
-        2: "Stell dich kurz vor. Wie heißt du?",
-        3: "Wie fragst du einen Freund nach seinem Namen?",
-        4: "Wie fragst du höflich nach dem Namen?",
-        5: "Welche drei Umlaute gibt es im Deutschen?",
-        6: "Wie heißt dieses Zeichen: ß?",
+        1: "Was sagst du am Morgen?",
+        2: "Was sagst du am Tag?",
+        3: "Was sagst du am Abend?",
+        4: "Was sagst du beim Gehen?",
+        5: "Stell dich kurz vor. Wie heißt du?",
+        6: "Wie fragst du einen Freund nach seinem Namen?",
+        7: "Wie fragst du höflich nach dem Namen?",
+        8: "Welche drei Umlaute gibt es im Deutschen?",
+        9: "Wie heißt dieses Zeichen: ß?",
     }
     return remember_error(
         state,
@@ -780,318 +784,76 @@ def complete_lesson_review_training(
 # OBSŁUGA POWTÓRKI A1 LEKTION 1
 # ==========================================
 
-def handle_a1_lesson_1_review(
-    user_message,
-    state
-):
-
+def handle_a1_lesson_1_review(user_message, state):
+    if state is None:
+        return None
     pending_before = bool(state.get("course_pending_speaking_model"))
     pending_reply = handle_pending_course_model(user_message, state)
     if pending_reply is not None:
         return pending_reply
-    if pending_before:
-        # The learner has now produced the supported answer. Continue through
-        # the same review step; that step records the success exactly once.
-        pass
+    step = int(state.get("lesson_review_training_step") or 1)
 
-    step = state.get(
-        "lesson_review_training_step",
-        1
-    )
-
-    # If the shared speaking-support ladder was exhausted, keep that evidence
-    # inside the active review step. Do not immediately start a fresh support
-    # ladder for the same failed production.
     exhausted = consume_course_model_exhaustion(state)
     if exhausted:
         state["course_mastery_assistance_used"] = True
         record_review_course_outcome(state, step, False)
-        action = choose_course_teacher_action(
-            state,
-            answer_correct=True,
-            mastery_status="needs_review",
-        )
-        return render_course_teacher_action(
-            action,
-            prompt="Versuch diese Aufgabe später noch einmal.",
-        )
+        action = choose_course_teacher_action(state, answer_correct=True, mastery_status="needs_review")
+        return render_course_teacher_action(action, prompt="Versuch diese Aufgabe später noch einmal.")
 
-
-    # ======================================
-    # 1. GUTEN MORGEN
-    # ======================================
-
-    if step == 1:
-
-        if evaluate_review_answer(step, user_message)["correct"]:
-
-            remember_correct_answer(
-                state
-            )
-            record_review_course_outcome(state, step, True)
-
-            feedback = (
-                "Richtig! Du kannst die Grüße passend zur Situation verwenden."
-            )
-
-        else:
-
-            remember_wrong_answer(state)
-            _remember_review_error(
-                state, step, user_message,
-                "Guten Morgen, Guten Tag, Guten Abend und Tschüss",
-            )
-            record_review_course_outcome(state, step, False)
-            action = choose_course_teacher_action(
-                state,
-                answer_correct=False,
-                correct_answer="Guten Morgen, Guten Tag, Guten Abend und Tschüss",
-                retry="Nenne noch einmal passende Grüße für morgens, tagsüber, abends und beim Gehen.",
-            )
-            return render_course_teacher_action(action)
-
-
-        state[
-            "lesson_review_training_step"
-        ] = 2
-
-
-        return (
-            f"{feedback} "
-            "Jetzt stell dich kurz vor. "
-            "Wie heißt du?"
-        )
-
-
-    # ======================================
-    # 2. ICH HEISSE ...
-    # ======================================
-
-    if step == 2:
-
-        if evaluate_review_answer(step, user_message)["correct"]:
-
-            remember_correct_answer(
-                state
-            )
-            record_review_course_outcome(state, step, True)
-
-            feedback = (
-                "Sehr gut!"
-            )
-
-        else:
-
-            remember_wrong_answer(state)
-            # Review uses the current learner name when available, but the
-            # speaking-support policy itself remains vocabulary-independent.
-            name = str(
-                get_user_fact(state, "name")
-                or state.get("name")
-                or "Moni"
-            ).strip()
-            target = f"Ich heiße {name}."
-            _remember_review_error(state, step, user_message, target)
-            record_review_course_outcome(state, step, False)
-            action = choose_course_teacher_action(
-                state,
-                answer_correct=False,
-                correct_answer=target,
-                retry="Stell dich noch einmal kurz vor.",
-            )
-            return render_course_teacher_action(action)
-
-
-        state[
-            "lesson_review_training_step"
-        ] = 3
-
-
-        return (
-            f"{feedback} "
-            "Wie fragst du einen Freund "
-            "nach seinem Namen?"
-        )
-
-
-    # ======================================
-    # 3. WIE HEISST DU?
-    # ======================================
-
-    if step == 3:
-
+    greeting_steps = {
+        1: ("Guten Morgen", "Richtig!", "Was sagst du am Tag?"),
+        2: ("Guten Tag", "Sehr gut!", "Was sagst du am Abend?"),
+        3: ("Guten Abend", "Genau!", "Du gehst jetzt. Was sagst du?"),
+        4: ("Tschüss", "Richtig!", "Jetzt stell dich kurz vor. Wie heißt du?"),
+    }
+    if step in greeting_steps:
+        target, feedback, next_prompt = greeting_steps[step]
         result = evaluate_review_answer(step, user_message)
-        if result["correct"]:
-
-            remember_correct_answer(
-                state
-            )
-            record_review_course_outcome(state, step, True)
-
-            feedback = (
-                "Genau! „Wie heißt du?“"
-            )
-
-        else:
-            return _review_miss_reply(
-                state,
-                step,
-                result,
-                correct_answer="Wie heißt du?",
-                retry="Frag deinen Freund noch einmal.",
-                wrong_answer=user_message,
-            )
-
-
-        state[
-            "lesson_review_training_step"
-        ] = 4
-
-
-        return (
-            f"{feedback} "
-            "Und wie fragst du höflich "
-            "nach dem Namen?"
-        )
-
-
-    # ======================================
-    # 4. WIE HEISSEN SIE?
-    # ======================================
-
-    if step == 4:
-
-        result = evaluate_review_answer(step, user_message)
-        if result["correct"]:
-
-            remember_correct_answer(
-                state
-            )
-            record_review_course_outcome(state, step, True)
-
-            feedback = (
-                "Richtig! „Wie heißen Sie?“"
-            )
-
-        else:
-            return _review_miss_reply(
-                state,
-                step,
-                result,
-                correct_answer="Wie heißen Sie?",
-                retry="Frag noch einmal höflich.",
-                wrong_answer=user_message,
-            )
-
-
-        state[
-            "lesson_review_training_step"
-        ] = 5
-
-
-        return (
-            f"{feedback} "
-            "Welche drei Umlaute gibt es "
-            "im Deutschen?"
-        )
-
-
-    # ======================================
-    # 5. Ä Ö Ü
-    # ======================================
+        if not result["correct"]:
+            return _review_miss_reply(state, step, result, correct_answer=target,
+                                      retry=get_current_lesson_review_prompt(state),
+                                      wrong_answer=user_message)
+        remember_correct_answer(state)
+        record_review_course_outcome(state, step, True)
+        state["lesson_review_training_step"] = step + 1
+        return f"{feedback} {next_prompt}"
 
     if step == 5:
+        result = evaluate_review_answer(step, user_message)
+        if not result["correct"]:
+            name = str(get_user_fact(state, "name") or state.get("name") or "Moni").strip()
+            target = f"Ich heiße {name}."
+            return _review_miss_reply(state, step, result, correct_answer=target,
+                                      retry="Stell dich noch einmal kurz vor.", wrong_answer=user_message)
+        remember_correct_answer(state); record_review_course_outcome(state, step, True)
+        state["lesson_review_training_step"] = 6
+        return "Sehr gut! Wie fragst du einen Freund nach seinem Namen?"
 
-        if evaluate_review_answer(step, user_message)["correct"]:
+    targets = {
+        6: ("Wie heißt du?", "Frag deinen Freund noch einmal.", "Genau! „Wie heißt du?“ Und wie fragst du höflich nach dem Namen?"),
+        7: ("Wie heißen Sie?", "Frag noch einmal höflich.", "Richtig! „Wie heißen Sie?“ Welche drei Umlaute kennst du?"),
+        8: ("Ä, Ö und Ü", "Sag die drei Umlaute noch einmal.", "Perfekt! Ä, Ö und Ü. Wie heißt dieses Zeichen: ß?"),
+    }
+    if step in targets:
+        target, retry, next_prompt = targets[step]
+        result = evaluate_review_answer(step, user_message)
+        if not result["correct"]:
+            return _review_miss_reply(state, step, result, correct_answer=target,
+                                      retry=retry, wrong_answer=user_message)
+        remember_correct_answer(state); record_review_course_outcome(state, step, True)
+        state["lesson_review_training_step"] = step + 1
+        return next_prompt
 
-            remember_correct_answer(
-                state
-            )
-            record_review_course_outcome(state, step, True)
+    if step == 9:
+        result = evaluate_review_answer(step, user_message)
+        if not result["correct"]:
+            return _review_miss_reply(state, step, result, correct_answer="Eszett",
+                                      retry="Wie heißt das Zeichen ß?", wrong_answer=user_message)
+        remember_correct_answer(state); record_review_course_outcome(state, step, True)
+        result_text = complete_lesson_review_training(state)
+        return f"Richtig! Das ist das Eszett.\n\n{result_text}"
 
-            feedback = (
-                "Perfekt! Ä, Ö und Ü."
-            )
-
-        else:
-
-            remember_wrong_answer(
-                state
-            )
-            _remember_review_error(state, step, user_message, "Ä, Ö und Ü")
-            record_review_course_outcome(state, step, False)
-
-            action = choose_course_teacher_action(
-                state,
-                answer_correct=False,
-                correct_answer="Ä, Ö und Ü",
-                retry="Die drei Umlaute sind Ä, Ö und Ü. Sag sie jetzt selbst.",
-            )
-            return render_course_teacher_action(action)
-
-
-        state[
-            "lesson_review_training_step"
-        ] = 6
-
-
-        return (
-            f"{feedback} "
-            "Und wie heißt dieses Zeichen: ß?"
-        )
-
-
-    # ======================================
-    # 6. ESZETT
-    # ======================================
-
-    if step == 6:
-
-        if evaluate_review_answer(step, user_message)["correct"]:
-
-            remember_correct_answer(
-                state
-            )
-            record_review_course_outcome(state, step, True)
-
-            feedback = (
-                "Richtig! Das ist das Eszett."
-            )
-
-        else:
-
-            remember_wrong_answer(
-                state
-            )
-            _remember_review_error(state, step, user_message, "Eszett")
-            record_review_course_outcome(state, step, False)
-
-            action = choose_course_teacher_action(
-                state,
-                answer_correct=False,
-                correct_answer="Eszett",
-                retry="Das Zeichen heißt „Eszett“ oder „scharfes S“. Sag es jetzt selbst.",
-            )
-            return render_course_teacher_action(action)
-
-
-        result = (
-            complete_lesson_review_training(
-                state
-            )
-        )
-
-
-        return (
-            f"{feedback}\n\n"
-            f"{result}"
-        )
-
-
-    finish_lesson_review_training(
-        state
-    )
-
+    finish_lesson_review_training(state)
     return None
 
 
