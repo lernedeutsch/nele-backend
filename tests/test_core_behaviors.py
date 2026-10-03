@@ -2562,6 +2562,35 @@ def test_reopen_resumes_error_practice_independent_transfer_step_three():
     )
 
 
+
+def test_resume_and_priority_use_active_error_example_not_stale_summary():
+    from brain.logic.activity_resume import resume_error_training
+    from brain.logic.conversation_error_training import should_prioritize_error_practice
+
+    state = {
+        "error_practice_active": True,
+        "error_practice_type": "grammar",
+        "error_practice_step": 1,
+        "error_practice_example_wrong": "alt falsch",
+        "error_practice_example_correct": "Wie alt sind Sie?",
+        "error_memory": {
+            "grammar": {
+                "last_wrong": "später falsch",
+                "last_correct": "Wo wohnen Sie?",
+            }
+        },
+    }
+
+    reply = resume_error_training(state)
+
+    assert "1. alt falsch" in reply
+    assert "2. Wie alt sind Sie?" in reply
+    assert "später falsch" not in reply
+    assert "Wo wohnen Sie?" not in reply
+    assert should_prioritize_error_practice("Wie alt sind Sie?", state) is True
+    assert should_prioritize_error_practice("Wo wohnen Sie?", state) is False
+
+
 def test_a1_review_miss_is_available_to_shared_error_practice():
     from brain.logic.lesson_review_training import (
         start_lesson_review_training,
