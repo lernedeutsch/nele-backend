@@ -18,7 +18,8 @@ from brain.logic.vocabulary_modules.helpers import (
 )
 
 from brain.logic.error_practice import (
-    is_error_practice_active
+    is_error_practice_active,
+    get_active_error_practice_sentences,
 )
 
 from brain.memory.error_memory import (
@@ -157,12 +158,9 @@ def resume_error_training(
         return None
 
 
-    wrong_sentence = summary.get(
-        "last_wrong"
-    )
-
-    correct_sentence = summary.get(
-        "last_correct"
+    wrong_sentence, correct_sentence = get_active_error_practice_sentences(
+        state,
+        summary,
     )
 
 
