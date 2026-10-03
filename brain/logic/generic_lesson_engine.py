@@ -1645,10 +1645,22 @@ def handle_generic_lesson_teaching(
                 state, level, lesson, real_section, False, final_step=False
             )
             state["course_mastery_assistance_used"] = True
-            state["lesson_teaching_step"] = 1
-            first_step = get_step(definition, 1)
-            first_prompt = render_text(
-                (first_step or {}).get("prompt"),
+
+            # After the support ladder is exhausted, do not immediately make
+            # the learner repeat the identical task again. Move temporarily to
+            # the next exercise in the same section when one exists. The failed
+            # evidence remains NOT_YET, so the mastery gate will still require
+            # a later clean pass that includes this missed step.
+            current_step = int(state.get("lesson_teaching_step", 1) or 1)
+            review_step = current_step + 1
+            review_definition = get_step(definition, review_step)
+            if review_definition is None:
+                review_step = 1
+                review_definition = get_step(definition, review_step)
+
+            state["lesson_teaching_step"] = review_step
+            review_prompt = render_text(
+                (review_definition or {}).get("prompt"),
                 state,
                 level,
                 lesson,
@@ -1659,7 +1671,16 @@ def handle_generic_lesson_teaching(
                 answer_correct=True,
                 mastery_status="needs_review",
             )
-            return render_course_teacher_action(action, prompt=first_prompt)
+            reinforcement = render_course_teacher_action(action, prompt=review_prompt)
+            if review_step != current_step:
+                return " ".join(
+                    part for part in (
+                        "Wir wechseln kurz die Aufgabe und kommen später darauf zurück.",
+                        reinforcement,
+                    )
+                    if part
+                )
+            return reinforcement
 
     level = state.get(
         "lesson_teaching_level"

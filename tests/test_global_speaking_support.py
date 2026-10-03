@@ -310,3 +310,35 @@ def test_teacher_engine_wrong_answers_reach_shared_bounded_exhaustion():
     assert "später noch einmal" in fifth
     assert state.get("course_pending_speaking_model") is None
     assert state["course_model_practice_exhausted"] == "Wie alt sind Sie?"
+
+
+def test_generic_course_exhaustion_temporarily_varies_task_without_weakening_mastery():
+    from brain.logic.generic_lesson_engine import (
+        start_generic_lesson_teaching,
+        handle_generic_lesson_teaching,
+    )
+
+    state = {
+        "conversation_mode": "course",
+        "student_progress": {"current_level": "A1", "current_lesson": 3},
+    }
+    opening = start_generic_lesson_teaching("Zahlen 11–100", state)
+    assert "11 bis 15" in opening
+
+    state["course_pending_speaking_model"] = (
+        "elf, zwölf, dreizehn, vierzehn, fünfzehn"
+    )
+    state["course_speaking_support_level"] = 4
+
+    exhausted_reply = handle_generic_lesson_teaching("falsch", state)
+    assert "später noch einmal" in exhausted_reply
+
+    follow_up = handle_generic_lesson_teaching("noch falsch", state)
+
+    assert "wechseln kurz die Aufgabe" in follow_up
+    assert "16 bis 20" in follow_up
+    assert state["lesson_teaching_step"] == 2
+
+    skill = state["learning_progress_v1"]["skills"]["course:a1:3:zahlen_11–100"]
+    assert skill["status"] == "needs_review"
+    assert "step:1" not in set(skill.get("independent_evidence") or [])
