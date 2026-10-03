@@ -810,10 +810,22 @@ def generate_conversation_reply(
     # 9. AKTYWNA LEKCJA
     # ======================================
 
+    dialogue_was_active = is_dialogue_active(state)
+
     answer = handle_lesson_teaching(
         processed_message,
         state
     )
+
+    if (
+        answer
+        and dialogue_was_active
+        and not is_dialogue_active(state)
+    ):
+        answer = continue_after_finished_training(
+            answer,
+            state
+        )
 
     if answer:
 
@@ -885,6 +897,11 @@ def generate_conversation_reply(
             state,
         )
         if dialogue_answer:
+            if not is_dialogue_active(state):
+                dialogue_answer = continue_after_finished_training(
+                    dialogue_answer,
+                    state
+                )
             return return_with_feedback(
                 dialogue_answer,
                 feedback_text,
