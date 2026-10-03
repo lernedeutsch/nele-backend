@@ -48,6 +48,8 @@ def _clear_common_transient_state(state):
     state["error_practice_example_context"] = None
     state["error_practice_example_wrong"] = None
     state["error_practice_example_correct"] = None
+    state["error_practice_example_accepted"] = []
+    state["error_practice_transfer_attempts"] = 0
 
     # Lesson review exercise.
     state["lesson_review_training_active"] = False
