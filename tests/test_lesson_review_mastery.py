@@ -107,8 +107,8 @@ class LessonReviewMasteryTests(unittest.TestCase):
     def test_one_independent_review_answer_cannot_restore_multi_part_skill(self):
         state = self.base_state()
         skill = "course:a1:1:ich_stelle_mich_vor"
-        record_review_course_outcome(state, 2, False)
-        record_review_course_outcome(state, 2, True)  # guided correction
+        record_review_course_outcome(state, 5, False)
+        record_review_course_outcome(state, 5, True)  # guided correction
         record_review_course_outcome(state, 6, True)  # only one fresh evidence item
 
         self.assertEqual(
@@ -119,9 +119,9 @@ class LessonReviewMasteryTests(unittest.TestCase):
     def test_complete_independent_review_evidence_restores_multi_part_skill(self):
         state = self.base_state()
         skill = "course:a1:1:ich_stelle_mich_vor"
-        record_review_course_outcome(state, 2, False)
-        record_review_course_outcome(state, 2, True)  # guided correction
-        record_review_course_outcome(state, 2, True)  # fresh introduce-self evidence
+        record_review_course_outcome(state, 5, False)
+        record_review_course_outcome(state, 5, True)  # guided correction
+        record_review_course_outcome(state, 5, True)  # fresh introduce-self evidence
         record_review_course_outcome(state, 6, True)
         record_review_course_outcome(state, 7, True)
 
