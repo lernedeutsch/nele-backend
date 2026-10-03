@@ -89,3 +89,26 @@ def test_success_fades_shared_course_support():
         answer_correct=True,
     )
     assert state["course_speaking_support_level"] == 2
+
+
+def test_a1_teacher_language_contract_rejects_heavy_instruction():
+    from brain.logic.course_teacher_engine import course_teacher_language_issues
+    text = (
+        "Heute ist die Wiederholung von A1, Lektion 1 dran. "
+        "Nenne passende Grüße für morgens, tagsüber, abends und beim Gehen, "
+        "und erkläre danach, welche Form du jeweils benutzt und warum."
+    )
+    issues = course_teacher_language_issues(text, level="A1")
+    assert any(item["kind"] == "sentence_too_long" for item in issues)
+
+
+def test_a1_teacher_language_contract_accepts_one_small_step():
+    from brain.logic.course_teacher_engine import validate_course_teacher_language
+    assert validate_course_teacher_language("Es ist Morgen. Was sagst du?", level="A1")
+    assert validate_course_teacher_language("Du gehst jetzt. Was sagst du?", level="A1")
+
+
+def test_teacher_language_contract_does_not_restrict_future_higher_levels():
+    from brain.logic.course_teacher_engine import validate_course_teacher_language
+    long_b2_instruction = " ".join(["Wort"] * 40) + "."
+    assert validate_course_teacher_language(long_b2_instruction, level="B2")
