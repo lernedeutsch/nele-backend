@@ -81,11 +81,25 @@ def semantic_equivalent(user_message, accepted_values, render=None):
         # Complete natural sentences may express the same number with digits
         # or words. Keep standalone number-word drills strict by applying this
         # only inside semantic sentence comparison (which requires >=2 tokens).
-        sentence_has_non_number_context = any(
-            not token.isdigit() and len(token) <= 3
-            for token in learner_tokens + target_tokens
+        number_words = set(_GERMAN_NUMBER_WORDS.values())
+        number_words.update(
+            word for number in range(21, 100)
+            if (word := _german_number_word(number))
         )
-        if sentence_has_non_number_context:
+        def _non_number_context(tokens):
+            return {
+                token for token in tokens
+                if not (token.isdigit() and len(token) <= 3)
+                and token not in number_words
+            }
+
+        # Convert digits only when both forms share real sentence context
+        # (e.g. "ich bin ... jahre alt"). Pure number drills stay strict.
+        shared_context = (
+            _non_number_context(learner_tokens)
+            & _non_number_context(target_tokens)
+        )
+        if shared_context:
             learner_compare = _expand_digit_tokens(learner_tokens)
             target_tokens = _expand_digit_tokens(target_tokens)
         else:
