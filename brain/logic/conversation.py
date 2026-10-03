@@ -141,6 +141,10 @@ from brain.logic.error_memory_router import (
     is_error_practice_start_request,
 )
 
+from brain.logic.error_practice import (
+    is_error_practice_active,
+)
+
 from brain.logic.conversation_wellbeing import (
     handle_wellbeing_reply
 )
@@ -534,7 +538,11 @@ def generate_conversation_reply(
         processed_message
     )
 
-    if was_lesson_review_active and not error_practice_start_requested:
+    if (
+        was_lesson_review_active
+        and not error_practice_start_requested
+        and not is_error_practice_active(state)
+    ):
 
         answer = handle_lesson_review_training(
             processed_message,
