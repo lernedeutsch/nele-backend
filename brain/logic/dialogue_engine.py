@@ -537,22 +537,50 @@ def _dialogue_covers_section_mastery(dialogue):
     return _norm((dialogue or {}).get("mastery_scope") or "section") == "section"
 
 
+def _dialogue_required_evidence(dialogue):
+    """Stable evidence keys for every learner turn in a section-mastery dialogue."""
+    turns = (dialogue or {}).get("turns") or []
+    learner_roles = {"student", "learner", "user", "du"}
+    return [
+        f"dialogue_turn:{index}"
+        for index, turn in enumerate(turns)
+        if _norm((turn or {}).get("role")) in learner_roles
+    ]
+
+
+def _current_dialogue_evidence(dialogue, state):
+    """Evidence key for the learner turn that has just been answered."""
+    try:
+        index = int((state or {}).get("dialogue_turn"))
+    except (TypeError, ValueError):
+        return ""
+    turn = (((dialogue or {}).get("turns") or []) + [{}])[index] if index >= 0 else {}
+    if _norm((turn or {}).get("role")) not in {"student", "learner", "user", "du"}:
+        return ""
+    return f"dialogue_turn:{index}"
+
+
 def _record_course_dialogue_outcome(dialogue, state, success, partial=False, independent_confirmation=False):
     if str(state.get("conversation_mode") or "").strip().lower() != "course":
         return None
     skill = _course_dialogue_skill_key(dialogue, state)
     if not skill:
         return None
+    covers_section = _dialogue_covers_section_mastery(dialogue)
+    required_evidence = _dialogue_required_evidence(dialogue) if covers_section else []
+    independent = bool(success and not partial and not state.get("course_mastery_assistance_used"))
     outcome = {
         "skill": skill,
         "expected_outcome": "course_dialogue_turn",
         "status": "PARTIAL" if partial else ("SUCCESS" if success else "NOT_YET"),
-        # Individual scripted turns are practice evidence, not mastery proof.
-        # Only a clean completion of the whole dialogue can independently
-        # confirm the skill.
-        "mastery_eligible": bool(success and independent_confirmation and not partial and _dialogue_covers_section_mastery(dialogue)),
+        # A section dialogue may prove mastery only after every learner turn
+        # has fresh independent evidence. The final turn is merely the mastery
+        # checkpoint; it cannot stand in for the earlier required productions.
+        "mastery_eligible": bool(success and independent_confirmation and not partial and covers_section),
         "requires_independent_confirmation": True,
-        "independent_confirmation": bool(success and independent_confirmation and _dialogue_covers_section_mastery(dialogue)),
+        "independent_confirmation": bool(independent and covers_section),
+        "required_evidence": required_evidence,
+        "evidence": _current_dialogue_evidence(dialogue, state) if independent and covers_section else "",
     }
     progress = update_learning_progress(state, outcome)
     state["last_course_learning_outcome"] = dict(outcome, progress=progress)
