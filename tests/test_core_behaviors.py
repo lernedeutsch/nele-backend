@@ -585,6 +585,38 @@ class NeleCoreBehaviorTests(unittest.TestCase):
             reply,
         )
 
+    def test_returning_welcome_preserves_final_course_completion_boundary(self):
+        state = {
+            "onboarding_completed": True,
+            "onboarding_step": 0,
+            "conversation_mode": "course",
+            "student_progress": {"current_level": "A1", "current_lesson": 3},
+            "user_facts": {"name": "Moni"},
+            "name": "Moni",
+            "lesson_teaching_active": False,
+        }
+
+        with patch(
+            "brain.logic.welcome.get_conversation_state",
+            return_value=state,
+        ), patch(
+            "brain.logic.welcome.save_conversation_state"
+        ), patch(
+            "brain.logic.welcome.get_next_new_learning_step",
+            return_value={
+                "type": "lesson_completed",
+                "level": "A1",
+                "lesson": 3,
+                "completion_percent": 100,
+            },
+        ):
+            reply = generate_welcome_reply("test-final-course-reopen")
+
+        self.assertIn("Lektion 3 ist abgeschlossen", reply)
+        self.assertNotIn("Wie geht", reply)
+        self.assertEqual(state["last_question"], "course_lesson_completed")
+
+
     def test_returning_welcome_keeps_course_start_gate_after_onboarding(self):
         state = {
             "onboarding_completed": True,

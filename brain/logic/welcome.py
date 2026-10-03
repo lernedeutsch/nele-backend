@@ -28,6 +28,10 @@ from brain.logic.session_state import (
     prepare_page_reopen
 )
 
+from brain.memory.next_learning_step import (
+    get_next_new_learning_step
+)
+
 
 # ==========================================
 # ZAPIS I ZWROT ODPOWIEDZI
@@ -372,6 +376,32 @@ def generate_welcome_reply(
     # ======================================
     # ZNANY UŻYTKOWNIK
     # ======================================
+
+    # When the selected course lesson is fully completed and there is no
+    # later lesson in the real curriculum, a page reopen must preserve that
+    # course boundary. Falling through to generic wellbeing loses ownership of
+    # the course turn and makes a natural acknowledgement such as "ja" hit the
+    # unknown-answer fallback.
+    if (
+        str(state.get("conversation_mode") or "").strip().lower() == "course"
+        and not state.get("lesson_teaching_active")
+    ):
+        try:
+            course_plan = get_next_new_learning_step(state)
+        except Exception as error:
+            print(f"Welcome course completion plan error: {error}")
+            course_plan = None
+
+        if isinstance(course_plan, dict) and course_plan.get("type") == "lesson_completed":
+            state["last_question"] = "course_lesson_completed"
+            lesson = course_plan.get("lesson")
+            prefix = f"Hallo {name}! " if name else "Hallo! "
+            answer = (
+                f"{prefix}Lektion {lesson} ist abgeschlossen. "
+                "Für heute bist du mit dem neuen Stoff fertig."
+            )
+            return save_and_return(answer, session_id)
+
 
     # If onboarding has just finished, reopening the page must preserve the
     # explicit course-start gate instead of replacing it with wellbeing.
