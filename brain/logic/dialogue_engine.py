@@ -828,7 +828,7 @@ def handle_dialogue(user_message, state):
             state.pop("dialogue_retry_turn", None)
             next_prompt = _text(
                 render_pattern(
-                    turns[next_index].get("prompt") or turns[next_index].get("text"),
+                    _course_dialogue_prompt(turns[next_index]),
                     state.get("dialogue_slots") or {},
                 )
             )
