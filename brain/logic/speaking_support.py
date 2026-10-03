@@ -185,6 +185,11 @@ def progressive_course_support(target, state, *, first_hint=None, prefix=""):
         reply = f"Fang so an: „{starter} …“" if starter else "Noch einmal."
         return (prefix + reply).strip()
 
+    # Once the shared ladder reaches its maximum, the next failed attempt
+    # must be able to terminate the same target instead of restarting the
+    # generic Teacher Engine forever. Hand ownership to the pending-model
+    # handler, which has the bounded exhaustion contract used by lessons,
+    # reviews and dialogues.
     state["course_pending_speaking_model"] = target
     reply = f"Sag: „{target}“"
     return (prefix + reply).strip()
