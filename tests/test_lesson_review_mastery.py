@@ -163,13 +163,13 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_partial_review_answer_is_scaffolded_and_recorded_as_partial(self):
         state = self.base_state()
-        state["lesson_review_training_step"] = 9
+        state["lesson_review_training_step"] = 6
         skill = "course:a1:1:ich_stelle_mich_vor"
 
         reply = handle_a1_lesson_1_review("Wie", state)
 
         self.assertIn("1 von 3", reply)
-        self.assertEqual(state["lesson_review_training_step"], 3)
+        self.assertEqual(state["lesson_review_training_step"], 6)
         self.assertEqual(state["course_teacher_action"]["action"], "scaffold_partial")
         item = state["learning_progress_v1"]["skills"][skill]
         self.assertEqual(item["last_result"], "PARTIAL")
@@ -180,12 +180,12 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_review_wrong_answer_uses_shared_teacher_engine(self):
         state = self.base_state()
-        state["lesson_review_training_step"] = 3
+        state["lesson_review_training_step"] = 6
 
         reply = handle_a1_lesson_1_review("Wie geht es dir?", state)
 
         self.assertTrue(reply)
-        self.assertEqual(state["lesson_review_training_step"], 3)
+        self.assertEqual(state["lesson_review_training_step"], 6)
         self.assertEqual(state["course_teacher_action"]["action"], "correct_and_retry")
         self.assertEqual(state["course_teacher_action"]["reason"], "answer_not_yet")
         self.assertEqual(state["course_teacher_action"]["model"], "Wie heißt du?")
@@ -198,7 +198,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_exhausted_review_support_routes_to_review_without_restarting_ladder(self):
         state = self.base_state()
-        state["lesson_review_training_step"] = 3
+        state["lesson_review_training_step"] = 6
 
         replies = [handle_a1_lesson_1_review("falsch", state) for _ in range(6)]
 
@@ -206,7 +206,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
         self.assertIn("festigen", replies[-1].lower())
         self.assertNotIn("course_model_practice_exhausted", state)
         self.assertFalse(state.get("course_pending_speaking_model"))
-        self.assertEqual(state["lesson_review_training_step"], 3)
+        self.assertEqual(state["lesson_review_training_step"], 6)
         self.assertEqual(
             state["learning_progress_v1"]["skills"][
                 "course:a1:1:ich_stelle_mich_vor"
@@ -243,7 +243,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_wrong_eszett_requires_retry_before_review_can_finish(self):
         state = self.base_state()
-        state["lesson_review_training_step"] = 6
+        state["lesson_review_training_step"] = 9
 
         reply = handle_a1_lesson_1_review("Doppel-s", state)
 
@@ -289,7 +289,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_clean_review_keeps_mastered_skills_and_finishes_good(self):
         state = self.base_state()
-        for step in range(1, 7):
+        for step in range(1, 10):
             record_review_course_outcome(state, step, True)
 
         result = complete_lesson_review_training(state)
