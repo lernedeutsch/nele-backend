@@ -7,6 +7,7 @@ from brain.logic.lesson_loader import (
     load_lesson_module,
 )
 from brain.logic.personal_sentences import validate_personal_sentence_catalog
+from brain.logic.course_teacher_engine import course_teacher_language_issues
 
 
 class ContentValidationError(ValueError):
@@ -163,6 +164,53 @@ def validate_dialogues(level, lesson):
     return True
 
 
+def _validate_a1_teacher_text(text, label, lesson):
+    if int(lesson) not in {1, 2, 3}:
+        return
+    issues = course_teacher_language_issues(text, level="A1")
+    if issues:
+        kinds = ", ".join(sorted({item["kind"] for item in issues}))
+        raise ContentValidationError(f"{label}: A1 teacher language contract failed ({kinds}).")
+
+
+def _validate_a11_a13_teacher_copy(module, flow, level, lesson):
+    if str(level).upper() != "A1" or int(lesson) not in {1, 2, 3}:
+        return
+    if isinstance(flow, dict):
+        sections = flow.get("sections") or {}
+        section_items = sections.items() if isinstance(sections, dict) else []
+        for section_name, section in section_items:
+            if not isinstance(section, dict):
+                continue
+            for field in ("intro", "complete"):
+                value = section.get(field)
+                if isinstance(value, str) and value.strip():
+                    _validate_a1_teacher_text(value, f"A1 lesson {lesson} {section_name} {field}", lesson)
+            for index, step in enumerate(section.get("steps") or []):
+                if not isinstance(step, dict):
+                    continue
+                for field in ("prompt", "retry", "success"):
+                    value = step.get(field)
+                    if isinstance(value, str) and value.strip():
+                        _validate_a1_teacher_text(value, f"A1 lesson {lesson} {section_name} step {index + 1} {field}", lesson)
+    dialogues = getattr(module, "LESSON_DIALOGUES", None) if module else None
+    for dialogue in dialogues or []:
+        if not isinstance(dialogue, dict):
+            continue
+        intro = dialogue.get("intro")
+        if isinstance(intro, str) and intro.strip():
+            _validate_a1_teacher_text(intro, f"A1 lesson {lesson} dialogue {dialogue.get('id')} intro", lesson)
+        for index, turn in enumerate(dialogue.get("turns") or []):
+            if not isinstance(turn, dict):
+                continue
+            role = str(turn.get("role") or "").strip().casefold()
+            fields = ("text",) if role in {"nele", "teacher", "assistant"} else ("prompt", "retry")
+            for field in fields:
+                value = turn.get(field)
+                if isinstance(value, str) and value.strip():
+                    _validate_a1_teacher_text(value, f"A1 lesson {lesson} dialogue {dialogue.get('id')} turn {index + 1} {field}", lesson)
+
+
 def validate_lesson(level, lesson):
     responses = load_lesson(level, lesson)
     metadata = load_lesson_metadata(level, lesson)
@@ -243,6 +291,7 @@ def validate_lesson(level, lesson):
         seen_intents.add(intent_key)
 
     validate_dialogues(level, lesson)
+    _validate_a11_a13_teacher_copy(load_lesson_module(level, lesson), flow, level, lesson)
     return True
 
 
