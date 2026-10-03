@@ -1903,6 +1903,13 @@ def handle_generic_lesson_teaching(
         review_confirmation=bool(
             state.get("generic_lesson_review_active")
             or state.get("course_skill_review_active")
+            or (
+                (
+                    (
+                        (state.get("learning_progress_v1") or {}).get("skills") or {}
+                    ).get(_course_skill_key(level, lesson, real_section)) or {}
+                ).get("status") == "needs_review"
+            )
         ),
     )
     state.pop("course_generic_assisted_step", None)
