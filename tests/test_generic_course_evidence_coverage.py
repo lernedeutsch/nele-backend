@@ -65,3 +65,41 @@ def test_clean_full_coverage_can_master_after_many_historical_failures():
 
     assert result["status"] == "mastered"
     assert set(result["independent_evidence"]) == set(required)
+
+
+def test_false_review_confirmation_does_not_trap_clean_course_pass_in_needs_review():
+    from brain.logic.learning_progress_engine import update_learning_progress
+
+    skill = "course:a1:3:zahlen_11–100"
+    required = ["step:1", "step:2", "step:3", "step:4", "step:5"]
+    state = {"learning_progress_v1": {"version": 1, "skills": {skill: {
+        "skill": skill,
+        "status": "needs_review",
+        "attempts": 6,
+        "successes": 0,
+        "partials": 0,
+        "not_yet": 6,
+        "success_streak": 0,
+        "last_result": "NOT_YET",
+        "mastery_eligible": False,
+        "requires_independent_confirmation": True,
+        "independent_confirmations": 0,
+        "required_evidence": required,
+        "independent_evidence": [],
+    }}}}
+
+    result = None
+    for index in range(1, 6):
+        result = update_learning_progress(state, {
+            "skill": skill,
+            "status": "SUCCESS",
+            "mastery_eligible": index == 5,
+            "requires_independent_confirmation": True,
+            "independent_confirmation": True,
+            "review_confirmation": False,
+            "required_evidence": required,
+            "evidence": f"step:{index}",
+        })
+
+    assert result["last_review_attempt"] is False
+    assert result["status"] == "mastered"
