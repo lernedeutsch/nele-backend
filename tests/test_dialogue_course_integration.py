@@ -242,20 +242,62 @@ def test_dialogue_turn_successes_alone_do_not_count_as_mastery_proof():
     assert progress["status"] != "mastered"
 
 
-def test_clean_dialogue_completion_can_confirm_mastery_after_practice():
+def test_final_dialogue_turn_alone_cannot_confirm_section_mastery():
     from brain.logic.dialogue_engine import _record_course_dialogue_outcome
-    dialogue = {"level": "A1", "lesson": 15, "section": "Reisen"}
+    dialogue = {
+        "level": "A1",
+        "lesson": 15,
+        "section": "Reisen",
+        "turns": [
+            {"role": "student"},
+            {"role": "nele"},
+            {"role": "student"},
+            {"role": "nele"},
+            {"role": "student"},
+        ],
+    }
+    state = {"conversation_mode": "course", "dialogue_turn": 4}
+
+    progress = _record_course_dialogue_outcome(
+        dialogue, state, True, independent_confirmation=True
+    )
+
+    assert progress["status"] != "mastered"
+    assert progress["required_evidence"] == [
+        "dialogue_turn:0", "dialogue_turn:2", "dialogue_turn:4"
+    ]
+    assert progress["independent_evidence"] == ["dialogue_turn:4"]
+
+
+def test_clean_dialogue_coverage_can_confirm_section_mastery():
+    from brain.logic.dialogue_engine import _record_course_dialogue_outcome
+    dialogue = {
+        "level": "A1",
+        "lesson": 15,
+        "section": "Reisen",
+        "turns": [
+            {"role": "student"},
+            {"role": "nele"},
+            {"role": "student"},
+            {"role": "nele"},
+            {"role": "student"},
+        ],
+    }
     state = {"conversation_mode": "course"}
 
-    _record_course_dialogue_outcome(dialogue, state, True)
-    _record_course_dialogue_outcome(dialogue, state, True)
+    for turn in (0, 2):
+        state["dialogue_turn"] = turn
+        _record_course_dialogue_outcome(dialogue, state, True)
+
+    state["dialogue_turn"] = 4
     progress = _record_course_dialogue_outcome(
         dialogue, state, True, independent_confirmation=True
     )
 
     assert progress["successes"] == 3
-    assert progress["independent_confirmations"] == 1
+    assert progress["independent_confirmations"] == 3
     assert progress["status"] == "mastered"
+    assert set(progress["independent_evidence"]) == set(progress["required_evidence"])
 
 
 def test_course_dialogue_exhausted_support_becomes_review_instead_of_model_loop():
