@@ -28,6 +28,7 @@ from brain.logic.course_teacher_engine import (
     render_course_teacher_action,
 )
 from brain.memory.user_facts import get_user_fact
+from brain.memory.error_memory import remember_error
 from brain.logic.speaking_support import (
     consume_course_model_exhaustion,
     handle_pending_course_model,
@@ -900,6 +901,26 @@ def handle_dialogue(user_message, state):
 
         state["course_mastery_assistance_used"] = True
         _record_course_dialogue_outcome(dialogue, state, False)
+
+        # A wrong course-dialogue answer is also a real learner error. Keep it
+        # in the shared Error Memory so "meine Fehler üben" can temporarily
+        # branch into Error Practice and, after independent correction, return
+        # to this exact still-active dialogue turn.
+        if (
+            str(state.get("conversation_mode") or "").strip().lower() == "course"
+            and expected
+        ):
+            try:
+                remember_error(
+                    state,
+                    "course_dialogue",
+                    str(user_message or "").strip(),
+                    expected,
+                    context=get_current_dialogue_prompt(state) or retry or "",
+                )
+            except Exception as error:
+                print(f"Dialogue error memory error: {error}")
+
         if turn.get("retry_requires_full_sentence"):
             state["dialogue_retry_turn"] = int(state.get("dialogue_turn", 0) or 0)
         retry = _text(render_pattern(turn.get("retry"), state.get("dialogue_slots") or {}))
