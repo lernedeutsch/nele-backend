@@ -74,6 +74,12 @@ class A13CourseContentTests(unittest.TestCase):
         self.assertIn("32", step["accepted"])
         self.assertIn("Ich bin 32.", step["accepted"])
 
+    def test_a13_personal_data_accepts_natural_formal_name_question(self):
+        _, section = find_generic_section("A1", 3, "Persönliche Daten")
+        step = section["steps"][0]
+        self.assertIn("Wie ist Ihr Name?", step["accepted"])
+        self.assertIn("Wie heißen Sie?", step["accepted"])
+
 
 if __name__ == "__main__":
     unittest.main()
