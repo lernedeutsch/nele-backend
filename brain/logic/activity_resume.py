@@ -39,6 +39,10 @@ from brain.logic.personal_sentences import (
     get_current_personal_sentence_practice_prompt,
 )
 
+from brain.logic.lesson_review_training import (
+    get_current_lesson_review_prompt,
+)
+
 
 # ==========================================
 # WZNOWIENIE AKTYWNEGO SŁOWNICTWA
@@ -469,7 +473,19 @@ def resume_current_training(
 
 
     # ======================================
-    # 2. SŁOWNICTWO
+    # 2. POWTÓRKA LEKCJI
+    # ======================================
+
+    answer = get_current_lesson_review_prompt(
+        state
+    )
+
+    if answer:
+        return answer
+
+
+    # ======================================
+    # 3. SŁOWNICTWO
     # ======================================
 
     answer = resume_vocabulary_training(

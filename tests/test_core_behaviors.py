@@ -2560,3 +2560,41 @@ def test_review_error_practice_start_command_is_recognized_as_control_intent():
 
     assert is_error_practice_start_request("meine Fehler üben")
     assert is_error_practice_start_request("Ich möchte meine Fehler üben")
+
+
+def test_error_practice_detour_finishes_back_at_exact_a1_review_step():
+    from brain.logic.lesson_review_training import (
+        start_lesson_review_training,
+        handle_lesson_review_training,
+    )
+    from brain.logic.error_memory_router import handle_error_memory
+    from brain.logic.conversation_error_training import handle_priority_error_practice
+
+    state = {"conversation_mode": "course"}
+    start_lesson_review_training(state, "A1", 1)
+    handle_lesson_review_training("xyz", state)
+    first = handle_error_memory("meine Fehler üben", state)
+    assert "xyz" in first
+    assert state.get("error_practice_active") is True
+
+    handled, guided = handle_priority_error_practice("2", state)
+    assert handled is True
+    assert "Sag jetzt:" in guided
+    assert state.get("error_practice_step") == 2
+
+    handled, transfer = handle_priority_error_practice(
+        "Guten Morgen Guten Tag Guten Abend und Tschüss", state
+    )
+    assert handled is True
+    assert "ohne Auswahl" in transfer
+    assert state.get("error_practice_step") == 3
+
+    handled, finished = handle_priority_error_practice(
+        "Guten Morgen Guten Tag Guten Abend und Tschüss", state
+    )
+    assert handled is True
+    assert state.get("error_practice_active") is False
+    assert state.get("lesson_review_training_active") is True
+    assert state.get("lesson_review_training_step") == 1
+    assert "mit der Wiederholung weiter" in finished
+    assert "Grüße" in finished
