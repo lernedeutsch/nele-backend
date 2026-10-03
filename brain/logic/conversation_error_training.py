@@ -16,6 +16,10 @@ from brain.logic.response_engine import (
     create_teacher_directed_follow_up
 )
 
+from brain.logic.activity_resume import (
+    resume_current_training
+)
+
 from brain.memory.error_memory import (
     get_error_summary
 )
@@ -108,12 +112,20 @@ def continue_after_finished_training(
         state
     )
 
-    continuation = (
-        create_teacher_directed_follow_up(
-            state,
-            ""
-        )
+    # Error Practice is a temporary detour from the learner's current
+    # activity. Resume that exact activity first; only ask Teacher Mode to
+    # choose a new activity when there is genuinely nothing active to resume.
+    continuation = resume_current_training(
+        state
     )
+
+    if not continuation:
+        continuation = (
+            create_teacher_directed_follow_up(
+                state,
+                ""
+            )
+        )
 
     if (
         answer
