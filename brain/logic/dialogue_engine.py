@@ -773,12 +773,18 @@ def handle_dialogue(user_message, state):
         # immediate pass through the same support ladder. Move to the next
         # learner turn when the dialogue has one, while the failed skill stays
         # NOT_YET/needs_review in learning progress.
+        failed_turn_index = int(state.get("dialogue_turn", 0) or 0)
         next_index, spoken = _advance_to_learner(
             turns,
-            int(state.get("dialogue_turn", 0) or 0) + 1,
+            failed_turn_index + 1,
             state.get("dialogue_slots"),
         )
         if next_index < len(turns):
+            # Keep the exact failed learner turn. The next learner turn is a
+            # bounded transfer task; one successful transfer returns to this
+            # deferred turn instead of silently abandoning it.
+            state["dialogue_deferred_turn"] = failed_turn_index
+            state["dialogue_transfer_turn"] = next_index
             state["dialogue_turn"] = next_index
             state.pop("dialogue_retry_turn", None)
             next_prompt = _text(
@@ -1003,6 +1009,33 @@ def handle_dialogue(user_message, state):
         True,
         independent_confirmation=independent_confirmation,
     )
+
+    # A successful transfer after exhausted scaffolding must revisit the exact
+    # learner turn that was deferred. The transfer is guided practice and does
+    # not erase the unresolved target.
+    current_turn_index = int(state.get("dialogue_turn", 0) or 0)
+    deferred_turn = state.get("dialogue_deferred_turn")
+    transfer_turn = state.get("dialogue_transfer_turn")
+    if (
+        deferred_turn is not None
+        and transfer_turn is not None
+        and current_turn_index == int(transfer_turn)
+    ):
+        deferred_index = int(deferred_turn)
+        state["dialogue_turn"] = deferred_index
+        state.pop("dialogue_deferred_turn", None)
+        state.pop("dialogue_transfer_turn", None)
+        state["course_mastery_assistance_used"] = False
+        deferred = turns[deferred_index]
+        deferred_prompt = _text(
+            render_pattern(
+                deferred.get("prompt") or deferred.get("text"),
+                state.get("dialogue_slots") or {},
+            )
+        )
+        return " ".join(
+            part for part in [success, "Jetzt noch einmal:", deferred_prompt] if part
+        )
 
     if next_index >= len(turns):
         practice_continuation = _continue_section_after_practice_dialogue(dialogue, state)
