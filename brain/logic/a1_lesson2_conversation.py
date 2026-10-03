@@ -405,14 +405,17 @@ def handle(user_message,state):
     # and be recorded against the wrong skill.
     exhausted = consume_course_model_exhaustion(state)
     if exhausted:
-        state["course_mastery_assistance_used"] = True
+        # Preserve the exact failed task, then move to one bounded transfer
+        # task. The transfer is guided practice: it must not create independent
+        # mastery evidence after the learner has just exhausted scaffolding.
+        defer_course_task(state, task)
         _record_lesson2_mastery(state, False, task=task)
-        action = choose_course_teacher_action(
-            state,
-            answer_correct=True,
-            mastery_status="needs_review",
-        )
-        return render_course_teacher_action(action, prompt=task.get("prompt", ""))
+        m["turn"] += 1
+        transfer = _next_task(state, m.get("section", "Woher kommen Sie?"))
+        transfer = dict(transfer)
+        transfer["intent"] = "TRANSFER_" + str(transfer.get("intent", "PRACTICE"))
+        state["course_mastery_assistance_used"] = True
+        return _set_task(state, transfer)
 
     result=evaluate_lesson2_answer(user_message,task)
     m["last_result"]=result
@@ -447,6 +450,18 @@ def handle(user_message,state):
         # An assisted task is learned/practised, but cannot itself confirm
         # mastery. The next generated task starts clean and can do so.
         state["course_mastery_assistance_used"] = False
+
+        # After one successful transfer task, revisit the oldest exhausted
+        # task exactly as it was originally asked. This closes the deferred
+        # loop without treating the assisted transfer as mastery.
+        if str(task.get("intent", "")).startswith("TRANSFER_"):
+            deferred = pop_deferred_course_task(state)
+            if deferred:
+                revisit = _set_task(state, deferred)
+                if correction:
+                    return correction + " " + revisit
+                return "Genau! " + revisit
+
         m["turn"]+=1
         nxt=_set_task(state,_next_task(state,m.get("section","Woher kommen Sie?")))
         if correction: return correction+" "+nxt
