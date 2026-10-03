@@ -332,12 +332,18 @@ def test_generic_course_exhaustion_temporarily_varies_task_without_weakening_mas
 
     exhausted_reply = handle_generic_lesson_teaching("falsch", state)
     assert "später noch einmal" in exhausted_reply
-
-    follow_up = handle_generic_lesson_teaching("noch falsch", state)
-
-    assert "wechseln kurz die Aufgabe" in follow_up
-    assert "16 bis 20" in follow_up
+    assert "wechseln kurz die Aufgabe" in exhausted_reply
+    assert "16 bis 20" in exhausted_reply
     assert state["lesson_teaching_step"] == 2
+
+    # The very next learner message must already be evaluated as step 2,
+    # not consumed merely to perform the transition.
+    follow_up = handle_generic_lesson_teaching(
+        "sechzehn siebzehn achtzehn neunzehn zwanzig",
+        state,
+    )
+    assert "Zehner 30" in follow_up
+    assert state["lesson_teaching_step"] == 3
 
     skill = state["learning_progress_v1"]["skills"]["course:a1:3:zahlen_11–100"]
     assert skill["status"] == "needs_review"
