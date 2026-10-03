@@ -1631,10 +1631,14 @@ def handle_generic_lesson_teaching(
         return None
 
     pending_reply = handle_pending_course_model(user_message, state)
-    if pending_reply is not None:
+    # The final support turn may itself exhaust the bounded ladder. Consume
+    # that transition now, in the same Nele reply, so the learner's *next*
+    # message is evaluated against the new exercise instead of being swallowed
+    # merely to trigger the transition.
+    exhausted = consume_course_model_exhaustion(state)
+    if pending_reply is not None and not exhausted:
         return pending_reply
 
-    exhausted = consume_course_model_exhaustion(state)
     if exhausted:
         level = state.get("lesson_teaching_level")
         lesson = state.get("lesson_teaching_lesson")
@@ -1675,12 +1679,13 @@ def handle_generic_lesson_teaching(
             if review_step != current_step:
                 return " ".join(
                     part for part in (
+                        pending_reply,
                         "Wir wechseln kurz die Aufgabe und kommen später darauf zurück.",
                         reinforcement,
                     )
                     if part
                 )
-            return reinforcement
+            return " ".join(part for part in (pending_reply, reinforcement) if part)
 
     level = state.get(
         "lesson_teaching_level"
