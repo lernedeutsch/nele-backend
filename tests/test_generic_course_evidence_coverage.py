@@ -31,3 +31,37 @@ class GenericCourseFullEvidenceCoverageRegressionTests(unittest.TestCase):
         self.assertEqual(set(skill["independent_evidence"]), {"step:2", "step:3", "step:4"})
         self.assertEqual(set(skill["required_evidence"]), {"step:1", "step:2", "step:3", "step:4"})
         self.assertEqual(state["lesson_teaching_step"], 1)
+
+
+def test_clean_full_coverage_can_master_after_many_historical_failures():
+    from brain.logic.learning_progress_engine import update_learning_progress
+
+    skill = "course:a1:3:zahlen_11–100"
+    required = ["step:1", "step:2", "step:3", "step:4", "step:5"]
+    state = {}
+
+    # A difficult first attempt may accumulate many failures.
+    for _ in range(6):
+        update_learning_progress(state, {
+            "skill": skill,
+            "status": "NOT_YET",
+            "mastery_eligible": False,
+            "requires_independent_confirmation": True,
+            "required_evidence": required,
+        })
+
+    # One later clean pass demonstrates every required part independently.
+    result = None
+    for index in range(1, 6):
+        result = update_learning_progress(state, {
+            "skill": skill,
+            "status": "SUCCESS",
+            "mastery_eligible": index == 5,
+            "requires_independent_confirmation": True,
+            "independent_confirmation": True,
+            "required_evidence": required,
+            "evidence": f"step:{index}",
+        })
+
+    assert result["status"] == "mastered"
+    assert set(result["independent_evidence"]) == set(required)
