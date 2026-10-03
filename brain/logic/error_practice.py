@@ -1934,6 +1934,13 @@ def handle_error_practice_step_three(
                         "error_practice_used_hint"
                     ] = False
 
+                    # A new concrete mistake starts a fresh independent
+                    # transfer. Failed transfer attempts from the previous
+                    # example must not change the support level here.
+                    state[
+                        "error_practice_transfer_attempts"
+                    ] = 0
+
 
                     next_choice_prompt = (
                         build_error_choice_prompt(
