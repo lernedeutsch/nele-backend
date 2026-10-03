@@ -109,7 +109,7 @@ LESSON_FLOW = {
         },
 
         "Das Verb sein": {
-            "intro": "Jetzt üben wir das wichtige Verb „sein“: ich bin, du bist, er oder sie ist, wir sind, ihr seid, sie oder Sie sind.",
+            "intro": "Jetzt üben wir „sein“. Wir beginnen mit „ich“.",
             "steps": [
                 {
                     "prompt": "Ergänze: „Ich ___ 30 Jahre alt.“",
