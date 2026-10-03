@@ -75,6 +75,19 @@ def requested_course():
     return level, lesson
 
 
+def _assert_course_reply_contract(reply, *, level="A1"):
+    """Fail targeted Course Live when beginner-facing output breaks core v2 contracts."""
+    if str(level or "").upper() != "A1":
+        return
+    text = str(reply or "").strip()
+    if not text:
+        raise RuntimeError("Course Live returned an empty A1 teacher reply.")
+    banned = ("Mia:", "Antworte Mia.", "Du bist dran.")
+    leaked = [item for item in banned if item in text]
+    if leaked:
+        raise RuntimeError(f"Course Live leaked role-play teacher cues: {leaked}: {text}")
+
+
 def main():
     questions = requested_questions()
     requested_session = ""
@@ -84,9 +97,11 @@ def main():
             raise SystemExit("Existing Nele Live sessions must be chatgpt-live-test-*.")
     session_id = requested_session or f"chatgpt-live-test-{int(time.time())}-{uuid.uuid4().hex[:8]}"
     conversation_mode = requested_mode()
+    course_level = None
     print(f"MODE: {conversation_mode}", flush=True)
     if conversation_mode == "course":
         level, lesson = requested_course()
+        course_level = level
         if lesson is not None:
             student = requests.post(
                 STUDENT_URL,
@@ -199,7 +214,10 @@ def main():
             print(f"ERROR calling production Nele: {type(error).__name__}: {error}", flush=True)
             raise
         print(f"DU: {question}")
-        print(f"NELE: {payload.get('reply', '')}")
+        reply = payload.get("reply", "")
+        print(f"NELE: {reply}")
+        if conversation_mode == "course":
+            _assert_course_reply_contract(reply, level=course_level or "A1")
         meta = payload.get("meta") or {}
         diagnostic = {
             key: meta.get(key)
