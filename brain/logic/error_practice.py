@@ -264,6 +264,34 @@ def is_equivalent_correct_answer(
     return False
 
 
+def is_active_error_practice_correct_answer(
+    user_message,
+    correct_sentence,
+    state,
+):
+    """Accept the same explicit variants as the originating course step."""
+    error_type = (state or {}).get("error_practice_type")
+    candidates = [correct_sentence]
+    candidates.extend(
+        (state or {}).get("error_practice_example_accepted") or []
+    )
+
+    seen = set()
+    for candidate in candidates:
+        key = clean_error_practice_message(candidate)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        if is_equivalent_correct_answer(
+            user_message,
+            candidate,
+            error_type,
+        ):
+            return True
+
+    return False
+
+
 def get_active_error_practice_sentences(state, summary):
     """Return the concrete example currently owned by Error Practice.
 
@@ -779,6 +807,10 @@ def finish_error_practice(
         "error_practice_example_context"
     ] = None
 
+    state[
+        "error_practice_example_accepted"
+    ] = None
+
 
 # ==========================================
 # NASTĘPNY KROK PO ĆWICZENIU BŁĘDU
@@ -1251,6 +1283,10 @@ def start_error_practice(
     ] = context or None
 
     state[
+        "error_practice_example_accepted"
+    ] = list((example or {}).get("accepted") or [])
+
+    state[
         "error_practice_step"
     ] = 1
 
@@ -1404,12 +1440,10 @@ def handle_error_practice_step_one(
             user_message
         )
         or
-        is_equivalent_correct_answer(
+        is_active_error_practice_correct_answer(
             user_message,
             correct_sentence,
-            state.get(
-                "error_practice_type"
-            )
+            state
         )
     ):
 
@@ -1569,13 +1603,11 @@ def handle_error_practice_step_two(
     # DOBRA ODPOWIEDŹ
     # ======================================
 
-    if is_equivalent_correct_answer(
-        user_message,
-        correct_sentence,
-        state.get(
-            "error_practice_type"
-        )
-    ):
+    if is_active_error_practice_correct_answer(
+            user_message,
+            correct_sentence,
+            state
+        ):
 
         # Repeating a sentence that Nele has just shown is useful, but it
         # is not yet evidence of independent speaking. Remove the model
@@ -1614,10 +1646,10 @@ def handle_error_practice_step_three(
         summary,
     )
 
-    if is_equivalent_correct_answer(
+    if is_active_error_practice_correct_answer(
         user_message,
         correct_sentence,
-        state.get("error_practice_type")
+        state,
     ):
         error_type = state.get(
             "error_practice_type"
@@ -1885,6 +1917,10 @@ def handle_error_practice_step_three(
                     state[
                         "error_practice_example_context"
                     ] = next_context or None
+
+                    state[
+                        "error_practice_example_accepted"
+                    ] = list(next_example.get("accepted") or [])
 
                     state[
                         "error_practice_step"
