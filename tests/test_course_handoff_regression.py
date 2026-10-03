@@ -78,7 +78,7 @@ def test_lesson_two_cannot_finish_while_last_section_is_not_mastered():
     assert plan["section"] == "Zahlen 1–20"
 
 
-def test_lesson_two_mastery_does_not_invent_unavailable_lesson_three():
+def test_lesson_two_mastery_offers_real_lesson_three_first_section():
     state = _course_state(2, {
         "course:a1:2:woher_kommen_sie": "mastered",
         "course:a1:2:länder_und_nationalitäten": "mastered",
@@ -86,6 +86,18 @@ def test_lesson_two_mastery_does_not_invent_unavailable_lesson_three():
         "course:a1:2:zahlen_1–20": "mastered",
     })
     plan = get_next_new_learning_step(state)
-    assert plan["type"] == "lesson_completed"
-    assert plan["lesson"] == 2
-    assert plan["section"] is None
+    assert plan["type"] == "new_lesson"
+    assert plan["lesson"] == 3
+    assert plan["section"] == "Wie alt sind Sie?"
+
+
+def test_lesson_three_reopen_keeps_first_unmastered_section():
+    state = _course_state(3, {
+        "course:a1:3:wie_alt_sind_sie": "mastered",
+        "course:a1:3:zahlen_11–100": "mastered",
+        "course:a1:3:das_verb_sein": "practicing",
+    })
+    plan = get_next_new_learning_step(state)
+    assert plan["type"] == "new_section"
+    assert plan["lesson"] == 3
+    assert plan["section"] == "Das Verb sein"
