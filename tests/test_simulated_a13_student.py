@@ -57,7 +57,7 @@ class SimulatedA13StudentTests(unittest.TestCase):
             failed_step,
             msg=f"A1.3 lost deferred step after transfer: {transfer_reply}",
         )
-        self.assertIn("Wie alt sind Sie", transfer_reply)
+        self.assertIn("Frag höflich nach dem Alter", transfer_reply)
 
 
 if __name__ == "__main__":
