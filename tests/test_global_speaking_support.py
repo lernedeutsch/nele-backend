@@ -282,3 +282,31 @@ def test_generic_course_consumes_exhaustion_into_review_instead_of_loop():
     assert skill["status"] == "needs_review"
     assert state["lesson_teaching_step"] == 1
     assert state.get("course_model_practice_exhausted") is None
+
+
+def test_teacher_engine_wrong_answers_reach_shared_bounded_exhaustion():
+    from brain.logic.course_teacher_engine import (
+        choose_course_teacher_action,
+        render_course_teacher_action,
+    )
+    state = {"conversation_mode": "course"}
+
+    replies = []
+    for _ in range(3):
+        action = choose_course_teacher_action(
+            state,
+            answer_correct=False,
+            correct_answer="Wie alt sind Sie?",
+            retry="Formell mit „Sie“: „Wie alt sind Sie?“",
+        )
+        replies.append(render_course_teacher_action(action))
+
+    assert state["course_pending_speaking_model"] == "Wie alt sind Sie?"
+    assert state["course_speaking_support_level"] == 3
+
+    fourth = handle_pending_course_model("xyz", state)
+    assert "langsam" in fourth.lower()
+    fifth = handle_pending_course_model("xyz", state)
+    assert "später noch einmal" in fifth
+    assert state.get("course_pending_speaking_model") is None
+    assert state["course_model_practice_exhausted"] == "Wie alt sind Sie?"
