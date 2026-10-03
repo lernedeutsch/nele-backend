@@ -88,7 +88,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
     def test_guided_correction_cannot_restore_review_mastery(self):
         state = self.base_state()
-        record_review_course_outcome(state, 2, False)
+        record_review_course_outcome(state, 5, False)
         self.assertEqual(
             state["learning_progress_v1"]["skills"][
                 "course:a1:1:ich_stelle_mich_vor"
@@ -96,7 +96,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
             "needs_review",
         )
 
-        record_review_course_outcome(state, 2, True)
+        record_review_course_outcome(state, 5, True)
         self.assertEqual(
             state["learning_progress_v1"]["skills"][
                 "course:a1:1:ich_stelle_mich_vor"
@@ -109,7 +109,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
         skill = "course:a1:1:ich_stelle_mich_vor"
         record_review_course_outcome(state, 2, False)
         record_review_course_outcome(state, 2, True)  # guided correction
-        record_review_course_outcome(state, 3, True)  # only one fresh evidence item
+        record_review_course_outcome(state, 6, True)  # only one fresh evidence item
 
         self.assertEqual(
             state["learning_progress_v1"]["skills"][skill]["status"],
@@ -122,8 +122,8 @@ class LessonReviewMasteryTests(unittest.TestCase):
         record_review_course_outcome(state, 2, False)
         record_review_course_outcome(state, 2, True)  # guided correction
         record_review_course_outcome(state, 2, True)  # fresh introduce-self evidence
-        record_review_course_outcome(state, 3, True)
-        record_review_course_outcome(state, 4, True)
+        record_review_course_outcome(state, 6, True)
+        record_review_course_outcome(state, 7, True)
 
         self.assertEqual(
             state["learning_progress_v1"]["skills"][skill]["status"],
@@ -220,7 +220,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
         reply = handle_a1_lesson_1_review("A O U", state)
 
-        self.assertIn("Ä, Ö und Ü", reply)
+        self.assertIn("Umlaute", reply)
         self.assertEqual(state["lesson_review_training_step"], 8)
         self.assertTrue(state["lesson_review_training_active"])
         self.assertEqual(
@@ -247,7 +247,7 @@ class LessonReviewMasteryTests(unittest.TestCase):
 
         reply = handle_a1_lesson_1_review("Doppel-s", state)
 
-        self.assertIn("Eszett", reply)
+        self.assertIn("ß", reply)
         self.assertEqual(state["lesson_review_training_step"], 9)
         self.assertTrue(state["lesson_review_training_active"])
         self.assertEqual(
