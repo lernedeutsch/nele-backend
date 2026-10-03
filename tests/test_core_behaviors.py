@@ -2117,7 +2117,7 @@ class NeleCoreBehaviorTests(unittest.TestCase):
         answer = continue_after_finished_training("Genau!", state)
 
         self.assertIn("Genau!", answer)
-        self.assertIn("Woher kommst du", answer)
+        self.assertIn("Anna kommt aus Polen", answer)
         self.assertNotIn("Mia: Hallo", answer)
         self.assertEqual(
             state.get("lesson_teaching_section"),
