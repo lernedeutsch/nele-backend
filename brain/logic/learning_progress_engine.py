@@ -148,10 +148,7 @@ def update_learning_progress(state, outcome):
         outcome.get("independent_confirmation")
         and outcome.get("status") == "SUCCESS"
     )
-    # Only an actual review-confirmation attempt belongs to review semantics.
-    # Course outcomes always carry the field, often as False; field presence
-    # alone must not trap a normal clean lesson pass in needs_review forever.
-    item["last_review_attempt"] = bool(outcome.get("review_confirmation"))
+    item["last_review_attempt"] = "review_confirmation" in outcome
     item["last_review_confirmation"] = bool(
         outcome.get("review_confirmation")
         and outcome.get("independent_confirmation")
