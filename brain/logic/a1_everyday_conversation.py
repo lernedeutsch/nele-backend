@@ -42,6 +42,7 @@ def a1_everyday_reply(text, last_question, state=None):
       "was putzt du bei der arbeit":"Ich putze nicht wirklich. Was putzt du bei der Arbeit?",
       "was putzt du auf der arbeit":"Ich putze nicht wirklich. Was putzt du bei der Arbeit?",
       "was reinigst du bei der arbeit":"Ich reinige nicht wirklich. Was reinigst du bei der Arbeit?",
+      "was machst du nach der arbeit":"Nach der Arbeit ruhe ich mich aus. Und du?",
     }
     if low in direct: return direct[low]
     if learner_question:
@@ -76,6 +77,23 @@ def a1_everyday_reply(text, last_question, state=None):
         if low in {"zimmer", "die zimmer", "hotelzimmer"}:
             facts["work_activity_detail"] = "Zimmer"
             return "Du kannst sagen: „Ich reinige Zimmer.“ Wie viele Zimmer reinigst du normalerweise?"
+
+    # Active-question answer slots run before generic topic routing. They keep
+    # a concrete answer attached to the question Nele just asked.
+    if re.search(r"wie viele\s+zimmer\s+putzt du", last):
+        m = re.fullmatch(r"(?:ich habe\s+)?(\d{1,2})\s+zimmer", low)
+        if m:
+            count = m.group(1)
+            facts["work_room_count"] = int(count)
+            return f"Du kannst sagen: „Ich putze {count} Zimmer.“ Was machst du nach der Arbeit?"
+
+    if re.search(r"was machst du nach der arbeit", last):
+        if re.search(r"\bich\s+gehe\s+(?:nach\s+)?hause\b", low):
+            facts["after_work"] = "nach Hause"
+            return "Schön. Was machst du abends?"
+        if re.search(r"\bich\s+(?:ruhe|schlafe)\b", low):
+            facts["after_work"] = raw.strip(" .?!")
+            return "Verstehe. Und was machst du am Abend?"
 
     # Learner-led intent/content has priority over stale last_question context.
     # Only genuinely short/dependent answers should continue the previous turn.
