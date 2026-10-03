@@ -30,15 +30,81 @@ def semantic_tokens(value):
     ]
 
 
+_GERMAN_NUMBER_WORDS = {
+    0: "null", 1: "eins", 2: "zwei", 3: "drei", 4: "vier", 5: "fünf",
+    6: "sechs", 7: "sieben", 8: "acht", 9: "neun", 10: "zehn",
+    11: "elf", 12: "zwölf", 13: "dreizehn", 14: "vierzehn", 15: "fünfzehn",
+    16: "sechzehn", 17: "siebzehn", 18: "achtzehn", 19: "neunzehn",
+    20: "zwanzig", 30: "dreißig", 40: "vierzig", 50: "fünfzig",
+    60: "sechzig", 70: "siebzig", 80: "achtzig", 90: "neunzig", 100: "hundert",
+}
+
+
+def _german_number_word(number):
+    """Return the canonical German cardinal for the A1 range 0..100."""
+    try:
+        number = int(number)
+    except (TypeError, ValueError):
+        return None
+    if number in _GERMAN_NUMBER_WORDS:
+        return _GERMAN_NUMBER_WORDS[number]
+    if 21 <= number <= 99:
+        ones = number % 10
+        tens = number - ones
+        one_word = "ein" if ones == 1 else _GERMAN_NUMBER_WORDS.get(ones)
+        tens_word = _GERMAN_NUMBER_WORDS.get(tens)
+        if one_word and tens_word:
+            return f"{one_word}und{tens_word}"
+    return None
+
+
+def _expand_digit_tokens(tokens):
+    expanded = []
+    for token in tokens:
+        if token.isdigit() and len(token) <= 3:
+            word = _german_number_word(token)
+            if word:
+                expanded.append(word)
+                continue
+        expanded.append(token)
+    return expanded
+
+
 def semantic_equivalent(user_message, accepted_values, render=None):
     render = render or (lambda value: str(value or ""))
     learner_tokens = semantic_tokens(user_message)
     if len(learner_tokens) < 2:
         return False
 
-    learner_bag = sorted(learner_tokens)
     for value in accepted_values or []:
         target_tokens = semantic_tokens(render(value))
+        # Complete natural sentences may express the same number with digits
+        # or words. Keep standalone number-word drills strict by applying this
+        # only inside semantic sentence comparison (which requires >=2 tokens).
+        number_words = set(_GERMAN_NUMBER_WORDS.values())
+        number_words.update(
+            word for number in range(21, 100)
+            if (word := _german_number_word(number))
+        )
+        def _non_number_context(tokens):
+            return {
+                token for token in tokens
+                if not (token.isdigit() and len(token) <= 3)
+                and token not in number_words
+            }
+
+        # Convert digits only when both forms share real sentence context
+        # (e.g. "ich bin ... jahre alt"). Pure number drills stay strict.
+        shared_context = (
+            _non_number_context(learner_tokens)
+            & _non_number_context(target_tokens)
+        )
+        if shared_context:
+            learner_compare = _expand_digit_tokens(learner_tokens)
+            target_tokens = _expand_digit_tokens(target_tokens)
+        else:
+            learner_compare = learner_tokens
+        learner_bag = sorted(learner_compare)
         if len(target_tokens) < 2:
             continue
 
@@ -52,19 +118,19 @@ def semantic_equivalent(user_message, accepted_values, render=None):
             len(target_tokens) >= 2
             and len(learner_tokens) >= 2
             and target_tokens[0] in subject_pronouns
-            and learner_tokens[0] == target_tokens[0]
-            and learner_tokens[1] != target_tokens[1]
+            and learner_compare[0] == target_tokens[0]
+            and learner_compare[1] != target_tokens[1]
         ):
             continue
 
         if learner_bag == sorted(target_tokens):
             if target_tokens[0] in subject_pronouns and len(target_tokens) >= 3:
-                if learner_tokens == target_tokens:
+                if learner_compare == target_tokens:
                     return True
                 model_subject = target_tokens[0]
                 model_verb = target_tokens[1]
                 tail = target_tokens[2:]
-                if learner_tokens == tail + [model_verb, model_subject]:
+                if learner_compare == tail + [model_verb, model_subject]:
                     return True
                 # A fronted prefix must be able to stand as a constituent.
                 # Never split immediately after a word that requires its
@@ -80,7 +146,7 @@ def semantic_equivalent(user_message, accepted_values, render=None):
                     if tail[split - 1] in dangling_fronting_words:
                         continue
                     candidate = tail[:split] + [model_verb, model_subject] + tail[split:]
-                    if learner_tokens == candidate:
+                    if learner_compare == candidate:
                         return True
                 continue
             return True
@@ -93,7 +159,7 @@ def semantic_equivalent(user_message, accepted_values, render=None):
             # remaining model order. Bag comparison here accepted malformed
             # productions such as "Komme Italien aus" for
             # "Ich komme aus Italien".
-            if len(reduced) >= 2 and learner_tokens == reduced:
+            if len(reduced) >= 2 and learner_compare == reduced:
                 return True
     return False
 
