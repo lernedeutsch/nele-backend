@@ -168,7 +168,7 @@ LESSON_FLOW = {
             "steps": [
                 {
                     "prompt": "Frag höflich nach dem Namen.",
-                    "accepted": ["Wie ist Ihr Name?"],
+                    "accepted": ["Wie ist Ihr Name?", "Wie heißen Sie?"],
                     "correct_answer": "Wie ist Ihr Name?",
                     "error_type": "grammar",
                     "retry": "Formell: „Wie ist Ihr Name?“",
