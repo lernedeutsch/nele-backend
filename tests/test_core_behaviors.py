@@ -2506,3 +2506,28 @@ def test_error_practice_uses_selected_example_not_stale_category_summary():
 
     assert reply == "Genau!"
     assert state["error_practice_active"] is False
+
+
+def test_reopen_resumes_error_practice_independent_transfer_step_three():
+    from brain.logic.activity_resume import resume_error_training
+
+    state = {
+        "error_practice_active": True,
+        "error_practice_type": "grammar",
+        "error_practice_step": 3,
+        "error_practice_example_wrong": "Pizza",
+        "error_practice_example_correct": "Wie alt sind Sie?",
+        "error_memory": {
+            "grammar": {
+                "last_wrong": "Pizza",
+                "last_correct": "Wie alt sind Sie?",
+            }
+        },
+    }
+
+    reply = resume_error_training(state)
+
+    assert reply == (
+        "Jetzt machen wir genau dort weiter. "
+        "Jetzt ohne Auswahl: Was sagst du?"
+    )
