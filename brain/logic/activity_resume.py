@@ -217,6 +217,14 @@ def resume_error_training(
         )
 
 
+    if step == 3:
+
+        return (
+            "Jetzt machen wir genau dort weiter. "
+            "Jetzt ohne Auswahl: Was sagst du?"
+        )
+
+
     return None
 
 
